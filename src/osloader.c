@@ -432,7 +432,7 @@ static void boot(unsigned long entry)
 	info.mbinfo.memlower = meminfo.basememsize;
 	info.mbinfo.memupper = meminfo.memsize;
 	info.mbinfo.bootdev = 0;	/* not booted from disk */
-	info.mbinfo.cmdline = cmdline;
+	info.mbinfo.cmdline = virt_to_phys(cmdline);
 	info.mbinfo.e820entry_size = sizeof(struct e820entry);
 	info.mbinfo.mmap_length = 
 		info.mbinfo.e820entry_size * meminfo.map_count;
