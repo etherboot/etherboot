@@ -116,7 +116,7 @@ unsigned int pcbios_disk_read ( int drive, int cylinder, int head, int sector,
 		reg16_t ax;
 		reg16_t cx;
 		reg16_t dx;
-		segoff16_t buffer;
+		segoff_t buffer;
 	} PACKED in_stack;
 	struct {
 		reg16_t flags;
@@ -143,7 +143,7 @@ unsigned int pcbios_disk_read ( int drive, int cylinder, int head, int sector,
 	in_stack.dx.l = drive;
 	in_stack.buffer.segment = SEGMENT ( buf );
 	in_stack.buffer.offset = OFFSET ( buf );
-	ret_ax = real_call ( rm_pcbios_disk_read, &in_stack, &out_stack );
+	ret_ax.word = real_call ( rm_pcbios_disk_read, &in_stack, &out_stack );
 	return ( out_stack.flags.word & CF ) ? ret_ax.word : 0;
 }
 #endif /* CAN_BOOT_DISK */
