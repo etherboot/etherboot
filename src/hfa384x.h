@@ -57,6 +57,10 @@
 #define _HFA384x_H
 
 /*=============================================================*/
+#define HFA384x_FIRMWARE_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
+
+#define HFA384x_LEVEL_TO_dBm(v)   (0x100 + (v) * 100 / 255 - 100)
+
 /*------ Constants --------------------------------------------*/
 /*--- Mins & Maxs -----------------------------------*/
 #define		HFA384x_CMD_ALLOC_LEN_MIN	((UINT16)4)
@@ -97,6 +101,20 @@
 #define		HFA384x_WEPFLAGS_IV_INTERVAL10		((UINT16)BIT5)
 #define		HFA384x_WEPFLAGS_IV_INTERVAL50		((UINT16)BIT6)
 #define		HFA384x_WEPFLAGS_IV_INTERVAL100		((UINT16)(BIT5 | BIT6))
+#define 	HFA384x_ROAMMODE_FWSCAN_FWROAM		((UINT16)1)
+#define 	HFA384x_ROAMMODE_FWSCAN_HOSTROAM	((UINT16)2)
+#define 	HFA384x_ROAMMODE_HOSTSCAN_HOSTROAM	((UINT16)3)
+#define 	HFA384x_PORTSTATUS_DISABLED		((UINT16)1)
+#define 	HFA384x_PORTSTATUS_INITSRCH		((UINT16)2)
+#define 	HFA384x_PORTSTATUS_CONN_IBSS		((UINT16)3)
+#define 	HFA384x_PORTSTATUS_CONN_ESS		((UINT16)4)
+#define 	HFA384x_PORTSTATUS_OOR_ESS		((UINT16)5)
+#define 	HFA384x_PORTSTATUS_CONN_WDS		((UINT16)6)
+#define 	HFA384x_PORTSTATUS_HOSTAP		((UINT16)8)
+#define		HFA384x_RATEBIT_1			((UINT16)1)
+#define		HFA384x_RATEBIT_2			((UINT16)2)
+#define		HFA384x_RATEBIT_5dot5			((UINT16)4)
+#define		HFA384x_RATEBIT_11			((UINT16)8)
 
 /*--- Just some symbolic names for legibility -------*/
 #define		HFA384x_TXCMD_NORECL		((UINT16)0)
@@ -104,14 +122,16 @@
 
 /*--- MAC Internal memory constants and macros ------*/
 /* masks and macros used to manipulate MAC internal memory addresses. */
-/* MAC internal memory addresses are 23 bit quantities.  The MAC uses a paged address
- * space where the upper 16 bits are the page number and the lower 7 bits are the offset.
- * There are various Host API elements that require two 16-bit quantities to specify
- * a MAC internal memory address.  Unfortunately, some of the API's use a page/offset
- * format where the offset value is JUST the lower seven bits and the page is 
- * the remaining 16 bits.  Some of the API's assume that the 23 bit address has been
- * split at the 16th bit.  We refer to these two formats as AUX format and
- * CMD format.  The macros below help handle some of this.
+/* MAC internal memory addresses are 23 bit quantities.  The MAC uses 
+ * a paged address space where the upper 16 bits are the page number 
+ * and the lower 7 bits are the offset.  There are various Host API 
+ * elements that require two 16-bit quantities to specify a MAC 
+ * internal memory address.  Unfortunately, some of the API's use a 
+ * page/offset format where the offset value is JUST the lower seven 
+ * bits and the page is  the remaining 16 bits.  Some of the API's 
+ * assume that the 23 bit address has been split at the 16th bit.  We 
+ * refer to these two formats as AUX format and CMD format.  The 
+ * macros below help handle some of this.
  */ 
 
 /* Handy constant */
@@ -133,25 +153,25 @@
 
 /* Make a 32-bit flat address from AUX format 16-bit page and offset */
 #define		HFA384x_ADDR_AUX_MKFLAT(p,o)	\
-			(((UINT32)(((UINT16)(p))&HFA384x_ADDR_AUX_PAGE_MASK)) <<7) | \
-			((UINT32)(((UINT16)(o))&HFA384x_ADDR_AUX_OFF_MASK))
+		(((UINT32)(((UINT16)(p))&HFA384x_ADDR_AUX_PAGE_MASK)) <<7) | \
+		((UINT32)(((UINT16)(o))&HFA384x_ADDR_AUX_OFF_MASK))
 
 /* Make a 32-bit flat address from CMD format 16-bit page and offset */
 #define		HFA384x_ADDR_CMD_MKFLAT(p,o)	\
-			(((UINT32)(((UINT16)(p))&HFA384x_ADDR_CMD_PAGE_MASK)) <<16) | \
-			((UINT32)(((UINT16)(o))&HFA384x_ADDR_CMD_OFF_MASK))
+		(((UINT32)(((UINT16)(p))&HFA384x_ADDR_CMD_PAGE_MASK)) <<16) | \
+		((UINT32)(((UINT16)(o))&HFA384x_ADDR_CMD_OFF_MASK))
 
 /* Make AUX format offset and page from a 32-bit flat address */
 #define		HFA384x_ADDR_AUX_MKPAGE(f) \
-			((UINT16)((((UINT32)(f))&HFA384x_ADDR_FLAT_AUX_PAGE_MASK)>>7))
+		((UINT16)((((UINT32)(f))&HFA384x_ADDR_FLAT_AUX_PAGE_MASK)>>7))
 #define		HFA384x_ADDR_AUX_MKOFF(f) \
-			((UINT16)(((UINT32)(f))&HFA384x_ADDR_FLAT_AUX_OFF_MASK))
+		((UINT16)(((UINT32)(f))&HFA384x_ADDR_FLAT_AUX_OFF_MASK))
 
 /* Make CMD format offset and page from a 32-bit flat address */
 #define		HFA384x_ADDR_CMD_MKPAGE(f) \
-			((UINT16)((((UINT32)(f))&HFA384x_ADDR_FLAT_CMD_PAGE_MASK)>>16))
+		((UINT16)((((UINT32)(f))&HFA384x_ADDR_FLAT_CMD_PAGE_MASK)>>16))
 #define		HFA384x_ADDR_CMD_MKOFF(f) \
-			((UINT16)(((UINT32)(f))&HFA384x_ADDR_FLAT_CMD_OFF_MASK))
+		((UINT16)(((UINT32)(f))&HFA384x_ADDR_FLAT_CMD_OFF_MASK))
 
 /*--- Aux register masks/tests ----------------------*/
 /* Some of the upper bits of the AUX offset register are used to */
@@ -162,7 +182,8 @@
 #define		HFA384x_AUX_CTL_ICSRAM	(0x03)
 
 /* Make AUX register offset and page values from a flat address */
-#define		HFA384x_AUX_MKOFF(f, c)	(HFA384x_ADDR_AUX_MKOFF(f) | (((UINT16)(c))<<12))
+#define		HFA384x_AUX_MKOFF(f, c) \
+	(HFA384x_ADDR_AUX_MKOFF(f) | (((UINT16)(c))<<12))
 #define		HFA384x_AUX_MKPAGE(f)	HFA384x_ADDR_AUX_MKPAGE(f)
 
 
@@ -385,8 +406,6 @@ Configuration RIDs: Network Parameters, Static Configuration Entities
 #define		HFA384x_RID_CNFWDSADDR5		((UINT16)0xFC15)
 #define		HFA384x_RID_CNFWDSADDR6		((UINT16)0xFC16)
 #define		HFA384x_RID_CNFMCASTPMBUFF	((UINT16)0xFC17)
-#define		HFA384x_RID_CNFAUTHENTICATION	((UINT16)0xFC2A)
-#define		HFA384x_RID_CNFSHORTPREAMBLE	((UINT16)0xFCB0)
 
 /*--------------------------------------------------------------------
 Configuration RID lengths: Network Params, Static Config Entities
@@ -571,7 +590,10 @@ Information RIDs:  MAC Information
 #define		HFA384x_RID_CURRENTTXRATE5	((UINT16)0xFD84)
 #define		HFA384x_RID_CURRENTTXRATE6	((UINT16)0xFD85)
 #define		HFA384x_RID_OWNMACADDRESS	((UINT16)0xFD86)
-/* #define	HFA384x_RID_PCFINFO		((UINT16)0xFD87) PRISM2:deprecated */
+// #define	HFA384x_RID_PCFINFO		((UINT16)0xFD87)
+#define		HFA384x_RID_SCANRESULTS       	((UINT16)0xFD88) // NEW
+#define		HFA384x_RID_HOSTSCANRESULTS   	((UINT16)0xFD89) // NEW
+#define		HFA384x_RID_AUTHENTICATIONUSED	((UINT16)0xFD8A) // NEW
 
 /*--------------------------------------------------------------------
 Information RID Lengths:  MAC Information
@@ -638,12 +660,13 @@ API ENHANCEMENTS (NOT ALREADY IMPLEMENTED)
 #define		HFA384x_RID_CNFWEPDEFAULTKEY3	((UINT16)0xFC27)
 #define		HFA384x_RID_CNFWEPFLAGS		((UINT16)0xFC28)
 #define		HFA384x_RID_CNFWEPKEYMAPTABLE	((UINT16)0xFC29)
+#define		HFA384x_RID_CNFAUTHENTICATION	((UINT16)0xFC2A)
 #define		HFA384x_RID_CNFMAXASSOCSTATIONS	((UINT16)0xFC2B)
 #define		HFA384x_RID_CNFTXCONTROL	((UINT16)0xFC2C)
 #define		HFA384x_RID_CNFROAMINGMODE	((UINT16)0xFC2D)
 #define		HFA384x_RID_CNFHOSTAUTH		((UINT16)0xFC2E)
 #define		HFA384x_RID_CNFRCVCRCERROR	((UINT16)0xFC30)
-#define		HFA384x_RID_CNFMMLIFE		((UINT16)0xFC31)
+// #define		HFA384x_RID_CNFMMLIFE		((UINT16)0xFC31)
 #define		HFA384x_RID_CNFALTRETRYCNT	((UINT16)0xFC32)
 #define		HFA384x_RID_CNFAPBCNINT		((UINT16)0xFC33)
 #define		HFA384x_RID_CNFAPPCFINFO	((UINT16)0xFC34)
@@ -652,21 +675,23 @@ API ENHANCEMENTS (NOT ALREADY IMPLEMENTED)
 #define		HFA384x_RID_CNFTIMCTRL		((UINT16)0xFC40)
 #define		HFA384x_RID_CNFTHIRTY2TALLY	((UINT16)0xFC42)
 #define		HFA384x_RID_CNFENHSECURITY	((UINT16)0xFC43)
+#define		HFA384x_RID_CNFDBMADJUST  	((UINT16)0xFC46) // NEW
 #define		HFA384x_RID_CNFSHORTPREAMBLE	((UINT16)0xFCB0)
 #define		HFA384x_RID_CNFEXCLONGPREAMBLE	((UINT16)0xFCB1)
 #define		HFA384x_RID_CNFAUTHRSPTIMEOUT	((UINT16)0xFCB2)
 #define		HFA384x_RID_CNFBASICRATES	((UINT16)0xFCB3)
-#define		HFA384x_RID_CNFSUPPRATES	((UINT16)0xFCB4)
+#define		HFA384x_RID_CNFSUPPRATES	((UINT16)0xFCB4) 
+#define		HFA384x_RID_CNFFALLBACKCTRL	((UINT16)0xFCB5) // NEW 
+#define		HFA384x_RID_WEPKEYDISABLE  	((UINT16)0xFCB6) // NEW
+#define		HFA384x_RID_WEPKEYMAPINDEX 	((UINT16)0xFCB7) // NEW AP
+#define		HFA384x_RID_BROADCASTKEYID 	((UINT16)0xFCB8) // NEW AP
+#define		HFA384x_RID_ENTSECFLAGEYID 	((UINT16)0xFCB9) // NEW AP
+#define		HFA384x_RID_CNFPASSIVESCANCTRL	((UINT16)0xFCB9) // NEW STA
 #define		HFA384x_RID_SCANREQUEST		((UINT16)0xFCE1)
 #define		HFA384x_RID_JOINREQUEST		((UINT16)0xFCE2)
 #define		HFA384x_RID_AUTHENTICATESTA	((UINT16)0xFCE3)
 #define		HFA384x_RID_CHANNELINFOREQUEST	((UINT16)0xFCE4)
-#define		HFA384x_RID_SCANRESULTS		((UINT16)0xF101)
-#define		HFA384x_RID_CHANNELINFORESULTS	((UINT16)0xF102)
-#define		HFA384x_RID_LINKSTATUS		((UINT16)0xF200)
-#define		HFA384x_RID_ASSOCIATIONSTATUS	((UINT16)0xF201)
-#define		HFA384x_RID_AUTHENTICATIONREQ	((UINT16)0xF202)
-#define		HFA384x_RID_POWERSAVEUSERCNT	((UINT16)0xF203)
+#define		HFA384x_RID_HOSTSCAN          	((UINT16)0xFCE5) // NEW STA
 
 #define		HFA384x_RID_CNFWEPDEFAULTKEY_LEN	((UINT16)6)
 #define		HFA384x_RID_CNFWEP128DEFAULTKEY_LEN	((UINT16)14)
@@ -840,15 +865,10 @@ PD Record codes
 #define		HFA384x_CONTROL_AUXEN_GET(value)	((UINT16)(((UINT16)(value)) >> 14))
 
 /* Byte Order */
-#if (WLAN_OS == WLAN_LINUX_KERNEL ||  WLAN_OS == WLAN_LINUX_USER)
-	#define hfa384x2host_16(n)	(__le16_to_cpu((UINT16)(n)))
-	#define hfa384x2host_32(n)	(__le32_to_cpu((UINT32)(n)))
-	#define host2hfa384x_16(n)	(__cpu_to_le16((UINT16)(n)))
-	#define host2hfa384x_32(n)	(__cpu_to_le32((UINT32)(n)))
-#else
-	#error "Unsupported WLAN_OS detected"
-#endif
-
+#define hfa384x2host_16(n)	(__le16_to_cpu((UINT16)(n)))
+#define hfa384x2host_32(n)	(__le32_to_cpu((UINT32)(n)))
+#define host2hfa384x_16(n)	(__cpu_to_le16((UINT16)(n)))
+#define host2hfa384x_32(n)	(__cpu_to_le32((UINT32)(n)))
 
 /* Host Maintained State Info */
 #define HFA384x_STATE_PREINIT	0
@@ -1046,6 +1066,11 @@ typedef struct hfa384x_CreateIBSS
 	UINT16	CreateIBSS		__WLAN_ATTRIB_PACK__;
 } __WLAN_ATTRIB_PACK__ hfa384x_CreateIBSS_t;
 
+#define HFA384x_CREATEIBSS_JOINCREATEIBSS          0
+#define HFA384x_CREATEIBSS_JOINESS_JOINCREATEIBSS  1
+#define HFA384x_CREATEIBSS_JOINIBSS                2
+#define HFA384x_CREATEIBSS_JOINESS_JOINIBSS        3
+
 /*-- Configuration Record: FragmentationThreshold --*/
 typedef struct hfa384x_FragmentationThreshold
 {
@@ -1076,6 +1101,14 @@ typedef struct hfa384x_ScanRequest_data
 	UINT16	channelList		__WLAN_ATTRIB_PACK__;
 	UINT16	txRate			__WLAN_ATTRIB_PACK__;
 } __WLAN_ATTRIB_PACK__ hfa384x_ScanRequest_data_t;
+
+/*-- Configuration Record: HostScanRequest (data portion only) --*/
+typedef struct hfa384x_HostScanRequest_data
+{
+	UINT16	channelList		__WLAN_ATTRIB_PACK__;
+	UINT16	txRate			__WLAN_ATTRIB_PACK__;
+	hfa384x_bytestr32_t ssid        __WLAN_ATTRIB_PACK__;
+} __WLAN_ATTRIB_PACK__ hfa384x_HostScanRequest_data_t;
 
 /*-- Configuration Record: JoinRequest (data portion only) --*/
 typedef struct hfa384x_JoinRequest_data
@@ -1622,10 +1655,12 @@ Information Types
 #define		HFA384x_IT_COMMTALLIES			((UINT16)0xF100UL)
 #define		HFA384x_IT_SCANRESULTS			((UINT16)0xF101UL)
 #define		HFA384x_IT_CHINFORESULTS		((UINT16)0xF102UL)
+#define		HFA384x_IT_HOSTSCANRESULTS		((UINT16)0xF103UL)//NEW
 #define		HFA384x_IT_LINKSTATUS			((UINT16)0xF200UL)
 #define		HFA384x_IT_ASSOCSTATUS			((UINT16)0xF201UL)
 #define		HFA384x_IT_AUTHREQ			((UINT16)0xF202UL)
 #define		HFA384x_IT_PSUSERCNT			((UINT16)0xF203UL)
+#define		HFA384x_IT_KEYIDCHANGED			((UINT16)0xF204UL)//NEW AP
 
 /*--------------------------------------------------------------------
 Information Frames Structures
@@ -2292,8 +2327,8 @@ typedef struct hfa384x_usbctlx
 	struct timer_list	reqtimer;	/* For IN(response)wait */
 	struct timer_list	resptimer;	/* For OUT(request) wait */
 	volatile UINT32		state;		/* Tracks running state */
+	int                     wanna_wakeup;   /* Flag to wakeup sync calls */
 	int			is_async;	/* Q'd by sync or async call */
-	wait_queue_head_t	waitq;		/* Sleeper for sync callers */
 	ctlx_usercb_t		usercb;		/* Async user callback, */
 	void			*usercb_data;	/*  at CTLX completion  */
 	int			variant;	/* Identifies cmd variant */
@@ -2319,6 +2354,26 @@ typedef struct hfa384x_usbctlxq
 } hfa384x_usbctlxq_t;
 #endif
 
+typedef struct hfa484x_metacmd
+{
+	UINT16		cmd;
+
+	UINT16          parm0;
+	UINT16          parm1;
+	UINT16          parm2;
+
+	UINT16		status;		/* in host order */
+
+	UINT16		resp0;		/* in host order */
+	UINT16		resp1;		/* in host order */
+	UINT16		resp2;		/* in host order */	
+#if 0 //XXX cmd irq stuff
+	UINT16          bulkid;         /* what RID/FID to copy down. */
+	int             bulklen;        /* how much to copy from BAP */
+	char            *bulkdata;      /* And to where? */
+#endif
+} hfa384x_metacmd_t;
+
 typedef struct hfa384x
 {
 #if (WLAN_HOSTIF != WLAN_USB)
@@ -2337,12 +2392,16 @@ typedef struct hfa384x
 	hfa384x_usbout_t	txbuff;
 	UINT16			intbuff[4];
 	int			rxurb_posted;
-
 	hfa384x_usbctlxq_t	ctlxq;
-	
+	int                     endp_in;
+	int                     endp_out;
 #endif /* !USB */
 
+	int                     sniff_fcs;
+	int                     sniff_channel;  
+	int                     sniff_truncate;  
 
+	wait_queue_head_t cmdq;	        /* wait queue itself */
 
 	/* Controller state */
 	UINT32		state;
@@ -2351,7 +2410,6 @@ typedef struct hfa384x
 	UINT8		port_enabled[HFA384x_NUMPORTS_MAX];
 #if (WLAN_HOSTIF != WLAN_USB)
 	UINT		auxen;
-	UINT32		bap;
 #endif /* !USB */
 
 	/* Download support */
@@ -2359,32 +2417,28 @@ typedef struct hfa384x
 	hfa384x_downloadbuffer_t	bufinfo;
 	UINT16				dltimeout;
 
-	/* Command support */
-	spinlock_t	cmdlock;
-	UINT16		lastcmd;
-	UINT16		status;		/* in host order */
-	UINT16		resp0;		/* in host order */
-	UINT16		resp1;		/* in host order */
-	UINT16		resp2;		/* in host order */
-
 #if (WLAN_HOSTIF != WLAN_USB)
+	spinlock_t	cmdlock;
+	int             cmdflag;        /* wait queue flag */
+	hfa384x_metacmd_t *cmddata;      /* for our async callback */
+
 	/* BAP support */
-	spinlock_t	baplock[2];	
+	spinlock_t	baplock;	
 
 	/* MAC buffer ids */
 	spinlock_t	txfid_lock;
-#ifdef USE_FID_STACK
-	UINT		txfid_top;
-	UINT16		txfid_stack[HFA384x_DRVR_FIDSTACKLEN_MAX];
-#else
         UINT16          txfid_head;
         UINT16          txfid_tail;
         UINT            txfid_N;
         UINT16          txfid_queue[HFA384x_DRVR_FIDSTACKLEN_MAX];
-#endif /* USE_FID_STACK */
 	UINT16			infofid;
 	struct semaphore	infofid_sem;
 #endif /* !USB */
+
+	int                          scanflag;    /* to signal scan comlete */
+	int                          join_ap;        /* are we joined to a specific ap */
+	int                          join_retries;   /* number of join retries till we fail */
+	hfa384x_JoinRequest_data_t   joinreq;        /* join request saved data */
 } hfa384x_t;
 
 /*=============================================================*/
@@ -2447,14 +2501,9 @@ hfa384x_drvr_handover( hfa384x_t *hw, UINT8 *addr);
 int
 hfa384x_drvr_hostscanresults( hfa384x_t *hw);
 int
-hfa384x_drvr_low_level(
-	hfa384x_t *hw,
-	UINT32 command,
-	UINT32 param0,
-	UINT32 param1,
-	UINT32 param2);
+hfa384x_drvr_low_level(hfa384x_t *hw, hfa384x_metacmd_t *cmd);
 int
-hfa384x_drvr_mmi_read(hfa384x_t *hw, UINT32 address);
+hfa384x_drvr_mmi_read(hfa384x_t *hw, UINT32 address, UINT32 *result);
 int
 hfa384x_drvr_mmi_write(hfa384x_t *hw, UINT32 address, UINT32 data);
 int
@@ -2486,9 +2535,7 @@ hfa384x_drvr_start(hfa384x_t *hw);
 int
 hfa384x_drvr_stop(hfa384x_t *hw);
 int
-hfa384x_drvr_test_command(hfa384x_t *hw, UINT32 test_code, UINT32 test_param);
-int
-hfa384x_drvr_txframe(hfa384x_t *hw, wlan_pb_t *pb);
+hfa384x_drvr_txframe(hfa384x_t *hw, struct sk_buff *skb, p80211_hdr_t *p80211_hdr, p80211_metawep_t *p80211_wep);
 
 
 int
@@ -2506,11 +2553,11 @@ hfa384x_cmd_transmit(hfa384x_t *hw, UINT16 reclaim, UINT16 qos, UINT16 fid);
 int
 hfa384x_cmd_clearpersist(hfa384x_t *hw, UINT16 fid);
 int
-hfa384x_cmd_notify(hfa384x_t *hw, UINT16 reclaim, UINT16 fid);
+hfa384x_cmd_notify(hfa384x_t *hw, UINT16 reclaim, UINT16 fid, void *buf, UINT16 len);
 int
 hfa384x_cmd_inquire(hfa384x_t *hw, UINT16 fid);
 int
-hfa384x_cmd_access(hfa384x_t *hw, UINT16 write, UINT16 rid);
+hfa384x_cmd_access(hfa384x_t *hw, UINT16 write, UINT16 rid, void *buf, UINT16 len);
 int
 hfa384x_cmd_monitor(hfa384x_t *hw, UINT16 enable);
 int
@@ -2557,29 +2604,37 @@ hfa384x_copy_to_aux(
 
 #if (WLAN_HOSTIF != WLAN_USB)
 
+/* 
+   HFA384x is a LITTLE ENDIAN part.
+
+   the get/setreg functions implicitly byte-swap the data to LE.
+   the _noswap variants do not perform a byte-swap on the data.
+*/
+
 static inline UINT16 
-hfa384x_getreg(hfa384x_t *hw, UINT reg);
+__hfa384x_getreg(hfa384x_t *hw, UINT reg);
 
 static inline void   
-hfa384x_setreg(hfa384x_t *hw, UINT16 val, UINT reg);
+__hfa384x_setreg(hfa384x_t *hw, UINT16 val, UINT reg);
 
 static inline UINT16 
-hfa384x_getreg_noswap(hfa384x_t *hw, UINT reg);
+__hfa384x_getreg_noswap(hfa384x_t *hw, UINT reg);
 
 static inline void
-hfa384x_setreg_noswap(hfa384x_t *hw, UINT16 val, UINT reg);
+__hfa384x_setreg_noswap(hfa384x_t *hw, UINT16 val, UINT reg);
 
-#endif /* (WLAN_HOSTIF != WLAN_USB) */
+#ifdef REVERSE_ENDIAN
+#define hfa384x_getreg __hfa384x_getreg_noswap
+#define hfa384x_setreg __hfa384x_setreg_noswap
+#define hfa384x_getreg_noswap __hfa384x_getreg
+#define hfa384x_setreg_noswap __hfa384x_setreg
+#else
+#define hfa384x_getreg __hfa384x_getreg
+#define hfa384x_setreg __hfa384x_setreg
+#define hfa384x_getreg_noswap __hfa384x_getreg_noswap
+#define hfa384x_setreg_noswap __hfa384x_setreg_noswap
+#endif
 
-
-#endif /* __KERNEL__ */
-
-/*=============================================================*/
-/*--- Inline Function Definitions (if supported) --------------*/
-/*=============================================================*/
-
-#if (WLAN_HOSTIF != WLAN_USB)
-#ifdef __KERNEL__
 /*----------------------------------------------------------------
 * hfa384x_getreg
 *
@@ -2595,12 +2650,12 @@ hfa384x_setreg_noswap(hfa384x_t *hw, UINT16 val, UINT reg);
 *       Value from the register in HOST ORDER!!!!
 ----------------------------------------------------------------*/
 static inline UINT16 
-hfa384x_getreg(hfa384x_t *hw, UINT reg)
+__hfa384x_getreg(hfa384x_t *hw, UINT reg)
 {
 /*	printk(KERN_DEBUG "Reading from 0x%0x\n", hw->membase + reg); */
 #if ((WLAN_HOSTIF == WLAN_PCMCIA) || (WLAN_HOSTIF == WLAN_PLX))
 	return wlan_inw_le16_to_cpu(hw->iobase+reg);
-#elif (WLAN_HOSTIF == WLAN_PCI || WLAN_HOSTIF == WLAN_USB)
+#elif (WLAN_HOSTIF == WLAN_PCI)
 	return __le16_to_cpu(readw(hw->membase + reg));
 #endif
 }
@@ -2621,12 +2676,12 @@ hfa384x_getreg(hfa384x_t *hw, UINT reg)
 *       Nothing
 ----------------------------------------------------------------*/
 static inline void
-hfa384x_setreg(hfa384x_t *hw, UINT16 val, UINT reg)
+__hfa384x_setreg(hfa384x_t *hw, UINT16 val, UINT reg)
 {
 #if ((WLAN_HOSTIF == WLAN_PCMCIA) || (WLAN_HOSTIF == WLAN_PLX))
 	wlan_outw_cpu_to_le16( val, hw->iobase + reg);
 	return;
-#elif (WLAN_HOSTIF == WLAN_PCI|| WLAN_HOSTIF == WLAN_USB)
+#elif (WLAN_HOSTIF == WLAN_PCI)
 	writew(__cpu_to_le16(val), hw->membase + reg);
 	return;
 #endif
@@ -2647,11 +2702,11 @@ hfa384x_setreg(hfa384x_t *hw, UINT16 val, UINT reg)
 *       Value from the register.
 ----------------------------------------------------------------*/
 static inline UINT16
-hfa384x_getreg_noswap(hfa384x_t *hw, UINT reg)
+__hfa384x_getreg_noswap(hfa384x_t *hw, UINT reg)
 {
 #if ((WLAN_HOSTIF == WLAN_PCMCIA) || (WLAN_HOSTIF == WLAN_PLX))
 	return wlan_inw(hw->iobase+reg);
-#elif (WLAN_HOSTIF == WLAN_PCI|| WLAN_HOSTIF == WLAN_USB)
+#elif (WLAN_HOSTIF == WLAN_PCI)
 	return readw(hw->membase + reg);
 #endif
 }
@@ -2672,18 +2727,18 @@ hfa384x_getreg_noswap(hfa384x_t *hw, UINT reg)
 *       Nothing
 ----------------------------------------------------------------*/
 static inline void 
-hfa384x_setreg_noswap(hfa384x_t *hw, UINT16 val, UINT reg)
+__hfa384x_setreg_noswap(hfa384x_t *hw, UINT16 val, UINT reg)
 {
 #if ((WLAN_HOSTIF == WLAN_PCMCIA) || (WLAN_HOSTIF == WLAN_PLX))
 	wlan_outw( val, hw->iobase + reg);
 	return;
-#elif (WLAN_HOSTIF == WLAN_PCI|| WLAN_HOSTIF == WLAN_USB)
+#elif (WLAN_HOSTIF == WLAN_PCI)
 	writew(val, hw->membase + reg);
 	return;
 #endif
 }
 
-#endif /* __KERNEL__ */
 #endif /* WLAN_HOSTIF != WLAN_USB */
+#endif /* __KERNEL__ */
 
 #endif  /* _HFA384x_H */

@@ -209,6 +209,8 @@
 #define WLAN_HDR_A3_DATAP(p) (((UINT8*)(p)) + WLAN_HDR_A3_LEN)
 #define WLAN_HDR_A4_DATAP(p) (((UINT8*)(p)) + WLAN_HDR_A4_LEN)
 
+#define DOT11_RATE5_ISBASIC_GET(r)     (((UINT8)(r)) & BIT7)
+
 /*================================================================*/
 /* Types */
 
@@ -243,9 +245,9 @@ __WLAN_PRAGMA_PACKDFLT__
 
 typedef union p80211_hdr
 {
-	p80211_hdr_a3_t		a3;
-	p80211_hdr_a4_t		a4;
-} p80211_hdr_t;
+	p80211_hdr_a3_t		a3 __WLAN_ATTRIB_PACK__;
+	p80211_hdr_a4_t		a4 __WLAN_ATTRIB_PACK__;
+} __WLAN_ATTRIB_PACK__ p80211_hdr_t;
 
 
 /*================================================================*/
