@@ -193,7 +193,7 @@ CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 $(BIN)/gcccheck:	Makefile Config
 	@if $(CC) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
 	then \
-		echo 'gcc 2.96 is unsuitable for compiling Etherboot, edit Config to use kgcc instead'; \
+		echo 'gcc 2.96 is unsuitable for compiling Etherboot, please use gcc 2.95 or gcc 3.x instead'; \
 		exit 1; \
 	else \
 		touch $(BIN)/gcccheck; \
@@ -292,7 +292,7 @@ $(BIN)/%.nrv2b:	$(BIN)/%.img $(BIN)/nrv2b $(MAKEDEPS)
 # Housekeeping
 
 clean:
-	$(RM)	$(BIN)/*
+	$(RM) $(BIN)/*
 
 ../index.html:	../index.xhtml
 	(cd ..; m4 -P -DHOSTSITE=SOURCEFORGE index.xhtml > index.html)
