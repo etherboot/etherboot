@@ -843,7 +843,7 @@ PXENV_EXIT_t pxenv_tftp_read_file ( t_PXENV_TFTP_READ_FILE *tftp_read_file ) {
 
 	/* inserted by Klaus Wittemeier */
 	/* KERNEL_BUF stores the name of the last required file */
-	/* This is a fix to make Microsoft Remote Install Services work (RIS)
+	/* This is a fix to make Microsoft Remote Install Services work (RIS) */
 	memcpy(KERNEL_BUF, tftp_read_file->FileName, sizeof(KERNEL_BUF));
 	/* end of insertion */
 
