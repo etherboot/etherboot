@@ -190,6 +190,9 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_NETGEAR_MA301	0x4100
 #define PCI_VENDOR_ID_HARRIS        	0x1260
 #define PCI_DEVICE_ID_HARRIS_PRISM2	0x3873
+#define PCI_VENDOR_ID_SUNDANCE		0x13F0
+#define PCI_DEVICE_ID_DFE530TXS		0x1002
+#define PCI_DEVICE_ID_SUNDANCE_ALTA	0x0201
 
 struct pci_id {
 	unsigned short vendor, dev_id;

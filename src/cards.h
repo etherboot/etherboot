@@ -208,4 +208,8 @@ extern struct nic	*prism2_pci_probe(struct nic *, unsigned short *
 extern struct nic	*sundance_probe(struct nic *, unsigned short *
         PCI_ARG(struct pci_device *));
 #endif
+#ifdef	INCLUDE_PCNET32
+extern struct nic	*pcnet32_probe(struct nic *, unsigned short *
+        PCI_ARG(struct pci_device *));
+#endif
 #endif	/* CARDS_H */
