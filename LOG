@@ -2292,4 +2292,29 @@ udelay(10000).
 
 + Added PCI IDs for RTL8129, which can use the rtl8139 driver.
 
++ Added PCI IDs for 3Com905 with device ID 0x9058. Confirmed working by
+Fabio Papa.
+
++ Added PCI IDs for D-Link 528, which is a PCI NE2000 clone.
+
++ Philip R. Auld found a block number rollover bug due to promotion to
+signed in main.c.
+
++ Luigi Rizzo sent in a patch to nfs.c to implement an adaptive timeout. 
+
 + New config files for floppyfw-1.9.19 in contrib/mkffwnb/.
+
++ Glenn McKechnie contributed a Perl script for making a netbootable
+image from the Dachstein LRP firewall distribution floppy. It's in
+contrib/mklrpnb/
+
++ At the request of Greg Beeley, who got irate mail from kernel NIC
+developers, put in a warning in the Makefile about the 3c90x XCVR
+options which may affect later operation with the Linux driver. For you
+tinkerers out there, if you don't know what you're doing, please read
+3c90x.txt over and over again until you understand what those options
+do. If you don't understand, please ask on the Etherboot mailing list.
+And don't complain to the kernel developers, it's nothing to do with
+them. If you must change the XCVR options on a board, please document it
+prominently on the board so that those who come after you won't
+encounter strange behaviour and complain to the kernel developers.
