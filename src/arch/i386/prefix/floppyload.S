@@ -343,11 +343,5 @@ msg1:
 msg1end: 
 
 	.org 510, 0
-
-/* The Etherboot loaders (which we loaded) store two words right below the
- * 0xAA55 signature.  We need not reserve any space for that, because this is
- * done after we finished our work.
- */
-
 	.word 0xAA55
 
