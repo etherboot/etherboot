@@ -50,7 +50,14 @@ static int disk_read(
 	/* Note: I do not handle disk wrap around here! */
 
 	/* Compute the start of the track cache */
-	base_sector = (sector / disk->sectors_per_read)*disk->sectors_per_read;
+	base_sector = sector;
+	/* Support sectors_per_read > 1 only on small disks */
+	if ((sizeof(sector_t) > sizeof(unsigned long)) &&
+		(disk->sectors_per_read > 1)) {
+		unsigned long offset;
+		offset = ((unsigned long)sector) % disk->sectors_per_read;
+		base_sector -= offset;
+	}
 
 	/* See if I need to update the track cache */
 	if ((sector < disk->sector) ||

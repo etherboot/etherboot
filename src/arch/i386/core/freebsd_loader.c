@@ -154,12 +154,12 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 		 * the indexs where the symbols are supposed to be */
 		if ((symtabindex == -1) && (symstrindex == -1))
 		{
+			int i;
 			/* Make sure that the address is page aligned... */
 			/* Symbols need to start in their own page(s)... */
 			estate.curaddr = (estate.curaddr + 4095) & ~4095;
 			
 			/* Need to make new indexes... */
-			int i;
 			for (i=0; i < estate.e.elf32.e_shnum; i++)
 			{
 				if (shdr[i].sh_type == SHT_SYMTAB)

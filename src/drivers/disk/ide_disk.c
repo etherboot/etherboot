@@ -159,6 +159,7 @@ struct ide_pio_command
 #define IDE_CMD_RECALIBRATE                  0x10
 #define IDE_CMD_SEEK                         0x70
 #define IDE_CMD_SET_FEATURES                 0xEF
+#define IDE_CMD_SET_MAX_ADDR_EXT             0x24
 #define IDE_CMD_SET_MULTIPLE_MODE            0xC6
 #define IDE_CMD_SLEEP1                       0xE6
 #define IDE_CMD_SLEEP2                       0x99
@@ -290,7 +291,6 @@ static void pio_set_registers(
 	outb(cmd->lba_high2,       IDE_REG_LBA_HIGH(ctrl));
 	outb(cmd->lba_high,        IDE_REG_LBA_HIGH(ctrl));
 	outb(cmd->command,         IDE_REG_COMMAND(ctrl));
-	
 }
 
 
@@ -420,7 +420,6 @@ static inline int ide_read_sector_lba(
 static inline int ide_read_sector_lba48(
 	struct harddisk_info *info, void *buffer, sector_t sector)
 {
-	/* Warning LBA48 mode has not been tested */
 	struct ide_pio_command cmd;
 	memset(&cmd, 0, sizeof(cmd));
 
@@ -431,7 +430,7 @@ static inline int ide_read_sector_lba48(
 	cmd.lba_low2 = (sector >> 24) & 0xff;
 	cmd.lba_mid2 = (sector >> 32) & 0xff;
 	cmd.lba_high2 = (sector >> 40) & 0xff;
-	cmd.device = IDE_DH_DEFAULT | info->slave | IDE_DH_LBA;
+	cmd.device =  info->slave | IDE_DH_LBA;
 	cmd.command = IDE_CMD_READ_SECTORS_EXT;
 	return pio_data_in(info->ctrl, &cmd, buffer, IDE_SECTOR_SIZE);
 }
@@ -554,9 +553,9 @@ static int init_drive(struct harddisk_info *info, struct controller *ctrl, int s
 			return 1;
 		}
 	}
-	if ((drive_info[2] != 0x37C8) && 
+	if ((drive_info[2] != 0x37C8) &&
 		(drive_info[2] != 0x738C) &&
-		(drive_info[2] != 0x8C73) && 
+		(drive_info[2] != 0x8C73) &&
 		(drive_info[2] != 0xC837) &&
 		(drive_info[2] != 0x0000)) {
 		printf("Invalid IDE Configuration: %hx\n", drive_info[2]);
@@ -573,16 +572,11 @@ static int init_drive(struct harddisk_info *info, struct controller *ctrl, int s
 	if (drive_info[49] & (1 << 9)) {
 		info->address_mode = ADDRESS_MODE_LBA;
 		info->sectors = (drive_info[61] << 16) | (drive_info[60]);
-		if (drive_info[83] & (1 << 10)) {
+		/* Enable LBA48 mode if it is present */
+		if (drive_info[83] & (1 <<10)) {
 			/* Should LBA48 depend on LBA? */
-			printf("Warning LBA48 not yet tested\n");
+			printf("LBA48 mode\n");
 			info->address_mode = ADDRESS_MODE_LBA48;
-			if ((sizeof(sector_t) < sizeof(uint64_t)) &&
-				drive_info[103] || drive_info[102]) {
-				/* FIXME use a 64bit sector number */
-				printf("Drive too big\n");
-				return -1;
-			} 
 			info->sectors = 
 				(((sector_t)drive_info[103]) << 48) |
 				(((sector_t)drive_info[102]) << 32) |

@@ -593,8 +593,8 @@ extern size_t heap_ptr, heap_top, heap_bot;
 
 /* osloader.c */
 extern int bios_disk_dev;
-/* Change sector_t to an unsigned long long to support very large disks */
-typedef unsigned long sector_t;
+/* Be careful with sector_t it is an unsigned long long on x86 */
+typedef uint64_t sector_t;
 typedef sector_t (*os_download_t)(unsigned char *data, unsigned int len, int eof);
 extern os_download_t probe_image(unsigned char *data, unsigned int len);
 extern int load_block P((unsigned char *, unsigned int, unsigned int, int ));

@@ -301,17 +301,19 @@ int pci_find_capability(struct pci_device *dev, int cap)
 	switch (hdr_type) {
 	case PCI_HEADER_TYPE_NORMAL:
 	case PCI_HEADER_TYPE_BRIDGE:
+	default:
 		pci_read_config_byte(dev, PCI_CAPABILITY_LIST, &pos);
 		break;
 	case PCI_HEADER_TYPE_CARDBUS:
 		pci_read_config_byte(dev, PCI_CB_CAPABILITY_LIST, &pos);
 		break;
-	default:
-		return 0;
 	}
 	while (ttl-- && pos >= 0x40) {
 		pos &= ~3;
 		pci_read_config_byte(dev, pos + PCI_CAP_LIST_ID, &id);
+#if	DEBUG > 0
+		printf("Capability: %d\n", id);
+#endif
 		if (id == 0xff)
 			break;
 		if (id == cap)
