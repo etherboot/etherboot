@@ -8,8 +8,12 @@
 #include	"etherboot.h"
 #include	"nic.h"
 
+#if	defined(INCLUDE_PRISM2_PLX) || defined(INCLUDE_PRISM2_PCI)
+#define	INCLUDE_PRISM2
+#endif
+
 #undef	INCLUDE_PCI
-#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN)
+#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN) || defined(INCLUDE_PRISM2)
 	/* || others later */
 #define	INCLUDE_PCI
 #include	"pci.h"
@@ -257,6 +261,15 @@ static struct pci_id tlan_nics[] = {
 };
 #endif
 
+#ifdef	INCLUDE_PRISM2
+static struct pci_id prism2_nics[] = {
+	{ PCI_VENDOR_ID_NETGEAR,	PCI_DEVICE_ID_NETGEAR_MA301,
+	  "Netgear MA301" },
+	{ PCI_VENDOR_ID_HARRIS,		PCI_DEVICE_ID_HARRIS_PRISM2,
+	  "Harris Semiconductor Prism2.5 clone" },
+};
+#endif
+
 /* other PCI NICs go here */
 #endif	/* INCLUDE_*PCI */
 
@@ -386,6 +399,9 @@ static const struct dispatch_table	NIC[] =
 #endif
 #ifdef	INCLUDE_TLAN
 	PCI_NIC( "Olicom 2326", tlan_probe, tlan_nics),
+#endif
+#ifdef	INCLUDE_PRISM2
+	PCI_NIC( "Prism2", prism2_probe, prism2_nics),
 #endif
 	/* this entry must always be last to mark the end of list */
 #ifdef INCLUDE_PCI
