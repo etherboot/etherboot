@@ -171,6 +171,10 @@ int main(struct Elf_Bhdr *ptr)
 	get_memsizes();
 	cleanup();
 
+#ifdef CONFIG_PCMCIA
+	pcmcia_init_all();
+#endif
+
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
 	   -3:  finish the current run.
@@ -188,6 +192,9 @@ int main(struct Elf_Bhdr *ptr)
 		state = main_loop(state);
 	}
 	arch_on_exit(exit_status);
+#ifdef CONFIG_PCMCIA
+	pcmcia_shutdown_all();
+#endif
 	return exit_status;
 }
 
