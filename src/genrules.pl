@@ -64,6 +64,23 @@ sub gendep ($) {
 	return sort values %driver_dep
 }
 
+# Make sure that every rom name exists only once.
+# make will warn if it finds duplicate rules, but it is better to stop
+sub checkduplicate (\%$$) {
+	my ($anyent, $curfam, $romname) = @_;
+	foreach my $family (@families) {
+		if (exists($$anyent{$family})) {
+			my $aref = $$anyent{$family};
+			foreach my $entry (@$aref) {
+				if ($entry->[0] eq $romname) {
+					print STDERR "\nROM name $romname defined twice. Please correct.\n";
+					exit 1;
+				}
+			}
+		}
+	}
+}
+
 sub genroms($) {
 	my ($driver) = @_;
 	
@@ -79,6 +96,7 @@ sub genroms($) {
 			# We store a list of PCI IDs and comments for each PC target
 			my ($vendor_id, $device_id, $rom, $comment) = (hex($1), hex($2), $3, $4);
 			my $ids = sprintf("0x%04x,0x%04x", $vendor_id, $device_id);
+			checkduplicate(%pcient, $curfam, $rom);
 			push(@{$pcient{$curfam}}, [$rom, $ids, $comment]);
 		}
 		elsif($_ =~ m/^\s*ISA_ROM\(\s*"([^"]*)"\s*,\s*"([^"]*)"\)/) {
@@ -86,6 +104,7 @@ sub genroms($) {
 			# We store the base driver file for each ISA target
 			$isalist{$rom} = $curfam;
 			$buildent{$rom} = 1;
+			checkduplicate(%isaent, $curfam, $rom);
 			push(@{$isaent{$curfam}}, [$rom, $comment]);
 		}
 		elsif($_ =~ m/^\s*PCI_ROM/ or $_ =~ m/^\s*ISA_ROM/) {
@@ -112,17 +131,18 @@ sub addfam ($) {
 sub addrom ($) {
 	my ($rom, $ids, $comment) = split(' ', $_[0], 3);
 
-	my $aref;
 	# defaults if missing
 	$ids = '-' unless ($ids);
 	$comment = $rom unless ($comment);
 	if ($ids ne '-') {
 		# We store a list of PCI IDs and comments for each PCI target
+		checkduplicate(%pcient, $curfam, $rom);
 		push(@{$pcient{$curfam}}, [$rom, $ids, $comment]);
 	} else {
 		# We store the base driver file for each ISA target
 		$isalist{$rom} = $curfam;
 		$buildent{$rom} = 1;
+		checkduplicate(%isaent, $curfam, $rom);
 		push(@{$isaent{$curfam}}, [$rom, $comment]);
 	}
 }
