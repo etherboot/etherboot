@@ -2798,3 +2798,5 @@ was NOT received.
 LinuxBIOS.
 
 + Renamed EMERGENCYDISKBOOT to EXIT_IF_NO_OFFER.
+
++ Builtin menuing DHCP options are gone.
