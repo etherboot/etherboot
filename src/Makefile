@@ -107,7 +107,7 @@ MAKEROM=	./makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	2
-EXTRAVERSION=
+EXTRAVERSION=	rc1
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -161,8 +161,8 @@ WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
 SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
-SRCS+=	main.c pci.c osloader.c nfs.c pxe.c proto_slam.c misc.c ansiesc.c bootmenu.c config.c
-SRCS+=	md5.c floppy.c pc_floppy.c
+SRCS+=	main.c pci.c osloader.c nfs.c pxe.c proto_slam.c misc.c config.c
+SRCS+=	floppy.c pc_floppy.c
 
 # ROM loaders: LZ version (prefix Z), PCI header version (prefix P)
 RLOADER=	bin/rloader.bin
@@ -179,7 +179,7 @@ START32=	bin32/start32.o bin32/pcbios.o bin32/memsizes.o
 ELF_START32=	bin32/start32.o bin32/linuxbios.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/pxe.o bin32/proto_slam.o bin32/misc.o
-BOBJS32+=	bin32/ansiesc.o bin32/bootmenu.o bin32/md5.o bin32/floppy.o bin32/pc_floppy.o
+BOBJS32+=	bin32/floppy.o bin32/pc_floppy.o
 BOBJS32+=	bin32/serial.o bin32/timer.o
 BLIB32=		bin32/bootlib.a
 LIBS32=		$(BLIB32) $(LIBC32)
@@ -264,12 +264,6 @@ bin32/pxe.o:		pxe.c etherboot.h osdep.h nic.h
 bint32/proto_slam.o:	proto_slam.h etherboot.h osdep.h nic.h
 
 bin32/misc.o:		misc.c etherboot.h osdep.h
-
-bin32/ansiesc.o:	ansiesc.c etherboot.h osdep.h
-
-bin32/bootmenu.o:	bootmenu.c etherboot.h osdep.h
-
-bin32/md5.o:		md5.c etherboot.h osdep.h
 
 bin32/floppy.o:		floppy.c etherboot.h osdep.h
 

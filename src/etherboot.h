@@ -545,11 +545,6 @@ extern int eth_poll(void);
 extern void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p);
 extern void eth_disable(void);
 
-/* bootmenu.c */
-extern void show_motd P((void));
-extern void parse_menuopts P((char *,int));
-extern void selectImage P((char **));
-
 /* osloader.c */
 extern int bios_disk_dev;
 typedef int (*os_download_t)(unsigned char *data, unsigned int len, int eof);
@@ -621,15 +616,6 @@ extern int serial_getc P((void));
 extern void serial_putc P((int));
 extern int serial_ischar P((void));
 extern int serial_init P((void));
-
-/* ansiesc.c */
-extern void ansi_reset P((void));
-extern void enable_cursor P((int));
-extern void ansi_putc P((unsigned int));
-
-/* md5.c */
-extern void md5_put P((unsigned int ch));
-extern void md5_done P((unsigned char *buf));
 
 /* floppy.c */
 extern int bootdisk P((int dev,int part));

@@ -39,18 +39,6 @@ static int vendorext_isvalid;
 static const unsigned char vendorext_magic[] = {0xE4,0x45,0x74,0x68}; /* ‰Eth */
 static const unsigned char broadcast[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-#ifdef	IMAGE_MENU
-static char *imagelist[RFC1533_VENDOR_NUMOFIMG];
-static int useimagemenu;
-int menutmo,menudefault;
-unsigned char *defparams = NULL;
-int defparams_max = 0;
-#endif
-
-#ifdef	MOTD
-unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
-#endif
-
 #ifdef	IMAGE_FREEBSD
 int freebsd_howto = 0;
 char freebsd_kernel_env[256];
@@ -265,9 +253,6 @@ int main(void)
 			longjmp(restart_etherboot, -1);
 		}
 		else {
-#if	defined(ANSIESC) && defined(CONSOLE_CRT)
-			ansi_reset();
-#endif
 			printf("<abort>\n");
 #ifdef EMERGENCYDISKBOOT
 			exit(0);
@@ -372,16 +357,7 @@ static void load(void)
 	printf("\n=>>"); getchar();
 #endif
 
-#ifdef	MOTD
-	if (vendorext_isvalid)
-		show_motd();
-#endif
 	/* Now use TFTP to load file */
-#ifdef	IMAGE_MENU
-	if (vendorext_isvalid && useimagemenu) {
-		selectImage(imagelist);
-	}
-#endif
 #ifdef	DOWNLOAD_PROTO_NFS
 	rpc_init();
 #endif
@@ -1171,14 +1147,6 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 		endp = p + len;
 	}
 	else if (block == 0) {
-#ifdef	IMAGE_MENU
-		memset(imagelist, 0, sizeof(imagelist));
-		menudefault = useimagemenu = 0;
-		menutmo = -1;
-#endif
-#ifdef	MOTD
-		memset(motd, 0, sizeof(motd));
-#endif
 		end_of_rfc1533 = NULL;
 #ifdef	IMAGE_FREEBSD
 		/* yes this is a pain FreeBSD uses this for swap, however,
@@ -1280,21 +1248,6 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 				printf("Only support %d bytes in Kernel Env %d\n",sizeof(freebsd_kernel_env));
 			}
 		}
-#endif
-#ifdef	IMAGE_MENU
-		else if (ENCAP_OPT c == RFC1533_VENDOR_MNUOPTS)
-			parse_menuopts(p+2, TAG_LEN(p));
-		else if (ENCAP_OPT c >= RFC1533_VENDOR_IMG &&
-			 c<RFC1533_VENDOR_IMG+RFC1533_VENDOR_NUMOFIMG) {
-			imagelist[c - RFC1533_VENDOR_IMG] = p;
-			useimagemenu++;
-		}
-#endif
-#ifdef	MOTD
-		else if (ENCAP_OPT c >= RFC1533_VENDOR_MOTD &&
-			 c < RFC1533_VENDOR_MOTD +
-			 RFC1533_VENDOR_NUMOFMOTD)
-			motd[c - RFC1533_VENDOR_MOTD] = p;
 #endif
 		else {
 #if	0
@@ -1400,9 +1353,6 @@ void cleanup(void)
 #endif
 	/* Stop receiving packets */
 	eth_disable();
-#if	defined(ANSIESC) && defined(CONSOLE_CRT)
-	ansi_reset();
-#endif
 }
 
 /*

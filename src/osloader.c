@@ -1117,45 +1117,6 @@ elf_startkernel:
 			}
 			*c++ = KERNEL_BUF[i];
 		}
-#ifdef	IMAGE_MENU
-		/* Add the default command line parameters (from the BOOTP/DHCP
-		 * vendor tags specifying the available boot images) first.
-		 * This is half done in bootmenu.c, because it would take a
-		 * considerable amount of code to locate the selected entry and
-		 * go through the colon-separated list of items.  Most of this
-		 * is already done there, so this is the cheap way.  */
-		if (defparams) {
-			*c++ = ' ';
-			for (i = 0; (i < defparams_max) &&
-			            (defparams[i] != ':'); i++) {
-				if (defparams[i] == '~') {
-					i++;
-					if (i >= defparams_max)
-						continue;
-					switch (defparams[i]) {
-					case 'c':
-						*c++ = ':';
-						break;
-					case 'b':
-						*c++ = '\\';
-						break;
-					default:
-						*c++ = defparams[i];
-					}
-				} else {
-					*c++ = defparams[i];
-				}
-			}
-		}
-		/* RFC1533_VENDOR_ADDPARM is always the first option added to
-		 * the BOOTP/DHCP option list.  */
-		if (end_of_rfc1533 &&
-		    (end_of_rfc1533[0] == RFC1533_VENDOR_ADDPARM)) {
-			*c++ = ' ';
-			memcpy(c, end_of_rfc1533 + 2, end_of_rfc1533[1]);
-			c += end_of_rfc1533[1];
-		}
-#endif
 		(void)sprintf(c, " -retaddr %#X", (unsigned long)xend);
 
 		info.mbinfo.flags = MULTIBOOT_MMAP_VALID | MULTIBOOT_MEM_VALID |MULTIBOOT_CMDLINE_VALID;

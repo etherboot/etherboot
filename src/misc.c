@@ -197,7 +197,7 @@ void printf(const char *fmt, ...)
 	(void)vsprintf(0, fmt, ((const int *)&fmt)+1);
 }
 
-#if defined(IMAGE_MENU) || defined(DOWNLOAD_PROTO_SLAM)
+#if	defined(DOWNLOAD_PROTO_SLAM)
 /**************************************************************************
 INET_ATON - Convert an ascii x.x.x.x to binary form
 **************************************************************************/
@@ -222,8 +222,7 @@ int inet_aton(const char *start, in_addr *i)
 	i->s_addr = htonl((ip << 8) | val);
 	return p - start;
 }
-
-#endif	/* IMAGE_MENU */
+#endif	/* DOWNLOAD_PROTO_SLAM */
 
 int getdec(const char **ptr)
 {
@@ -321,23 +320,12 @@ void gateA20_unset(void)
 void
 putchar(int c)
 {
-#ifndef	ANSIESC
 	if (c == '\n')
 		putchar('\r');
-#endif
-
 #ifdef	CONSOLE_CRT
-#ifdef	ANSIESC
-	ansi_putc(c);
-#else
 	console_putc(c);
 #endif
-#endif
 #ifdef	CONSOLE_SERIAL
-#ifdef	ANSIESC
-	if (c == '\n')
-		serial_putc('\r');
-#endif
 	serial_putc(c);
 #endif
 }

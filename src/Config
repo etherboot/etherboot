@@ -21,38 +21,6 @@
 #	-DBAR_PROGRESS
 #			Use rotating bar instead of sequential dots
 #			to indicate an IP packet transmitted.
-#	-DMOTD
-#			Display message of the day; read vendortags.html
-#			for further information.
-#	-DIMAGE_MENU
-#			Allow to interactively chose between different
-#			bootimages; read vendortags.html for further
-#			information.
-#	-DPASSWD
-#			Enable password protection for boot images; this
-#			requires -DIMAGE_MENU.
-#	-DUSRPARMS
-#			Allow the user to interactively edit parameters
-#			that are passed to the booted kernel; you should
-#			probably enable -DPASSWD as well; this feature
-#			requires -DIMAGE_MENU.
-#	-DANSIESC
-#			Evaluate a subset of common ANSI escape sequences
-#			when displaying the message of the day; this
-#			probably does not make sense unless you also
-#			define -DMOTD or at least -DIMAGE_MENU. It is
-#			possible to combine this option with -DCONSOLE_DUAL,
-#			but you have to be aware that the boot menu will
-#			no longer use ANSI escapes to be compatible with the
-#			serial console. Also be careful with your banners, as
-#			they may confuse your serial console. Generally you
-#			lose most of the ANSIESC functionality..
-#	-DGFX
-#			Support extensions to the ANSI escape sequences for
-#			displaying graphics (icons or logos); this
-#			requires -DANSIESC. It probably does not make sense
-#			to use -DGFX if you have -DCONSOLE_DUAL, as the
-#			serial console normally cannot handle the GFX stuff.
 #	-DSHOW_NUMERIC
 #			Display menu item labels as numbers.
 #	-DDELIMITERLINES
@@ -82,6 +50,7 @@
 #	Nic tuning parameters:
 #	-DALLMULTI
 #			Turns on multicast reception in the NICs.
+#
 #	Boot tuning parameters:
 #
 #	-DCONGESTED
@@ -272,8 +241,6 @@ CFLAGS32+=	-DPCBIOS
 CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
 # If you prefer the old style rotating bar progress display
 # CFLAGS32+=	-DBAR_PROGRESS
-# MOTD and Image Menu are no longer the default, use mk{elf,nbi}-menu instead
-# CFLAGS32+=	-DMOTD -DIMAGE_MENU
 
 # Enabling this makes the boot ROM require a Vendor Class Identifier
 # of "Etherboot" in the Vendor Encapsulated Options
@@ -294,8 +261,6 @@ CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
 CFLAGS32+=	-DBACKOFF_LIMIT=7 -DCONGESTED
 
 # More optional features
-# CFLAGS32+=	-DANSIESC -DGFX
-# CFLAGS32+=	-DPASSWD -DUSRPARMS
 # CFLAGS32+=	-DCAN_BOOT_DISK -DTRY_FLOPPY_FIRST=4
 
 # For a serial console, which can run in parallel with CRT console
@@ -309,6 +274,10 @@ CFLAGS32+=	-DTAGGED_IMAGE -DELF_IMAGE
 
 # Change download protocol to NFS, default is TFTP
 # CFLAGS32+=	-DDOWNLOAD_PROTO_NFS
+
+# Support for PXE emulation. Works only with FreeBSD to load the kernel
+# via pxeboot, use only with DOWNLOAD_PROTO_NFS
+#CFLAGS32+= -DFREEBSD_PXEEMU
 
 # Options to make a version of Etherboot that will work under linuxBIOS.
 #CFLAGS32+= -DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE 
@@ -338,7 +307,3 @@ ASFLAGS32=
 LDFLAGS32+=	-N -Ttext $(RELOCADDR) -e _start
 LDBINARY32=	--oformat binary	# flag for headerless binary
 LIBC32=					# not needed
-
-# Support for PXE emulation. Works only with FreeBSD to load the kernel
-# via pxeboot, use only with DOWNLOAD_PROTO_NFS
-#CFLAGS32+= -DFREEBSD_PXEEMU
