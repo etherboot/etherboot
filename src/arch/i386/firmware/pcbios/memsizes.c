@@ -167,7 +167,7 @@ void get_memsizes(void)
 			((meminfo.map[i].addr + meminfo.map[i].size) > basemem))
 		{
 			if (meminfo.map[i].addr <= basemem) {
-				meminfo.map[i].size = basemem - meminfo.map[i].size;
+				meminfo.map[i].size = basemem - meminfo.map[i].addr;
 			} else {
 				meminfo.map[i].addr = basemem;
 				meminfo.map[i].size = 0;
