@@ -11,7 +11,7 @@ BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMG
 START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o \
 	$(BIN)/basemem.o $(BIN)/linuxbios.o
 
-SRCS+=	arch/i386/prefix/floppyload.S
+SRCS+=	arch/i386/prefix/floppyprefix.S
 SRCS+=	arch/i386/prefix/unhuf.S
 SRCS+=	arch/i386/prefix/unnrv2b.S
 SRCS+=	arch/i386/firmware/pcbios/memsizes.c
@@ -39,7 +39,7 @@ RLOADER=	$(BIN)/rloader.bin
 PRLOADER=	$(BIN)/prloader.bin
 
 START16=	$(BIN)/start16.bin
-DISKLOADER=	$(BIN)/floppyload.bin
+DISKLOADER=	$(BIN)/floppyprefix.bin
 COMPREFIX=	$(BIN)/comprefix.bin
 LILOPREFIX=	$(BIN)/liloprefix.bin
 PXEPREFIX=	$(BIN)/pxeprefix.bin
@@ -97,7 +97,7 @@ BOBJS+=		$(BIN)/pic8259.o
 # Prepended loaders
 $(BIN)/rloader.bin:	$(BIN)/rloader.o
 $(BIN)/prloader.bin:	$(BIN)/prloader.o
-$(BIN)/floppyload.bin:	$(BIN)/floppyload.o
+$(BIN)/floppyprefix.bin: $(BIN)/floppyprefix.o
 $(BIN)/comprefix.bin:   $(BIN)/comprefix.o
 $(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
 $(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
@@ -124,12 +124,12 @@ $(BIN)/boot1a.bin: arch/i386/prefix/boot1a.s $(MAKEDEPS)
 
 # floppy loader
 
-$(BIN)/floppyload.o: arch/i386/prefix/floppyload.S $(MAKEDEPS)
-	$(CPP) $< | $(AS) $(ASFLAGS) -o $(BIN)/floppyload.o
+$(BIN)/floppyprefix.o: arch/i386/prefix/floppyprefix.S $(MAKEDEPS)
+	$(CPP) $< | $(AS) $(ASFLAGS) -o $(BIN)/floppyprefix.o
 
-$(BIN)/floppyload.bin: $(BIN)/floppyload.o
-	objcopy -O binary $< $(BIN)/floppyload.bin
-	$(RM) $(BIN)/floppyload.o
+$(BIN)/floppyprefix.bin: $(BIN)/floppyprefix.o
+	objcopy -O binary $< $(BIN)/floppyprefix.bin
+	$(RM) $(BIN)/floppyprefix.o
 
 # PXE prefix
 

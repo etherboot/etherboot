@@ -9,7 +9,7 @@
  *	modified by Drew Eckhardt
  *	modified by Bruce Evans (bde)
  *
- * floppyload.S is loaded at 0x0000:0x7c00 by the bios-startup routines.
+ * floppyprefix.S is loaded at 0x0000:0x7c00 by the bios-startup routines.
  *
  * It then loads the system at SYSSEG<<4, using BIOS interrupts.
  *
