@@ -44,7 +44,7 @@ int defparams_max = 0;
 #endif
 
 #ifdef	MOTD
-char *motd[RFC1533_VENDOR_NUMOFMOTD];
+unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
 #endif
 
 #ifdef	IMAGE_FREEBSD

@@ -629,7 +629,7 @@ extern unsigned char *defparams;
 extern int defparams_max;
 #endif
 #ifdef	MOTD
-extern char *motd[RFC1533_VENDOR_NUMOFMOTD];
+extern unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
 #endif
 extern struct bootpd_t bootp_data;
 #define	BOOTP_DATA_ADDR	(&bootp_data)
