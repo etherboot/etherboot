@@ -82,9 +82,16 @@
            lowest tag number will be the default image.
 
 
-     TTAAGGSS 116611 tthhrruu 117755
+     TTAAGGSS 116611 tthhrruu 117744
         these tags are currently unused, but they should be allocated
         for purposes that resemble the function of tag 160.
+
+
+     TTAAGG 117755
+        the BOOT-Prom uses this tag for telling the DHCP server which
+        NIC driver it is using. The DHCP server can then modify the
+        "filename" field in the DHCPACK packet in order to direct the
+        BOOT-Prom to download an appropriate kernel image.
 
 
      TTAAGG 117766
@@ -119,13 +126,6 @@
 
 
         The ANSI emulation currently knows about these commands:
-
-
-
-
-
-
-
 
 
 

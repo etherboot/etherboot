@@ -89,8 +89,13 @@ image with the lowest tag number will be the
 default image.
 </DL>
 <P>
-<DT><B>TAGS 161 thru 175</B><DD><P>these tags are currently unused, but they should be allocated
+<DT><B>TAGS 161 thru 174</B><DD><P>these tags are currently unused, but they should be allocated
 for purposes that resemble the function of tag 160.
+<P>
+<DT><B>TAG 175</B><DD><P>the BOOT-Prom uses this tag for telling the DHCP server which
+NIC driver it is using. The DHCP server can then modify the
+"filename" field in the DHCPACK packet in order to direct the
+BOOT-Prom to download an appropriate kernel image.
 <P>
 <DT><B>TAG 176</B><DD><P>the BOOT-Prom uses this tag for telling the loaded operating
 system, which of the entries in tags 192 to 207 has been

@@ -88,9 +88,15 @@ or ignores this particular tag:
                     default image.
 	</descrip>
 
-<tag/TAGS 161 thru 175/
+<tag/TAGS 161 thru 174/
         these tags are currently unused, but they should be allocated
         for purposes that resemble the function of tag 160.
+
+<tag/TAG 175/
+	the BOOT-Prom uses this tag for telling the DHCP server which
+	NIC driver it is using. The DHCP server can then modify the
+	"filename" field in the DHCPACK packet in order to direct the
+	BOOT-Prom to download an appropriate kernel image.
 
 <tag/TAG 176/
         the BOOT-Prom uses this tag for telling the loaded operating
