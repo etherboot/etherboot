@@ -58,31 +58,31 @@ public class T2hproxy implements Runnable {
 	/**
 	 *  Description of the Field
 	 */
-	public final static int TFTP_RRQ = 1;
+	public final static short TFTP_RRQ = 1;
 	/**
 	 *  Description of the Field
 	 */
-	public final static int TFTP_DATA = 3;
+	public final static short TFTP_DATA = 3;
 	/**
 	 *  Description of the Field
 	 */
-	public final static int TFTP_ACK = 4;
+	public final static short TFTP_ACK = 4;
 	/**
 	 *  Description of the Field
 	 */
-	public final static int TFTP_ERROR = 5;
+	public final static short TFTP_ERROR = 5;
 	/**
 	 *  Description of the Field
 	 */
-	public final static int TFTP_OACK = 6;
+	public final static short TFTP_OACK = 6;
 	/**
 	 *  Description of the Field
 	 */
-	public final static int ERR_NOFILE = 1;
+	public final static short ERR_NOFILE = 1;
 	/**
 	 *  Description of the Field
 	 */
-	public final static int ERR_ILLOP = 4;
+	public final static short ERR_ILLOP = 4;
 	/**
 	 *  Description of the Field
 	 */
@@ -98,8 +98,8 @@ public class T2hproxy implements Runnable {
 
 	private static Log log = LogFactory.getLog(T2hproxy.class);
 	/**
-	 *  The members below must be per thread and
-	 *  must not share any storage with the main thread
+	 *  The members below must be per thread and must not share any storage with
+	 *  the main thread
 	 */
 	private DatagramSocket responsesocket;
 	private DatagramPacket response;
@@ -198,9 +198,9 @@ public class T2hproxy implements Runnable {
 		}
 		ByteBuffer buffer = ByteBuffer.wrap(ack.getData(), ack.getOffset(), ack.getLength() - ack.getOffset());
 		short op;
-		if ((op = buffer.getShort()) == (short) TFTP_ACK) {
-			return ((int)buffer.getShort());
-		} else if (op == (short) TFTP_ERROR) {
+		if ((op = buffer.getShort()) == TFTP_ACK) {
+			return ((int) buffer.getShort());
+		} else if (op == TFTP_ERROR) {
 			return (-2);
 		}
 		return (-3);
@@ -213,9 +213,9 @@ public class T2hproxy implements Runnable {
 	 *@param  error    Description of the Parameter
 	 *@param  message  Description of the Parameter
 	 */
-	private void sendError(int error, String message) {
+	private void sendError(short error, String message) {
 		ByteBuffer buffer = ByteBuffer.wrap(response.getData());
-		buffer.putShort((short) TFTP_ERROR).putShort((short) error).put(message.getBytes());
+		buffer.putShort(TFTP_ERROR).putShort(error).put(message.getBytes());
 		response.setLength(buffer.position());
 		try {
 			responsesocket.send(response);
@@ -232,7 +232,7 @@ public class T2hproxy implements Runnable {
 	 */
 	private boolean sendOackRecvAck() {
 		ByteBuffer buffer = ByteBuffer.wrap(response.getData());
-		buffer.putShort((short) TFTP_OACK).put("blksize".getBytes()).put((byte) 0).put(String.valueOf(blocksize).getBytes()).put((byte) 0);
+		buffer.putShort(TFTP_OACK).put("blksize".getBytes()).put((byte) 0).put(String.valueOf(blocksize).getBytes()).put((byte) 0);
 		response.setLength(buffer.position());
 		int retry;
 		for (retry = 0; retry < MAX_RETRIES; retry++) {
@@ -253,16 +253,20 @@ public class T2hproxy implements Runnable {
 	/**
 	 *  Description of the Method
 	 *
-	 *@param  block  Description of the Parameter
-	 *@return        Description of the Return Value
+	 *@param  block      Description of the Parameter
+	 *@param  lastblock  Description of the Parameter
+	 *@return            Description of the Return Value
 	 */
-	private boolean sendDataBlock(int block) {
+	private boolean sendDataBlock(int block, boolean lastblock) {
 		int retry;
 		for (retry = 0; retry < MAX_RETRIES; retry++) {
 			try {
 				responsesocket.send(response);
 			} catch (Exception e) {
 				log.info(e.toString(), e);
+			}
+			if (lastblock) {
+				return (true);
 			}
 			int ablock;
 			if ((ablock = waitForAck()) == block) {
@@ -391,20 +395,24 @@ public class T2hproxy implements Runnable {
 		byte[] data;
 		ByteBuffer buffer = ByteBuffer.wrap(data = response.getData());
 		// dummy puts to get start position of data
-		buffer.putShort((short) TFTP_DATA).putShort((short) 0);
+		buffer.putShort(TFTP_DATA).putShort((short) 0);
 		int start = buffer.position();
 		int length;
-		for (int block = 1; (length = readBlock(bstream, data, start, blocksize)) > 0; block++) {
+		int block = 1;
+		do {
+			length = readBlock(bstream, data, start, blocksize);
+			block &= 0xffff;
 			log.debug("Block " + block + " " + length);
 			// fill in the block number
 			buffer.position(0);
-			buffer.putShort((short) TFTP_DATA).putShort((short) block);
+			buffer.putShort(TFTP_DATA).putShort((short) block);
 			response.setLength(start + length);
-			if (!sendDataBlock(block)) {
+			if (!sendDataBlock(block, length < blocksize)) {
 				break;
 			}
 			buffer.position(start);
-		}
+			block++;
+		} while (length >= blocksize);
 		log.info("Closing TFTP session");
 		// clean up the connection resources
 		method.releaseConnection();
@@ -447,10 +455,10 @@ public class T2hproxy implements Runnable {
 	public static void handleRequest(DatagramSocket s, DatagramPacket r, String prefix, String proxy, int timeout) {
 		log.info("Connection from " + r.getAddress().getCanonicalHostName() + ":" + r.getPort());
 		ByteBuffer buffer = ByteBuffer.wrap(r.getData(), r.getOffset(), r.getLength() - r.getOffset());
-		if (buffer.getShort() != (short)TFTP_RRQ) {
+		if (buffer.getShort() != TFTP_RRQ) {
 			DatagramPacket error = new DatagramPacket(new byte[MTU], MTU);
 			ByteBuffer rbuf = ByteBuffer.wrap(error.getData());
-			rbuf.putShort((short) TFTP_ERROR).putShort((short) ERR_ILLOP).put("Illegal operation".getBytes());
+			rbuf.putShort(TFTP_ERROR).putShort(ERR_ILLOP).put("Illegal operation".getBytes());
 			error.setLength(rbuf.position());
 			try {
 				s.send(error);
