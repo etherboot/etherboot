@@ -1112,6 +1112,12 @@ static int undi_poll(struct nic *nic, int retrieve)
 	 */
 	if ( ! retrieve ) return 1;
 
+#ifdef UNDI_NONTRIVIAL_IRQ
+	/* With the nontrivial IRQ handler, we have already called
+	 * PXENV_UNDI_ISR with PXENV_UNDI_ISR_IN_START and determined
+	 * that it is one of ours.
+	 */
+#else
 	/* Ask the UNDI driver if this is "our" interrupt.
 	 */
 	undi.pxs->undi_isr.FuncFlag = PXENV_UNDI_ISR_IN_START;
@@ -1122,6 +1128,7 @@ static int undi_poll(struct nic *nic, int retrieve)
 		 */
 		return 0;
 	}
+#endif
 
 	/* At this stage, the device should have cleared its interrupt
 	 * line so we can send EOI to the 8259.
