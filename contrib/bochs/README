@@ -93,12 +93,23 @@ Loading 10.254.254.2:/tftpboot/kernel
 
 
 
+Serial console
+==============
+
+You can use the program "serial-console" to obtain a virtual serial
+console for Etherboot running within Bochs.  Simply run
+"./serial-console" on a spare tty (e.g. a separate xterm window)
+before starting Bochs, and ensure that you have compiled Etherboot
+with appropriate settings such as
+  CFLAGS+=      -DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
+
+There is a manual page for "serial-console"; use
+"man ./serial-console.1" to view it.
+
+
 
 TODO
 ====
-
-Serial console support via a pseudo-tty.  (Bochs supports it, just
-need to set up a suitable pty).
 
 Packet forwarding/masquerading - document what must be set up.
 

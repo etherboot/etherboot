@@ -26,6 +26,8 @@ slave device is written to the Bochs configuration file
 
 =head1 EXAMPLES
 
+=over 4
+
 =item C<serial-console>
 
 Create a virtual serial console for Bochs, modify C<bochsrc.txt>
@@ -35,6 +37,8 @@ appropriately.
 
 Create a virtual serial console for Bochs, modify C<../.bochsrc>
 appropriately, log output to C<serial.log>.
+
+=back
 
 =head1 INVOCATION
 
@@ -52,12 +56,12 @@ session.
 
 =over 4
 
-=item B<<-l,--log FILE>>
+=item B<-l,--log FILE>
 
 Log all output (i.e. everything that is printed in the
 C<serial-console> window) to the specified file.
 
-=item C<<-r,--rcfile FILE>>
+=item B<-r,--rcfile FILE>
 
 Modify the specified bochsrc file.  The file will be updated to
 contain the path to the slave side of the psuedo tty that we create.
