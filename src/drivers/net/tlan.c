@@ -42,6 +42,7 @@
 *    v1.0	07-08-2003	timlegge	Initial not quite working version
 *    v1.1	07-27-2003	timlegge	Sync 5.0 and 5.1 versions
 *    v1.2	08-19-2003	timlegge	Implement Multicast Support
+*    v1.3	08-23-2003	timlegge	Fix the transmit Function
 *    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -57,8 +58,8 @@
 #include "timer.h"
 #include "tlan.h"
 
-#define drv_version "v1.2"
-#define drv_date "08-19-2003"
+#define drv_version "v1.3"
+#define drv_date "08-23-2003"
 
 /* NIC specific static variables go here */
 #define HZ 100
@@ -75,7 +76,6 @@
 #define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
 #define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
-int tx_started = 0;
 
 static void TLan_ResetLists(struct nic *nic __unused);
 static void TLan_ResetAdapter(struct nic *nic __unused);
@@ -286,11 +286,13 @@ void TLan_ResetLists(struct nic *nic __unused)
 	for (i = 0; i < TLAN_NUM_TX_LISTS; i++) {
 		list = &tx_ring[i];
 		list->cStat = TLAN_CSTAT_UNUSED;
-		list->buffer[0].address = 0;
+/*		list->buffer[0].address = 0; */
+		list->buffer[0].address = virt_to_bus(txb + 
+				(i * TLAN_MAX_FRAME_SIZE)); 
 		list->buffer[2].count = 0;
 		list->buffer[2].address = 0;
 		list->buffer[9].address = 0;
-		list->forward = 0;
+/*		list->forward = 0; */
 	}
 
 	priv->cur_rx = 0;
@@ -604,7 +606,7 @@ static void refill_rx(struct nic *nic __unused)
 
 }
 
-/* #define EBDEBUG  */
+/* #define EBDEBUG */
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
@@ -620,6 +622,8 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 	u8 *tail_buffer;
 	u32 ack = 0;
 	u32 host_cmd;
+	int eoc = 0;
+	u16 tmpCStat;
 #ifdef EBDEBUG
 	u16 host_int = inw(BASE + TLAN_HOST_INT);
 #endif
@@ -680,9 +684,6 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 
 	/* Setup the transmit descriptor */
 	tail_list->frameSize = (u16) s;
-	tail_list->buffer[0].address = virt_to_bus(tail_buffer);
-	tail_list->buffer[9].address = (u32) tail_buffer;
-
 	tail_list->buffer[0].count = TLAN_LAST_BUFFER | (u32) s;
 	tail_list->buffer[1].count = 0;
 	tail_list->buffer[1].address = 0;
@@ -694,8 +695,8 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 	printf("INT1-0x%hX\n", host_int);
 #endif
 
-	if (!tx_started) {
-		tx_started = 1;
+	if (!priv->txInProgress) {
+		priv->txInProgress = 1;
 		outl(virt_to_le32desc(tail_list), BASE + TLAN_CH_PARM);
 		outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
 	} else {
@@ -703,22 +704,14 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 #ifdef EBDEBUG
 			printf("Out buffer\n");
 #endif
-			tail_list->cStat = TLAN_CSTAT_UNUSED;
 			(priv->txList + (TLAN_NUM_TX_LISTS - 1))->forward =
 			    virt_to_le32desc(tail_list);
-			if (priv->eoc)
-				outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
 		} else {
 #ifdef EBDEBUG
 			printf("Fix this \n");
 #endif
-			tail_list->cStat = TLAN_CSTAT_UNUSED;
 			(priv->txList + (priv->txTail - 1))->forward =
 			    virt_to_le32desc(tail_list);
-			if (priv->eoc) {
-				outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
-				priv->eoc = 0;
-			}
 		}
 	}
 	
@@ -732,57 +725,51 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 	to = currticks() + TX_TIME_OUT;
 	while ((tail_list->cStat == TLAN_CSTAT_READY) && currticks() < to);
 
-	tail_list->buffer[9].address = 0;
-	tail_list->buffer[0].address = 0;
+	head_list = priv->txList + priv->txHead;
+	while (((tmpCStat = head_list->cStat) & TLAN_CSTAT_FRM_CMP) 
+			&& (ack < 255)) {
+		ack++;
+		if(tmpCStat & TLAN_CSTAT_EOC)
+			eoc =1;
+		head_list->cStat = TLAN_CSTAT_UNUSED;
+		CIRC_INC(priv->txHead, TLAN_NUM_TX_LISTS);
+		head_list = priv->txList + priv->txHead;
+		
+	}
+	if(!ack)
+		printf("Incomplete TX Frame\n");
 
-#ifdef EBDEBUG
-	host_int = inw(BASE + TLAN_HOST_INT);
-	printf("INT2B-0x%hX\n", host_int);
-	printf("SSTAT: %hX\n", tail_list->cStat);
-#endif
-
-	if (tail_list->cStat & TLAN_CSTAT_FRM_CMP) {
-#ifdef EBDEBUG
-		printf("FC\n");
-#endif
-		ack = 1;
-		if (tail_list->cStat & TLAN_CSTAT_EOC) {
-			priv->eoc = 1;
+	if(eoc) {
+		head_list = priv->txList + priv->txHead;
+		if ((head_list->cStat & TLAN_CSTAT_READY) == TLAN_CSTAT_READY) {
+			outl(virt_to_le32desc(head_list), BASE + TLAN_CH_PARM);
+			ack |= TLAN_HC_GO;
 		} else {
-			host_cmd = TLAN_HC_ACK | ack;
-			outl(host_cmd, BASE + TLAN_HOST_CMD);
+			priv->txInProgress = 0;
 		}
 	}
-
-	CIRC_INC(priv->txHead, TLAN_NUM_TX_LISTS);
-
-#ifdef EBDEBUG
-	host_int = inw(BASE + TLAN_HOST_INT);
-	printf("INT3-0x%hX\n", host_int);
-#endif
-
-	head_list = priv->txList + priv->txTail;
-	head_list->cStat = TLAN_CSTAT_UNUSED;
-	if (priv->eoc) {
-		tx_started = 1;
-	} else {
-		tx_started = 0;
-		outl(TLAN_HC_ACK | 0x00000001 | 0x00140000,
-		     BASE + TLAN_HOST_CMD);
+	if(ack) {
+		host_cmd = TLAN_HC_ACK | ack;
+		outl(host_cmd, BASE + TLAN_HOST_CMD);
 	}
-	outl(virt_to_le32desc((priv->txList + priv->txTail)),
-	     BASE + TLAN_CH_PARM);
-
-
-#ifdef EBDEBUG
-	host_int = inw(BASE + TLAN_HOST_INT);
-	printf("INT4-0x%hX\n", host_int);
-#endif
-
+	
+	if(priv->tlanRev < 0x30 ) {
+		ack = 1;
+		head_list = priv->txList + priv->txHead;
+		if ((head_list->cStat & TLAN_CSTAT_READY) == TLAN_CSTAT_READY) {
+			outl(virt_to_le32desc(head_list), BASE + TLAN_CH_PARM);
+			ack |= TLAN_HC_GO;
+		} else {
+			priv->txInProgress = 0;
+		}
+		host_cmd = TLAN_HC_ACK | ack | 0x00140000;
+		outl(host_cmd, BASE + TLAN_HOST_CMD);
+		
+	}
+			
 	if (currticks() >= to) {
 		printf("TX Time Out");
 	}
-
 }
 
 /**************************************************************************
@@ -888,22 +875,22 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 		printf("\nAddress: %!\n", nic->node_addr);
 
 	priv->tlanRev = TLan_DioRead8(BASE, TLAN_DEF_REVISION);
-	printf("\nRevision = %d\n", priv->tlanRev);
+	printf("\nRevision = 0x%hX\n", priv->tlanRev);
 
 	TLan_ResetLists(nic);
 	TLan_ResetAdapter(nic);
-
+/*
 	data = inl(BASE + TLAN_HOST_CMD);
 	data |= TLAN_HC_EOC;
 	outw(data, BASE + TLAN_HOST_CMD);
-
+*/
 
 	data = inl(BASE + TLAN_HOST_CMD);
 	data |= TLAN_HC_INT_OFF;
 	outw(data, BASE + TLAN_HOST_CMD);
 
 	TLan_SetMulticastList(nic);
-	udelay(100);
+	udelay(100); 
 	priv->txList = tx_ring;
 	priv->rxList = rx_ring;
 /*	if (board_found && valid_link)
