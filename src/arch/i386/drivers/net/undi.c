@@ -494,7 +494,8 @@ int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused ) {
 	__asm__ ( "\nirqstart:" );
 	/* Fields here must match those in undi_irq_handler_t */
 	__asm__ ( "\nentry:\t.word 0,0" );
-	__asm__ ( "\ncount:\t.word 0" );
+	__asm__ ( "\ncount_all:\t.word 0" );
+	__asm__ ( "\ncount_ours:\t.word 0" );
 	__asm__ ( "\nundi_isr:" );
 	__asm__ ( "\nundi_isr_Status:\t.word 0" );
 	__asm__ ( "\nundi_isr_FuncFlag:\t.word 0" );
@@ -526,9 +527,11 @@ int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused ) {
 	__asm__ ( "cmpw %0, %%cs:(undi_isr_FuncFlag-irqstart) "
 		  : : "i" ( PXENV_UNDI_ISR_OUT_OURS ) );
 	__asm__ ( "jne 1f" );
-	/* Increment counter if so */
-	__asm__ ( "incw %cs:(count-irqstart)" );
+	/* Increment count_ours if so */
+	__asm__ ( "incw %cs:(count_ours-irqstart)" );
 	__asm__ ( "\n1:" );
+	/* Increment count_all anyway */
+	__asm__ ( "incw %cs:(count_all-irqstart)" );
 	/* Restore registers and return */
 	__asm__ ( "popw %gs" );
 	__asm__ ( "popw %fs" );
@@ -552,7 +555,8 @@ int install_nontrivial_irq_handler ( irq_t irq ) {
 	printf ( "WARNING: using non-trivial IRQ handler [EXPERIMENTAL]\n" );
 	
 	disable_irq ( irq );
-	handler->count = 0;
+	handler->count_all = 0;
+	handler->count_ours = 0;
 	handler->entry = undi.pxe->EntryPointSP;
 	nontrivial_irq_previous_trigger_count = 0;
 	isr_segoff.segment = SEGMENT(handler);
@@ -578,13 +582,21 @@ int remove_nontrivial_irq_handler ( irq_t irq ) {
 int nontrivial_irq_triggered ( irq_t irq __unused ) {
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
-	uint16_t nontrivial_irq_this_trigger_count = handler->count;
+	uint16_t nontrivial_irq_this_trigger_count = handler->count_ours;
 	int triggered = ( nontrivial_irq_this_trigger_count -
 			  nontrivial_irq_previous_trigger_count );
 
 	nontrivial_irq_previous_trigger_count =
 		nontrivial_irq_this_trigger_count;
 	return triggered ? 1 : 0;
+}
+
+void nontrivial_irq_debug ( irq_t irq ) {
+	undi_irq_handler_t *handler = 
+		&undi.base_mem_data->nontrivial_irq_handler;
+
+	printf ( "IRQ %d triggered %d times (%d of which were ours)\n",
+		 irq, handler->count_all, handler->count_ours );
 }
 #endif /* UNDI_NONTRIVIAL_IRQ */
 	

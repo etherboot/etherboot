@@ -94,7 +94,8 @@ typedef struct undi_rom_id {
 /* Nontrivial IRQ handler structure */
 typedef struct {
 	segoff_t		entry;
-	uint16_t		count;
+	uint16_t		count_all;
+	uint16_t		count_ours;
 	t_PXENV_UNDI_ISR	undi_isr;
 	char			code[0];
 } undi_irq_handler_t;
