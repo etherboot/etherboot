@@ -393,7 +393,7 @@ epic100_poll(struct nic *nic)
 
 
     static void
-epic100_disable(struct dev *dev)
+epic100_disable(struct dev *dev __attribute__((unused)))
 {
 	/* Soft reset the chip. */
 	outl(GC_SOFT_RESET, genctl);

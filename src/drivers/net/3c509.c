@@ -219,7 +219,6 @@ ETH_POLL - Wait for a frame
 static int t509_poll(struct nic *nic)
 {
 	/* common variables */
-	unsigned short type = 0;	/* used by EDEBUG */
 	/* variables for 3C509 */
 	short status, cst;
 	register short rx_fifo;
@@ -290,6 +289,7 @@ static int t509_poll(struct nic *nic)
 	while (inw(BASE + EP_STATUS) & S_COMMAND_IN_PROGRESS)
 		;
 #ifdef	EDEBUG
+	unsigned short type = 0;	/* used by EDEBUG */
 	type = (nic->packet[12]<<8) | nic->packet[13];
 	if(nic->packet[0]+nic->packet[1]+nic->packet[2]+nic->packet[3]+nic->packet[4]+
 	    nic->packet[5] == 0xFF*ETH_ALEN)
@@ -389,9 +389,9 @@ static void t509_disable(struct dev *dev)
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
 #ifdef	INCLUDE_3C529
-static int t529_probe(struct dev *dev, unsigned short *probe_addrs)
+static int t529_probe(struct dev *dev, unsigned short *probe_addrs __attribute((unused)))
 #else
-static int t509_probe(struct dev *dev, unsigned short *probe_addrs)
+static int t509_probe(struct dev *dev, unsigned short *probe_addrs __attribute((unused)))
 #endif
 {
 	struct nic *nic = (struct nic *)dev;

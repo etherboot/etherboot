@@ -467,7 +467,7 @@ static void a3c90x_reset(void)
  *** p - the pointer to the packet data itself.
  ***/
 static void
-a3c90x_transmit(struct nic *nic, const char *d, unsigned int t,
+a3c90x_transmit(struct nic *nic __attribute__((unused)), const char *d, unsigned int t,
                 unsigned int s, const char *p)
     {
 
@@ -657,7 +657,7 @@ a3c90x_poll(struct nic *nic)
  *** [Ken]
  ***/
 static void
-a3c90x_disable(struct dev *dev)
+a3c90x_disable(struct dev *dev __attribute__((unused)))
 {
 	/* reset and disable merge */
 	a3c90x_reset();

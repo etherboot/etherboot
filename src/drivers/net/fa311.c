@@ -211,7 +211,7 @@ unsigned long mmio_start, mmio_len;
 
 }
 
-static void fa311_reset(struct nic *nic)
+static void fa311_reset(struct nic *nic __attribute__((unused)))
 {
 u32 chip_config;
 struct FA311_DEV* dev = &fa311_dev;

@@ -211,7 +211,7 @@ static void show_floppy(void);
 static void floppy_reset(void);
 
 
-static int set_dor(int fdc, char mask, char data)
+static int set_dor(int fdc __attribute__((unused)), char mask, char data)
 {
 	unsigned char newdor,olddor;
 
@@ -1095,7 +1095,7 @@ static void floppy_reset(void)
 	fdc_state.in_sync = 1;
 }
 
-static void floppy_fini(struct dev *dev)
+static void floppy_fini(struct dev *dev __attribute__((unused)))
 {
 	/* Disable the floppy and the floppy drive controller */
 	set_dor(0, 0, 0);

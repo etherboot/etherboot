@@ -142,7 +142,7 @@ static int get_eeprom_data(int off, int len, unsigned short *buffer)
 	return(0);
 }
 
-static int get_eeprom_chksum(int off, int len, unsigned short *buffer)
+static int get_eeprom_chksum(int off __attribute__((unused)), int len, unsigned short *buffer)
 {
 	int  i, cksum;
 
@@ -442,7 +442,7 @@ static void cs89x0_disable(struct dev *dev)
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
 
-static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs)
+static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __attribute__((unused)))
 {
 	struct nic *nic = (struct nic *)dev;
 	static const unsigned int netcard_portlist[] = {

@@ -624,7 +624,7 @@ You should omit the last argument struct pci_device * for a non-PCI NIC
 ***************************************************************************/
 void config_pnp_device(void);
 
-static int t515_probe(struct dev *dev, unsigned short *probe_addrs)
+static int t515_probe(struct dev *dev, unsigned short *probe_addrs __attribute((unused)))
 {
     struct nic * nic = (struct nic *)dev;
     /* Direct copy from Beckers 3c515.c removing any ISAPNP sections */
@@ -703,7 +703,7 @@ corkscrew_found_device(int ioaddr, int irq,
 }
 
 static int
-corkscrew_probe1(int ioaddr, int irq, int product_index, struct nic *nic)
+corkscrew_probe1(int ioaddr, int irq, int product_index __attribute__((unused)), struct nic *nic)
 {
     unsigned int eeprom[0x40], checksum = 0;	/* EEPROM contents */
     int i;

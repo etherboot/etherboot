@@ -355,7 +355,7 @@ static void HPNA_process(void)
 /*
   Sense media mode and set CR6
 */
-static void davicom_media_chk(struct nic * nic)
+static void davicom_media_chk(struct nic * nic __attribute__((unused)))
 {
   unsigned long to, csr6;
 

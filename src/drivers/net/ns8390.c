@@ -230,7 +230,7 @@ static void eth_pio_write(const unsigned char *src, unsigned int dst, unsigned i
 /**************************************************************************
 ETH_PIO_READ - Dummy routine when NE2000 not compiled in
 **************************************************************************/
-static void eth_pio_read(unsigned int src, unsigned char *dst, unsigned int cnt) {}
+static void eth_pio_read(unsigned int src __attribute((unused)), unsigned char *dst __attribute((unused)), unsigned int cnt __attribute((unused))) {}
 #endif
 
 /**************************************************************************
@@ -570,7 +570,7 @@ ETH_PROBE - Look for an adapter
 #ifdef	INCLUDE_NS8390
 static int eth_probe (struct dev *dev, struct pci_device *pci)
 #else
-static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
+static int eth_probe (struct dev *dev, unsigned short *probe_addrs __attribute__((unused)))
 #endif
 {
 	struct nic *nic = (struct nic *)dev;

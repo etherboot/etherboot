@@ -399,7 +399,7 @@ static void lance_disable(struct dev *dev)
 }
 
 #ifdef	INCLUDE_LANCE
-static int lance_probe1(struct nic *nic, struct pci_device *pci)
+static int lance_probe1(struct nic *nic, struct pci_device *pci __attribute__((unused)))
 #else
 static int lance_probe1(struct nic *nic)
 #endif
@@ -533,7 +533,6 @@ static int i6510_probe(struct dev *dev, unsigned short *probe_addrs)
 	{
 #ifdef	INCLUDE_NE2100
 		char	offset15, offset14 = inb(ioaddr + 14);
-		unsigned short	pci_cmd;
 		if ((offset14 == 0x52 || offset14 == 0x57) &&
 		 ((offset15 = inb(ioaddr + 15)) == 0x57 || offset15 == 0x44))
 			if (lance_probe1(nic) >= 0)
@@ -541,7 +540,6 @@ static int i6510_probe(struct dev *dev, unsigned short *probe_addrs)
 #endif
 #ifdef	INCLUDE_NI6510
 		char	offset15, offset14 = inb(ioaddr + 14);
-		unsigned short	pci_cmd;
 		if ((offset14 == 0x00 || offset14 == 0x52) &&
 		 ((offset15 = inb(ioaddr + 15)) == 0x55 || offset15 == 0x44))
 			if (lance_probe1(nic) >= 0)
