@@ -30,6 +30,10 @@
  * Call to an external routine.  Has the capability to pass in and out
  * register and stack contents, relocate stack to a new address,
  * switch and restore GDT etc.
+ *
+ * Note: this code does handle temporarily disabling of interrupts.
+ * However, for now at least, interrupts are always disabled anyway
+ * while in protected mode since we don't set up an IDT.
  ****************************************************************************
  */
 
@@ -784,7 +788,10 @@ _in_call_far:
  *
  * Note that the routines _prot_to_real and _real_to_prot double as
  * trampoline fragments for external calls (calls from Etherboot to
- * real-mode code).
+ * real-mode code).  _prot_to_real does not automatically re-enable
+ * interrupts; this is to allow for the potential of using Etherboot
+ * code as an ISR.  _real_to_prot does automatically disable
+ * interrupts, since we don't have a protected-mode IDT.
  ****************************************************************************
  */
 
@@ -825,13 +832,16 @@ _rm_in_call_far:
 #define RIC2_PRESERVE ( 8 )
 #define RIC2_OFFSET_CALLADDR ( RIC2_PRESERVE )
 #define RIC2_OFFSET_CALLADDR_E ( RIC2_OFFSET_CALLADDR + 8 )
-#define RIC2_OFFSET_RETADDR ( RIC2_OFFSET_CALLADDR_E )
-#define RIC2_OFFSET_RETADDR_E ( RIC2_OFFSET_RETADDR + 8 )
-#define RIC2_OFFSET_OPCODE ( RIC2_OFFSET_RETADDR_E )
+#define RIC2_OFFSET_CONTADDR ( RIC2_OFFSET_CALLADDR_E )
+#define RIC2_OFFSET_CONTADDR_E ( RIC2_OFFSET_CONTADDR + 8 )
+#define RIC2_OFFSET_OPCODE ( RIC2_OFFSET_CONTADDR_E )
 #define RIC2_OFFSET_OPCODE_E ( RIC2_OFFSET_OPCODE + 4 )
-#define RIC2_OFFSET_PARAMS_FROM_R2P ( RIC2_OFFSET_OPCODE_E )
-#define RIC2_OFFSET_ORIG_OPCODE ( RIC2_OFFSET_PARAMS_FROM_R2P + \
-				  RIC_R2P_INSERT_LENGTH + 8 )
+#define RIC2_OFFSET_RETADDR ( RIC2_OFFSET_OPCODE_E )
+#define RIC2_OFFSET_RETADDR_E ( RIC2_OFFSET_RETADDR + 8 )
+#define RIC2_OFFSET_R2P_INSERTED ( RIC2_OFFSET_RETADDR_E )
+#define RIC2_OFFSET_R2P_INSERTED_E ( RIC2_OFFSET_R2P_INSERTED + \
+				     RIC_R2P_INSERT_LENGTH )
+#define RIC2_OFFSET_ORIG_OPCODE ( RIC2_OFFSET_R2P_INSERTED_E )
 #define RIC2_INSERT_LENGTH ( RIC2_OFFSET_OPCODE_E - RIC2_OFFSET_CALLADDR )
 	
 	.code16
@@ -900,7 +910,7 @@ _real_in_call_far:
 	/* Set up call and return addresses */
 	movl	$(r2p_pmcs-r2p_gdt), %eax	/* Flat physical CS */
 	movl	%eax, (RIC2_OFFSET_CALLADDR+4)(%esp)
-	movl	%eax, (RIC2_OFFSET_RETADDR+4)(%esp)
+	movl	%eax, (RIC2_OFFSET_CONTADDR+4)(%esp)
 	call	1f
 1:	popl	%ebp
 	subl	$1b, %ebp			/* %ebp = offset */
@@ -908,8 +918,8 @@ _real_in_call_far:
 	subl	$_text, %eax
 	addl	$_in_call_far, %eax		/* _in_call_far phys addr */
 	movl	%eax, (RIC2_OFFSET_CALLADDR+0)(%esp)
-	leal	2f(%ebp), %eax			/* return phys. address */
-	movl	%eax, (RIC2_OFFSET_RETADDR+0)(%esp)
+	leal	2f(%ebp), %eax			/* continuation address */
+	movl	%eax, (RIC2_OFFSET_CONTADDR+0)(%esp)
 	
 	/* Restore temporary registers */
 	popl	%eax
@@ -918,7 +928,7 @@ _real_in_call_far:
 	/* Call to _in_call_far, will return via _prot_to_real */
 	lret
 
-2:	/* Return point */
+2:	/* Continuation point */
 
 	/* Remove opcode from stack */
 	addl	$4, %esp
@@ -1075,6 +1085,11 @@ _prot_to_real:
 	popl	%ebp
 	popfw
 
+	/* FIXME: Ugly, ugly, ugly.  Re-enable interrupts on entering
+	 * real mode
+	 */
+	sti
+
 	/* Adjust stack to point to return address */
 	addw	$P2R_STRIP_LENGTH, %sp
 
@@ -1129,7 +1144,7 @@ _prot_to_real_end:
  ****************************************************************************
  */
 
-#define R2P_PRESERVE ( 12 )
+#define R2P_PRESERVE ( 10 )
 #define R2P_OFFSET_LOCALRETADDR ( R2P_PRESERVE )
 #define R2P_OFFSET_LOCALRETADDR_E ( R2P_OFFSET_LOCALRETADDR + 4 )
 #define R2P_OFFSET_RETADDR ( R2P_OFFSET_LOCALRETADDR_E )
@@ -1174,11 +1189,14 @@ _real_to_prot_core:
 	subw	$R2P_INSERT_LENGTH, %sp
 	
 	/* Store interrupt status and temporary registers */
-	pushfw
+	/* pushfw */		/* We can't handle interrupts in pmode yet */
 	pushw	%bp
 	pushl	%eax
 	pushl	%ebx
 
+	/* Disable interrupts */
+	cli
+	
 	/* Move return addresses down the stack so we can insert the
 	 * segment register dump.
 	 */
@@ -1250,7 +1268,7 @@ _real_to_prot_core:
 	popl	%ebx
 	popl	%eax
 	popw	%bp
-	popfw
+	/* popfw */		/* We can't handle interrupts in pmode yet */
 
 	/* Return from _real_to_prot_core */
 	ret
