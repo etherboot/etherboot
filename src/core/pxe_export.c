@@ -355,7 +355,8 @@ PXENV_EXIT_t pxenv_udp_close ( t_PXENV_UDP_CLOSE *udp_close ) {
  */
 int await_pxe_udp ( int ival __unused, void *ptr,
 		    unsigned short ptype __unused,
-		    struct iphdr *ip, struct udphdr *udp ) {
+		    struct iphdr *ip, struct udphdr *udp,
+		    struct tcphdr *tcp __unused ) {
 	t_PXENV_UDP_READ *udp_read = (t_PXENV_UDP_READ*)ptr;
 	uint16_t d_port;
 	size_t size;
