@@ -8,18 +8,6 @@ Author: Martin Renters
 
 #include "etherboot.h"
 
-/**************************************************************************
-BOOTMENU - Present boot options
-**************************************************************************/
-void bootmenu(int passive)
-{
-	static int retrycount = 0;
-
-	if (passive)
-		rfc951_sleep(++retrycount);
-	printf("<abort>\n");
-	eth_reset();
-}
 
 #ifdef	MOTD
 /**************************************************************************
@@ -253,7 +241,7 @@ selectdefault:
 		modifier_keys |= getshift();
 #endif
 		if (i == ESC)
-			longjmp(jmp_bootmenu, -1);
+			longjmp(restart_etherboot, -1);
 		if (i == '\n') {
 			goto selectdefault;
 		}

@@ -43,6 +43,7 @@ char		*identstring = 0;
 int		verbose = 0;
 int		pnp_hdr_offset = 0, pci_hdr_offset = 0;
 int		pci_vendor_id = 0, pci_device_id = 0;
+int		ispxe = 0;
 
 extern int getopt(int argc, char *argv[], char *options);
 
@@ -60,7 +61,7 @@ long getromsize(FILE *fd)
 	if (fseek(fd, (off_t)0, SEEK_SET) < 0) {
 		perror("fseek");
 		exit(1);
-	}
+	}	
 	/* warn if preamble is not 0x55 0xAA */
 	if (buffer[0] != 0x55 || buffer[1] != 0xAA)
 		fprintf(stderr, "BIOS extension ROM Image did not start with 0x55 0xAA\n");
@@ -122,10 +123,13 @@ int main(int argc, char **argv)
 
 	progname = argv[0];
 	is3c503 = 0;
-	while ((i = getopt(argc, argv, "3i:p:s:v")) >= 0) {
+	while ((i = getopt(argc, argv, "3xi:p:s:v")) >= 0) {
 		switch (i) {
 		case '3':
 			is3c503 = 1;
+			break;
+		case 'x':
+			ispxe = 1;
 			break;
 		case 'i':
 			identstring = optarg;
@@ -158,7 +162,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	/* If size not specified, infer it from 3rd byte */
-	if (romsize == 0)
+	if (romsize == 0 && !ispxe )
 		romsize = getromsize(fd);
 	/* If that is 0, choose the right size */
 	if (romsize == 0)
@@ -177,6 +181,12 @@ int main(int argc, char **argv)
 	}
 	if (verbose)
 		printf("%ld bytes read\n", fs);
+	if (ispxe) {
+		romsize=fs;
+		rom[2] = romsize / 512L;
+		goto writerom ;
+	}
+
 	if (fs == romsize && fgetc(fd) != EOF) {
 		fprintf(stderr, "ROM size of %ld not big enough for data\n", romsize);
 		exit(1);
@@ -243,6 +253,7 @@ int main(int argc, char **argv)
 		printf("Checksum fails.\n");
 	else if (verbose)
 		printf("Checksum ok\n");
+ writerom:
 	if (fseek(fd, (off_t)0, SEEK_SET) < 0) {
 		perror("fseek");
 		exit(1);

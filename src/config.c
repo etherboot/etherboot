@@ -9,7 +9,7 @@
 #include	"nic.h"
 
 #undef	INCLUDE_PCI
-#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900)
+#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI)
 	/* || others later */
 #define	INCLUDE_PCI
 #include	"pci.h"
@@ -54,7 +54,8 @@ static struct pci_device	pci_nic_list[] = {
 		"3Com905B-FL", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905C_TXM,
 		"3Com905C-TXM", 0, 0, 0, 0},
-
+	{ PCI_VENDOR_ID_3COM,		0x9800,
+		"3Com980-Cyclone", 0, 0, 0, 0},
 #endif
 #ifdef	INCLUDE_3C595
 	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C590,
@@ -77,6 +78,8 @@ static struct pci_device	pci_nic_list[] = {
 		"3Com900B-2/T", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_3COM,		0x900A,
 		"3Com900B-FL", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_3COM,		0x9800,
+		"3Com980-Cyclone", 0, 0, 0, 0},
 #endif
 #ifdef	INCLUDE_EEPRO100
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82557,
@@ -171,6 +174,11 @@ static struct pci_device	pci_nic_list[] = {
 	 "SIS7016", 0, 0, 0, 0},
 #endif
 
+#ifdef INCLUDE_NATSEMI
+       { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
+         "DP83815", 0, 0, 0, 0},
+#endif
+
 /* other PCI NICs go here */
 	{0, 0, NULL, 0, 0, 0, 0}
 };
@@ -203,6 +211,9 @@ static const struct dispatch_table	NIC[] =
 #endif
 #ifdef INCLUDE_SIS900
 	{ "SIS900", sis900_probe, pci_ioaddrs },	
+#endif
+#ifdef INCLUDE_NATSEMI
+	{ "NATSEMI", natsemi_probe, pci_ioaddrs },	
 #endif
 #ifdef	INCLUDE_WD
 	{ "WD", wd_probe, 0 },

@@ -221,6 +221,7 @@ Author: Martin Renters
 #define	RFC1533_VENDOR_ETHDEV	130
 #ifdef	IMAGE_FREEBSD
 #define RFC1533_VENDOR_HOWTO    132
+#define RFC1533_VENDOR_KERNEL_ENV    133
 #endif
 #define RFC1533_VENDOR_MNUOPTS	160
 #define RFC1533_VENDOR_SELECTION 176
@@ -474,7 +475,7 @@ extern int udp_transmit P((unsigned long destip, unsigned int srcsock,
 	unsigned int destsock, int len, const void *buf));
 extern int await_reply P((int type, int ival, void *ptr, int timeout));
 extern int decode_rfc1533 P((unsigned char *, int, int, int));
-extern void rfc951_sleep P((int));
+extern long rfc2131_sleep_interval P((int base, int exp));
 extern void cleanup P((void));
 
 /* nfs.c */
@@ -491,7 +492,6 @@ extern void eth_transmit(const char *d, unsigned int t, unsigned int s, const vo
 extern void eth_disable(void);
 
 /* bootmenu.c */
-extern void bootmenu P((int));
 extern void show_motd P((void));
 extern void parse_menuopts P((char *,int));
 extern void selectImage P((char **));
@@ -505,6 +505,7 @@ extern int os_download P((unsigned int, unsigned char *,unsigned int));
 /* misc.c */
 extern void twiddle P((void));
 extern void sleep P((int secs));
+extern void interruptible_sleep P((int secs));
 extern int strcasecmp P((char *a, char *b));
 extern char *substr P((char *a, char *b));
 extern int getdec P((char **));
@@ -560,7 +561,7 @@ External variables
 extern struct rom_info rom;
 extern char *hostname;
 extern int hostnamelen;
-extern jmpbuf jmp_bootmenu;
+extern jmpbuf restart_etherboot;
 extern struct arptable_t arptable[MAX_ARP];
 #ifdef	IMAGE_MENU
 extern int menutmo,menudefault;
@@ -579,6 +580,7 @@ extern struct bootpd_t bootp_data;
 extern unsigned char *end_of_rfc1533;
 #ifdef	IMAGE_FREEBSD
 extern int freebsd_howto;
+extern char freebsd_kernel_env[];
 #endif
 
 /* config.c */

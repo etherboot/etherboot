@@ -126,6 +126,8 @@
 #	-DIMAGE_FREEBSD
 #			Add FreeBSD image loading support (requires at least
 #			-DAOUT_IMAGE and/or -DELF_IMAGE).
+#	-DFREEBSD_KERNEL_ENV
+#			Pass in FreeBSD kernel environment
 #	-DDOWNLOAD_PROTO_TFTP
 #			If defined, boots by tftp (recommended).
 #	-DDOWNLOAD_PROTO_NFS
@@ -232,6 +234,7 @@ LCONFIG+=	-DMOVEROM
 RM=		rm -f
 TOUCH=		touch
 CC32=		gcc
+AS32=		as
 LD32=		ld
 SIZE32=		size
 AR32=		ar
@@ -239,7 +242,7 @@ RANLIB32=	ranlib
 
 # If you use egcs or gcc-2.8, using -Os may help to reduce the code size.
 # Otherwise use -O2 (under no circumstance use -O3 or above!).
-CFLAGS32+=	-O2 -g -fstrength-reduce -fomit-frame-pointer -m386
+CFLAGS32+=	-Os -g -ffreestanding -fstrength-reduce -fomit-frame-pointer -mcpu=i386
 # Squeeze the code in as little space as possible.
 CFLAGS32+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
 CFLAGS32+=	-Wall -W -Wno-format -Wno-unused

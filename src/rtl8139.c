@@ -390,7 +390,7 @@ static void rtl_transmit(struct nic *nic, const char *destaddr,
 	txstatus = inl(ioaddr+ TxStatus0 + cur_tx*4);
 
 	if (status & TxOK) {
-		cur_tx = ++cur_tx % NUM_TX_DESC;
+		cur_tx = (cur_tx + 1) % NUM_TX_DESC;
 #ifdef	DEBUG_TX
 		printf("tx done (%d ticks), status %x txstatus %X\n",
 			to-currticks(), status, txstatus);

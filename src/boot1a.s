@@ -193,7 +193,7 @@ main.5:		mov %dx,MEM_ARG			# Save args
 		pop %si
 		ljmp $0x800,$6			# enter the rom code
 
-msg_r1:		.asciz " loaded"
+msg_r1:		.asciz " done\r\n"
 		
 .if 0
 		mov $MEM_BTX,%bx		# BTX

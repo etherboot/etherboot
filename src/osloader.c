@@ -333,11 +333,16 @@ static int tagged_download(unsigned char *data, unsigned int len)
 					entry = (int (*)())tctx.img.execaddr;
 					result = (*entry)(&loaderinfo, tctx.linlocation, BOOTP_DATA_ADDR);
 					printf("Secondary program returned %d\n", result);
-					longjmp(jmp_bootmenu, result);
+					if (!TAGGED_PROGRAM_RETURNS) {
+						/* We shouldn't have returned */
+						result = -2;
+					}
+					longjmp(restart_etherboot, result);
+						
 				} else {
 					gateA20_unset();
 					xstart(tctx.img.execaddr, tctx.img.u.location, (char *)BOOTP_DATA_ADDR);
-					longjmp(jmp_bootmenu, -2);
+					longjmp(restart_etherboot, -2);
 				}
 			}
 			sh = *((struct segheader *)tctx.segaddr);
@@ -397,11 +402,11 @@ aout_startkernel:
 			info.bsdinfo.bi_nfs_diskless = NULL;
 			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
 			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
-			longjmp(jmp_bootmenu, -2);
+			longjmp(restart_etherboot, -2);
 		}
 #endif
 		printf("unexpected a.out variant\n");
-		longjmp(jmp_bootmenu, -2);
+		longjmp(restart_etherboot, -2);
 	}
 	offset = 0;
 	do {
@@ -497,6 +502,11 @@ elf_startkernel:
 			info.bsdinfo.bi_kernelname = KERNEL_BUF;
 			info.bsdinfo.bi_nfs_diskless = NULL;
 			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
+#define RB_BOOTINFO     0x80000000      /* have `struct bootinfo *' arg */  
+			if(freebsd_kernel_env[0] != '\0'){
+				freebsd_howto |= RB_BOOTINFO;
+				info.bsdinfo.bi_envp = (unsigned long)freebsd_kernel_env;
+			}
 
 			/* Check if we have symbols loaded, and if so,
 			 * made the meta_data needed to pass those to
@@ -559,7 +569,7 @@ elf_startkernel:
 			}
 
 			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
-			longjmp(jmp_bootmenu, -2);
+			longjmp(restart_etherboot, -2);
 		}
 #endif
 /*
@@ -654,7 +664,7 @@ elf_startkernel:
 			: /* no outputs */
 			: "a" (0x2BADB002), "b" (&info.mbinfo), "g" (entry)
 			: "ecx","edx","esi","edi","cc","memory");
-		longjmp(jmp_bootmenu, -2);
+		longjmp(restart_etherboot, -2);
 #else	/* !IMAGE_MULTIBOOT, i.e. generic ELF */
 		/* Call cleanup only if program will not return */
 		if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0)
@@ -664,7 +674,11 @@ elf_startkernel:
 			entry = (int (*)())info.elf32.e_entry;
 			result = (*entry)(&loaderinfo, &info, BOOTP_DATA_ADDR);
 			printf("Secondary program returned %d\n", result);
-			longjmp(jmp_bootmenu, result);
+			if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0) {
+				/* We shouldn't have returned */
+				result = -2;
+			}
+			longjmp(restart_etherboot, result);
 		}
 #endif	/* IMAGE_MULTIBOOT */
 	}

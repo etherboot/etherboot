@@ -48,7 +48,7 @@ int pcibios_read_config_word (unsigned int bus,
     return PCIBIOS_SUCCESSFUL;
 }
 
-static int pcibios_read_config_dword (unsigned int bus, unsigned int device_fn,
+int pcibios_read_config_dword (unsigned int bus, unsigned int device_fn,
 				 unsigned int where, unsigned int *value)
 {
     outl(CONFIG_CMD(bus,device_fn,where), 0xCF8);
@@ -170,7 +170,7 @@ int pcibios_read_config_word(unsigned int bus,
         return (int) (ret & 0xff00) >> 8;
 }
 
-static int pcibios_read_config_dword(unsigned int bus,
+int pcibios_read_config_dword(unsigned int bus,
         unsigned int device_fn, unsigned int where, unsigned int *value)
 {
         unsigned long ret;
@@ -361,11 +361,16 @@ static void scan_bus(struct pci_device *pcidev)
 	unsigned char hdr_type = 0;
 	unsigned short vendor, device;
 	unsigned int membase, ioaddr, romaddr;
-	unsigned char class, subclass;
 	int i, reg;
 	unsigned int pci_ioaddr = 0;
 
-	buses=1;
+	/* Scan all PCI buses, until we find our card.
+	 * We could be smart only scan the required busses but that
+	 * is error prone, and tricky.
+	 * By scanning all possible pci busses in order we should find
+	 * our card eventually. 
+	 */
+	buses=256;
 	for (bus = 0; bus < buses; ++bus) {
 		for (devfn = 0; devfn < 0xff; ++devfn) {
 			if (PCI_FUNC (devfn) == 0)
@@ -380,12 +385,6 @@ static void scan_bus(struct pci_device *pcidev)
 			}
 			vendor = l & 0xffff;
 			device = (l >> 16) & 0xffff;
-
-			/* check for pci-pci bridge devices!! - more buses when found */
-			pcibios_read_config_byte(bus, devfn, PCI_CLASS_CODE, &class);
-			pcibios_read_config_byte(bus, devfn, PCI_SUBCLASS_CODE, &subclass);
-			if (class == 0x06 && subclass == 0x04)
-				buses++;
 
 #if	DEBUG
 			printf("bus %x, function %x, vendor %x, device %x\n",

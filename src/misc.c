@@ -16,6 +16,20 @@ void sleep(int secs)
 }
 
 /**************************************************************************
+INTERRUPTIBLE SLEEP
+**************************************************************************/
+void interruptible_sleep(int secs)
+{
+	unsigned long tmo;
+
+	printf("<sleep>\n");
+	for (tmo = currticks()+secs*TICKS_PER_SEC; currticks() < tmo; ) {
+		if (iskey() && (getchar() == ESC))
+			longjmp(restart_etherboot, -1);
+	}
+}
+
+/**************************************************************************
 TWIDDLE
 **************************************************************************/
 void twiddle(void)
@@ -223,7 +237,7 @@ static void empty_8042(void)
 	       currticks() < time)
 		inb(K_RDWR);
 }
-#endif	IBM_L40
+#endif	/* IBM_L40 */
 
 /*
  * Gate A20 for high memory

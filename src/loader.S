@@ -84,7 +84,8 @@
 
 	.text
 	.code16
-	
+	.org 0
+
 _start: 
 	.word 0xAA55			/* BIOS extension signature */
 size:	.byte 0				/* number of 512 byte blocks */

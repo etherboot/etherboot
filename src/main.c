@@ -21,7 +21,7 @@ Literature dealing with the network protocols:
 #include "etherboot.h"
 #include "nic.h"
 
-jmpbuf			jmp_bootmenu;
+jmpbuf			restart_etherboot;
 struct arptable_t	arptable[MAX_ARP];
 /* Currently no other module uses rom, but it is available */
 struct rom_info		rom;
@@ -30,7 +30,6 @@ static unsigned long	netmask;
 char *hostname = "";
 int hostnamelen = 0;
 static unsigned long xid;
-static int bootp_completed = 0;
 unsigned char *end_of_rfc1533 = NULL;
 static int vendorext_isvalid;
 static const unsigned char vendorext_magic[] = {0xE4,0x45,0x74,0x68}; /* äEth */
@@ -50,6 +49,7 @@ char *motd[RFC1533_VENDOR_NUMOFMOTD];
 
 #ifdef	IMAGE_FREEBSD
 int freebsd_howto = 0;
+char freebsd_kernel_env[256];
 #endif
 
 #ifndef	BOOTP_DATA_AT_0x93C00
@@ -79,6 +79,8 @@ static const unsigned char dhcprequest [] = {
 	RFC2132_REQ_ADDR,4,0,0,0,0,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
 	sizeof(struct bootpd_t) / 256, sizeof(struct bootpd_t) % 256,
+	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
+	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
 	/* request parameters */
 	RFC2132_PARAM_LIST,
 #ifdef	IMAGE_FREEBSD
@@ -98,6 +100,9 @@ static const unsigned char dhcprequest [] = {
 	RFC1533_VENDOR_ETHDEV,
 #ifdef	IMAGE_FREEBSD
 	RFC1533_VENDOR_HOWTO,
+	/*
+	RFC1533_VENDOR_KERNEL_ENV,
+	*/
 #endif
 	RFC1533_VENDOR_MNUOPTS, RFC1533_VENDOR_SELECTION,
 	/* 8 MOTD entries */
@@ -140,9 +145,52 @@ int	vci_etherboot;
  */
 static int bootp(void);
 static int rarp(void);
+static void load_configuration(void);
 static void load(void);
 static int downloadkernel(unsigned char *data, int block, int len, int eof);
 static unsigned short ipchksum(unsigned short *ip, int len);
+
+static inline void ask_boot(void)
+{
+#if defined(ASK_BOOT) && ASK_BOOT > 0
+	while(1) {
+		int c;
+		unsigned long time;
+		printf(ASK_PROMPT);
+		for (time = currticks() + ASK_BOOT*TICKS_PER_SEC; !iskey(); )
+			if (currticks() > time) {
+				c = ANS_DEFAULT;
+				goto done;
+			}
+		c = getchar();
+		if ((c >= 'a') && (c <= 'z')) c &= 0x5F;
+		if (c == '\n') c = ANS_DEFAULT;
+done:
+		if ((c >= ' ') && (c <= '~')) putchar(c);
+		putchar('\n');
+		if (c == ANS_LOCAL)
+			exit(0);
+		if (c == ANS_NETWORK)
+			break;
+	}
+#endif /* ASK_BOOT */
+}
+
+static inline void try_floppy_first(void)
+{
+#if (TRY_FLOPPY_FIRST > 0) && defined (FLOPPY)
+	printf("Trying floppy");
+	disk_init();
+	for (i = TRY_FLOPPY_FIRST; i-- > 0; ) {
+		putchar('.');
+		if (disk_read(0, 0, 0, 0, ((char *) FLOPPY_BOOT_LOCATION)) != 0x8000) {
+			printf("using floppy\n");
+			exit(0);
+		}
+	}
+	printf("no floppy\n");
+#endif /* TRY_FLOPPY_FIRST */	
+}
 
 /**************************************************************************
 MAIN - Kick off routine
@@ -167,77 +215,59 @@ int main(void)
 	rom = *(struct rom_info *)ROM_INFO_LOCATION;
 	printf("ROM segment %#x length %#x reloc %#x\n", rom.rom_segment,
 		rom.rom_length << 1, ((unsigned long)_start) >> 4);
-#if	defined(ASK_BOOT) && ASK_BOOT > 0
-	while (1) {
-		int c;
-		unsigned long time;
-		printf(ASK_PROMPT);
-		for (time = currticks() + ASK_BOOT*TICKS_PER_SEC; !iskey(); )
-			if (currticks() > time) {
-				c = ANS_DEFAULT;
-				goto done;
-			}
-		c = getchar();
-		if ((c >= 'a') && (c <= 'z')) c &= 0x5F;
-		if (c == '\n') c = ANS_DEFAULT;
-done:
-		if ((c >= ' ') && (c <= '~')) putchar(c);
-		putchar('\n');
-		if (c == ANS_LOCAL)
-			exit(0);
-		if (c == ANS_NETWORK)
-			break;
-	}
-#endif
-#if	(TRY_FLOPPY_FIRST > 0) && defined(FLOPPY)
-	printf("Trying floppy");
-	disk_init();
-	for (i = TRY_FLOPPY_FIRST; i-- > 0; ) {
-		putchar('.');
-		if (disk_read(0, 0, 0, 0, ((char *) FLOPPY_BOOT_LOCATION)) != 0x8000) {
-			printf("using floppy\n");
-			exit(0);
-		}
-	}
-	printf("no floppy\n");
-#endif	/* TRY_FLOPPY_FIRST && FLOPPY */
-	print_config();
+
 	gateA20_set();
-#ifdef	EMERGENCYDISKBOOT
-	if (!eth_probe()) {
-		printf("No adapter found\n");
-		exit(0);
-	}
-#else
-	while (!eth_probe()) {
-		printf("No adapter found");
-		if (!setjmp(jmp_bootmenu))
-			rfc951_sleep(++card_retries);
-	}
-#endif
-	while (1) {
-		/* -1:	timeout or ESC
-		   -2:	error return from loader
-		   0,1:	retry tftp with possibly modified bootp reply
-		   2:	retry bootp and tftp
-		   255:	exit Etherboot */
-		if ((i = setjmp(jmp_bootmenu)) < 0) {
+	print_config();
+	/* -1:	timeout or ESC
+	   -2:	error return from loader
+	   0:	retry booting bootp and tftp
+	   1:   retry tftp with possibly modified bootp reply
+	   2:   retry bootp and tftp
+	   255: exit Etherboot
+	*/
+	while(1) {
+		i = setjmp(restart_etherboot);
+		if (i == 0) {
+			/* We just called setjmp ... */
+			ask_boot();
+			try_floppy_first();
+			if (!eth_probe()) {
+				printf("No adapter found\n");
+				interruptible_sleep(++card_retries);
+				longjmp(restart_etherboot, -1);
+			}
+			load_configuration();
+			load();
+		}
+		/* We only come to the following functions
+		 * through an explicit longjmp
+		 */
+		else if (i == 1) {
+			load();
+		}
+		else if (i == 2) {
+			load_configuration();
+			load();
+		}
+		else if (i == 255) {
+			exit(0);
+			longjmp(restart_etherboot, -1);
+		}
+		else {
 #if	defined(ANSIESC) && defined(CONSOLE_CRT)
 			ansi_reset();
 #endif
-			bootmenu(++i);
-		} else if (i == 255)
+			printf("<abort>\n");
+#ifdef EMERGENCYDISKBOOT
 			exit(0);
-		else if (i <= 2) {
-			if (i == 2)
-				bootp_completed = 0;
-			load();
-		}
-#if	defined(ANSIESC) && defined(CONSOLE_CRT)
-		ansi_reset();
 #endif
+			/* Reset the adapter to it's default state */
+			eth_reset();
+			/* Fall through and restart asking for files */
+		}
 	}
 }
+
 
 /**************************************************************************
 LOADKERNEL - Try to load kernel image
@@ -271,40 +301,40 @@ nodisk:
 }
 #endif
 
+/*
+ * Find out what our boot parameters are
+ */
+static void load_configuration(void)
+{
+	int server_found;
+	/* Find a server to get BOOTP reply from */
+#ifdef	RARP_NOT_BOOTP
+	printf("Searching for server (RARP)...\n");
+#else
+#ifndef	NO_DHCP_SUPPORT
+	printf("Searching for server (DHCP)...\n");
+#else
+	printf("Searching for server (BOOTP)...\n");
+#endif
+#endif
+
+#ifdef	RARP_NOT_BOOTP
+	server_found = rarp();
+#else
+	server_found = bootp();
+#endif
+	if (!server_found) {
+		printf("No Server found\n");
+		longjmp(restart_etherboot, -1);
+	}
+}
+
 /**************************************************************************
 LOAD - Try to get booted
 **************************************************************************/
 static void load(void)
 {
-	/* Find a server to get BOOTP reply from */
-	if (!bootp_completed ||
-	    !arptable[ARP_CLIENT].ipaddr.s_addr || !arptable[ARP_SERVER].ipaddr.s_addr) {
-retry:
-		bootp_completed = 0;
-#ifdef	RARP_NOT_BOOTP
-		printf("Searching for server (RARP)...\n");
-#else
-#ifndef	NO_DHCP_SUPPORT
-		printf("Searching for server (DHCP)...\n");
-#else
-		printf("Searching for server (BOOTP)...\n");
-#endif
-#endif
-
-#ifdef	RARP_NOT_BOOTP
-		if (!rarp()) {
-#else
-		if (!bootp()) {
-#endif
-			printf("No Server found\n");
-#ifdef	EMERGENCYDISKBOOT
-			exit(0);
-#else
-			goto retry;
-#endif
-		}
-		bootp_completed++;
-	}
+	const char	*kernel;
 	printf("Me: %I, Server: %I",
 		arptable[ARP_CLIENT].ipaddr.s_addr,
 		arptable[ARP_SERVER].ipaddr.s_addr);
@@ -327,22 +357,17 @@ retry:
 #ifdef	IMAGE_MENU
 	if (vendorext_isvalid && useimagemenu) {
 		selectImage(imagelist);
-		bootp_completed = 0;
 	}
 #endif
 #ifdef	DOWNLOAD_PROTO_NFS
 	rpc_init();
 #endif
-	for (;;) {
-		const char	*kernel;
-
-		kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
-		printf("Loading %I:%s ", arptable[ARP_SERVER].ipaddr, kernel);
-		while (!loadkernel(kernel)) {
-			printf("Unable to load file.\n");
-			sleep(2);	/* lay off server for a while */
-		}
-	}
+	kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
+	printf("Loading %I:%s ", arptable[ARP_SERVER].ipaddr, kernel);
+	loadkernel(kernel); /* We don't return except on error */
+	printf("Unable to load file.\n");
+	interruptible_sleep(2);		/* lay off the server for a while */
+	longjmp(restart_etherboot, -1);
 }
 
 /**************************************************************************
@@ -415,17 +440,12 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 			memset(arpreq.thwaddr, 0, ETH_ALEN);
 			memcpy(arpreq.tipaddr, &destip, sizeof(in_addr));
 			for (retry = 1; retry <= MAX_ARP_RETRIES; retry++) {
+				long timeout;
 				eth_transmit(broadcast, ARP, sizeof(arpreq),
 					&arpreq);
+				timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 				if (await_reply(AWAIT_ARP, arpentry,
-					arpreq.tipaddr, TIMEOUT)) goto xmit;
-				rfc951_sleep(retry);
-				/* We have slept for a while - the packet may
-				 * have arrived by now.  If not, we have at
-				 * least some room in the Rx buffer for the
-				 * next reply.  */
-				if (await_reply(AWAIT_ARP, arpentry,
-					arpreq.tipaddr, 0)) goto xmit;
+					arpreq.tipaddr, timeout)) goto xmit;
 			}
 			return(0);
 		}
@@ -537,15 +557,16 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 		return (0);
 	for (;;)
 	{
+		long timeout;
 #ifdef	CONGESTED
-		if (!await_reply(AWAIT_TFTP, iport, NULL, (block ? TFTP_REXMT : TIMEOUT)))
+		timeout = rfc2131_sleep_interval(block?TFTP_REXMT: TIMEOUT, retry);
 #else
-		if (!await_reply(AWAIT_TFTP, iport, NULL, TIMEOUT))
+		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 #endif
+		if (!await_reply(AWAIT_TFTP, iport, NULL, timeout))
 		{
 			if (!block && retry++ < MAX_TFTP_RETRIES)
 			{	/* maybe initial request was lost */
-				rfc951_sleep(retry);
 				if (!udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
 					++iport, TFTP_PORT, len, &tp))
 					return (0);
@@ -583,7 +604,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 			if (len > TFTP_MAX_PACKET)
 				goto noak;
 			e = p + len;
-			while (*p != '\000' && p < e) {
+			while (*p != '\0' && p < e) {
 				if (!strcasecmp("blksize", p)) {
 					p += 8;
 					if ((packetsize = getdec(&p)) <
@@ -672,10 +693,12 @@ static int rarp(void)
 	memcpy(&rarpreq.thwaddr, arptable[ARP_CLIENT].node, ETH_ALEN);
 	/* tipaddr is already zeroed out */
 
-	for (retry = 0; retry < MAX_ARP_RETRIES; rfc951_sleep(++retry)) {
+	for (retry = 0; retry < MAX_ARP_RETRIES; ++retry) {
+		long timeout;
 		eth_transmit(broadcast, RARP, sizeof(rarpreq), &rarpreq);
 
-		if (await_reply(AWAIT_RARP, 0, rarpreq.shwaddr, TIMEOUT))
+		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
+		if (await_reply(AWAIT_RARP, 0, rarpreq.shwaddr, timeout))
 			break;
 	}
 
@@ -720,6 +743,7 @@ static int bootp(void)
 #endif	/* NO_DHCP_SUPPORT */
 
 	for (retry = 0; retry < MAX_BOOTP_RETRIES; ) {
+		long timeout;
 
 		/* Clear out the Rx queue first.  It contains nothing of
 		 * interest, except possibly ARP requests from the DHCP/TFTP
@@ -732,11 +756,12 @@ static int bootp(void)
 
 		udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 			sizeof(struct bootpip_t), &ip);
+		timeout = rfc2131_sleep_interval(TIMEOUT, retry++);
 #ifdef	NO_DHCP_SUPPORT
-		if (await_reply(AWAIT_BOOTP, 0, NULL, TIMEOUT))
+		if (await_reply(AWAIT_BOOTP, 0, NULL, timeout))
 			return(1);
 #else
-		if (await_reply(AWAIT_BOOTP, 0, NULL, TIMEOUT)) {
+		if (await_reply(AWAIT_BOOTP, 0, NULL, timeout)) {
 			/* If not a DHCPOFFER then must be just a BOOTP reply,
 			   be backward compatible with BOOTP then */
 			if (dhcp_reply != DHCPOFFER)
@@ -753,13 +778,12 @@ static int bootp(void)
 				udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 					sizeof(struct bootpip_t), &ip);
 				dhcp_reply=0;
-				if (await_reply(AWAIT_BOOTP, 0, NULL, TIMEOUT))
+				timeout = rfc2131_sleep_interval(TIMEOUT, reqretry++);
+				if (await_reply(AWAIT_BOOTP, 0, NULL, timeout))
 					if (dhcp_reply == DHCPACK)
 						return(1);
-				rfc951_sleep(++reqretry);
 			}
 		}
-		rfc951_sleep(++retry);
 #endif	/* NO_DHCP_SUPPORT */
 		ip.bp.bp_secs = htons((currticks()-starttime)/TICKS_PER_SEC);
 	}
@@ -920,11 +944,7 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 			 * assume that something failed.  It is unlikely that
 			 * we have no processing time left between packets.  */
 			if (iskey() && (getchar() == ESC))
-#ifdef	EMERGENCYDISKBOOT
-				exit(0);
-#else
-				longjmp(jmp_bootmenu, -1);
-#endif
+				longjmp(restart_etherboot, -1);
 			/* Do the timeout after at least a full queue walk.  */
 			if ((timeout == 0) || (currticks() > time)) {
 				break;
@@ -985,6 +1005,13 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 		   any troubles with this but I have without it
 		*/
 		vendorext_isvalid = 1;
+#ifdef FREEBSD_KERNEL_ENV
+		memcpy(freebsd_kernel_env, FREEBSD_KERNEL_ENV,
+		       sizeof(FREEBSD_KERNEL_ENV));
+		/* FREEBSD_KERNEL_ENV had better be a string constant */
+#else
+		freebsd_kernel_env[0]='\0';
+#endif
 #else
 		vendorext_isvalid = 0;
 #endif
@@ -1058,6 +1085,13 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 #ifdef	IMAGE_FREEBSD
 		else if (c == RFC1533_VENDOR_HOWTO)
 			freebsd_howto = ((p[2]*256+p[3])*256+p[4])*256+p[5];
+		else if (c == RFC1533_VENDOR_KERNEL_ENV){
+			if(*(p + 1) < sizeof(freebsd_kernel_env)){
+				memcpy(freebsd_kernel_env,p+2,*(p+1));
+			}else{
+				printf("Only support %d bytes in Kernel Env %d\n",sizeof(freebsd_kernel_env));
+			}
+		}
 #endif
 #ifdef	IMAGE_MENU
 		else if (c == RFC1533_VENDOR_MNUOPTS)
@@ -1089,7 +1123,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 	if (block == 0 && extpath != NULL) {
 		char fname[64];
 		memcpy(fname, extpath+2, TAG_LEN(extpath));
-		fname[(int)TAG_LEN(extpath)] = '\000';
+		fname[(int)TAG_LEN(extpath)] = '\0';
 		printf("Loading BOOTP-extension file: %s\n",fname);
 		download(fname, decode_rfc1533);
 	}
@@ -1111,10 +1145,12 @@ static unsigned short ipchksum(unsigned short *ip, int len)
 	return((~sum) & 0x0000FFFF);
 }
 
+#define TWO_SECOND_DIVISOR (2147483647l/TICKS_PER_SEC)
+
 /**************************************************************************
-RFC951_SLEEP - sleep for expotentially longer times
+RFC2131_SLEEP_INTERVAL - sleep for expotentially longer times
 **************************************************************************/
-void rfc951_sleep(int exp)
+long rfc2131_sleep_interval(int base, int exp)
 {
 	static long seed = 0;
 	long q;
@@ -1127,18 +1163,12 @@ void rfc951_sleep(int exp)
 	if (!seed) /* Initialize linear congruential generator */
 		seed = currticks() + *(long *)&arptable[ARP_CLIENT].node
 		       + ((short *)arptable[ARP_CLIENT].node)[2];
-	/* simplified version of the LCG given in Bruce Scheier's
+	/* simplified version of the LCG given in Bruce Schneier's
 	   "Applied Cryptography" */
 	q = seed/53668;
-	if ((seed = 40014*(seed-53668*q) - 12211*q) < 0) seed += 2147483563l;
-	/* compute mask */
-	for (tmo = 63; tmo <= 60*TICKS_PER_SEC && --exp > 0; tmo = 2*tmo+1);
-	/* sleep */
-	printf("<sleep>\n");
-	for (tmo = (tmo&seed)+currticks(); currticks() < tmo; )
-		if (iskey() && (getchar() == ESC))
-			longjmp(jmp_bootmenu, -1);
-	return;
+	if ((seed = 40014*(seed-53668*q) - 12211*q) < 0) seed += 2147483563L;
+	tmo = (base << exp) + (TICKS_PER_SEC - (seed /TWO_SECOND_DIVISOR));
+	return tmo;
 }
 
 /**************************************************************************
@@ -1149,6 +1179,7 @@ void cleanup(void)
 #ifdef	DOWNLOAD_PROTO_NFS
 	nfs_umountall(ARP_SERVER);
 #endif
+	/* Stop receiving packets */
 	eth_disable();
 #if	defined(ANSIESC) && defined(CONSOLE_CRT)
 	ansi_reset();

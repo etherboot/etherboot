@@ -74,9 +74,11 @@ static int rpc_lookup(int addr, int prog, int ver, int sport)
 	buf.u.call.data[6] = htonl(IP_UDP);
 	buf.u.call.data[7] = 0;
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
+		long timeout;
 		udp_transmit(arptable[addr].ipaddr.s_addr, sport, SUNRPC_PORT,
 			(char *)(buf.u.call.data + 8) - (char *)&buf, &buf);
-		if (await_reply(AWAIT_RPC, sport, &id, TIMEOUT)) {
+		timeout = rfc2131_sleep_interval(TIMEOUT, retries);
+		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus) {
@@ -86,7 +88,6 @@ static int rpc_lookup(int addr, int prog, int ver, int sport)
 				return ntohl(rpc->u.reply.data[0]);
 			}
 		}
-		rfc951_sleep(retries);
 	}
 	return -1;
 }
@@ -182,9 +183,11 @@ static int nfs_mount(int server, int port, char *path, char *fh, int sport)
 	memcpy(buf.u.call.data + p, path, pathlen);
 	p += (pathlen + 3) / 4;
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
+		long timeout;
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
 			(char *)(buf.u.call.data + p) - (char *)&buf, &buf);
-		if (await_reply(AWAIT_RPC, sport, &id, TIMEOUT)) {
+		timeout = rfc2131_sleep_interval(TIMEOUT, retries);
+		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus || rpc->u.reply.data[0]) {
@@ -204,7 +207,6 @@ static int nfs_mount(int server, int port, char *path, char *fh, int sport)
 				return 0;
 			}
 		}
-		rfc951_sleep(retries);
 	}
 	return -1;
 }
@@ -235,9 +237,10 @@ void nfs_umountall(int server)
 	buf.u.call.proc = htonl(MOUNT_UMOUNTALL);
 	p = rpc_add_credentials(buf.u.call.data, 0);
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
+		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		udp_transmit(arptable[server].ipaddr.s_addr, oport, mount_port,
 			(char *)(buf.u.call.data + p) - (char *)&buf, &buf);
-		if (await_reply(AWAIT_RPC, oport, &id, TIMEOUT)) {
+		if (await_reply(AWAIT_RPC, oport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus) {
@@ -246,7 +249,6 @@ void nfs_umountall(int server)
 			fs_mounted = 0;
 			return;
 		}
-		rfc951_sleep(retries);
 	}
 }
 
@@ -278,9 +280,10 @@ static int nfs_lookup(int server, int port, char *fh, char *path, char *nfh,
 	memcpy(buf.u.call.data + p, path, pathlen);
 	p += (pathlen + 3) / 4;
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
+		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
 			(char *)(buf.u.call.data + p) - (char *)&buf, &buf);
-		if (await_reply(AWAIT_RPC, sport, &id, TIMEOUT)) {
+		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus || rpc->u.reply.data[0]) {
@@ -299,7 +302,6 @@ static int nfs_lookup(int server, int port, char *fh, char *path, char *nfh,
 				return 0;
 			}
 		}
-		rfc951_sleep(retries);
 	}
 	return -1;
 }
@@ -328,9 +330,10 @@ static int nfs_read(int server, int port, char *fh, int offset, int len,
 	buf.u.call.data[p++] = htonl(len);
 	buf.u.call.data[p++] = 0;		/* unused parameter */
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
+		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
 			(char *)(buf.u.call.data + p) - (char *)&buf, &buf);
-		if (await_reply(AWAIT_RPC, sport, &id, TIMEOUT)) {
+		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus || rpc->u.reply.data[0]) {
@@ -348,7 +351,6 @@ static int nfs_read(int server, int port, char *fh, int offset, int len,
 				return 0;
 			}
 		}
-		rfc951_sleep(retries);
 	}
 	return -1;
 }
