@@ -10,6 +10,41 @@
 #include "callbacks.h"
 #include <stdarg.h>
 
+/* in_call(): entry point for calls in to Etherboot from external code. 
+ *
+ * Parameters: some set up by assembly code _in_call(), others as
+ * passed from external code.
+ */
+uint32_t in_call ( va_list ap, in_call_data_t data, uint32_t opcode ) {
+	uint32_t ret = 0;
+
+	/* NOTE: ap will cease to be valid if we relocate, since it
+	 * represents a virtual address
+	 */
+	
+	switch ( EB_OPCODE(opcode) ) {
+	case EB_OPCODE_MAIN: {
+		printf ( "invoke main()\n" );
+	} break;
+	case EB_OPCODE_CHECK: {
+		ret = EB_CHECK_RESULT;
+	} break;
+#ifdef PXE_EXPORT
+	case EB_OPCODE_PXE: {
+		uint32_t pxe_opcode;
+		pxe_opcode = va_arg ( ap, typeof(pxe_opcode) );
+		printf ( "PXE API call %x\n", pxe_opcode );
+	} break;
+#endif
+	default: {
+		printf ( "Unsupported Etherboot API \"%c%c\"\n",
+			 EB_OPCODE(opcode) >> 8, EB_OPCODE(opcode) & 0xff );
+		ret = -1;
+	} break;
+	}
+	return ret;
+}
+
 /* Wrapper function that takes a variable argument list and calls
  * v_ext_call with the resulting va_list.
  */
@@ -44,7 +79,6 @@ uint32_t v_ext_call ( uint32_t address, va_list ap ) {
 	first_arg = va_arg ( aq, typeof(first_arg) );
 	if ( first_arg == EP_TRACE ) {
 		valid = v_ext_call_check ( address, aq );
-		sleep ( 1 );
 		/* Pop first_arg from ap as well */
 		va_arg ( ap, typeof(first_arg) );
 	}
@@ -123,16 +157,17 @@ int v_ext_call_check ( uint32_t address, va_list ap ) {
 			uint32_t eb_cs;
 			gdt = va_arg ( ap, typeof(gdt) );
 			printf ( " GDT at %x length %hx:\n", gdt,
-				 gdt->limit + 1 );
-			if ( gdt->address != virt_to_phys(gdt) ) {
+				 gdt->descriptor.limit + 1 );
+			if ( gdt->descriptor.address != virt_to_phys(gdt) ) {
 				printf ( "  addr incorrect "
 					 "(is %x, should be %hx)\n",
-					 gdt->address,
+					 gdt->descriptor.address,
 					 virt_to_phys(gdt) );
 				valid = 0;
 			}
 			for ( gdt_seg = &(gdt->segments[0]);
-			      ( (void*)gdt_seg - (void*)gdt ) < gdt->limit ;
+			      ( (void*)gdt_seg - (void*)gdt )
+				      < gdt->descriptor.limit ;
 			      gdt_seg++ ) {
 				print_gdt_segment ( (void*)gdt_seg-(void*)gdt,
 						    gdt_seg );
@@ -209,16 +244,26 @@ extern int demo_extcall ( long beta, char gamma, char epsilon, long delta );
 	/*	__asm__ ( "movl %%ebx, %%ecx;\n" : : ); */
 /*	return beta + delta + gamma + epsilon; 
 	}*/
+extern void _in_call ( void );
+extern void _in_call_far ( void );
+
 extern void demo_extcall_end;
 
-extern int _prot_to_real ( void );
+extern void _prot_to_real;
+extern void _eprot_to_real;
+extern void _real_to_prot;
+extern void _ereal_to_prot;
+extern void hello_world;
+extern void ehello_world;
+
+
 
 extern int get_esp ( void );
 
 int my_call ( char a, long b, char c, char e, long d );
 
 int my_call ( char a, long b, char c, char e, long d ) {
-	char temp_stack[256];
+	/*		char temp_stack[256]; */
 	int ret;
 	regs_t registers;
 	struct {
@@ -234,8 +279,12 @@ int my_call ( char a, long b, char c, char e, long d ) {
 	registers.edx = 0x12345678;
 
 	memset ( &seg_regs, 0, sizeof(seg_regs) );
-	seg_regs.cs = 0x08;
-	seg_regs.ss = 0x10;
+	seg_regs.cs = 0x28;
+	seg_regs.ss = 0x30;
+	seg_regs.ds = 0x30;
+	seg_regs.es = 0x30;
+	seg_regs.fs = 0x30;
+	seg_regs.gs = 0x30;
 
 	struct {
 		uint16_t arg1;
@@ -243,10 +292,16 @@ int my_call ( char a, long b, char c, char e, long d ) {
 		uint16_t arg3;
 	} PACKED test_parms = { 7, 8, 9 };
 
-	GDT_STRUCT_t(2) gdt = {
-		0, 0, 0, {
+	uint16_t rm_seg = 0x7c0;
+
+	GDT_STRUCT_t(6) gdt = {
+		{ 0, 0, 0 }, {
+			GDT_SEGMENT_PMCS(virt_offset),
+			GDT_SEGMENT_PMDS(virt_offset),
 			GDT_SEGMENT_PMCS_PHYS,
 			GDT_SEGMENT_PMDS_PHYS,
+			GDT_SEGMENT_RMCS(rm_seg << 4),
+			GDT_SEGMENT_RMDS(rm_seg << 4),
 			/*			GDT_SEGMENT_PMCS(virt_offset),*/
 			/*			GDT_SEGMENT_PMDS(virt_offset), */
 			/*			GDT_SEGMENT_RMCS,
@@ -258,17 +313,21 @@ int my_call ( char a, long b, char c, char e, long d ) {
 	registers.eax = 0x12344321;
 	registers.ebx = 0xabcdabcd;
 
-	memset ( temp_stack, 0, 256 );
+	/*		memset ( temp_stack, 0, 256 ); */
 
-	ret = (int) ext_call_trace (
-				    0, /* virt_to_phys(demo_extcall), */
+	ret = (int) ext_call (
+	   0, /* virt_to_phys(demo_extcall), */
 	   EP_REGISTERS(&registers),
 	   EP_SEG_REGISTERS(&seg_regs),
+	   EP_STACK(&rm_seg),
 	   EP_STACK_PASSTHRU(b, d),
-	   EP_GDT(&gdt, 0x08),
-	   EP_RELOC_STACK(virt_to_phys(((void*)temp_stack) + 256)),
+	   EP_GDT(&gdt, 0x18),
+	   EP_RELOC_STACK(0x1000),
 	   EP_RET_VARSTACK( &ret_parms, &ret_stack_len ),
-	   EP_TRAMPOLINE(demo_extcall, &demo_extcall_end)  );
+	   EP_TRAMPOLINE(&_prot_to_real, &_eprot_to_real ),
+	   EP_TRAMPOLINE(&hello_world, &ehello_world ),
+	   EP_TRAMPOLINE(&_real_to_prot, &_ereal_to_prot )
+	   );
 	
 	printf ( "ecx = %#x (%#x)\n", registers.ecx,
 		 phys_to_virt(registers.ecx) );
@@ -278,7 +337,30 @@ int my_call ( char a, long b, char c, char e, long d ) {
 		 ret_parms.ret1, ret_parms.ret2,
 		 ret_parms.ret3, ret_parms.ret4 );
 
-	hex_dump(((void*)temp_stack),256);
+	/*	hex_dump(((void*)temp_stack),256); */
+
+	seg_regs.cs = 0x18;
+	seg_regs.ss = 0x20;
+	seg_regs.ds = 0x20;
+	seg_regs.es = 0x20;
+	seg_regs.fs = 0x20;
+	seg_regs.gs = 0x20;
+	printf ( "_in_call_far is at %x\n", virt_to_phys ( _in_call_far ) );
+	printf ( "in_call is at %x\n", virt_to_phys ( in_call ) );
+
+	struct {
+		uint32_t opcode;
+		uint32_t pxe_opcode;
+	} testing;
+	testing.opcode = EB_OPCODE_PXE;
+	testing.pxe_opcode = 0x1234;
+	ret = (int) ext_call_trace (
+	    virt_to_phys ( _in_call_far ),
+	    EP_SEG_REGISTERS(&seg_regs),
+	    EP_GDT(&gdt, 0x18),
+	    EP_RELOC_STACK(0x9fa00),
+	    EP_STACK(&testing)
+	    );
 
 	return ret;
 }
