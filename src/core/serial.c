@@ -16,17 +16,30 @@
 
 static int found = 0;
 
+#if defined(COMCONSOLE)
+#undef UART_BASE
 #define UART_BASE COMCONSOLE
-
-#ifndef CONSPEED
-#define CONSPEED 115200
 #endif
 
-#if ((115200%CONSPEED) != 0)
+#ifndef UART_BASE
+#error UART_BASE not defined
+#endif
+
+#if defined(CONSPEED)
+#undef UART_BAUD
+#define UART_BAUD CONSPEED
+#endif
+
+#ifndef UART_BAUD
+#define UART_BAUD 115200
+#endif
+
+#if ((115200%UART_BAUD) != 0)
 #error Bad ttys0 baud rate
 #endif
 
-#define COMBRD (115200/CONSPEED)
+#undef
+#define COMBRD (115200/UART_BAUD)
 
 /* Line Control Settings */
 #ifndef	COMPARM
@@ -54,9 +67,17 @@ static int found = 0;
 #define UART_MSR 0x06
 #define UART_SCR 0x07
 
+#if defined(UART_MEM)
+#define uart_readb(addr) readb((addr))
+#define uart_writeb(val,addr) writeb((val),(addr))
+#else
+#define uart_readb(addr) inb((addr))
+#define uart_writeb(val,addr) outb((val),(addr))
+#endif
+
 /*
  * void serial_putc(int ch);
- *	Write character `ch' to port COMCONSOLE.
+ *	Write character `ch' to port UART_BASE.
  */
 void serial_putc(int ch)
 {
@@ -66,29 +87,30 @@ void serial_putc(int ch)
 		/* no serial interface */
 		return;
 	}
-	i = 10000; /* timeout */
+	i = 1000; /* timeout */
 	while(--i > 0) {
-		status = inb(COMCONSOLE + UART_LSR);
+		status = uart_readb(UART_BASE + UART_LSR);
 		if (status & (1 << 5)) { 
 			/* TX buffer emtpy */
-			outb(ch, COMCONSOLE + UART_TBR);
+			uart_writeb(ch, UART_BASE + UART_TBR);
 			break;
 		}
+		mdelay(2);
 	}
 }
 
 /*
  * int serial_getc(void);
- *	Read a character from port COMCONSOLE.
+ *	Read a character from port UART_BASE.
  */
 int serial_getc(void)
 {
 	int status;
 	int ch;
 	do {
-		status = inb(COMCONSOLE + UART_LSR);
+		status = uart_readb(UART_BASE + UART_LSR);
 	} while((status & 1) == 0);
-	ch = inb(COMCONSOLE + UART_RBR);	/* fetch (first) character */
+	ch = uart_readb(UART_BASE + UART_RBR);	/* fetch (first) character */
 	ch &= 0x7f;				/* remove any parity bits we get */
 	if (ch == 0x7f) {			/* Make DEL... look like BS */
 		ch = 0x08;
@@ -98,7 +120,7 @@ int serial_getc(void)
 
 /*
  * int serial_ischar(void);
- *       If there is a character in the input buffer of port COMCONSOLE,
+ *       If there is a character in the input buffer of port UART_BASE,
  *       return nonzero; otherwise return 0.
  */
 int serial_ischar(void)
@@ -106,41 +128,13 @@ int serial_ischar(void)
 	int status;
 	if (!found)
 		return 0;
-	status = inb(COMCONSOLE + UART_LSR);	/* line status reg; */
+	status = uart_readb(UART_BASE + UART_LSR);	/* line status reg; */
 	return status & 1;		/* rx char available */
 }
 
-#if	!defined(COMBRD) && defined(CONSPEED)
-/* Recent GNU as versions with ELF output format define / as a comment
- * character, because some misguided spec says so.  Do it the easy way and
- * just check for the usual values.  This is only compiled by gcc, so
- * #elif can be used (bcc doesn't understand it).  */
-#if	(CONSPEED == 115200)
-#define COMBRD 1
-#elif	(CONSPEED == 57600)
-#define COMBRD 2
-#elif	(CONSPEED == 38400)
-#define COMBRD 3
-#elif	(CONSPEED == 19200)
-#define COMBRD 6
-#elif	(CONSPEED == 9600)
-#define COMBRD 12
-#elif	(CONSPEED == 2400)
-#define COMBRD 48
-#elif	(CONSPEED == 1200)
-#define COMBRD 96
-#elif	(CONSPEED == 300)
-#define COMBRD 384
-#else
-#error Add your unusual baud rate to the table in serial.S!
-#define	COMBRD	(115200 / CONSPEED)
-#endif
-#endif
-
-
 /*
  * int serial_init(void);
- *	Initialize port COMCONSOLE to speed CONSPEED, line settings 8N1.
+ *	Initialize port UART_BASE to speed CONSPEED, line settings 8N1.
  */
 int serial_init(void)
 {
@@ -153,44 +147,44 @@ int serial_init(void)
 
 
 #ifdef COMPRESERVE
-	lcs = inb(COMCONSOLE + UART_LCR) & 0x7f;
-	outb(0x80 | lcs, COMCONSOLE + UART_LCR);
-	divisor = (inb(COMCONSOLE + UART_DLM) << 8) | inb(COMCONSOLE + UART_DLL);
-	outb(lcs, COMCONSOLE + UART_LCR);
+	lcs = uart_readb(UART_BASE + UART_LCR) & 0x7f;
+	uart_writeb(0x80 | lcs, UART_BASE + UART_LCR);
+	divisor = (uart_readb(UART_BASE + UART_DLM) << 8) | uart_readb(UART_BASE + UART_DLL);
+	uart_writeb(lcs, UART_BASE + UART_LCR);
 #endif
 
 	/* Set Baud Rate Divisor to CONSPEED, and test to see if the
 	 * serial port appears to be present.
 	 */
-	outb(0x80 | lcs, COMCONSOLE + UART_LCR);
-	outb(0xaa, COMCONSOLE + UART_DLL);
-	if (inb(COMCONSOLE + UART_DLL) != 0xaa) 
+	uart_writeb(0x80 | lcs, UART_BASE + UART_LCR);
+	uart_writeb(0xaa, UART_BASE + UART_DLL);
+	if (uart_readb(UART_BASE + UART_DLL) != 0xaa) 
 		goto out;
-	outb(0x55, COMCONSOLE + UART_DLL);
-	if (inb(COMCONSOLE + UART_DLL) != 0x55)
+	uart_writeb(0x55, UART_BASE + UART_DLL);
+	if (uart_readb(UART_BASE + UART_DLL) != 0x55)
 		goto out;
-	outb(divisor & 0xff, COMCONSOLE + UART_DLL);
-	if (inb(COMCONSOLE + UART_DLL) != (divisor & 0xff))
+	uart_writeb(divisor & 0xff, UART_BASE + UART_DLL);
+	if (uart_readb(UART_BASE + UART_DLL) != (divisor & 0xff))
 		goto out;
-	outb(0xaa, COMCONSOLE + UART_DLM);
-	if (inb(COMCONSOLE + UART_DLM) != 0xaa) 
+	uart_writeb(0xaa, UART_BASE + UART_DLM);
+	if (uart_readb(UART_BASE + UART_DLM) != 0xaa) 
 		goto out;
-	outb(0x55, COMCONSOLE + UART_DLM);
-	if (inb(COMCONSOLE + UART_DLM) != 0x55)
+	uart_writeb(0x55, UART_BASE + UART_DLM);
+	if (uart_readb(UART_BASE + UART_DLM) != 0x55)
 		goto out;
-	outb((divisor >> 8) & 0xff, COMCONSOLE + UART_DLM);
-	if (inb(COMCONSOLE + UART_DLM) != ((divisor >> 8) & 0xff))
+	uart_writeb((divisor >> 8) & 0xff, UART_BASE + UART_DLM);
+	if (uart_readb(UART_BASE + UART_DLM) != ((divisor >> 8) & 0xff))
 		goto out;
-	outb(lcs, COMCONSOLE + UART_LCR);
+	uart_writeb(lcs, UART_BASE + UART_LCR);
 	
 	/* disable interrupts */
-	outb(0x0, COMCONSOLE + UART_IER);
+	uart_writeb(0x0, UART_BASE + UART_IER);
 
 	/* disable fifo's */
-	outb(0x00, COMCONSOLE + UART_FCR);
+	uart_writeb(0x00, UART_BASE + UART_FCR);
 
 	/* Set clear to send, so flow control works... */
-	outb((1<<1), COMCONSOLE + UART_MCR);
+	uart_writeb((1<<1), UART_BASE + UART_MCR);
 
 
 	/* Flush the input buffer. */
@@ -198,9 +192,9 @@ int serial_init(void)
 		/* rx buffer reg
 		 * throw away (unconditionally the first time)
 		 */
-		inb(COMCONSOLE + UART_RBR);
+		uart_readb(UART_BASE + UART_RBR);
 		/* line status reg */
-		status = inb(COMCONSOLE + UART_LSR);
+		status = uart_readb(UART_BASE + UART_LSR);
 	} while(status & 1);
 	initialized = 1;
  out:
@@ -225,7 +219,7 @@ void serial_fini(void)
 	 */
 	i = 10000; /* timeout */
 	do {
-		status = inb(COMCONSOLE + UART_LSR);
+		status = uart_readb(UART_BASE + UART_LSR);
 	} while((--i > 0) || (!(status & (1 << 6))));
 	found = 0;
 }

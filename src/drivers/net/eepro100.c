@@ -250,8 +250,7 @@ static struct ConfCmd {
   u32 link;
   unsigned char data[22];
 } confcmd = {
-  0, CmdConfigure,
-  (u32) & txfd,
+  0, 0, 0, /* filled in later */
   {22, 0x08, 0, 0,  0, 0x80, 0x32, 0x03,  1, /* 1=Use MII  0=Use AUI */
    0, 0x2E, 0,  0x60, 0,
    0xf2, 0x48,   0, 0x40, 0xf2, 0x80,        /* 0x40=Force full-duplex */
@@ -280,6 +279,7 @@ static int mdio_write(int phy_id, int location, int value)
 		val = inl(ioaddr + SCBCtrlMDI);
 		if (--boguscnt < 0) {
 			printf(" mdio_write() timed out with val = %X.\n", val);
+			break;
 		}
 	} while (! (val & 0x10000000));
 	return val & 0xffff;
@@ -298,8 +298,10 @@ static int mdio_read(int phy_id, int location)
 		udelay(16);
 		
 		val = inl(ioaddr + SCBCtrlMDI);
+
 		if (--boguscnt < 0) {
 			printf( " mdio_read() timed out with val = %X.\n", val);
+			break;
 		}
 	} while (! (val & 0x10000000));
 	return val & 0xffff;
@@ -535,7 +537,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	ACCESS(rxfd)status  = 0x0001;
 	ACCESS(rxfd)command = 0x0000;
 	ACCESS(rxfd)link    = virt_to_bus(&(ACCESS(rxfd)status));
-	ACCESS(rxfd)rx_buf_addr = (int) &nic->packet;
+	ACCESS(rxfd)rx_buf_addr = virt_to_bus(&nic->packet);
 	ACCESS(rxfd)count   = 0;
 	ACCESS(rxfd)size    = 1528;
 	

@@ -17,7 +17,7 @@ struct isa_driver
 	unsigned short *ioaddrs;
 };
 
-#define __isa_driver	__attribute__ ((unused,__section__(".rodata.isa_drivers")))
+#define __isa_driver	__attribute__ ((unused,__section__(".drivers.isa")))
 extern const struct isa_driver isa_drivers[];
 extern const struct isa_driver isa_drivers_end[];
 

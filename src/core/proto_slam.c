@@ -290,11 +290,11 @@ static unsigned char *reinit_slam_state(
 	memcpy(state.hdr, header, state.hdr_len);
 	
 #if 0
-	printf("block_size:     %d\n", block_size);
-	printf("total_bytes:    %d\n", total_bytes);
-	printf("total_packets:  %d\n", state.total_packets);
-	printf("hdr_len:        %d\n", state.hdr_len);
-	printf("max_packet_len: %d\n", max_packet_len);
+	printf("block_size:     %ld\n", block_size);
+	printf("total_bytes:    %ld\n", total_bytes);
+	printf("total_packets:  %ld\n", state.total_packets);
+	printf("hdr_len:        %ld\n", state.hdr_len);
+	printf("max_packet_len: %ld\n", max_packet_len);
 #endif
 
 	if (state.block_size > ETH_MAX_MTU - (
@@ -372,7 +372,7 @@ static void transmit_nack(unsigned char *ptr, struct slam_info *info)
 		info->local_port, info->server_port, 1, nack_len, &nack);
 	ip_transmit(nack_len, &nack);
 #if defined(MDEBUG) && 0
-	printf("Sent NACK to %@ bytes: %d have:%d/%d\n", 
+	printf("Sent NACK to %@ bytes: %d have:%ld/%ld\n", 
 		info->server_ip, nack_len,
 		state.received_packets, state.total_packets);
 #endif

@@ -78,6 +78,45 @@
 					   bits 31..11 are address,
 					   10..2 are reserved */
 
+/* Header type 1 (PCI-to-PCI bridges) */
+#define PCI_PRIMARY_BUS		0x18	/* Primary bus number */
+#define PCI_SECONDARY_BUS	0x19	/* Secondary bus number */
+#define PCI_SUBORDINATE_BUS	0x1a	/* Highest bus number behind the bridge */
+#define PCI_SEC_LATENCY_TIMER	0x1b	/* Latency timer for secondary interface */
+#define PCI_IO_BASE		0x1c	/* I/O range behind the bridge */
+#define PCI_IO_LIMIT		0x1d
+#define  PCI_IO_RANGE_TYPE_MASK	0x0f	/* I/O bridging type */
+#define  PCI_IO_RANGE_TYPE_16	0x00
+#define  PCI_IO_RANGE_TYPE_32	0x01
+#define  PCI_IO_RANGE_MASK	~0x0f
+#define PCI_SEC_STATUS		0x1e	/* Secondary status register, only bit 14 used */
+#define PCI_MEMORY_BASE		0x20	/* Memory range behind */
+#define PCI_MEMORY_LIMIT	0x22
+#define  PCI_MEMORY_RANGE_TYPE_MASK 0x0f
+#define  PCI_MEMORY_RANGE_MASK	~0x0f
+#define PCI_PREF_MEMORY_BASE	0x24	/* Prefetchable memory range behind */
+#define PCI_PREF_MEMORY_LIMIT	0x26
+#define  PCI_PREF_RANGE_TYPE_MASK 0x0f
+#define  PCI_PREF_RANGE_TYPE_32	0x00
+#define  PCI_PREF_RANGE_TYPE_64	0x01
+#define  PCI_PREF_RANGE_MASK	~0x0f
+#define PCI_PREF_BASE_UPPER32	0x28	/* Upper half of prefetchable memory range */
+#define PCI_PREF_LIMIT_UPPER32	0x2c
+#define PCI_IO_BASE_UPPER16	0x30	/* Upper half of I/O addresses */
+#define PCI_IO_LIMIT_UPPER16	0x32
+/* 0x34 same as for htype 0 */
+/* 0x35-0x3b is reserved */
+#define PCI_ROM_ADDRESS1	0x38	/* Same as PCI_ROM_ADDRESS, but for htype 1 */
+/* 0x3c-0x3d are same as for htype 0 */
+#define PCI_BRIDGE_CONTROL	0x3e
+#define  PCI_BRIDGE_CTL_PARITY	0x01	/* Enable parity detection on secondary interface */
+#define  PCI_BRIDGE_CTL_SERR	0x02	/* The same for SERR forwarding */
+#define  PCI_BRIDGE_CTL_NO_ISA	0x04	/* Disable bridging of ISA ports */
+#define  PCI_BRIDGE_CTL_VGA	0x08	/* Forward VGA addresses */
+#define  PCI_BRIDGE_CTL_MASTER_ABORT 0x20  /* Report master aborts */
+#define  PCI_BRIDGE_CTL_BUS_RESET 0x40	/* Secondary bus reset */
+#define  PCI_BRIDGE_CTL_FAST_BACK 0x80	/* Fast Back2Back enabled on secondary interface */
+
 #define PCI_SLOT(devfn)		  ((devfn) >> 3)
 #define PCI_FUNC(devfn)           ((devfn) & 0x07)
 
@@ -118,6 +157,7 @@ struct pci_device {
 	const struct pci_driver	*driver;
 };
 
+extern void scan_pci_bus(int type, struct pci_device *dev);
 extern void find_pci(int type, struct pci_device *dev);
 
 extern int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn, unsigned int where, uint8_t *value);
@@ -186,7 +226,7 @@ struct pci_driver {
 	unsigned short class;
 };
 
-#define __pci_driver	__attribute__ ((unused,__section__(".rodata.pci_drivers")))
+#define __pci_driver	__attribute__ ((unused,__section__(".drivers.pci")))
 /* Defined by the linker... */
 extern const struct pci_driver pci_drivers[];
 extern const struct pci_driver pci_drivers_end[];

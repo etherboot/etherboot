@@ -202,7 +202,7 @@ $(BIN)/gcccheck:	Makefile Config
 
 include		arch/$(ARCH)/Makefile
 
-# We need allimgss because $(IMGS) is not defined until
+# We need allimgs because $(IMGS) is not defined until
 # the Makefile fragment "Roms" is read.
 
 allimgs:	$(BUILD_IMGS)

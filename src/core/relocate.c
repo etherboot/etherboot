@@ -4,6 +4,17 @@
 
 /* by Eric Biederman */
 
+/* On some platforms etherboot is compiled as a shared library, and we use
+ * the ELF pic support to make it relocateable.  This works very nicely
+ * for code, but since no one has implemented PIC data yet pointer
+ * values in variables are a a problem.  Global variables are a
+ * pain but the return addresses on the stack are the worst.  On these
+ * platforms relocate_to will restart etherboot, to ensure the stack
+ * is reinitialize and hopefully get the global variables
+ * appropriately reinitialized as well.
+ * 
+ */
+
 void relocate(void)
 {
 	unsigned long addr, eaddr, size;
@@ -16,9 +27,15 @@ void relocate(void)
 	eaddr = virt_to_phys(_end);
 	size = (eaddr - addr + 0xf) & ~0xf;
 
+	/* If the current etherboot is beyond MAX_ADDR pretend it is
+	 * at the lowest possible address.
+	 */
+	if (eaddr > MAX_ADDR) {
+		eaddr = 0;
+	}
+
 	for(i = 0; i < meminfo.map_count; i++) {
 		unsigned long r_start, r_end;
-		unsigned long end;
 		if (meminfo.map[i].type != E820_RAM) {
 			continue;
 		}
@@ -39,9 +56,10 @@ void relocate(void)
 		}
 	}
 	if (addr != virt_to_phys(_text)) {
-		printf("Relocating _text from: [%x,%x) to [%x,%x)\n",
+		printf("Relocating _text from: [%lx,%lx) to [%lx,%lx)\n",
 			virt_to_phys(_text), virt_to_phys(_end),
 			addr, eaddr);
+		cleanup();
 		relocate_to(addr);
 	}
 }

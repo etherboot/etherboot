@@ -31,6 +31,7 @@
                                                 
 **************************************************************/
 #define UCLPACK_COMPAT 0
+#define NDEBUG 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -160,7 +161,7 @@ struct ucl_compress
 	const unsigned char *in_end;
 	unsigned char *out;
 	
-	uint32_t bb_b;
+	uint64_t bb_b;
 	unsigned bb_k;
 	unsigned bb_c_endian;
 	unsigned bb_c_s;
@@ -787,8 +788,7 @@ find_match ( struct ucl_compress *c, struct ucl_swd *s,
 				break;
 			if (in != m)
 				if (memcmp(in,ip,c->m_len+1) == 0)
-					printf("%p %p %p
-%5d\n",in,ip,m,c->m_len);
+					printf("%p %p %p %5d\n",in,ip,m,c->m_len);
 
 			in++;
 		}
@@ -809,7 +809,7 @@ static int bbConfig(struct ucl_compress *c, int endian, int bitsize)
 	}
 	if (bitsize != -1)
 	{
-		if (bitsize != 8 && bitsize != 16 && bitsize != 32)
+		if (bitsize != 8 && bitsize != 16 && bitsize != 32 && bitsize != 64)
 			return UCL_E_ERROR;
 		c->bb_c_s = bitsize;
 		c->bb_c_s8 = bitsize / 8;
@@ -823,16 +823,23 @@ static int bbConfig(struct ucl_compress *c, int endian, int bitsize)
 static void bbWriteBits(struct ucl_compress *c)
 {
 	uint8_t *p = c->bb_p;
-	uint32_t b = c->bb_b;
+	uint64_t b = c->bb_b;
 
 	p[0] = (uint8_t)(b >>  0);
 	if (c->bb_c_s >= 16)
 	{
 		p[1] = (uint8_t)(b >>  8);
-		if (c->bb_c_s == 32)
+		if (c->bb_c_s >= 32)
 		{
 			p[2] = (uint8_t)(b >> 16);
 			p[3] = (uint8_t)(b >> 24);
+			if (c->bb_c_s == 64)
+			{
+				p[4] = (uint8_t)(b >> 32);
+				p[5] = (uint8_t)(b >> 40);
+				p[6] = (uint8_t)(b >> 48);
+				p[7] = (uint8_t)(b >> 56);
+			}
 		}
 	}
 }
@@ -1268,6 +1275,8 @@ void Encode(void)  /* compression */
 		Error("Can't read");
 	}
 	r = ucl_nrv2b_99_compress(in, in_len, out, &out_len, 0 );
+	if (r != UCL_E_OK)
+		Error("Compression failure\n");
 #if UCLPACK_COMPAT
 	tw = htonl(out_len);
 	if (fwrite(&tw, sizeof(tw), 1, outfile) != 1)
@@ -1309,6 +1318,10 @@ void Encode(void)  /* compression */
     (bc > 0 ? ((bb>>--bc)&1) : (bc=31,\
     bb=*(const uint32_t *)((src)+ilen),ilen+=4,(bb>>31)&1))
 
+#define GETBIT_LE64(bb, src, ilen) \
+    (bc > 0 ? ((bb>>--bc)&1) : (bc=63, \
+    bb=*(const uint64_t *)((src)+ilen),ilen+=8,(bb>>63)&1))
+
 #if ENDIAN == 0 && BITSIZE == 8
 #define GETBIT(bb, src, ilen) GETBIT_8(bb, src, ilen)
 #endif
@@ -1318,7 +1331,9 @@ void Encode(void)  /* compression */
 #if ENDIAN == 0 && BITSIZE == 32
 #define GETBIT(bb, src, ilen) GETBIT_LE32(bb, src, ilen)
 #endif
-
+#if ENDIAN == 0 && BITSIZE == 64
+#define GETBIT(bb, src, ilen) GETBIT_LE64(bb, src, ilen)
+#endif
 #ifndef GETBIT
 #error "Bad Combination of ENDIAN and BITSIZE values specified"
 #endif
@@ -1337,7 +1352,11 @@ void Decode(void)  /* recover */
 	uint8_t *src, *dst;
 	unsigned long max_src_len, src_len, dst_len;
 	unsigned long ilen = 0, olen = 0, last_m_off =  1;
+#if BITSIZE <= 32
 	uint32_t bb = 0;
+#elif BITSIZE == 64
+	uint64_t bb = 0;
+#endif
 	unsigned bc = 0;
 #if UCLPACK_COMPAT
 	if (fseek(infile, sizeof(magic) + sizeof(tw) + 1 + 1 + sizeof(tw),
@@ -1389,7 +1408,7 @@ void Decode(void)  /* recover */
 		{
 			FAIL(ilen >= src_len, "input overrun");
 			m_off = (m_off - 3)*256 + src[ilen++];
-			if(m_off == 0xffffffffU)
+			if (m_off == 0xffffffffU)
 				break;
 			last_m_off = ++m_off;
 		}
@@ -1449,12 +1468,8 @@ int main(int argc, char *argv[])
 		rewind(infile = f);
 	}
 	else if (argc != 4) {
-		Fprintf((stderr, "'lzhuf e file1 file2' encodes file1 into
-file2.\n"
-
-			"'lzhuf d file2 file1' decodes file2 into
-file1.\n"));
-
+		Fprintf((stderr, "'nrv2b e file1 file2' encodes file1 into file2.\n"
+			"'nrv2b d file2 file1' decodes file2 into file1.\n"));
 		return EXIT_FAILURE;
 	}
 	if (argc == 4) {

@@ -3,7 +3,7 @@
 #include "osdep.h"
 #include "nic.h"
 
-#define UDP_MAX_PAYLOAD	(ETH_FRAME_LEN - ETH_HLEN - sizeof(struct iphdr) \
+#define UDP_MAX_PAYLOAD	(ETH_MAX_MTU - sizeof(struct iphdr) \
 			 - sizeof(struct udphdr))
 struct udppacket_t {
 	struct iphdr	ip;

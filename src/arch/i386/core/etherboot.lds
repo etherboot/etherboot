@@ -3,6 +3,8 @@ OUTPUT_ARCH(i386)
 
 ENTRY(_start)
 SECTIONS {
+	/* Start address of etherboot in the virtual address space */
+	_virt_start = .;
 	.text : {
 		_text = . ;
 		*(.text)
@@ -11,17 +13,18 @@ SECTIONS {
 	.rodata : {
 		. = ALIGN(4);
 		*(.rodata)
+		*(.rodata.*)
 	}
-	.rodata.pci_drivers : {
+	.drivers.pci : {
 		. = ALIGN(4);
 		pci_drivers = . ;
-		*(.rodata.pci_drivers);
+		*(.drivers.pci);
 		pci_drivers_end = . ;
 	}
-	.rodata.isa_drivers : {
+	.drivers.isa : {
 		. = ALIGN(4);
 		isa_drivers = . ;
-		*(.rodata.isa_drivers);
+		*(.drivers.isa);
 		isa_drivers_end = .;
 	}
 	.text16 : {

@@ -149,20 +149,21 @@ int url_tftm(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigne
 					i |= 2;
 					j = strtoul(p2, &p2, 10);
 					if ( j != BLOCKSIZE ) {
-						printf ( "TFTM-Server rejected required transfer blocksize %d\n", BLOCKSIZE );
+						printf ( "TFTM-Server rejected required transfer blocksize %d\n", 
+							BLOCKSIZE );
 						return	0;
 					}
 				}
 				if ( ! strncmp ( p1, "tsize", 6 ) ) {
 					if ( ( filesize = strtoul(p2, &p2, 10) ) > 0 ) i |= 4;
 					if ( filesize > ( meminfo.memsize << 10 ) ) {
-						printf ( "File is too large (%d k) - only %d k memory available!\n",
+						printf ( "File is too large (%ld k) - only %d k memory available!\n",
 						 ( filesize & 0xfffffc00 ) >> 10, meminfo.memsize );
 						return	0;
 					}
 					info.numblocks = 1 + ( filesize - ( filesize % BLOCKSIZE ) ) / BLOCKSIZE;
 					if ( info.numblocks > 0xffff ) {
-						printf ( "File is too large (%d k) - at blocksize %d max. %d k (%d blocks) can be transferred\n",
+						printf ( "File is too large (%ld k) - at blocksize %d max. %d k (%d blocks) can be transferred\n",
 						 ( filesize & 0xfffffc00 ) >> 10, BLOCKSIZE, ( ( 0xffff * BLOCKSIZE ) & 0xfffffc00 ) >> 10, 0xffff );
 						return	0;
 					}

@@ -11,11 +11,20 @@ void init_heap(void)
 	 * I can use for the heap, which is organized as 
 	 * a stack that grows backwards through memory.
 	 */
+
+	/* If I have virtual address that do not equal physical addresses
+	 * there is a change I will try to use memory from both sides of
+	 * the virtual address space simultaneously, which can cause all kinds
+	 * of interesting problems.
+	 * Avoid it by logically extending etherboot.  Once I know that relocation
+	 * works I can just start the virtual address space at 0, and this problem goes
+	 * away so that is probably a better solution.
+	 */
 #if 0
 	start = virt_to_phys(_text);
 #else
 	/* segment wrap around is nasty don't chance it. */
-	start = virt_to_phys(0);
+	start = virt_to_phys(_virt_start);
 #endif
 	end  = virt_to_phys(_end);
 	size = 0;
@@ -33,20 +42,42 @@ void init_heap(void)
 		if (r_end < r_start) {
 			r_end = ULONG_MAX;
 		}
-		/* If the area overlaps etherboot split the area */
+		/* Handle areas that overlap etherboot */
 		if ((end > r_start) && (start < r_end)) {
-			/* Keep the larger piece */
-			if ((r_end - end) >= (r_start - start)) {
-				r_start = end;
-			} else {
+			/* Etherboot completely covers the region */
+			if ((start <= r_start) && (end >= r_end))
+				continue;
+			/* Etherboot is completely contained in the region */
+			if ((start > r_start) && (end < r_end)) {
+				/* keep the larger piece */
+				if ((r_end - end) >= (r_start - start)) {
+					r_start = end;
+				}
+				else {
+					r_end = start;
+				}
+			}
+			/* Etherboot covers one end of the region.
+			 * Shrink the region.
+			 */
+			else if (end >= r_end) {
 				r_end = start;
 			}
+			else if (start <= r_start) {
+				r_start = end;
+			}
 		}
-		if (r_end - r_start > size) {
+		/* If two areas are the size prefer the greater address */
+		if (((r_end - r_start) > size) ||
+			(((r_end - r_start) == size) && (r_start > heap_top))) {
 			size = r_end - r_start;
 			heap_top = r_start;
 			heap_bot = r_end;
 		}
+	}
+	if (size == 0) {
+		printf("init_heap: No heap found.\n");
+		exit(1);
 	}
 	heap_ptr = heap_bot;
 }
