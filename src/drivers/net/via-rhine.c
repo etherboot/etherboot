@@ -1174,7 +1174,8 @@ rhine_transmit (struct nic *nic,
 static struct pci_id rhine_nics[] = {
 PCI_ROM(0x1106, 0x3065, "dlink-530tx",     "VIA 6102"),
 PCI_ROM(0x1106, 0x3106, "via-rhine-6105",  "VIA 6105"),
-PCI_ROM(0x1106, 0x3043, "dlink-530tx-old", "VIA 3043"),		/* Rhine-I */
+PCI_ROM(0x1106, 0x3043, "dlink-530tx-old", "VIA 3043"),		/* Rhine-I 86c100a */
+PCI_ROM(0x1106, 0x3053, "via6105m",        "VIA 6105M"),	
 PCI_ROM(0x1106, 0x6100, "via-rhine-old",   "VIA 86C100A"),	/* Rhine-II */
 };
 

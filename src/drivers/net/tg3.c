@@ -2768,8 +2768,8 @@ PCI_ROM(0x14e4, 0x164d, "tg3-5702FE",     "Broadcom Tigon 3 5702FE"),
 PCI_ROM(0x14e4, 0x16a6, "tg3-5702X",      "Broadcom Tigon 3 5702X"),
 PCI_ROM(0x14e4, 0x16a7, "tg3-5703X",      "Broadcom Tigon 3 5703X"),
 PCI_ROM(0x1148, 0x4400, "tg3-syskonnect", "Sysconnet Tigon 3"),
-PCI_ROM(0x173b, 0x1644, "tg3-ac1000",     "Altima AC1000"),
-PCI_ROM(0x173b, 0x1644, "tg3-ac9100",     "Altima AC9100"),
+PCI_ROM(0x173b, 0x03e8, "tg3-ac1000",     "Altima AC1000"),
+PCI_ROM(0x173b, 0x03ea, "tg3-ac9100",     "Altima AC9100"),
 };
 
 static struct pci_driver tg3_driver __pci_driver = {

@@ -659,17 +659,38 @@ void hd (void *where, int n)
 #endif
 
 static struct pci_id eepro100_nics[] = {
-PCI_ROM(0x8086, 0x1029, "id1029",   "Intel EtherExpressPro100 ID1029"),
-PCI_ROM(0x8086, 0x1030, "id1030",   "Intel EtherExpressPro100 ID1030"),
-PCI_ROM(0x8086, 0x1031, "82801cam", "Intel 82801CAM (ICH3) Chipset Ethernet Controller"),
-PCI_ROM(0x8086, 0x1038, "id1038",   "Intel(R) PRO/100 VM Network Connection"),
-PCI_ROM(0x8086, 0x1039, "82562et",  "Intel PRO100 VE 82562ET"),
-PCI_ROM(0x8086, 0x103A, "id103a",   "Intel Corporation 82559 InBusiness 10/100"),
-PCI_ROM(0x8086, 0x103B, "82562etb", "Intel PRO100 VE 82562ETB"),
-PCI_ROM(0x8086, 0x1209, "82559er",  "Intel EtherExpressPro100 82559ER"),
-PCI_ROM(0x8086, 0x1229, "eepro100", "Intel EtherExpressPro100"),
-PCI_ROM(0x8086, 0x2449, "82562em",  "Intel EtherExpressPro100 82562EM"),
+PCI_ROM(0x8086, 0x1029, "id1029",        "Intel EtherExpressPro100 ID1029"),
+PCI_ROM(0x8086, 0x1030, "id1030",        "Intel EtherExpressPro100 ID1030"),
+PCI_ROM(0x8086, 0x1031, "82801cam",      "Intel 82801CAM (ICH3) Chipset Ethernet Controller"),
+PCI_ROM(0x8086, 0x1032, "eepro100-1032", "Intel PRO/100 VE Network Connection"),
+PCI_ROM(0x8086, 0x1033, "eepro100-1033", "Intel PRO/100 VM Network Connection"),
+PCI_ROM(0x8086, 0x1034, "eepro100-1034", "Intel PRO/100 VM Network Connection"),
+PCI_ROM(0x8086, 0x1035, "eepro100-1035", "Intel 82801CAM (ICH3) Chipset Ethernet Controller"),
+PCI_ROM(0x8086, 0x1036, "eepro100-1036", "Intel 82801CAM (ICH3) Chipset Ethernet Controller"),
+PCI_ROM(0x8086, 0x1037, "eepro100-1037", "Intel 82801CAM (ICH3) Chipset Ethernet Controller"),
+PCI_ROM(0x8086, 0x1038, "id1038",        "Intel PRO/100 VM Network Connection"),
+PCI_ROM(0x8086, 0x1039, "82562et",       "Intel PRO100 VE 82562ET"),
+PCI_ROM(0x8086, 0x103a, "id103a",        "Intel Corporation 82559 InBusiness 10/100"),
+PCI_ROM(0x8086, 0x103b, "82562etb",      "Intel PRO100 VE 82562ETB"),
+PCI_ROM(0x8086, 0x103c, "eepro100-103c", "Intel PRO/100 VM Network Connection"),
+PCI_ROM(0x8086, 0x103d, "eepro100-103d", "Intel PRO/100 VE Network Connection"),
+PCI_ROM(0x8086, 0x103e, "eepro100-103e", "Intel PRO/100 VM Network Connection"),
+PCI_ROM(0x8086, 0x1059, "82551qm",       "Intel PRO/100 M Mobile Connection"),
+PCI_ROM(0x8086, 0x1209, "82559er",       "Intel EtherExpressPro100 82559ER"),
+PCI_ROM(0x8086, 0x1227, "82865",         "Intel 82865 EtherExpress PRO/100A"),
+PCI_ROM(0x8086, 0x1228, "82556",         "Intel 82556 EtherExpress PRO/100 Smart"),
+PCI_ROM(0x8086, 0x1229, "eepro100",      "Intel EtherExpressPro100"),
+PCI_ROM(0x8086, 0x2449, "82562em",       "Intel EtherExpressPro100 82562EM"),
+PCI_ROM(0x8086, 0x2459, "82562-1",       "Intel 82562 based Fast Ethernet Connection"),
+PCI_ROM(0x8086, 0x245d, "82562-2",       "Intel 82562 based Fast Ethernet Connection"),
+PCI_ROM(0x8086, 0x5200, "eepro100-5200", "Intel EtherExpress PRO/100 Intelligent Server"),
+PCI_ROM(0x8086, 0x5201, "eepro100-5201", "Intel EtherExpress PRO/100 Intelligent Server"),
 };
+
+/* Cards with device ids 0x1030 to 0x103F, 0x2449, 0x2459 or 0x245D might need
+ * a workaround for hardware bug on 10 mbit half duplex (see linux driver eepro100.c)
+ * 2003/03/17 gbaum */
+
 
 static struct pci_driver eepro100_driver __pci_driver = {
 	.type      = NIC_DRIVER,

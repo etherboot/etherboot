@@ -557,6 +557,9 @@ e1000_set_mac_type(struct e1000_hw *hw)
 		break;
 	case E1000_DEV_ID_82540EM:
 	case E1000_DEV_ID_82540EM_LOM:
+	case E1000_DEV_ID_82540EP:
+	case E1000_DEV_ID_82540EP_LOM:
+	case E1000_DEV_ID_82540EP_LP:
 		hw->mac_type = e1000_82540;
 		break;
 	case E1000_DEV_ID_82545EM_COPPER:
@@ -2735,6 +2738,9 @@ PCI_ROM(0x8086, 0x1010, "e1000-82546eb-copper", "Intel EtherExpressPro1000 82546
 PCI_ROM(0x8086, 0x1011, "e1000-82545em-fiber",  "Intel EtherExpressPro1000 82545EM Fiber"),
 PCI_ROM(0x8086, 0x1012, "e1000-82546eb-fiber", 	"Intel EtherExpressPro1000 82546EB Copper"),
 PCI_ROM(0x8086, 0x1015, "e1000-82540em-lom",  	"Intel EtherExpressPro1000 82540EM LOM"),
+PCI_ROM(0x8086, 0x1016, "e1000-82540ep-lom",	"Intel EtherExpressPro1000 82540EP LOM"),
+PCI_ROM(0x8086, 0x1017, "e1000-82540ep-lp",	"Intel EtherExpressPro1000 82540EP LP"),
+PCI_ROM(0x8086, 0x101e, "e1000-82540ep",	"Intel EtherExpressPro1000 82540EP"),
 };
 
 static struct pci_driver e1000_driver __pci_driver = {

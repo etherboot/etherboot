@@ -2007,6 +2007,17 @@ PCI_ROM(0x8086, 0x0039, "intel21145",  "Intel Tulip"),
 PCI_ROM(0x125b, 0x1400, "ax88140",     "ASIX AX88140"),
 PCI_ROM(0x11f6, 0x9881, "rl100tx",     "Compex RL100-TX"),
 PCI_ROM(0x115d, 0x0003, "xircomtulip", "Xircom Tulip"),
+PCI_ROM(0x104a, 0x0981, "tulip-0981",  "Tulip 0x104a 0x0981"),
+PCI_ROM(0x104a, 0x2774, "tulip-2774",  "Tulip 0x104a 0x2774"),
+PCI_ROM(0x1113, 0x9511, "tulip-9511",  "Tulip 0x1113 0x9511"),
+PCI_ROM(0x1186, 0x1561, "tulip-1561",  "Tulip 0x1186 0x1561"),
+PCI_ROM(0x1259, 0xa120, "tulip-a120",  "Tulip 0x1259 0xa120"),
+PCI_ROM(0x13d1, 0xab02, "tulip-ab02",  "Tulip 0x13d1 0xab02"),
+PCI_ROM(0x13d1, 0xab03, "tulip-ab03",  "Tulip 0x13d1 0xab03"),
+PCI_ROM(0x13d1, 0xab08, "tulip-ab08",  "Tulip 0x13d1 0xab08"),
+PCI_ROM(0x14f1, 0x1803, "lanfinity",   "Conexant LANfinity"),
+PCI_ROM(0x1626, 0x8410, "tulip-8410",  "Tulip 0x1626 0x8410"),
+PCI_ROM(0x1737, 0xab09, "tulip-ab09",  "Tulip 0x1737 0xab09"),
 };
 
 static struct pci_driver tulip_driver __pci_driver = {

@@ -477,7 +477,8 @@ mii_read(int phy_id, int location)
 
 
 static struct pci_id epic100_nics[] = {
-PCI_ROM(0x10b8, 0x0005, "epic100", "SMC EtherPowerII"),		/* SMC 83c170 EPIC/100 */
+PCI_ROM(0x10b8, 0x0005, "epic100",    "SMC EtherPowerII"),		/* SMC 83c170 EPIC/100 */
+PCI_ROM(0x10b8, 0x0006, "smc-83c175", "SMC EPIC/C 83c175"),
 };
 
 static struct pci_driver epic100_driver __pci_driver = {
