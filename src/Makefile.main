@@ -286,10 +286,10 @@ clean:
 	$(RM) $(BIN)/*
 
 ../index.html:	../doc/html/template ../index.xhtml
-	(cd ..; m4 -P -DHTML_INCLUDE=index.xhtml -DHOSTSITE=SOURCEFORGE doc/html/template > index.html)
+	(cd ..; m4 -P -DHTML_INCLUDE=index.xhtml -DHTML_DIR=doc/html -DHOSTSITE=SOURCEFORGE doc/html/template > index.html)
 
 ../index-berlios.html:	../doc/html/template ../index.xhtml
-	(cd ..; m4 -P -DHTML_INCLUDE=index.xhtml -DHOSTSITE=BERLIOS doc/html/template > index-berlios.html)
+	(cd ..; m4 -P -DHTML_INCLUDE=index.xhtml -DHTML_DIR=doc/html -DHOSTSITE=BERLIOS doc/html/template > index-berlios.html)
 
 tarball: ../index.html ../index-berlios.html
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
