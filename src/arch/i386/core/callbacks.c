@@ -31,6 +31,16 @@ uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
 	i386_exit_intercept_t intercept = { NULL };
 	in_call_data_t in_call_data = { &pm_data, NULL, &intercept };
 
+	/* If we were invoked via _start, there will be a return
+	 * address immediately after the opcode on the stack.  We're
+	 * not interested in this, and it gets in the way of
+	 * extracting the i386_rm_in_call_data_t structure, so discard
+	 * it.
+	 */
+	if ( EB_OPCODE(opcode) == EB_OPCODE_MAIN ) {
+		int discard __unused = va_arg ( ap, int );
+	}
+
 	/* Fill out rm_data if we were called from real mode */
 	if ( opcode & EB_CALL_FROM_REAL_MODE ) {
 		in_call_data.rm = &rm_data;
@@ -58,14 +68,45 @@ uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
  * This is used as the exit path when we were entered via start16.S
  */
 void exit_via_prefix ( in_call_data_t *data ) {
-	/* Work out what to do about prefix.  In order of preference:
-	 * 1. Return to original location, if prefix code is intact
-	 * 2. Execute our copy directly, if possible (i.e. if in base memory)
-	 * 3. Copy to the top 512 bytes of free base memory (according
-	 *    to BIOS counter at 40:13) and execute there.
+	/* Prefix may have been vapourised.  For example, we may have
+	 * been loaded via PXE and then attempted to load an image at
+	 * 0x7c00 which failed to boot.  We need to return to our
+	 * prefix, but we've overwritten it.
+	 *
+	 * Strategy is: ensure original prefix code is intact, then
+	 * return to it in real mode.
 	 */
+	struct {
+		reg16_t flags;
+		segoff_t return_stack;
+	} PACKED in_stack;
+	void *prefix_code;
 
-	/* Not yet implemented */
+	/* Ensure prefix is intact */
+	prefix_code = VIRTUAL ( data->rm->ret_addr.segment, 0 );
+	if ( memcmp ( prefix_code, _prefix_copy, sizeof(_prefix_copy) ) ) {
+		memcpy ( prefix_code, _prefix_copy, sizeof(_prefix_copy) );
+	}
+
+	/* Return to prefix */
+	BEGIN_RM_FRAGMENT(rm_ret_to_prefix);
+	__asm__ ( "call 1f\n1:\tpopw %bp" );
+	__asm__ ( "popfw" );
+	__asm__ ( "popw %bx" );
+	__asm__ ( "popw %ss" );
+	__asm__ ( "movw %bx,%sp" );
+	__asm__ ( "ljmp %cs:*(return_point-1b)(%bp)" );
+	extern segoff_t return_point;
+	__asm__ ( "\nreturn_point:\t.word 0,0" );
+	END_RM_FRAGMENT(rm_ret_to_prefix);
+
+	return_point.segment = data->rm->ret_addr.segment;
+	return_point.offset = data->rm->ret_addr.offset;
+	in_stack.return_stack.segment = data->rm->seg_regs.ss;
+	in_stack.return_stack.offset = data->rm->prefix_sp;
+	in_stack.flags.word = data->rm->flags;
+	real_call ( rm_ret_to_prefix, &in_stack, NULL );
+	/* Will never return */
 }
 
 /* install_rm_callback_interface(): install real-mode callback

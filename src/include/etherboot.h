@@ -369,6 +369,7 @@ extern int elf_start(unsigned long machine, unsigned long entry, unsigned long p
 extern unsigned long currticks P((void));
 extern void exit P((int status));
 extern void _stack;
+extern char _prefix_copy[512];
 extern unsigned long image_basemem;
 
 /* serial.c */
