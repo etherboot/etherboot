@@ -22,6 +22,9 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 
 /* A few user-configurable values. */
 
+// max time out delay time
+#define W_MAX_TIMEOUT	0x0FFFU
+
 /* Size of the in-memory receive ring. */
 #define RX_BUF_LEN_IDX	3	/* 0==8K, 1==16K, 2==32K, 3==64K */
 #define RX_BUF_LEN (8192 << RX_BUF_LEN_IDX)
@@ -46,6 +49,7 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
+#include "timer.h"
 
 /* define all ioaddr */
 
@@ -352,6 +356,7 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 #define CFGD_GPIOEN		0x80
 #define CFGD_DIAG		0x40
 #define CFGD_MAGIC		0x10
+#define CFGD_RANDOM		0x08
 #define CFGD_CFDX		0x04
 #define CFGD_CEREN		0x02
 #define CFGD_CETEN		0x01
@@ -416,6 +421,26 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 #define TX_RING_SIZE		2
 #define RX_RING_SIZE		2
 #define PKT_BUF_SZ		1536	/* Size of each temporary Rx buffer. */
+
+#define PCI_REG_MODE3		0x53
+#define MODE3_MIION		0x04    /* in PCI_REG_MOD3 OF PCI space */
+
+enum rhine_revs {
+    VT86C100A       = 0x00,
+    VTunknown0      = 0x20,
+    VT6102          = 0x40,
+    VT8231          = 0x50, /* Integrated MAC */
+    VT8233          = 0x60, /* Integrated MAC */
+    VT8235          = 0x74, /* Integrated MAC */
+    VT8237          = 0x78, /* Integrated MAC */
+    VTunknown1      = 0x7C,
+    VT6105          = 0x80,
+    VT6105_B0       = 0x83,
+    VT6105L 	    = 0x8A,
+    VT6107          = 0x8C,
+    VTunknown2      = 0x8E,
+    VT6105M         = 0x90,
+};
 
 /* Transmit and receive descriptors definition */
 
@@ -653,7 +678,7 @@ static struct rhine_private
 }
 rhine;
 
-static void rhine_probe1 (struct nic *nic, int ioaddr,
+static void rhine_probe1 (struct nic *nic, struct pci_device *pci, int ioaddr,
 				 int chip_id, int options);
 static int QueryAuto (int);
 static int ReadMII (int byMIIIndex, int);
@@ -851,13 +876,43 @@ MIIDelay (void)
     }
 }
 
+/* Offsets to the device registers. */
+enum register_offsets {
+        StationAddr=0x00, RxConfig=0x06, TxConfig=0x07, ChipCmd=0x08,
+        IntrStatus=0x0C, IntrEnable=0x0E,
+        MulticastFilter0=0x10, MulticastFilter1=0x14,
+        RxRingPtr=0x18, TxRingPtr=0x1C, GFIFOTest=0x54,
+        MIIPhyAddr=0x6C, MIIStatus=0x6D, PCIBusConfig=0x6E,
+        MIICmd=0x70, MIIRegAddr=0x71, MIIData=0x72, MACRegEEcsr=0x74,
+        ConfigA=0x78, ConfigB=0x79, ConfigC=0x7A, ConfigD=0x7B,
+        RxMissed=0x7C, RxCRCErrs=0x7E, MiscCmd=0x81,
+        StickyHW=0x83, IntrStatus2=0x84, WOLcrClr=0xA4, WOLcgClr=0xA7,
+        PwrcsrClr=0xAC,
+};
+
+/* Bits in the interrupt status/mask registers. */
+enum intr_status_bits {
+        IntrRxDone=0x0001, IntrRxErr=0x0004, IntrRxEmpty=0x0020,
+        IntrTxDone=0x0002, IntrTxError=0x0008, IntrTxUnderrun=0x0210,
+        IntrPCIErr=0x0040,
+        IntrStatsMax=0x0080, IntrRxEarly=0x0100,
+        IntrRxOverflow=0x0400, IntrRxDropped=0x0800, IntrRxNoBuf=0x1000,
+        IntrTxAborted=0x2000, IntrLinkChange=0x4000,
+        IntrRxWakeUp=0x8000,
+        IntrNormalSummary=0x0003, IntrAbnormalSummary=0xC260,
+        IntrTxDescRace=0x080000,        /* mapped from IntrStatus2 */
+        IntrTxErrSummary=0x082218,
+};
+#define DEFAULT_INTR (IntrRxDone | IntrRxErr | IntrRxEmpty| IntrRxOverflow | \
+                   IntrRxDropped | IntrRxNoBuf) 
+
 static int
 rhine_probe (struct dev *dev, struct pci_device *pci)
 {
     struct nic *nic = (struct nic *)dev;
     if (!pci->ioaddr)
 	return 0;
-    rhine_probe1 (nic, pci->ioaddr, pci->dev_id, -1);
+    rhine_probe1 (nic, pci, pci->ioaddr, pci->dev_id, -1);
 
     adjust_pci_device(pci);
     rhine_reset (nic);
@@ -883,20 +938,25 @@ static void set_rx_mode(struct nic *nic __unused) {
 }
 
 static void
-rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
+rhine_probe1 (struct nic *nic, struct pci_device *pci, int ioaddr, int chip_id, int options)
 {
     struct rhine_private *tp;
     static int did_version = 0;	/* Already printed version info. */
-    int i;
+    int i, ww;
     unsigned int timeout;
     int FDXFlag;
     int byMIIvalue, LineSpeed, MIICRbak;
+    uint8_t revision_id;    
+    unsigned char mode3_reg;
 
     if (rhine_debug > 0 && did_version++ == 0)
 	printf (version);
 
+    // get revision id.
+    pci_read_config_byte(pci, PCI_REVISION, &revision_id);
+
     /* D-Link provided reset code (with comment additions) */
-    if((chip_id != 0x3043) && (chip_id != 0x6100)) {
+    if (revision_id >= 0x40)  {
 	unsigned char byOrgValue;
 	
 	if(rhine_debug > 0)
@@ -917,10 +977,50 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 	
     }
 
+    /* Reset the chip to erase previous misconfiguration. */
+    outw(CR_SFRST, byCR0);
+    // if vt3043 delay after reset
+    if (revision_id <0x40) {
+       udelay(10000);
+    }
+    // polling till software reset complete
+    // W_MAX_TIMEOUT is the timeout period
+    for(ww = 0; ww < W_MAX_TIMEOUT; ww++) {
+        if ((inw(byCR0) & CR_SFRST) == 0)
+		break;
+        }
+
+    // issue AUTOLoad in EECSR to reload eeprom
+    outb(0x20, byEECSR );
+
+    // if vt3065 delay after reset
+    if (revision_id >=0x40) {
+	// delay 8ms to let MAC stable
+	mdelay(8);
+        /*
+         * for 3065D, EEPROM reloaded will cause bit 0 in MAC_REG_CFGA
+         * turned on.  it makes MAC receive magic packet
+         * automatically. So, we turn it off. (D-Link)
+         */
+         outb(inb(byCFGA) & 0xFE, byCFGA);
+    }
+
+    /* turn on bit2 in PCI configuration register 0x53 , only for 3065*/
+    if (revision_id >= 0x40) {
+        pci_read_config_byte(pci, PCI_REG_MODE3, &mode3_reg);
+        pci_write_config_byte(pci, PCI_REG_MODE3, mode3_reg|MODE3_MIION);
+    }
+
+
+    /* back off algorithm ,disable the right-most 4-bit off CFGD*/
+    outb(inb(byCFGD) & (~(CFGD_RANDOM | CFGD_CFDX | CFGD_CEREN | CFGD_CETEN)), byCFGD);
+
     /* Perhaps this should be read from the EEPROM? */
     for (i = 0; i < ETH_ALEN; i++)
 	nic->node_addr[i] = inb (byPAR0 + i);
     printf ("IO address %hX Ethernet Address: %!\n", ioaddr, nic->node_addr);
+
+
 
     /* restart MII auto-negotiation */
     WriteMII (0, 9, 1, ioaddr);
@@ -995,6 +1095,7 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
     tp->chip_id = chip_id;
     tp->ioaddr = ioaddr;
     tp->phys[0] = -1;
+    tp->chip_revision = revision_id;
 
     /* The lower four bits are the media type. */
     if (options > 0)
@@ -1157,6 +1258,7 @@ rhine_poll (struct nic *nic)
 	tp->cur_rx++;
 	tp->cur_rx = tp->cur_rx % RX_RING_SIZE;
     }
+
     return good;
 }
 
