@@ -346,7 +346,7 @@ struct pci_driver {
 	unsigned short class;
 };
 
-#define __pci_driver	__attribute__ ((unused,__section__(".drivers.pci")))
+#define __pci_driver	__attribute__ ((used,__section__(".drivers.pci")))
 /* Defined by the linker... */
 extern const struct pci_driver pci_drivers[];
 extern const struct pci_driver pci_drivers_end[];

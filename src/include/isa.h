@@ -18,9 +18,9 @@ struct isa_driver
 };
 
 #ifndef __HYPERSTONE__
-#define __isa_driver	__attribute__ ((unused,__section__(".drivers.isa")))
+#define __isa_driver	__attribute__ ((used,__section__(".drivers.isa")))
 #else 
-#define __isa_driver	__attribute__ ((unused,__section__(".drivisa")))
+#define __isa_driver	__attribute__ ((used,__section__(".drivisa")))
 #endif
 
 extern const struct isa_driver isa_drivers[];
