@@ -1056,6 +1056,9 @@ PXENV_EXIT_t pxenv_undi_loader ( undi_loader_t *loader ) {
 
 	DBG ( "PXENV_UNDI_LOADER" );
 	
+	/* Set UNDI DS as our real-mode stack */
+	use_undi_ds_for_rm_stack ( loader->undi_ds );
+
 	/* FIXME: These lines are borrowed from main.c.  There should
 	 * probably be a single initialise() function that does all
 	 * this, but it's currently split interestingly between main()
@@ -1076,8 +1079,6 @@ PXENV_EXIT_t pxenv_undi_loader ( undi_loader_t *loader ) {
 	/* We have relocated; the loader pointer is now invalid */
 	loader = phys_to_virt ( loader_phys );
 
-	/* Set UNDI DS as our real-mode stack */
-	use_undi_ds_for_rm_stack ( loader->undi_ds );
 	/* Install PXE stack to area specified by NBP */
 	install_pxe_stack ( VIRTUAL ( loader->undi_cs, 0 ) );
 	
@@ -1087,6 +1088,10 @@ PXENV_EXIT_t pxenv_undi_loader ( undi_loader_t *loader ) {
 	 * should call PXENV_START_UNDI separately anyway.
 	 */
 	pxenv_start_undi ( &loader->start_undi );
+	/* Unhook stack; the loader is not meant to hook int 1a etc,
+	 * but the call the pxenv_start_undi will cause it to happen.
+	 */
+	ENSURE_CAN_UNLOAD ( loader );
 
 	/* Fill in addresses of !PXE and PXENV+ structures */
 	PTR_TO_SEGOFF16 ( &pxe_stack->pxe, loader->pxe_ptr );
