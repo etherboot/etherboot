@@ -2460,4 +2460,12 @@ Baum that might help with booting DOS.
 
 Released as Etherboot 5.0.10 (production)
 
++ Fix for correct SMC8416 detection.
+
 + Alignment bug fix for the 3c90x contributed by Neil Newell.
+
++ Timothy Legge (I think) fixed up PCNET32 IDs.
+
++ Patch from Axel Dittrich to allow timeout to be changed to a fixed
+value for peer-to-peer setups where the exponential backoff is not
+suitable.
