@@ -106,7 +106,7 @@ OBJCOPY=	objcopy
 MAKEROM=	./makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
-VERSION_PATCH=	3
+VERSION_PATCH=	4
 EXTRAVERSION=
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
@@ -481,17 +481,17 @@ bin32/%.nrv2belf:	bin32/%.nrv2bimgo $(ELFPREFIX) $(MAKEDEPS)
 	dd if=$@.x of=$@ bs=36k conv=sync 2> /dev/null
 	$(RM) $@.x
 
-%.lzdsk:	%.lzimg $(DISKLOADER) $(START16)
-	cat $(DISKLOADER) $(START16) $< > $@.x
+%.lzdsk:	%.lzrom $(DISKLOADER)
+	cat $(DISKLOADER) $< > $@.x
 	dd if=$@.x of=$@ bs=36k conv=sync 2> /dev/null
 	$(RM) $@.x
 
 # rules to make a LILO-bootable image
 %.lilo:		%.img $(LILOPREFIX) $(START16)
-	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
+	cat $(LILOPREFIX) $(START16) $< /dev/zero | head -c 64k > $@
 
 %.lzlilo:	%.lzimg $(LILOPREFIX) $(START16)
-	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
+	cat $(LILOPREFIX) $(START16) $< /dev/zero | head -c 64k > $@
 
 # Housekeeping
 

@@ -127,7 +127,7 @@ setup_code:
 /* If there's anything else to do, do it now. */
 
 /* Jump to the bootrom code */
-        jmp     $SYSSEG, $0x0000
+        jmp     $SYSSEG, $0x0006
 
 badsig: 
         /* Put the stack at BOOTSEG:0x4000. */
