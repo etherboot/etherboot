@@ -1014,8 +1014,8 @@ static void tulip_reset(struct nic *nic)
     }
 
     /* Point to rx and tx descriptors */
-    outl((unsigned long)&rx_ring[0], ioaddr + CSR3);
-    outl((unsigned long)&tx_ring[0], ioaddr + CSR4);
+    outl(virt_to_le32desc(&rx_ring[0]), ioaddr + CSR3);
+    outl(virt_to_le32desc(&tx_ring[0]), ioaddr + CSR4);
 
     init_media(nic);
 
