@@ -142,7 +142,10 @@ UNDIROMID_end:
  *	In addition, some BIOSes don't point DI to the string $PnP so
  *	we need another #define to take care of that.
  */
-over: 
+over:	
+#ifdef	DEBUG_ROMPREFIX
+	call	print_bcv
+#endif
 /* Omit this test for ISA cards anyway */
 #ifdef	PCI_PNP_HEADER
 /* Accept old name too for backward compatibility */
@@ -156,6 +159,9 @@ over:
 	lret
 #endif	/* PCI_PNP_HEADER */
 notpnp:
+#ifdef	DEBUG_ROMPREFIX
+	call	print_notpnp
+#endif
 #ifdef  DELAYED_INT
 	pushw	%ax
 	pushw	%ds
@@ -175,12 +181,18 @@ notpnp:
 	movw	$MAGIC, %ax		/* set magic word */
 	movw	%ax, SCRATCHVEC+4
 installed:
+#ifdef	DEBUG_ROMPREFIX
+	call	print_installed
+#endif
 	popw	%ds
 	popw	%ax
 	movw	$0x20,%ax
 	lret
 
 start_int:				/* clobber magic id, so that we will */
+#ifdef	DEBUG_ROMPREFIX
+	call	print_start_int
+#endif
 	xorw	%ax,%ax			/* not inadvertendly end up in an */
 	movw	%ax,%ds			/* endless loop */
 	movw	%ax, SCRATCHVEC+4
@@ -197,6 +209,9 @@ start_int:				/* clobber magic id, so that we will */
 
 	
 legacyentry:
+#ifdef	DEBUG_ROMPREFIX
+	call	print_legacyentry
+#endif
 	pushw	$EXIT_VIA_LRET
 	jmp	invoke
 
@@ -204,6 +219,9 @@ legacyentry:
 	
 #ifdef PCI_PNP_HEADER
 pnpentry:
+#ifdef	DEBUG_ROMPREFIX
+	call	print_bev
+#endif
 	pushl	%eax			/* padding */
 	pushw	$EXIT_VIA_INT_18
 	jmp	invoke
@@ -310,3 +328,84 @@ UNDILoader:
 	lret	$2			/* Skip our PXE 'opcode' */
 #endif	/* PXE_EXPORT */
 		
+#ifdef DEBUG_ROMPREFIX
+	.section ".prefix"
+
+print_bcv:
+	pushw	%si
+	movw	$1f-_prefix, %si
+	call	print_message
+	popw	%si
+	ret
+1:	.asciz	"Etherboot PNP BCV called\n"
+
+print_bev:
+	pushw	%si
+	movw	$1f-_prefix, %si
+	call	print_message
+	popw	%si
+	ret
+1:	.asciz	"Etherboot PNP BEV called\n"
+
+print_notpnp:
+	pushw	%si
+	movw	$1f-_prefix, %si
+	call	print_message
+	popw	%si
+	ret
+1:	.asciz	"Non-PNP BIOS detected\n"
+
+print_legacyentry:
+	pushw	%si
+	movw	$1f-_prefix, %si
+	call	print_message
+	popw	%si
+	ret
+1:	.asciz	"Etherboot legacy entry point called\n"
+
+print_installed:
+	pushw	%si
+	movw	$1f-_prefix, %si
+	call	print_message
+	popw	%si
+	ret
+1:	.ascii	"Etherboot hooked INT"
+#ifdef	BOOT_INT18H
+	.asciz	"18\n"
+#else
+	.asciz	"19\n"
+#endif
+
+print_start_int:
+	pushw	%si
+	movw	$1f-_prefix, %si
+	call	print_message
+	popw	%si
+	ret
+1:	.asciz	"Etherboot hooked interrupt called\n"
+
+print_message:
+	pushal
+	pushw	%ds
+	pushw	%cs
+	popw	%ds
+1:	lodsb
+	testb   %al, %al
+	je      2f
+	call    print_character
+	jmp     1b
+2:	popw	%ds
+	popal
+	ret
+
+print_character:
+	movw    $0x0007, %bx            /* page 0, attribute 7 (normal) */
+	movb    $0x0e, %ah              /* write char, tty mode */
+	cmpb    $0x0a, %al              /* '\n'? */
+	jne     1f
+	int     $0x10
+	movb    $0x0d, %al
+1:	int     $0x10
+	ret
+	
+#endif
