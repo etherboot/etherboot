@@ -250,10 +250,10 @@ typedef struct {
 /* Data passed in to in_call() by assembly wrapper.
  */
 typedef struct {
-	uint32_t	flags;
 	regs_t		regs;
 	seg_regs_t	seg_regs;
 	gdt_descriptor_t gdt_desc;
+	uint32_t	flags;
 	struct {
 		uint32_t offset;
 		uint32_t segment;

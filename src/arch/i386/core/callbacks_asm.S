@@ -612,15 +612,15 @@ process_ecr_params_done:
 
 #define IC_OFFSET_VA_LIST_PTR ( 0 )
 #define IC_OFFSET_VA_LIST_PTR_E ( IC_OFFSET_VA_LIST_PTR + 4 )
-#define IC_OFFSET_FLAGS ( IC_OFFSET_VA_LIST_PTR_E )
-#define IC_OFFSET_FLAGS_E ( IC_OFFSET_FLAGS + 4 )
-#define IC_OFFSET_REGISTERS ( IC_OFFSET_FLAGS_E )
+#define IC_OFFSET_REGISTERS ( IC_OFFSET_VA_LIST_PTR_E )
 #define IC_OFFSET_REGISTERS_E ( IC_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
 #define IC_OFFSET_SEG_REGS ( IC_OFFSET_REGISTERS_E )
 #define IC_OFFSET_SEG_REGS_E ( IC_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
 #define IC_OFFSET_GDT ( IC_OFFSET_SEG_REGS_E )
 #define IC_OFFSET_GDT_E ( IC_OFFSET_GDT + 8 )
-#define IC_OFFSET_RETADDR ( IC_OFFSET_GDT_E )
+#define IC_OFFSET_FLAGS ( IC_OFFSET_GDT_E )
+#define IC_OFFSET_FLAGS_E ( IC_OFFSET_FLAGS + 4 )
+#define IC_OFFSET_RETADDR ( IC_OFFSET_FLAGS_E )
 #define IC_OFFSET_RETADDR_E ( IC_OFFSET_RETADDR + 8 )
 #define IC_OFFSET_ORIG_STACK ( IC_OFFSET_RETADDR )
 #define IC_OFFSET_OPCODE ( IC_OFFSET_ORIG_STACK + 8 )
@@ -632,6 +632,8 @@ process_ecr_params_done:
 _in_call:
 	pushl	$0			/* Indicate near return address */
 _in_call_far:
+	/* Store flags */
+	pushfl
 	/* Store the GDT */
 	subl	$8, %esp
 	sgdt	0(%esp)
@@ -647,8 +649,6 @@ _in_call_far:
 	/* Replace %esp in store with physical %esp value on entry */
 	leal	(IC_OFFSET_ORIG_STACK - IC_OFFSET_REGISTERS)(%esp), %eax
 	movl	%eax, (IC_OFFSET_REGISTERS - IC_OFFSET_REGISTERS + 12)(%esp)
-	/* Store flags */
-	pushfl
 	/* Store va_list pointer (physical address) */
 	leal	(IC_OFFSET_VA_LIST - IC_OFFSET_VA_LIST_PTR_E)(%esp), %eax
 	pushl	%eax
@@ -677,7 +677,6 @@ _in_call_far:
 	movl	%eax, gdtarg +2(%ebp)
 
 	/* Load the global descriptor table */
-	pushfl				/* Preserve flags */
 	cli				/* Temporarily disable interrupts */
 	lgdt	%cs:gdtarg(%ebp)
 
@@ -694,9 +693,6 @@ _in_call_far:
 
 	/* Fixup the stack pointer */
 	subl	%ebp, %esp
-
-	/* Restore interrupt status */
-	popfl
 
 	/* Fixup the va_list pointer */
 	subl	%ebp, IC_OFFSET_VA_LIST_PTR(%esp)
@@ -741,8 +737,6 @@ _in_call_far:
 
 	/* Skip va_list ptr */
 	popl	%eax
-	/* Restore flags (including revert of interrupt status) */
-	popfl
 	/* Reload general-purpose registers to be returned */
 	popal
 	/* Reload segment registers as passed in from caller */
@@ -751,6 +745,8 @@ _in_call_far:
 	popw	%es
 	popw	%ds
 	addl	$(4+8), %esp	/* Skip %cs, %ss and GDT (already reloaded) */
+	/* Restore flags (including revert of interrupt status) */
+	popfl
 
 	/* Restore physical %esp from entry.  It will only be
 	 * different if EB_USE_INTERNAL_STACK was specified.
