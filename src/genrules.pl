@@ -245,7 +245,7 @@ print "EB_ZLILOS\t:=\n";
 print "EB_PXES\t:=\n";
 print "EB_ZPXES\t:=\n";
 print "EB_DSKS\t:=\n";
-print "EB_ZDSK\t:=\n";
+print "EB_ZDSKS\t:=\n";
 print "EB_ELFS\t:=\n";
 print "EB_ZELFS\t:=\n";
 print "EB_LMELFS\t:=\n";
@@ -265,7 +265,7 @@ foreach my $pci (reverse sort keys %pcient) {
 	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym \$(BIN)/$img.zsym\n";
 
 # Output targets
-	print "EB_LILOS\t+= \$(BIN)/$img.lilo\ \$(BIN)/$img.zlilo\n";
+	print "EB_LILOS\t+= \$(BIN)/$img.lilo \nEB_ZLILOS\t+= \$(BIN)/$img.zlilo\n";
 	print "EB_PXES\t+= \$(BIN)/$img.pxe   \nEB_ZPXES\t+= \$(BIN)/$img.zpxe\n";
 	print "EB_DSKS\t+= \$(BIN)/$img.dsk   \nEB_ZDSKS\t+= \$(BIN)/$img.zdsk\n";
 	print "EB_ELFS\t+= \$(BIN)/$img.elf   \nEB_ZELFS\t+= \$(BIN)/$img.zelf\n";
