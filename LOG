@@ -2803,3 +2803,8 @@ LinuxBIOS.
 
 + Paolo Salvan submitted changes to arch/i386/Makefile to make .com
 images compressed.
+
++ Eric Biedermann made LinuxBIOS .*elf images work again and cleaned
+up the build procedure in the process. The hardwired virtual RELOCADDR
+is no more, the virtual base is 0. He also added code to display which
+protocols are compiled into the image.
