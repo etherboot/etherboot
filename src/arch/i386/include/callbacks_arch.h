@@ -8,41 +8,13 @@
  * $Id$
  */
 
-#ifndef CALLBACKS_H
-#define CALLBACKS_H
-
-/* Opcodes and flags for in_call()
- */
-#define EB_OPCODE(x) ( (x) & 0xffff )
-#define EB_OPCODE_MAIN		(0x0000)
-#define EB_OPCODE_CHECK		(0x6948)	/* 'Hi' */
-#define EB_OPCODE_PXE		(0x7850)	/* 'Px' */
-#define EB_USE_INTERNAL_STACK	( 1 << 16 )
-/* i386 only */
-#define EB_CALL_FROM_REAL_MODE	( 1 << 17 )
-
-/* Standard return codes
- */
-#define EB_CHECK_RESULT		(0x6f486948)	/* 'HiHo' */
-
-/* Types of data that can be passed to external_call().
- */
-#define EXTCALL_NONE		(0x0000)
-#define EXTCALL_REGISTERS	(0x0001)
-#define EXTCALL_SEG_REGISTERS	(0x0002)
-#define EXTCALL_GDT		(0x0003)
-#define EXTCALL_STACK		(0x0004)
-#define EXTCALL_RET_STACK	(0x0005)
-#define EXTCALL_RELOC_STACK	(0x0006)
-#define EXTCALL_TRAMPOLINE	(0x0007)
-#define EXTCALL_END_LIST	(0xffff)
+#ifndef CALLBACKS_ARCH_H
+#define CALLBACKS_ARCH_H
 
 /* Skip the definitions that won't make sense to the assembler */
 #ifndef ASSEMBLY
 
-#include <stdarg.h>
-
-/* extcall_stack_is_corrupt_look_in_callbacks_h
+/* extcall_stack_is_corrupt_look_in_callbacks_arch_h
  *
  * This is used as a flag to cause an invalid usage of
  * EP_STACK_PASSTHRU() to generate a linker error rather than locking
@@ -51,21 +23,61 @@
  * parameters have sizes that are non multiples of 4.  See definition
  * of WILL_BE_LEFT_ON_STACK() below for more details.
  */
-extern int extcall_stack_is_corrupt_look_in_callbacks_h;
+extern int extcall_stack_is_corrupt_look_in_callbacks_arch_h;
 
 /* Struct to hold general-purpose register values.  PUSHAL and POPAL
  * can work directly with this structure; do not change the order of
  * registers.
  */
 typedef struct {
-	uint32_t edi;
-	uint32_t esi;
-	uint32_t ebp;
-	uint32_t esp;
-	uint32_t ebx;
-	uint32_t edx;
-	uint32_t ecx;
-	uint32_t eax;
+	union {
+		uint16_t di;
+		uint32_t edi;
+	};
+	union {
+		uint16_t si;
+		uint32_t esi;
+	};
+	union {
+		uint16_t bp;
+		uint32_t ebp;
+	};
+	union {
+		uint16_t sp;
+		uint32_t esp;
+	};
+	union {
+		struct {
+			uint8_t bl;
+			uint8_t bh;
+		} PACKED;
+		uint16_t bx;
+		uint32_t ebx;
+	};
+	union {
+		struct {
+			uint8_t dl;
+			uint8_t dh;
+		} PACKED;
+		uint16_t dx;
+		uint32_t edx;
+	};
+	union {
+		struct {
+			uint8_t cl;
+			uint8_t ch;
+		} PACKED;
+		uint16_t cx;
+		uint32_t ecx;
+	};
+	union {
+		struct {
+			uint8_t al;
+			uint8_t ah;
+		} PACKED;
+		uint16_t ax;
+		uint32_t eax;
+	};
 } regs_t;
 /* As part of an external_call parameter list */
 #define EP_REGISTERS(regs) EXTCALL_REGISTERS, (regs)
@@ -224,47 +236,16 @@ typedef struct {
  *
  * This will automatically check to see that "first" and "last" won't
  * suffer from the "&" problem mentioned above; if they do then
- * extcall_stack_is_corrupt_look_in_callbacks_h will be used as the
+ * extcall_stack_is_corrupt_look_in_callbacks_arch_h will be used as the
  * parameter type, triggering a linker error.  (I can't find a way to
  * make the compiler detect this error).
  */
 #define EP_STACK_PASSTHRU(first,last) \
 	( WILL_BE_LEFT_ON_STACK((first)) && WILL_BE_LEFT_ON_STACK((last)) ? \
-	  EXTCALL_STACK : extcall_stack_is_corrupt_look_in_callbacks_h ), \
+	  EXTCALL_STACK : extcall_stack_is_corrupt_look_in_callbacks_arch_h ),\
 	(void*)&(first), \
 	( ( (void*)&(last) + sizeof((last)) - (void*)&(first) \
 	    + (STACK_ALIGNMENT-1) ) & ~(STACK_ALIGNMENT-1) )
-
-#define EP_STACK(structure) \
-	EXTCALL_STACK, (structure), sizeof(*(structure))
-
-#define EP_RET_STACK(structure) \
-	EXTCALL_RET_STACK, (structure), sizeof(*(structure)), NULL
-#define EP_RET_VARSTACK(structure,length) \
-	EXTCALL_RET_STACK, (structure), sizeof(*(structure)), (length)
-
-#define EP_RELOC_STACK(top) EXTCALL_RELOC_STACK, (top)
-
-#define EP_TRAMPOLINE(start,end) \
-	EXTCALL_TRAMPOLINE, (void*)(start), ((void*)(end) - (void*)(start))
-
-#define EP_TRACE EXTCALL_NONE
-
-/* Function prototypes */
-extern uint32_t _ext_call ( uint32_t address, ... );
-extern uint32_t _v_ext_call ( uint32_t address, va_list ap );
-#define ext_call(address, ...) \
-	_ext_call( (uint32_t)(address), ##__VA_ARGS__, EXTCALL_END_LIST )
-
-#ifdef DEBUG_EXT_CALL
-extern uint32_t v_ext_call ( uint32_t address, va_list ap );
-extern int v_ext_call_check ( uint32_t address, va_list ap );
-#define ext_call_trace(address, ...) \
-	ext_call( (address), EP_TRACE, ##__VA_ARGS__ )
-#else
-#define v_ext_call(address, ...) _v_ext_call( (address), ##__VA_ARGS__ )
-#define ext_call_trace(address, ...) ext_call( (address), ##__VA_ARGS__ )
-#endif
 
 /* Data passed in to in_call() by assembly wrapper.
  */
@@ -277,7 +258,7 @@ typedef struct {
 		uint32_t offset;
 		uint32_t segment;
 	} ret_addr;
-} PACKED in_call_data_t;
+} PACKED i386_pm_in_call_data_t;
 
 typedef struct {
 	struct {
@@ -286,8 +267,14 @@ typedef struct {
 	} ret_addr;
 	seg_regs_t	seg_regs;
 	uint32_t orig_opcode;
-} PACKED real_in_call_data_t;
+} PACKED i386_rm_in_call_data_t;
+
+typedef struct {
+	i386_pm_in_call_data_t *pm;
+	i386_rm_in_call_data_t *rm;
+} i386_in_call_data_t;
+#define in_call_data_t i386_in_call_data_t
 
 #endif /* ASSEMBLY */
 
-#endif /* CALLBACKS_H */
+#endif /* CALLBACKS_ARCH_H */
