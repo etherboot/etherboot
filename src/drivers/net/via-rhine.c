@@ -662,7 +662,7 @@ static void MIIDelay (void);
 static void rhine_init_ring (struct nic *dev);
 static void rhine_disable (struct dev *dev);
 static void rhine_reset (struct nic *nic);
-static int rhine_poll (struct nic *nic);
+static int rhine_poll (struct nic *nic, int retreive);
 static void rhine_transmit (struct nic *nic, const char *d, unsigned int t,
 			    unsigned int s, const char *p);
 
@@ -851,10 +851,70 @@ MIIDelay (void)
     }
 }
 
+/* Offsets to the device registers. */
+enum register_offsets {
+        StationAddr=0x00, RxConfig=0x06, TxConfig=0x07, ChipCmd=0x08,
+        IntrStatus=0x0C, IntrEnable=0x0E,
+        MulticastFilter0=0x10, MulticastFilter1=0x14,
+        RxRingPtr=0x18, TxRingPtr=0x1C, GFIFOTest=0x54,
+        MIIPhyAddr=0x6C, MIIStatus=0x6D, PCIBusConfig=0x6E,
+        MIICmd=0x70, MIIRegAddr=0x71, MIIData=0x72, MACRegEEcsr=0x74,
+        ConfigA=0x78, ConfigB=0x79, ConfigC=0x7A, ConfigD=0x7B,
+        RxMissed=0x7C, RxCRCErrs=0x7E, MiscCmd=0x81,
+        StickyHW=0x83, IntrStatus2=0x84, WOLcrClr=0xA4, WOLcgClr=0xA7,
+        PwrcsrClr=0xAC,
+};
+
+/* Bits in the interrupt status/mask registers. */
+enum intr_status_bits {
+        IntrRxDone=0x0001, IntrRxErr=0x0004, IntrRxEmpty=0x0020,
+        IntrTxDone=0x0002, IntrTxError=0x0008, IntrTxUnderrun=0x0210,
+        IntrPCIErr=0x0040,
+        IntrStatsMax=0x0080, IntrRxEarly=0x0100,
+        IntrRxOverflow=0x0400, IntrRxDropped=0x0800, IntrRxNoBuf=0x1000,
+        IntrTxAborted=0x2000, IntrLinkChange=0x4000,
+        IntrRxWakeUp=0x8000,
+        IntrNormalSummary=0x0003, IntrAbnormalSummary=0xC260,
+        IntrTxDescRace=0x080000,        /* mapped from IntrStatus2 */
+        IntrTxErrSummary=0x082218,
+};
+#define DEFAULT_INTR IntrRxDone | IntrRxErr | IntrRxEmpty| IntrRxOverflow | \
+                   IntrRxDropped | IntrRxNoBuf | IntrTxAborted | \
+                   IntrTxDone | IntrTxError | IntrTxUnderrun | \
+                   IntrPCIErr | IntrStatsMax | IntrLinkChange
+
+/***************************************************************************
+ IRQ - PXE IRQ Handler
+***************************************************************************/
+void rhine_irq ( struct nic *nic, irq_action_t action ) {
+     struct rhine_private *tp = (struct rhine_private *) nic->priv_data;
+     /* Enable interrupts by setting the interrupt mask. */
+     unsigned int intr_status;
+
+
+     switch ( action ) {
+          case DISABLE :
+          case ENABLE :
+               intr_status = inw(nic->ioaddr + IntrStatus);
+               /* On Rhine-II, Bit 3 indicates Tx descriptor write-back race. */
+               if (tp->chip_id == 0x3065)
+                   intr_status |= inb(nic->ioaddr + IntrStatus2) << 16;
+               intr_status = (intr_status & ~DEFAULT_INTR);
+               if ( action == ENABLE ) 
+                   intr_status = intr_status | DEFAULT_INTR;
+               outw(intr_status, nic->ioaddr + IntrEnable);
+               break;
+         case FORCE :
+               outw(IntrRxEarly, nic->ioaddr + IntrStatus);
+               break;
+         }
+}
+
 static int
 rhine_probe (struct dev *dev, struct pci_device *pci)
 {
     struct nic *nic = (struct nic *)dev;
+    struct rhine_private *tp = &rhine;
     if (!pci->ioaddr)
 	return 0;
     rhine_probe1 (nic, pci->ioaddr, pci->dev_id, -1);
@@ -865,6 +925,10 @@ rhine_probe (struct dev *dev, struct pci_device *pci)
     dev->disable  = rhine_disable;
     nic->poll     = rhine_poll;
     nic->transmit = rhine_transmit;
+    nic->irqno	  = pci->irq;
+    nic->irq      = rhine_irq;
+    nic->ioaddr   = tp->ioaddr;
+
 
     return 1;
 }
@@ -1126,15 +1190,31 @@ rhine_reset (struct nic *nic)
     /*set IMR to work */
     outw (IMRShadow, byIMR0);
 }
+/* Beware of PCI posted writes */
+#define IOSYNC  do { readb(nic->ioaddr + StationAddr); } while (0)
 
 static int
-rhine_poll (struct nic *nic)
+rhine_poll (struct nic *nic, int retreive)
 {
     struct rhine_private *tp = (struct rhine_private *) nic->priv_data;
     int rxstatus, good = 0;;
 
     if (tp->rx_ring[tp->cur_rx].rx_status.bits.own_bit == 0)
     {
+        unsigned int intr_status;
+        if(!retreive)
+            return 1;
+
+        intr_status = inw(nic->ioaddr + IntrStatus);
+        /* On Rhine-II, Bit 3 indicates Tx descriptor write-back race. */
+        if (tp->chip_id == 0x3065)
+            intr_status |= inb(nic->ioaddr + IntrStatus2) << 16;
+
+        /* Acknowledge all of the current interrupt sources ASAP. */
+        if (intr_status & IntrTxDescRace)
+           outb(0x08, nic->ioaddr + IntrStatus2);
+        outw(intr_status & 0xffff, nic->ioaddr + IntrStatus);
+	IOSYNC;
 	rxstatus = tp->rx_ring[tp->cur_rx].rx_status.lw;
 	if ((rxstatus & 0x0300) != 0x0300)
 	{
