@@ -286,5 +286,5 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 # rule to make a floppy emulation ISO boot image
 SUFFIXES +=    liso
 %.liso: util/genliso %.zlilo
-	util/genliso $*.liso $*.zlilo
+	sh util/genliso $*.liso $*.zlilo
 
