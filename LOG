@@ -2385,8 +2385,22 @@ date with the Linux driver.
 
 Released as Etherboot 5.0.7 (production)
 
-+ (5.1.2) Multicast support by Eric Biederman.
++ Multicast support and LOTS of other changes by Eric Biederman.
 
-+ (5.1.2) Builtin menuing has been removed.
++ Builtin menuing has been removed.
 
-Test release 5.1.2rc2
++ Patches for FreeBSD by Doug Ambrisko.
+
+Released as Etherboot 5.1.2 (development)
+
++ Fix syntax errors in nfs.c.
+
++ Patch for tagged image loading by Miles Nordin.
+
++ Patches for new eepr100 variant by Georg Baum.
+
++ Fixes for typos by Adam Sulmicki.
+
++ Fixes by Eric.
+
+Released as Etherboot 5.1.3 (development)
