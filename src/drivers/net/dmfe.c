@@ -199,7 +199,7 @@ struct dmfe_private {
 	u8 link_failed;		/* Ever link failed */
 	u8 wait_reset;		/* Hardware failed, need to reset */
 	u8 dm910x_chk_mode;	/* Operating mode check */
-	u8 first_in_callback;	/* Flag to record state */
+//	u8 first_in_callback;	/* Flag to record state */
 
 	/* Driver defined statistic counter */
 	unsigned long tx_fifo_underrun;
@@ -268,12 +268,12 @@ static unsigned char txb[TX_BUF_ALLOC * TX_DESC_CNT]
     __attribute__ ((aligned(32)));
 
 /* Define the RX Descriptor */
-static struct rx_desc rxd[RX_DESC_CNT];
+static struct rx_desc rxd[RX_DESC_CNT]
 __attribute__ ((aligned(32)));
 
 /* Create a static buffer of size PKT_BUF_SZ for each RX Descriptor.
    All descriptors point to a part of this buffer */
-static unsigned char rxb[RX_ALLOC_SIZE * RX_DESC_CNT];
+static unsigned char rxb[RX_ALLOC_SIZE * RX_DESC_CNT]
 __attribute__ ((aligned(32)));
 
 /* NIC specific static variables go here */
@@ -310,7 +310,7 @@ static void dmfe_reset(struct nic *nic)
 	db->link_failed = 1;
 	db->wait_reset = 0;
 
-	db->first_in_callback = 0;
+//	db->first_in_callback = 0;
 	db->NIC_capability = 0xf;	/* All capability */
 	db->PHY_reg4 = 0x1e0;
 
@@ -405,7 +405,7 @@ void hex_dump(const char *data, const unsigned int len);
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int dmfe_poll(struct nic *nic, int retrieve)
+static int dmfe_poll(struct nic *nic)
 {
 	u32 rdes0;
 	int entry = db->cur_rx % RX_DESC_CNT;
@@ -451,7 +451,6 @@ static void dmfe_transmit(struct nic *nic, const char *dest,	/* Destination */
 			  const char *packet)
 {				/* Packet */
 	u16 nstype;
-	int to;
 	u8 *ptxb;
 
 	ptxb = &txb[db->cur_tx];
@@ -484,7 +483,7 @@ static void dmfe_transmit(struct nic *nic, const char *dest,	/* Destination */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void dmfe_disable(struct dev *dev)
+static void dmfe_disable(struct dev *dev __unused)
 {
 	/* Reset & stop DM910X board */
 	outl(DM910X_RESET, BASE + DCR0);
@@ -503,7 +502,7 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *) dev;
 	uint32_t dev_rev, pci_pmr;
-	int i, err;
+	int i;
 
 	if (pci->ioaddr == 0)
 		return 0;
@@ -514,7 +513,7 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
 
 	/* Read Chip revision */
 	pci_read_config_dword(pci, PCI_REVISION_ID, &dev_rev);
-	printf("Revision %d\n", &dev_rev);
+	dprintf(("Revision %lX\n", dev_rev));
 
 	/* point to private storage */
 	db = &dfx;
@@ -534,8 +533,7 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
 
 	/* read 64 word srom data */
 	for (i = 0; i < 64; i++)
-		((u16 *) db->srom)[i] =
-		    cpu_to_le16(read_srom_word(BASE, i));
+		((u16 *) db->srom)[i] = cpu_to_le16(read_srom_word(BASE, i));
 
 	/* Set Node address */
 	for (i = 0; i < 6; i++)
@@ -632,6 +630,12 @@ static void dm9132_id_table(struct nic *nic)
 	unsigned long ioaddr = BASE + 0xc0;	/* ID Table */
 	u32 hash_val;
 	u16 i, hash_table[4];
+
+	dprintf(("dm9132_id_table\n"));
+
+	printf("FIXME: This function is broken.  If you have this card contact "
+		"Timothy Legge at the etherboot-user list\n");
+
 #ifdef LINUX
 	//DMFE_DBUG(0, "dm9132_id_table()", 0);
 
@@ -678,6 +682,7 @@ static void send_filter_frame(struct nic *nic)
 	u8 *suptr;
 	int i;
 
+	dprintf(("send_filter_frame\n"));
 	/* point to the current txb incase multiple tx_rings are used */
 	ptxb = &txb[db->cur_tx];
 
@@ -852,7 +857,7 @@ static void dmfe_set_phyxcer(struct nic *nic)
 	phy_write(BASE, db->phy_addr, 4, phy_reg, db->chip_id);
 
 	/* Restart Auto-Negotiation */
-	if (db->chip_type) // && (db->chip_id == PCI_DM9102_ID))
+	if (db->chip_type && (db->chip_id == PCI_DM9102_ID))
 		phy_write(BASE, db->phy_addr, 0, 0x1800, db->chip_id);
 	if (!db->chip_type)
 		phy_write(BASE, db->phy_addr, 0, 0x1200, db->chip_id);
@@ -1244,10 +1249,10 @@ static void dmfe_program_DM9802(struct nic *nic)
 
 
 static struct pci_id dmfe_nics[] = {
-	PCI_ROM(0x1282, 0x9100, "davicom9100", "Davicom 9100"),
-	PCI_ROM(0x1282, 0x9102, "davicom9102", "Davicom 9102"),
-	PCI_ROM(0x1282, 0x9009, "davicom9009", "Davicom 9009"),
-	PCI_ROM(0x1282, 0x9132, "davicom9132", "Davicom 9132"),	/* Needs probably some fixing */
+	PCI_ROM(0x1282, 0x9100, "dmfe9100", "Davicom 9100"),
+	PCI_ROM(0x1282, 0x9102, "dmfe9102", "Davicom 9102"),
+	PCI_ROM(0x1282, 0x9009, "dmfe9009", "Davicom 9009"),
+	PCI_ROM(0x1282, 0x9132, "dmfe9132", "Davicom 9132"),	/* Needs probably some fixing */
 };
 
 static struct pci_driver dmfe_driver __pci_driver = {
