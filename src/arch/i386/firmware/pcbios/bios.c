@@ -97,9 +97,11 @@ DISK_INIT - Initialize the disk system
 **************************************************************************/
 void disk_init ( void ) {
 	BEGIN_RM_FRAGMENT(rm_disk_init);
+	__asm__ ( "sti" );
 	__asm__ ( "xorw %ax,%ax" );
 	__asm__ ( "movb $0x80,%dl" );
 	__asm__ ( "int $0x13" );
+	__asm__ ( "cli" );
 	END_RM_FRAGMENT(rm_disk_init);
 	
 	real_call ( rm_disk_init, NULL, NULL );
@@ -122,6 +124,7 @@ unsigned int pcbios_disk_read ( int drive, int cylinder, int head, int sector,
 	reg16_t ret_ax;
 
 	BEGIN_RM_FRAGMENT(rm_pcbios_disk_read);
+	__asm__ ( "sti" );
 	__asm__ ( "popw %ax" );
 	__asm__ ( "popw %cx" );
 	__asm__ ( "popw %dx" );
@@ -129,6 +132,7 @@ unsigned int pcbios_disk_read ( int drive, int cylinder, int head, int sector,
 	__asm__ ( "popw %es" );
 	__asm__ ( "int $0x13" );
 	__asm__ ( "pushfw" );
+	__asm__ ( "cli" );
 	END_RM_FRAGMENT(rm_pcbios_disk_read);
 
 	in_stack.ax.h = 2; /* INT 13,2 - Read disk sector */
