@@ -65,10 +65,13 @@ static void skel_disable(struct dev *dev)
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
+
+#define board_found 1
+#define valid_link 0
 static int skel_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *)dev;
-	if (/* board found */ && /* valid link */)
+	if (board_found && valid_link)
 	{
 		/* point to NIC specific routines */
 		dev->disable  = skel_disable;
@@ -79,6 +82,9 @@ static int skel_probe(struct dev *dev, struct pci_device *pci)
 	/* else */
 	return 0;
 }
+
+#define PCI_VENDOR_ID_SKEL 0
+#define PCI_DEVICE_ID_SKEL_1234 0
 
 static struct pci_id skel_nics[] = {
 	{ PCI_VENDOR_ID_SKEL,		PCI_DEVICE_ID_SKEL_1234,
@@ -100,7 +106,7 @@ static int skel_isa_probe(struct dev *dev, unsigned short *probe_addrs)
 {
 	struct nic *nic = (struct nic *)dev;
 	/* if probe_addrs is 0, then routine can use a hardwired default */
-	if (/* board found */ && /* valid link */)
+	if (board_found && valid_link)
 	{
 		/* point to NIC specific routines */
 		dev->disable  = skel_disable;
