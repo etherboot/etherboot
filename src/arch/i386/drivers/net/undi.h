@@ -31,7 +31,6 @@ typedef struct undi_call_info {
 	uint16_t	stack[3];
 } undi_call_info_t;
 
-typedef uint16_t PXENV_EXIT_t;
 PXENV_EXIT_t __undi_call ( uint32_t, uint32_t );
 
 /* The UNDI loader parameter structure is not defined in pxe.h
