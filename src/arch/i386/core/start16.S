@@ -5,6 +5,8 @@
 #define	CODE_SEG 0x08
 #define DATA_SEG 0x10
 
+#define EXEC_IN_SITU_MAGIC	0x45524548	/* 'HERE' */
+
 	.equ CR0_PE, 1
 
 #ifdef	GAS291
@@ -18,63 +20,195 @@
 #define	LJMPI(x)	ljmp	x
 #endif
 
+/*****************************************************************************
+ *
+ * start16 : move payload to desired area of memory, set up for exit
+ *	     back to prefix, set up for 32-bit code.
+ *
+ * Enter (from prefix) with es:di = 0x4552:0x4548 if you want to
+ * prevent start16 from moving the payload.  There are three
+ * motivations for moving the payload:
+ * 
+ * 1. It may be in ROM, in which case we need to move it to RAM.
+ * 2. Whatever loaded us probably didn't know about our memory usage
+ *    beyond the end of the image file.  We should claim this memory
+ *    before using it.
+ * 3. If we're deliberately not using -DRELOCATE, for debugging
+ *    purposes, then we want to move the runtime to RELOC:0.
+ *
+ * Unless the prefix instructs us otherwise we will move the payload to:
+ *
+ *    (with -DRELOCATE) An area of memory claimed from the BIOS via 40:13.
+ *
+ *    (without -DRELOCATE) 0x20000 - length of the decompressor, so
+ *    that the runtime ends up executing exactly at 0x20000; the
+ *    address it was linked to.
+ *
+ * We use the main Etherboot stack (within the image target) as our
+ * stack; we don't rely on the prefix passing us a stack usable for
+ * anything other than the prefix's return address.  The (first 512
+ * bytes of the) prefix code segment is copied to a safe archive
+ * location.
+ *
+ * When we return to the prefix (from start32), we copy this code back
+ * to a new area of memory, restore the prefix's ss:sp and ljmp back
+ * to the copy of the prefix.  The prefix will see a return from
+ * start16 *but* may be executing at a new location.  Code following
+ * the lcall to start16 must therefore be position-independent and
+ * must also be within [cs:0000,cs:01ff].  We make absolutely no
+ * guarantees about the stack contents when the prefix regains
+ * control.
+ * 
+ * Trashes just about all registers, including all the segment
+ * registers.
+ *
+ *****************************************************************************
+ */
+
 	.text
 	.code16
 	.arch i386
 	.org 0
 	.globl _start
 _start:
-	/* trashes %eax, %ebx, and the segment registers
-	 *
-	 * %esp is converted into a physical address
+
+/*****************************************************************************
+ * Work out where we are going to place our image (image = optional
+ * decompressor + runtime).  Exit this stage with %ax containing the
+ * runtime target address divided by 16 (i.e. a real-mode segment
+ * address).
+ *****************************************************************************
+ */	
+	movw	%es, %ax
+	cmpw	$(EXEC_IN_SITU_MAGIC >> 16), %ax
+	jne	exec_moved
+	cmpw	$(EXEC_IN_SITU_MAGIC & 0xffff), %di
+	jne	exec_moved
+exec_in_situ: 
+	/* Prefix has warned us not to move the payload.  Simply
+	 * calculate where the image is going to end up, so we can
+	 * work out where to put our stack.
+	 */
+	movw	%cs, %ax
+	addw	$((payload-_start)/16), %ax
+	jmp	99f
+exec_moved:
+#ifdef RELOCATE
+	/* Claim an area of base memory from the BIOS and put the
+	 * payload there.  arch_relocated_to() will deal with freeing
+	 * up this memory once we've relocated to high memory.
+	 */
+	movw	$0x40, %ax
+	movw	%ax, %es
+	movw	%es:(0x13), %ax		/* FBMS in kb to %ax */
+	shlw	$6, %ax			/* ... in paragraphs */
+	subw	$image__size_pgh, %ax	/* Subtract space for image */
+	shrw	$6, %ax			/* Round down to nearest kb */
+	movw	%ax, %es:(0x13)		/* ...and claim memory from BIOS */
+	shlw	$6, %ax
+#else
+	/* Place image so that runtime starts at RELOC:0.
+	 */
+	movw	$runtime__start_pgh, %ax /* runtime__start_pgh = RELOC */
+	subw	$decompressor__size_pgh, %ax
+#endif
+99:
+	/* At this point %ax contains the segment address for the
+	 * start of the image (image = optional decompressor + runtime).
 	 */
 
-	/* Prepare the stack for 32bit code.
-	 */
-	pushf			/* Save the original interrupt state */
-	movw	%sp, %ax
-	andw	$0xfffc, %sp	/* 32bit align the stack */
-	pushw	%ss		/* Save the original stack address */
-	pushw	%ax
+/*****************************************************************************
+ * Set up stack in start32's stack space within the place we're going
+ * to copy Etherboot to, reserve space for GDT, copy return address
+ * from prefix stack, store prefix stack address
+ *****************************************************************************
+ */
+	popl	%esi			/* Return address */
+	push	%ss			/* %es:di = prefix stack address   */
+	pop	%es			/* (*after* pop of return address) */
+	movw	%sp, %di
+	movw	$offset__stack_pgh, %bx	/* Set up Etherboot stack */
+	addw	%ax, %bx
+	movw	%bx, %ss
+	movw	$runtime__stack_size, %sp
+	subw	$(_gdt_end - _gdt), %sp	/* Reserve space for GDT */
+	movw	%sp, %bp		/* Record GDT location */	
+	pushl	%esi			/* Prefix return address */
+	pushw	%es			/* Save the prefix stack address */
+	pushw	%di
+	pushf				/* Save the original interrupt state */
+	pushw	%ax			/* Pad stack to 32-bit alignment */
 
-	/*
-	 * Disable Interrupts
-	 */
-	cli
-
-	/*
-	 * Compute the offset I am running at.
-	 * and set ds
-	 */
-	movl	%cs, %ebx
-	movw	%bx, %ds
+/*****************************************************************************
+ * Calculate image target and prefix code physical addresses, store on stack
+ * for use in copy routine.
+ *****************************************************************************
+ */
+	movzwl	%es:2(%di), %ebx	/* Prefix code segment */
 	shll	$4, %ebx
+	pushl	%ebx			/* Prefix code physical address */
+	movzwl	%ax, %edi		/* Image target segment */
+	shll	$4, %edi
+	pushl	%edi			/* Image target physical address */
 
-	/*
-	 * Fixup my 32bit pointers
+/*****************************************************************************
+ * Transition to 32-bit protected mode.  Set up all segment
+ * descriptors to use flat physical addresses.
+ *****************************************************************************
+ */
+	/* Copy gdt to area reserved on stack
 	 */
-	addl	%ebx, 2 + gdtarg - _start
-	addl	%ebx, start32 - _start
+	push	%cs			/* GDT source location -> %ds:%si */
+	pop	%ds
+	mov	$(_gdt - _start), %si
+	push	%ss			/* GDT target location -> %es:%di */
+	pop	%es
+	mov	%bp, %di
+	mov	$(_gdt_end - _gdt), %cx
+	cld
+	rep movsb			/* Copy GDT to stack */
+	movl	%ss, %eax
+	shll	$4, %eax
+	movzwl	%bp, %ebx
+	addl	%eax, %ebx		/* Physical addr of GDT copy -> %ebx */
+	movl	%ebx, 2(%bp)		/* Fill in addr field in GDT */
+		
+	/* Compute the offset I am running at.
+	 */
+	movl	%cs, %ebx 
+	shll	$4, %ebx
 
 	/* Switch to 32bit protected mode.
 	 */
-	ADDR32 lgdt	gdtarg-_start
-	
-	movl	%cr0, %eax
+	cli				/* Disable interrupts */
+	lgdt	(%bp)			/* Load GDT from stack */
+	movl	%cr0, %eax		/* Set protected mode bit */
 	orb	$CR0_PE, %al
 	movl	%eax, %cr0
+	movl	%ss, %eax		/* Convert stack pointer to 32bit */
+	shll	$4, %eax
+	movzwl	%sp, %esp
+	addl	%eax, %esp
+	movl	$DATA_SEG, %eax		/* Reload the segment registers */
+	movl	%eax, %ds
+	movl	%eax, %es
+	movl	%eax, %ss
+	movl	%eax, %fs
+	movl	%eax, %gs
+	/* Flush prefetch queue, and reload %cs:%eip by effectively ljmping
+	 * to code32_start.  Do the jump via pushl and lret because the text
+	 * may not be writable/
+	 */
+	pushl	$CODE_SEG
+	movl	%ebx, %eax
+	addl	$(code32_start - _start), %eax
+	pushl	%eax	
+	DATA32 lret /* DATA32 needed, because we're still in 16-bit mode */
 
-	DATA32	ljmp	*(start32 - _start)
-	/* flush prefetch queue, and reload %cs:%eip */
-
-start32:
-	.long code32_start - _start
-	.word CODE_SEG
-	
 _gdt:
 gdtarg:
 	.word	_gdt_end - _gdt - 1	/* limit */
-	.long	_gdt - _start		/* addr */
+	.long 0				/* addr */
 	.word 0
 _pmcs:
 	/* 32 bit protected mode code segment */
@@ -88,26 +222,46 @@ _gdt_end:
 
 	.code32
 code32_start:	
-	/*
-	 * Convert the stack pointer from 16 to 32 bit
-	 */
-	movl	%ss, %eax
-	shll	$4, %eax
-	movzwl	%sp, %esp
-	addl	%eax, %esp
 	
-	/* Reload the segment registers */
-	movl	 $DATA_SEG, %eax
-	movl	 %eax, %ds
-	movl	 %eax, %es
-	movl	 %eax, %ss
-	movl	 %eax, %fs
-	movl	 %eax, %gs
+/*****************************************************************************
+ * Copy payload to target location.  Do the copy backwards, since if
+ * there's overlap with a forward copy then it means start16 is going
+ * to get trashed during the copy anyway...
+ *****************************************************************************
+ */
+	popl	%edi		/* Image target physical address */
+	pushl	%edi
+	movl	$(payload-_start), %esi
+	addl	%ebx, %esi	/* Image source physical address */
+	movl	$payload__size, %ecx /* Payload size (not image size) */
+	addl	%ecx, %edi	/* Start at last byte (length - 1) */
+	decl	%edi
+	addl	%ecx, %esi
+	decl	%esi
+	std			/* Backward copy of image */
+	rep movsb
+	cld
+	popl	%edi		/* Restore image target physical address */
 
-	/* Remember I don't have a 32bit return address */
-	pushl	$0
+/*****************************************************************************
+ * Copy prefix to storage area within Etherboot image.
+ *****************************************************************************
+ */
+	popl	%esi		/* Prefix source physical address */
+	pushl	%edi
+	addl	$offset__prefix_copy, %edi /* Prefix copy physical address */
+	mov	$runtime__prefix_copy_size, %ecx /* Prefix copy size */
+	rep movsb		/* Forward copy of prefix */
+	popl	%edi		/* Restore image target physical address */
 
-	jmp	payload
+/*****************************************************************************
+ * Jump to start of the image (i.e. the decompressor, or start32 if
+ * non-compressed).
+ *****************************************************************************
+ */
+	pushl	$0		/* Inform start32 that exit path is 16-bit */
+	jmpl	*%edi		/* Jump to image */
+	
 	.balign 16
 	/* Etherboot needs to be 16byte aligned or data that
 	 * is virtually aligned is no longer physically aligned

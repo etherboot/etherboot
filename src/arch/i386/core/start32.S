@@ -87,10 +87,20 @@ _start:
 	movl	%ecx, 24 + initial_regs(%ebp)
 	movl	%eax, 28 + initial_regs(%ebp)
 
-	/*
+#ifdef CODE16
+	/* 
+	 * Check for entry via start16 (indicated by a null return
+	 * address).  start16 has already set up %esp within our
+	 * _stack and used it, so don't reload %esp in this case.
+	 */
+	cmpl	$0, 0(%esp)
+	je	1f
+#endif
+       	/*
 	 * Setup the stack
 	 */
 	leal	_estack(%ebp), %esp
+1:	
 
 	/* Fixup the gdt */
 	leal	_pmcs(%ebp), %eax
@@ -126,16 +136,18 @@ _start:
 
 	/* exit */
 
+#ifdef CODE16
+	/* If stack is nonempty, it means that we entered via start16
+	 * and the "return to 16bit code" information is still on the
+	 * stack.
+	 */
+	cmpl	$_estack, %esp
+	jne	exit16
+#endif
+
 	/* Switch back to the original stack */
 	movl	12 + initial_regs, %esp
 	subl	virt_offset, %esp
-
-#ifdef CODE16
-	/* Make certain we don't have a null return address.
-	 */
-	cmpl	$0, 0(%esp)
-	je	exit16
-#endif
 
 	/* Revert to flat physical addresses and return */
 	call	_virt_to_phys
@@ -144,11 +156,25 @@ _start:
 
 #ifdef CODE16
 exit16:
-	/* We have a null return address so assume a 16bit far return
-	 * address is burried deeper on the stack.
+	/* 16-bit return path is somewhat messy because we can't
+	 * assume that the prefix code has been left intact; something
+	 * could have overwritten it while we were running.  We copy
+	 * the prefix code back down to base memory (unless our copy
+	 * is already in base memory) then return to it using the
+	 * information stored in the stack (which was placed there by
+	 * start16)
 	 */
-	movzwl	4(%esp), %ebx
-	movzwl  6(%esp), %ecx
+
+	/*
+	 * FIXME: "Copy prefix" not yet implemented; we still return
+	 * to the original prefix location.
+	 */
+
+	popl	%eax			/* Pop zero return address */
+	popl	0 + start16_stack_dup	/* Copy stack to start16_stack */
+	popl	4 + start16_stack_dup
+	popl	8 + start16_stack_dup
+	
 	pushl	$ 10f
 	pushl	$ 20f - 10f
 	call	_real_call
@@ -156,11 +182,28 @@ exit16:
 10:	.code16
 
 	cli
-	/* Switch back to the callers stack, and return */
-	movw	%bx, %sp
-	movw	%cx, %ss
+	/* Switch back to the prefix's stack and return via a
+	 * calculated ljmp (since we don't know if the prefix's stack
+	 * is still usable).
+	 */
+	call	1f
+1:	pop	%bx			/* Work out where I'm running */
+	movw	%cs:(exit16_flags-1b)(%bx), %ax /* Restore flags */
+	push	%ax
 	popf
-	lret
+	movw	%cs:(exit16_ss-1b)(%bx), %ss	/* Restore prefix stack */
+	movw	%cs:(exit16_sp-1b)(%bx), %sp
+	ljmp	%cs:*(exit16_retaddr-1b)(%bx)	/* Jump back to prefix */
+
+start16_stack_dup:
+exit16_padding:	.word 0
+exit16_flags:	.word 0
+exit16_sp:	.word 0
+exit16_ss:	.word 0
+exit16_retaddr:	
+exit16_ip:	.word 0
+exit16_cs:	.word 0
+	
 20:	.code32
 	.previous
 #endif /* CODE16 */
@@ -926,17 +969,12 @@ virt_offset:
 	.section ".stack"
 	.p2align 3
 	/* allocate a 4K stack in the stack segment */
+	.globl	_stack
 _stack:
 	.space 4096
+	.globl	_estack
 _estack:
 #ifdef CODE16
-	/* Small stack used by start16.S */
-	.globl _start16_stack
-	.globl _estart16_stack
-	.balign 4, 0
-_start16_stack:
-	.space 128
-_estart16_stack:
 	/* Copy of the 16-bit prefix code that we may want to return to.
 	 * This is placed in a ".prefix" section rather than ".bss" because
 	 * ".bss" is zeroed when Etherboot starts up, *after* the prefix

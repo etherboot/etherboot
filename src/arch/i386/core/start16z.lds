@@ -41,10 +41,10 @@ SECTIONS {
 	 */
 	offset_adjust = decompressor__size - runtime__start ;
 
-	/* Calculations for the start16 stack
+	/* Calculations for the stack
 	 */
-	runtime__start16_stack_size = runtime__estart16_stack - runtime__start16_stack ;
-	offset__start16_stack = runtime__start16_stack + offset_adjust ;
+	runtime__stack_size = runtime__estack - runtime__stack ;
+	offset__stack = runtime__stack + offset_adjust ;
 
 	/* Calculations for the prefix copy
 	 */
@@ -59,6 +59,6 @@ SECTIONS {
 	image__size_pgh = ( image__size / 16 );
 	runtime__start_pgh = ( runtime__start / 16 );
 	decompressor__size_pgh = ( decompressor__size / 16 );
-	offset__start16_stack_pgh = ( offset__start16_stack / 16 );
+	offset__stack_pgh = ( offset__stack / 16 );
 }
 
