@@ -162,7 +162,6 @@ typedef struct {
 
 #define	MAXNUM_MCADDR		8
 typedef struct {
-	PXENV_STATUS_t	Status;
 	uint16_t	MCastAddrCount;
 	MAC_ADDR	McastAddr[MAXNUM_MCADDR];
 } PACKED t_PXENV_UNDI_MCAST_ADDRESS;
@@ -237,7 +236,7 @@ typedef struct {
 typedef struct {
 	PXENV_STATUS_t	Status;
 	MAC_ADDR	StationAddress;		/* Temp MAC addres to use */
-} PACKED t_PXENV_UNDI_SET_STATION_ADDR;
+} PACKED t_PXENV_UNDI_SET_STATION_ADDRESS;
 
 #define	PXENV_UNDI_SET_PACKET_FILTER	0x000B
 typedef struct {
@@ -333,7 +332,7 @@ typedef struct {
 	uint32_t	LinkSpeed;		/* Defined in NDIS 2.0 spec */
 	uint32_t	ServiceFlags;		/* Defined in NDIS 2.0 spec */
 	uint32_t	Reserved[4];		/* must be 0 */
-} PACKED t_PXENV_UNDI_GET_NDIS_INFO;
+} PACKED t_PXENV_UNDI_GET_IFACE_INFO;
 
 #define	PXENV_UNDI_ISR			0x0014
 typedef struct {
