@@ -324,11 +324,8 @@ $(BIN)/%.raw: $(BIN)/%.raw.prf.bin $(BIN)/%.raw.rt.bin
 
 # rule to make a non-emulation ISO boot image
 SUFFIXES +=	iso
-%.iso:	%.raw
-	mkdir -p $*.dir
-	cat $< > $*.dir/$(*F).bin
-	mkisofs -o $@ -c boot.cat -no-emul-boot -b $(*F).bin $*.dir
-	rm -fr $*.dir
+%.iso:	util/geniso %.zlilo
+	bash util/geniso $*.iso $*.zlilo
 
 # rule to make a floppy emulation ISO boot image
 SUFFIXES +=	liso
