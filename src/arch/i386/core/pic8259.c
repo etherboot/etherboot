@@ -18,10 +18,13 @@
  * base memory before being installed.
  */
 void (*trivial_irq_handler)P((void)) = _trivial_irq_handler;
-uint16_t volatile *trivial_irq_triggered = &_trivial_irq_triggered;
+uint16_t volatile *trivial_irq_trigger_count = &_trivial_irq_trigger_count;
 segoff_t *trivial_irq_chain_to = &_trivial_irq_chain_to;
 uint8_t *trivial_irq_chain = &_trivial_irq_chain;
 irq_t trivial_irq_installed_on = IRQ_NONE;
+
+/* Previous trigger count for trivial IRQ handler */
+static uint16_t trivial_irq_previous_trigger_count = 0;
 
 /* Install a handler for the specified IRQ.  Address of previous
  * handler will be stored in previous_handler.  Enabled/disabled state
@@ -77,6 +80,7 @@ int remove_irq_handler ( irq_t irq, segoff_t *handler,
 		return 0;
 	}
 
+	DBG ( "Removing handler for IRQ %d\n", irq );
 	disable_irq ( irq );
 	irq_vector->segment = previous_handler->segment;
 	irq_vector->offset = previous_handler->offset;
@@ -84,8 +88,11 @@ int remove_irq_handler ( irq_t irq, segoff_t *handler,
 	return 1;
 }
 
+/* Install the trivial IRQ handler.  This routine installs the
+ * handler, tests it and enables the IRQ.
+ */
+
 int install_trivial_irq_handler ( irq_t irq ) {
-	int installed = 0;
 	segoff_t trivial_irq_handler_segoff = SEGOFF(trivial_irq_handler);
 	
 	if ( trivial_irq_installed_on != IRQ_NONE ) {
@@ -94,41 +101,102 @@ int install_trivial_irq_handler ( irq_t irq ) {
 	}
 
 	DBG ( "Installing trivial IRQ handler on IRQ %d\n", irq );
-	installed = install_irq_handler ( irq, &trivial_irq_handler_segoff,
-					  trivial_irq_chain,
-					  trivial_irq_chain_to );
-	if ( ! installed ) return 0;
+	if ( ! install_irq_handler ( irq, &trivial_irq_handler_segoff,
+				     trivial_irq_chain,
+				     trivial_irq_chain_to ) )
+		return 0;
 	trivial_irq_installed_on = irq;
 
 	DBG ( "Testing trivial IRQ handler\n" );
 	disable_irq ( irq );
-	*trivial_irq_triggered = 0;
+	*trivial_irq_trigger_count = 0;
+	trivial_irq_previous_trigger_count = 0;
 	fake_irq ( irq );
-	if ( *trivial_irq_triggered != 1 ) {
+	if ( ! trivial_irq_triggered ( irq ) ) {
 		DBG ( "Installation of trivial IRQ handler failed\n" );
-		remove_trivial_irq_handler ();
+		remove_trivial_irq_handler ( irq );
 		return 0;
 	}
 	DBG ( "Trivial IRQ handler installed successfully\n" );
-	*trivial_irq_triggered = 0;
 	enable_irq ( irq );
 	return 1;
 }
 
-int remove_trivial_irq_handler ( void ) {
-	int removed = 0;
+/* Remove the trivial IRQ handler.
+ */
+
+int remove_trivial_irq_handler ( irq_t irq ) {
 	segoff_t trivial_irq_handler_segoff = SEGOFF(trivial_irq_handler);
 
 	if ( trivial_irq_installed_on == IRQ_NONE ) return 1;
-	removed = remove_irq_handler ( trivial_irq_installed_on,
-				       &trivial_irq_handler_segoff,
-				       trivial_irq_chain,
-				       trivial_irq_chain_to );
-	if ( ! removed ) return 0;
-	trivial_irq_installed_on = IRQ_NONE;
+	if ( irq != trivial_irq_installed_on ) {
+		DBG ( "Cannot uninstall trivial IRQ handler from IRQ %d; "
+		      "is installed on IRQ %d\n", irq,
+		      trivial_irq_installed_on );
+		return 0;
+	}
 
+	if ( ! remove_irq_handler ( irq, &trivial_irq_handler_segoff,
+				    trivial_irq_chain,
+				    trivial_irq_chain_to ) )
+		return 0;
+
+	if ( trivial_irq_triggered ( trivial_irq_installed_on ) ) {
+		DBG ( "Sending EOI for unwanted trivial IRQ\n" );
+		send_specific_eoi ( trivial_irq_installed_on );
+	}
+
+	trivial_irq_installed_on = IRQ_NONE;
 	return 1;
 }
+
+/* Safe method to detect whether or not trivial IRQ has been
+ * triggered.  Using this call avoids potential race conditions.  This
+ * call will return success only once per trigger.
+ */
+
+int trivial_irq_triggered ( irq_t irq ) {
+	uint16_t trivial_irq_this_trigger_count = *trivial_irq_trigger_count;
+	int triggered = ( trivial_irq_this_trigger_count -
+			  trivial_irq_previous_trigger_count );
+	
+	/* irq is not used at present, but we have it in the API for
+	 * future-proofing; in case we want the facility to have
+	 * multiple trivial IRQ handlers installed simultaneously.
+	 *
+	 * Avoid compiler warning about unused variable.
+	 */
+	if ( irq == IRQ_NONE ) {};
+	
+	trivial_irq_previous_trigger_count = trivial_irq_this_trigger_count;
+	return triggered ? 1 : 0;
+}
+
+/* Send non-specific EOI(s).  This seems to be inherently unsafe.
+ */
+
+void send_nonspecific_eoi ( irq_t irq ) {
+	DBG ( "Sending non-specific EOI for IRQ %d\n", irq );
+	if ( irq >= IRQ_PIC_CUTOFF ) {
+		outb ( ICR_EOI_NON_SPECIFIC, PIC2_ICR );
+	}		
+	outb ( ICR_EOI_NON_SPECIFIC, PIC1_ICR );
+}
+
+/* Send specific EOI(s).
+ */
+
+void send_specific_eoi ( irq_t irq ) {
+	DBG ( "Sending specific EOI for IRQ %d\n", irq );
+	outb ( ICR_EOI_SPECIFIC | ICR_VALUE(irq), ICR_REG(irq) );
+	if ( irq >= IRQ_PIC_CUTOFF ) {
+		outb ( ICR_EOI_SPECIFIC | ICR_VALUE(CHAINED_IRQ),
+		       ICR_REG(CHAINED_IRQ) );
+	}
+}
+
+/* Dump current 8259 status: enabled IRQs and handler addresses.
+ */
 
 #ifdef DEBUG_IRQ
 void dump_irq_status ( void ) {
