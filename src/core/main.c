@@ -28,21 +28,25 @@ Literature dealing with the network protocols:
 jmp_buf	restart_etherboot;
 int	url_port;		
 
+char as_main_program = 1;
+
 #ifdef	IMAGE_FREEBSD
 int freebsd_howto = 0;
 char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 #endif
-
-#ifdef FREEBSD_PXEEMU
-extern char		pxeemu_nbp_active;
-#endif	/* FREEBSD_PXEBOOT */
 
 /* in_call(): the entry point to Etherboot.  Generally called from
  * arch_in_call(), which in turn will have been invoked from
  * platform-specific assembly code.
  */
 int in_call ( in_call_data_t *data, uint32_t opcode, va_list params ) {
+	int old_as_main_program = as_main_program;
 	int ret = 0;
+
+	/* Set flat to indicate that we are not running as the main
+	 * program (i.e. we are something like a PXE stack).
+	 */
+	as_main_program = 0;
 
 	/* NOTE: params will cease to be valid if we relocate, since
 	 * it represents a virtual address
@@ -56,6 +60,7 @@ int in_call ( in_call_data_t *data, uint32_t opcode, va_list params ) {
 		break;
 	case EB_OPCODE_MAIN:
 		/* Start up Etherboot as a standalone program. */
+		as_main_program = 1;
 		ret = main ( data, params );
 		break;
 #ifdef PXE_EXPORT
@@ -71,6 +76,7 @@ int in_call ( in_call_data_t *data, uint32_t opcode, va_list params ) {
 		break;
 	}
 
+	as_main_program = old_as_main_program;
 	return ret;
 }
 

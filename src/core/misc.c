@@ -79,10 +79,7 @@ POLL INTERRUPTIONS
 void poll_interruptions(void)
 {
 	int ch;
-#ifdef FREEBSD_PXEEMU
-	if (pxeemu_nbp_active)
-		return;
-#endif
+	if ( ! as_main_program ) return;
 	/* If an interruption has occured restart etherboot */
 	if (iskey() && (ch = getchar(), (ch == K_ESC) || (ch == K_EOF) || (ch == K_INTR))) {
 		int state = (ch != K_INTR)? -1 : -3;
@@ -122,11 +119,7 @@ void twiddle(void)
 	static unsigned long lastticks = 0;
 	unsigned long ticks;
 #endif
-#ifdef FREEBSD_PXEEMU
-	extern char pxeemu_nbp_active;
-	if(pxeemu_nbp_active != 0)
-		return;
-#endif
+	if ( ! as_main_program ) return;
 #ifdef	BAR_PROGRESS
 	/* Limit the maximum rate at which characters are printed */
 	ticks = currticks();

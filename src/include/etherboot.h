@@ -191,6 +191,7 @@ struct Elf_Bhdr;
 extern int in_call(in_call_data_t *data, uint32_t opcode, va_list params);
 extern int main(in_call_data_t *data, va_list params);
 extern int loadkernel P((const char *fname));
+extern char as_main_program;
 /* nic.c */
 extern void rx_qdrain P((void));
 extern int tftp P((const char *name, int (*)(unsigned char *, unsigned int, unsigned int, int)));
