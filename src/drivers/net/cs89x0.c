@@ -77,7 +77,7 @@ static unsigned short	eth_nic_base;
 static unsigned long	eth_nic_base;
 #endif
 static unsigned long    eth_mem_start;
-static unsigned short   eth_irq;
+static unsigned short   eth_irqno;
 static unsigned short   eth_cs_type;	/* one of: CS8900, CS8920, CS8920M  */
 static unsigned short   eth_auto_neg_cnf;
 static unsigned short   eth_adapter_cnf;
@@ -321,9 +321,9 @@ static void cs89x0_reset(struct nic *nic)
 	if (eth_cs_type != CS8900) {
 		/* Hardware problem requires PNP registers to be reconfigured
 		   after a reset */
-		if (eth_irq != 0xFFFF) {
+		if (eth_irqno != 0xFFFF) {
 			outw(PP_CS8920_ISAINT, eth_nic_base + ADD_PORT);
-			outb(eth_irq, eth_nic_base + DATA_PORT);
+			outb(eth_irqno, eth_nic_base + DATA_PORT);
 			outb(0, eth_nic_base + DATA_PORT + 1); }
 
 		if (eth_mem_start) {
@@ -533,7 +533,7 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 		    /* Check if the ISA IRQ has been set  */
 		    (i = readreg(PP_CS8920_ISAINT) & 0xff,
 		     (i != 0 && i < CS8920_NO_INTS)))
-			eth_irq = i;
+			eth_irqno = i;
 		else {
 			i = isa_cnf & INT_NO_MASK;
 			if (eth_cs_type == CS8900) {
@@ -547,7 +547,7 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 				   mapping of the table below. */
 				if (i < 4) i = "\012\013\014\005"[i];
 				else printf("\ncs: BUG: isa_config is %d\n", i); }
-			eth_irq = i; }
+			eth_irqno = i; }
 
 		/* Retrieve and print the ethernet address. */
 		for (i=0; i<ETH_ALEN; i++) {
