@@ -11,6 +11,18 @@
 #ifndef CALLBACKS_H
 #define CALLBACKS_H
 
+/* Opcodes and flags for in_call()
+ */
+#define EB_OPCODE(x) ( (x) & 0xffff )
+#define EB_OPCODE_MAIN		(0x0000)
+#define EB_OPCODE_CHECK		(0x6948)	/* 'Hi' */
+#define EB_OPCODE_PXE		(0x7850)	/* 'Px' */
+#define EB_USE_INTERNAL_STACK ( 1 << 16 )
+
+/* Standard return codes
+ */
+#define EB_CHECK_RESULT		(0x6f486948)	/* 'HiHo' */
+
 /* Types of data that can be passed to external_call().
  */
 #define EXTCALL_NONE		(0x0000)
@@ -69,6 +81,13 @@ typedef struct {
 } PACKED seg_regs_t;
 /* As part of an external_call parameter list */
 #define EP_SEG_REGISTERS(seg_regs) EXTCALL_SEG_REGISTERS, (seg_regs)
+
+/* Struct for a GDT descriptor */
+typedef struct {
+		uint16_t limit;
+		uint32_t address;
+		uint16_t padding;
+} PACKED gdt_descriptor_t;
 
 /* Struct for a GDT entry.  Use GDT_SEGMENT() to fill it in.
  */
@@ -144,12 +163,12 @@ typedef struct {
  * instead of just GDT_TYPE_CODE, but that's what our old GDT did and
  * it worked, so I'm not changing it.
  */
-#define GDT_SEGMENT_RMCS GDT_SEGMENT_NORMAL ( \
-	0, 0xffff, GDT_TYPE_EXEC_ONLY_CODE | GDT_TYPE_CONFORMING, \
+#define GDT_SEGMENT_RMCS(base) GDT_SEGMENT_NORMAL ( \
+	base, 0xffff, GDT_TYPE_EXEC_ONLY_CODE | GDT_TYPE_CONFORMING, \
 	GDT_SIZE_16BIT, GDT_GRANULARITY_SMALL )
 /* Real mode data segment */
-#define GDT_SEGMENT_RMDS GDT_SEGMENT_NORMAL ( \
-	0, 0xffff, GDT_TYPE_DATA | GDT_TYPE_WRITEABLE, \
+#define GDT_SEGMENT_RMDS(base) GDT_SEGMENT_NORMAL ( \
+	base, 0xffff, GDT_TYPE_DATA | GDT_TYPE_WRITEABLE, \
 	GDT_SIZE_16BIT, GDT_GRANULARITY_SMALL )
 /* Long mode code segment */
 #define GDT_SEGMENT_LMCS(base) GDT_SEGMENT_NORMAL ( \
@@ -168,19 +187,20 @@ typedef struct {
  */
 #define GDT_STRUCT_t(num_segments) \
 	struct { \
-		uint16_t limit; \
-		uint32_t address; \
-		uint16_t padding; \
+		gdt_descriptor_t descriptor; \
 		gdt_segment_t segments[num_segments]; \
 	} PACKED
 /* And utility function for filling it in */
 #define GDT_ADJUST(structure) { \
-	(structure)->address = virt_to_phys(&((structure)->limit)); \
-	(structure)->limit = sizeof((structure)->segments) + 8 - 1; \
-	(structure)->padding = 0; \
+	(structure)->descriptor.address = \
+		virt_to_phys(&((structure)->descriptor.limit)); \
+	(structure)->descriptor.limit = \
+		sizeof((structure)->segments) + 8 - 1; \
+	(structure)->descriptor.padding = 0; \
 }
 /* As part of an external_call parameter list */
-#define EP_GDT(structure,our_cs) EXTCALL_GDT, &((structure)->limit), our_cs
+#define EP_GDT(structure,our_cs) \
+	EXTCALL_GDT, &((structure)->descriptor), our_cs
 
 /* Stack alignment used by GCC.  Must be a power of 2.
  */
@@ -243,6 +263,19 @@ extern int v_ext_call_check ( uint32_t address, va_list ap );
 #define v_ext_call(address, ...) _v_ext_call( (address), ##__VA_ARGS__ )
 #define ext_call_trace(address, ...) ext_call( (address), ##__VA_ARGS__ )
 #endif
+
+/* Data passed in to in_call() by assembly wrapper.
+ */
+typedef struct {
+	uint32_t	flags;
+	regs_t		regs;
+	seg_regs_t	seg_regs;
+	gdt_descriptor_t gdt_desc;
+	struct {
+		uint32_t offset;
+		uint32_t segment;
+	} ret_addr;
+} PACKED in_call_data_t; 
 
 #endif /* ASSEMBLY */
 
