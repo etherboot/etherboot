@@ -2,7 +2,7 @@
 #
 
 # For a clean compilation, switch in global Config
-# off: -DCONFIG_PCI, -DTAGGED_IMAGE, -DELF_IMAGE and -DRELOCATE
+# off: -DCONFIG_PCI, -DTAGGED_IMAGE, -DELF_IMAGE, -DPXE*, -DRELOCATE and INCLUDE_FILO
 # on : -DRAW_IMAGE
 
 # Serial line settings
