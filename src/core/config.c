@@ -17,9 +17,28 @@
 
 void print_config(void)
 {
-	printf("Etherboot " VERSION " (GPL) http://etherboot.org "
+	printf( "Etherboot " VERSION " (GPL) http://etherboot.org\n"
+		"Drivers: " );
+#ifdef CONFIG_PCI
+{
+	const struct pci_driver *driver;
+	for(driver = pci_drivers; driver < pci_drivers_end; driver++) {
+		printf("%s ", driver->name);
+	}
+}
+#endif	
+#ifdef CONFIG_ISA
+{
+	const struct isa_driver *driver;
+	for(driver = isa_drivers; driver < isa_drivers_end; driver++) {
+		printf("%s ", driver->name);
+	}
+
+}
+#endif	
+	printf( "  Images: " 
 #ifdef	TAGGED_IMAGE
-		"Tagged "
+		"NBI "
 #endif
 #ifdef	ELF64_IMAGE
 		"ELF64 "
@@ -31,10 +50,10 @@ void print_config(void)
 		"COFF "
 #endif
 #ifdef	IMAGE_FREEBSD
-		"(FreeBSD) "
+		"FreeBSD "
 #endif
 #ifdef	IMAGE_MULTIBOOT
-		"(Multiboot) "
+		"Multiboot "
 #endif
 #ifdef	AOUT_IMAGE
 		"a.out "
@@ -42,33 +61,25 @@ void print_config(void)
 #ifdef	WINCE_IMAGE
 		"WINCE "
 #endif
-#ifdef	SAFEBOOTMODE
-		"SafeBoot "
+#ifdef	PXE_IMAGE
+		"PXE "
 #endif
-		"for ");
-
-#ifdef CONFIG_PCI
-{
-	const struct pci_driver *driver;
-	for(driver = pci_drivers; driver < pci_drivers_end; driver++) {
-		printf("[%s]", driver->name);
-	}
-}
-#endif	
-#ifdef CONFIG_ISA
-{
-	const struct isa_driver *driver;
-	for(driver = isa_drivers; driver < isa_drivers_end; driver++) {
-		printf("[%s]", driver->name);
-	}
-
-}
-#endif	
-	putchar('\n');
+#ifdef PXE_EXPORT /* All possible exports */
+		"  Exports: "
+#ifdef PXE_EXPORT
+		"PXE "
+#endif
+#endif /* All possible exports */
+		"  "
+#ifdef	SAFEBOOTMODE
+		"[SafeBoot] "
+#endif
+		);
 #if	(BOOTP_SERVER != 67) || (BOOTP_CLIENT != 68)
-	printf("This Etherboot uses non-standard ports %d and %d\n",
+	printf( "[DHCP ports %d and %d] ",
 		BOOTP_SERVER, BOOTP_CLIENT);
 #endif
+	putchar('\n');
 }
 
 #ifdef CONFIG_PCI
