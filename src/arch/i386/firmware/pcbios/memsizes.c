@@ -187,7 +187,7 @@ void get_memsizes(void)
 			(unsigned long)(r_end >> 32),
 			(unsigned long)r_end,
 			meminfo.map[i].type);
-#if CONSOLE_FIRMWARE
+#if defined(CONSOLE_FIRMWARE)
 		sleep(1); /* No way to see 32 entries on a standard 80x25 screen... */
 #endif
 	}
