@@ -49,11 +49,17 @@ detect_pxe:
 	mov	$0x5650, %ax
 	int	$0x1a
 	cmp	$0x564e, %ax
-	jne	finished_with_error
+	jne	detected_nothing
 	cmpl	$0x4e455850, %es:(%bx)	/* 'PXEN' signature */
-	jne	finished_with_error
+	jne	detected_nothing
 	cmpw	$0x2b56, %es:4(%bx)	/* 'V+' signature */
-	jne	finished_with_error
+	je	detected_pxenv
+
+detected_nothing:
+	movw	$10f-_start, %si
+	call	print_message
+	jmp	finished_with_error
+10:	.asciz	"No PXE "
 
 detected_pxenv: /* es:bx points to PXENV+ structure */
 	push	%es
@@ -67,7 +73,6 @@ detected_pxenv: /* es:bx points to PXENV+ structure */
 	jmp	pxe_setup_done
 10:	.asciz	"PXENV+ "
 
-10:	.asciz	"!PXE "
 detected_pxe:	/* es:di points to !PXE structure */
 	push	%es
 	push	%di
@@ -76,7 +81,9 @@ detected_pxe:	/* es:di points to !PXE structure */
 	push	%es:0x28(%di)		/* UNDI data segment */
 	push	%es:0x2e(%di)		/* UNDI data size */
 	les	%es:0x10(%di), %di	/* Entry point to %es:%di */
-	movw	$10b-_start, %si
+	movw	$10f-_start, %si
+	jmp	pxe_setup_done
+10:	.asciz	"!PXE "
 
 pxe_setup_done:
 	mov	%es, pxe_entry_segment - _start
