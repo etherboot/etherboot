@@ -1,4 +1,4 @@
-ARCH:=i36
+ARCH:=i386
 MAKEDEPS:=
 
 include arch/$(ARCH)/Config
