@@ -37,6 +37,7 @@ static inline void *ioremap(unsigned long bus_addr, unsigned long length __unuse
 {
 	return bus_to_virt(bus_addr);
 }
+
 /* iounmap cleans up anything ioremap had to setup */
 static inline void iounmap(void *virt_addr __unused)
 {
@@ -92,10 +93,6 @@ static inline void iounmap(void *virt_addr __unused)
 #define writeb(b,addr) ((*(volatile unsigned char *) (addr)) = (b))
 #define writew(b,addr) ((*(volatile unsigned short *) (addr)) = (b))
 #define writel(b,addr) ((*(volatile unsigned int *) (addr)) = (b))
-
-#define memset_io(a,b,c)	memset((void *)(a),(b),(c))
-#define memcpy_fromio(a,b,c)	memcpy((a),(void *)(b),(c))
-#define memcpy_toio(a,b,c)	memcpy((void *)(a),(b),(c))
 
 /*
  * Talk about misusing macros..

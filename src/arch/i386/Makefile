@@ -2,11 +2,11 @@ ARCH_FORMAT=	elf32-i386
 
 LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES) -Ui386
 
-BUILD_ROMS=	$(ROMS)
-BUILD_ELFS=	$(patsubst %.img, %.elf, $(IMGS)) $(patsubst %.img, %.lzelf, $(IMGS))
-BUILD_PXES=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.lzpxe, $(IMGS))
-BUILD_COMS=	$(patsubst %.img, %.com, $(IMGS))
-BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.lzlilo, $(IMGS))
+BUILD_ROMS:=	$(ROMS)
+BUILD_ELFS:=	$(patsubst %img, %elf, $(IMGS))
+BUILD_PXES:=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.lzpxe, $(IMGS))
+BUILD_COMS:=	$(patsubst %.img, %.com, $(IMGS))
+BUILD_LILOS:=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.lzlilo, $(IMGS))
 
 START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o $(BIN)/linuxbios.o
 
@@ -59,6 +59,8 @@ endif
 # different RELOCADDR, then he has Perl installed anyways (the shell cannot
 # deal with hex numbers, as test/eval don't support non-decimal integers).
 ROMLIMIT:=327680
+
+.PHONY:	allroms allelfs allpxes allcoms alllilos
 
 allroms:	$(BUILD_ROMS)
 allelfs:	$(BUILD_ELFS)
@@ -292,3 +294,6 @@ $(BIN)/%.nrv2belf:	$(BIN)/%.nrv2bimgo $(ELFPREFIX) $(MAKEDEPS)
 %.lzlilo:	%.lzimg $(LILOPREFIX) $(START16)
 	cat $(LILOPREFIX) $(START16) $< /dev/zero | head -c 64k > $@
 
+
+echo:
+	echo "BUILD_ELFS $(BUILD_ELFS)"

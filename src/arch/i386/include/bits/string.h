@@ -1,10 +1,9 @@
+#ifndef ETHERBOOT_BITS_STRING_H
+#define ETHERBOOT_BITS_STRING_H
 /*
  * Taken from Linux /usr/include/asm/string.h
  * All except memcpy, memmove, memset and memcmp removed.
  */
-
-#ifndef	_I386_STRING_H_
-#define _I386_STRING_H_
 
 /*
  * This string-include defines all string functions as inline
@@ -286,4 +285,4 @@ __asm__ __volatile__(
 return __res;
 }
 
-#endif
+#endif /* ETHERBOOT_BITS_STRING_H */

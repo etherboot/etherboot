@@ -35,11 +35,13 @@ Author: Martin Renters
 	(BOOT_NOTHING << (3*BOOT_BITS)) | \
 	0)
 
-#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE)
+#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE)
 #define	TAGGED_IMAGE		/* choose at least one */
 #endif
 
 #define ESC		'\033'
+#define INTR		'\03'  /* Ctrl-C */
+#define KILL		'\025' /* Ctrl-U */
 
 /*  Edit this to change the path to hostspecific kernel image
     kernel.<client_ip_address> in RARP boot */
@@ -84,7 +86,7 @@ Author: Martin Renters
 #define CONSOLE_CRT
 #endif
 
-#if	!defined(DOWNLOAD_PROTO_TFTP) && !defined(DOWNLOAD_PROT_NFS) && !defined(DOWNLOAD_PROTO_SLAM) && !defined(DOWNLOAD_PROTO_TFTM) && !defined(DOWNLOAD_PROTO_DISK)
+#if	!defined(DOWNLOAD_PROTO_TFTP) && !defined(DOWNLOAD_PROTO_NFS) && !defined(DOWNLOAD_PROTO_SLAM) && !defined(DOWNLOAD_PROTO_TFTM) && !defined(DOWNLOAD_PROTO_DISK)
 #error No download protocol defined!
 #endif
 
@@ -105,8 +107,6 @@ Author: Martin Renters
 #ifndef	MAX_RPC_RETRIES
 #define MAX_RPC_RETRIES		20
 #endif
-
-#define	TICKS_PER_SEC		18
 
 /* Inter-packet retry in ticks */
 #define TIMEOUT			(10*TICKS_PER_SEC)
@@ -137,6 +137,7 @@ Author: Martin Renters
 #define ETH_HLEN		14	/* Size of ethernet header */
 #define	ETH_ZLEN		60	/* Minimum packet */
 #define	ETH_FRAME_LEN		1514	/* Maximum packet */
+#define ETH_DATA_ALIGN		2	/* Amount needed to align the data after an ethernet header */
 #ifndef	ETH_MAX_MTU
 #define	ETH_MAX_MTU		(ETH_FRAME_LEN-ETH_HLEN)
 #endif
@@ -335,6 +336,13 @@ struct iphdr {
 	in_addr dest;
 };
 
+struct udp_pseudo_hdr {
+	in_addr  src;
+	in_addr  dest;
+	uint8_t  unused;
+	uint8_t  protocol;
+	uint16_t len;
+};
 struct udphdr {
 	uint16_t src;
 	uint16_t dest;
@@ -403,7 +411,7 @@ struct bootpd_t {
 struct tftp_t {
 	struct iphdr ip;
 	struct udphdr udp;
-	unsigned short opcode;
+	uint16_t opcode;
 	union {
 		uint8_t rrq[TFTP_DEFAULTSIZE_PACKET];
 		struct {
@@ -514,21 +522,19 @@ extern inline int rom_address_ok(struct rom_info *rom, int assigned_rom_segment)
 		|| assigned_rom_segment == rom->rom_segment);
 }
 
-/* Define a type for use by setjmp and longjmp */
-typedef	struct {
-	unsigned long	buf[6];
-} jmpbuf[1];
 
 /* Define a type for passing info to a loaded program */
 struct ebinfo {
-	unsigned char	major, minor;	/* Version */
-	unsigned short	flags;		/* Bit flags */
+	uint8_t  major, minor;	/* Version */
+	uint16_t flags;		/* Bit flags */
 };
 
 /***************************************************************************
 External prototypes
 ***************************************************************************/
 /* main.c */
+struct Elf_Bhdr;
+extern int main(struct Elf_Bhdr *ptr);
 extern int loadkernel P((const char *fname));
 /* nic.c */
 extern void rx_qdrain P((void));
@@ -541,22 +547,21 @@ extern void build_udp_hdr P((unsigned long destip,
 	int len, const void *buf));
 extern int udp_transmit P((unsigned long destip, unsigned int srcsock,
 	unsigned int destsock, int len, const void *buf));
-extern int await_reply P((int (*reply)(int ival, void *ptr,
-		unsigned short ptype, struct iphdr *ip, struct udphdr *udp),
-	int ival, void *ptr, int timeout));
+typedef int (*reply_t)(int ival, void *ptr, unsigned short ptype, struct iphdr *ip, struct udphdr *udp);
+extern int await_reply P((reply_t reply,	int ival, void *ptr, long timeout));
 extern int decode_rfc1533 P((unsigned char *, unsigned int, unsigned int, int));
 extern void join_group(int slot, unsigned long group);
 extern void leave_group(int slot);
 #define RAND_MAX 2147483647L
-extern uint16_t ipchksum P((void *ip, int len));
-extern long random P((void));
-extern long rfc2131_sleep_interval P((int base, int exp));
-extern long rfc1112_sleep_interval P((int base, int exp));
-extern void cleanup P((void));
+extern uint16_t ipchksum P((const void *ip, unsigned long len));
+extern uint16_t add_ipchksums P((unsigned long offset, uint16_t sum, uint16_t new));
+extern int32_t random P((void));
+extern long rfc2131_sleep_interval P((long base, int exp));
+extern long rfc1112_sleep_interval P((long base, int exp));
 #ifndef DOWNLOAD_PROTO_TFTP
 #define	tftp(fname, load_block) 0
 #endif
-
+extern void cleanup P((void));
 
 /* nfs.c */
 extern void rpc_init(void);
@@ -687,9 +692,9 @@ extern unsigned long real_mode_stack;
 extern void xstart16 P((unsigned long, unsigned long, char *));
 extern int xstart32(unsigned long entry_point, ...);
 extern void xend32 P((void));
+struct Elf_Bhdr *prepare_boot_params(void *header);
+extern int elf_start(unsigned long machine, unsigned long entry, unsigned long params);
 extern unsigned long currticks P((void));
-extern int setjmp P((jmpbuf env));
-extern void longjmp P((jmpbuf env, int val));
 extern void exit P((int status));
 
 /* serial.S */
@@ -709,7 +714,7 @@ External variables
 extern struct rom_info rom;
 extern char *hostname;
 extern int hostnamelen;
-extern jmpbuf restart_etherboot;
+extern jmp_buf restart_etherboot;
 extern int url_port;
 extern struct arptable_t arptable[MAX_ARP];
 extern struct igmptable_t igmptable[MAX_IGMP];
@@ -735,7 +740,7 @@ extern char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 /* osloader.c */
 
 /* created by linker */
-extern char _text[], _etext[], _text16[], _etext16[];
+extern char _virt_start[], _text[], _etext[], _text16[], _etext16[];
 extern char _data[], _edata[], _bss[], _ebss[], _end[];
 
 
