@@ -137,6 +137,9 @@
 #	-DIMAGE_FREEBSD
 #			Add FreeBSD image loading support (requires at least
 #			-DAOUT_IMAGE and/or -DELF_IMAGE).
+#	-DIMAGE_NETBSD
+#			Add NetBSD/ELF image loading support (requires at least
+#			-DELF_IMAGE).
 #	-DFREEBSD_KERNEL_ENV
 #			Pass in FreeBSD kernel environment
 #	-DAOUT_LYNX_KDI

@@ -48,8 +48,10 @@ int defparams_max = 0;
 unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
 #endif
 
-#ifdef	IMAGE_FREEBSD
+#ifdef	IMAGE_BSD
 int freebsd_howto = 0;
+#endif
+#ifdef	IMAGE_FREEBSD
 char freebsd_kernel_env[256];
 #endif
 
@@ -97,8 +99,10 @@ static const unsigned char dhcprequest [] = {
 	RFC1533_VENDOR_ADDPARM,
 	RFC1533_VENDOR_ETHDEV,
 	RFC1533_VENDOR_ETHERBOOT_ENCAP,
-#ifdef	IMAGE_FREEBSD
+#ifdef	IMAGE_BSD
 	RFC1533_VENDOR_HOWTO,
+#endif
+#ifdef	IMAGE_FREEBSD
 	/*
 	RFC1533_VENDOR_KERNEL_ENV,
 	*/
@@ -1288,9 +1292,11 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			decode_rfc1533(p+2, -1, TAG_LEN(p), 1);
 			in_encapsulated_options = 0;
 		}
-#ifdef	IMAGE_FREEBSD
+#ifdef	IMAGE_BSD
 		else if (ENCAP_OPT c == RFC1533_VENDOR_HOWTO)
 			freebsd_howto = ((p[2]*256+p[3])*256+p[4])*256+p[5];
+#endif
+#ifdef	IMAGE_FREEBSD
 		else if (ENCAP_OPT c == RFC1533_VENDOR_KERNEL_ENV){
 			if(*(p + 1) < sizeof(freebsd_kernel_env)){
 				memcpy(freebsd_kernel_env,p+2,*(p+1));

@@ -231,10 +231,27 @@ Author: Martin Renters
 #define RFC1533_VENDOR_MAGIC	128
 #define RFC1533_VENDOR_ADDPARM	129
 #define	RFC1533_VENDOR_ETHDEV	130
+
+#ifdef	IMAGE_NETBSD
+#define BTINFO_BOOTPATH 0
+#define BTINFO_BOOTDISK 3
+#define BTINFO_NETIF 4
+#define BTINFO_CONSOLE 6
+#define BTINFO_BIOSGEOM 7
+#define BTINFO_SYMTAB 8
+#define BTINFO_MEMMAP 9
+#define	IMAGE_BSD
+#endif
+
 #ifdef	IMAGE_FREEBSD
+#define	IMAGE_BSD
+#endif
+
+#ifdef	IMAGE_BSD
 #define RFC1533_VENDOR_HOWTO    132
 #define RFC1533_VENDOR_KERNEL_ENV    133
 #endif
+
 #define RFC1533_VENDOR_ETHERBOOT_ENCAP 150
 #define RFC1533_VENDOR_MNUOPTS	160
 #define RFC1533_VENDOR_NIC_DEV_ID 175
@@ -656,8 +673,10 @@ extern unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
 extern struct bootpd_t bootp_data;
 #define	BOOTP_DATA_ADDR	(&bootp_data)
 extern unsigned char *end_of_rfc1533;
-#ifdef	IMAGE_FREEBSD
+#ifdef	IMAGE_BSD
 extern int freebsd_howto;
+#endif
+#ifdef	IMAGE_FREEBSD
 extern char freebsd_kernel_env[];
 #endif
 extern void eb_exit P((int status));

@@ -76,7 +76,7 @@ sub loopbackmount ($$) {
 	my ($file, $point) = @_;
 
 	print "Mounting $file on $point loopback\n" if ($verbose);
-	my $status = system('mount', '-t', 'ext2', '-o', 'loop', $file, $point);
+	my $status = system('mount', '-o', 'loop', $file, $point);
 	return ($testing ? 0 : $status / 256);
 }
 

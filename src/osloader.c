@@ -280,7 +280,7 @@ struct segheader
 };
 
 static enum {
-	Unknown, Tagged, Aout, Elf, Aout_FreeBSD, Elf_FreeBSD
+	Unknown, Tagged, Aout, Elf, Aout_FreeBSD, Elf_FreeBSD, Elf_NetBSD
 } image_type = Unknown;
 
 /* The following are static because os_download is called for each block
@@ -325,7 +325,7 @@ static int symstrindex;
 
 #endif
 
-#ifdef  IMAGE_FREEBSD
+#ifdef  IMAGE_BSD
 static unsigned int off;
 #endif
 
@@ -512,6 +512,7 @@ aout_startkernel:
 }
 #endif
 
+
 #ifdef	ELF_IMAGE
 static int elf_download(unsigned char *data, unsigned int len)
 {
@@ -535,8 +536,8 @@ elf_startkernel:
 #endif
 #ifdef IMAGE_FREEBSD
 		if (image_type == Elf_FreeBSD) {
-			cleanup();
 			memset(&info.bsdinfo, 0, sizeof(info.bsdinfo));
+			cleanup();
 			info.bsdinfo.bi_basemem = meminfo.basememsize;
 			info.bsdinfo.bi_extmem = meminfo.memsize;
 			info.bsdinfo.bi_memsizes_valid = 1;
@@ -556,7 +557,6 @@ elf_startkernel:
 			if ((symtab_load !=0) && (symstr_load != 0))
 			{
 				unsigned long *t;
-
 				info.bsdinfo.bi_symtab = symtab_load;
 
 				/* End of symbols (long aligned...) */
@@ -611,6 +611,52 @@ elf_startkernel:
 			}
 
 			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
+			longjmp(restart_etherboot, -2);
+		}
+#endif
+#ifdef	IMAGE_NETBSD
+		if (image_type == Elf_NetBSD) {
+			char *kbuf=KERNEL_BUF+strlen(KERNEL_BUF);
+			cleanup();
+
+
+/* making NetBSD bootinfo structure */
+/* should be nicer to read, but i had problems with gcc structure optimization */
+/* that rendered structure different placed that it should be */
+/* so all is done "manually". please refer to NetBSD sources */
+/*  /usr/include/machine/bootinfo.h */
+
+/* bootinfo element count */
+			info.l[0]=2;
+/* bootinfo pointer to first element */
+			(void*)(info.l[1])=info.l+3;
+/* bootinfo pointer to second element */
+			(void*)(info.l[2])=info.l+25;
+/* first element: length */
+			info.l[3]=88;
+/* type */
+			info.l[4]=BTINFO_BOOTPATH;
+/* kernel name (strip out all pathnames) */
+			while((kbuf>KERNEL_BUF)&&(*(kbuf-1)!='/')) kbuf--;
+			memcpy(info.l+5,kbuf,80);
+/* second element: length */
+			info.l[25]=32;
+/* type */
+			info.l[26]=BTINFO_CONSOLE;
+
+/* console name, address, speed */
+#ifdef	COMCONSOLE
+			memcpy(info.l+27,"com",16);
+			info.l[31]=COMCONSOLE;
+			info.l[32]=CONSPEED;
+#else
+			memcpy(info.l+27,"pc",16);
+			info.l[31]=info.l[32]=0;
+#endif
+
+			//howto,bootdev/unused,bootinfo,esym,basemem,extmem
+			//esym to be done
+			(*entry)(freebsd_howto, NODEV, info.l , 0, meminfo.memsize,meminfo.basememsize);
 			longjmp(restart_etherboot, -2);
 		}
 #endif
@@ -949,7 +995,7 @@ elf_startkernel:
 					}
 				}
 			}
-#endif	/* IMAGE_FREEBSD */
+#endif	/* IMAGE_BSD */
 
 			/* No more segments to be loaded, so just start the
 			 * kernel.  This saves a lot of network bandwidth if
@@ -1008,10 +1054,27 @@ int os_download(unsigned int block, unsigned char *data, unsigned int len)
 		if (info.l[0] == 0x464C457Fl) {
 			printf("(ELF");
 			image_type = Elf;
-#ifdef	IMAGE_FREEBSD
+#ifdef	IMAGE_BSD
 			if (info.elf32.e_entry & 0xf0000000) {
-				image_type = Elf_FreeBSD;
-				printf("/FreeBSD");
+#ifdef	IMAGE_FREEBSD
+				if(info.elf32.e_ident[7]==9){ //OSABI==FreeBSD
+					image_type = Elf_FreeBSD;
+					printf("/FreeBSD");
+					goto bsdtypefound;
+				}
+#endif
+#ifdef	IMAGE_NETBSD
+/* No idea why NetBSD kernel have OSABI=SYSV and not NetBSD. so check for both */
+				if((info.elf32.e_ident[7]==0)||(info.elf32.e_ident[7]==2)){
+					image_type = Elf_NetBSD;
+					printf("/NetBSD");
+					goto bsdtypefound;
+				}
+#endif
+				printf("unknown ELF file type\n");
+				return 0;
+
+				bsdtypefound:
 				off = -(info.elf32.e_entry & 0xff000000);
 				info.elf32.e_entry += off;
 			}
@@ -1041,8 +1104,8 @@ int os_download(unsigned int block, unsigned char *data, unsigned int len)
 				int fit, i;
 				if (phdr[segment].p_type != PT_LOAD)
 					continue;
-#ifdef	IMAGE_FREEBSD
-				if (image_type == Elf_FreeBSD) {
+#ifdef	IMAGE_BSD
+				if ((image_type == Elf_FreeBSD) || (image_type == Elf_NetBSD)) {
 					phdr[segment].p_paddr += off;
 				}
 #endif
@@ -1138,6 +1201,9 @@ int os_download(unsigned int block, unsigned char *data, unsigned int len)
 	case Elf:
 #ifdef	IMAGE_FREEBSD
 	case Elf_FreeBSD:
+#endif
+#ifdef	IMAGE_NETBSD
+	case Elf_NetBSD:
 #endif
 		return (elf_download(data, len));
 		break;

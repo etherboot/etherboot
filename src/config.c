@@ -268,6 +268,9 @@ void print_config(void)
 #ifdef	IMAGE_FREEBSD
 		"(FreeBSD) "
 #endif
+#ifdef	IMAGE_NETBSD
+		"(NetBSD) "
+#endif
 #ifdef	IMAGE_MULTIBOOT
 		"(Multiboot) "
 #endif

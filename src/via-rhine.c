@@ -620,9 +620,6 @@ The chip does not pad to minimum transmit length.
 
 */
 
-#define PCI_VENDOR_ID_FET		0x1106
-#define PCI_DEVICE_ID_FET_3043		0x3043
-
 /* The rest of these values should never change. */
 #define NUM_TX_DESC	2	/* Number of Tx descriptor registers. */
 

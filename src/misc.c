@@ -318,7 +318,7 @@ void gateA20_set(void)
 }
 #endif
 
-#if defined(PCBIOS) && (defined(TAGGED_IMAGE) || defined(CAN_BOOT_DISK))
+#if defined(PCBIOS) || defined(TAGGED_IMAGE) || defined(CAN_BOOT_DISK)
 /*
  * Unset Gate A20 for high memory - some operating systems (mainly old 16 bit
  * ones) don't expect it to be set by the boot loader.
