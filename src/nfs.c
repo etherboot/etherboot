@@ -64,12 +64,12 @@ static int await_rpc(int ival, void *ptr,
 		return 0;
 	if (ntohs(udp->dest) != ival)
 		return 0;
-	if (nic.packetlen < ETH_HLEN + sizeof(struct iphdr) + sizeof(udphdr) + 8)
+	if (nic.packetlen < ETH_HLEN + sizeof(struct iphdr) + sizeof(struct udphdr) + 8)
 		return 0;
 	rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 	if (*(unsigned long *)ptr != ntohl(rpc->u.reply.id))
 		return 0;
-	if (MSG_REPLY != ntohl(rpc->u.reply.type)
+	if (MSG_REPLY != ntohl(rpc->u.reply.type))
 		return 0;
 	return 1;
 }
