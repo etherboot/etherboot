@@ -626,9 +626,10 @@ int undi_loader ( void ) {
 	/* Do the API call to install the loader */
 	if ( ! undi_call_loader () ) return 0;
 
-	pxe = VIRTUAL( undi.pxs->loader.undi_cs, undi.pxs->loader.pxe_off );
+	pxe = VIRTUAL( undi.pxs->loader.undi_cs,
+		       undi.pxs->loader.pxe_ptr.offset );
 	printf ( "UNDI driver created a pixie at %hx:%hx...",
-		 undi.pxs->loader.undi_cs, undi.pxs->loader.pxe_off );
+		 undi.pxs->loader.undi_cs, undi.pxs->loader.pxe_ptr.offset );
 	if ( memcmp ( pxe->Signature, "!PXE", 4 ) != 0 ) {
 		printf ( "invalid signature\n" );
 		return 0;
