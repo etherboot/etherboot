@@ -449,7 +449,7 @@ static u16 sis900_read_eeprom(int location)
 
     outl(0, ee_addr);
     eeprom_delay();
-    outl(EECLK, ee_addr);
+    outl(EECS, ee_addr);
     eeprom_delay();
 
     /* Shift the read command (9) bits out. */
@@ -460,7 +460,7 @@ static u16 sis900_read_eeprom(int location)
         outl(dataval | EECLK, ee_addr);
         eeprom_delay();
     }
-    outb(EECS, ee_addr);
+    outl(EECS, ee_addr);
     eeprom_delay();
 
     /* read the 16-bits data in */
@@ -476,7 +476,7 @@ static u16 sis900_read_eeprom(int location)
     /* Terminate the EEPROM access. */
     outl(0, ee_addr);
     eeprom_delay();
-    outl(EECLK, ee_addr);
+//    outl(EECLK, ee_addr);
 
     return (retval);
 }
@@ -638,7 +638,7 @@ sis900_reset(struct nic *nic __unused)
         status ^= (inl(isr + ioaddr) & status);
     }
 
-    if( (pci_revision == SIS635A_900_REV) || (pci_revision == SIS900B_900_REV) )
+    if( (pci_revision >= SIS635A_900_REV) || (pci_revision == SIS900B_900_REV) )
             outl(PESEL | RND_CNT, ioaddr + cfg);
     else
             outl(PESEL, ioaddr + cfg);
