@@ -87,7 +87,8 @@ static inline unsigned long ask_boot(unsigned *index)
 #ifdef LINUXBIOS
 	order = get_boot_order(order, index);
 #endif
-#if defined(ASK_BOOT) && ASK_BOOT >= 0
+#if defined(ASK_BOOT)
+#if ASK_BOOT >= 0
 	while(1) {
 		int c = 0;
 		printf(ASK_PROMPT);
@@ -135,7 +136,8 @@ static inline unsigned long ask_boot(unsigned *index)
 		break;
 	}
 	putchar('\n');
-#endif /* ASK_BOOT */
+#endif /* ASK_BOOT >= 0 */
+#endif /* defined(ASK_BOOT) */
 	return order;
 }
 
