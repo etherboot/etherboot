@@ -524,6 +524,11 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 
   whereami ("Got eeprom.");
 
+  /* Base = 0 */
+  outl(0, ioaddr + SCBPointer);
+  outw(INT_MASK | CU_CMD_BASE, ioaddr + SCBCmd);
+  wait_for_cmd_done(ioaddr + SCBCmd);
+
   outl(virt_to_bus(&lstats), ioaddr + SCBPointer);
   outw(INT_MASK | CU_STATSADDR, ioaddr + SCBCmd);
   wait_for_cmd_done(ioaddr + SCBCmd);
@@ -559,10 +564,6 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 
   /* INIT TX stuff. */
 
-  /* Base = 0 */
-  outl(0, ioaddr + SCBPointer);
-  outw(INT_MASK | CU_CMD_BASE, ioaddr + SCBCmd);
-  wait_for_cmd_done(ioaddr + SCBCmd);
 
   whereami ("set TX base addr.");
 
