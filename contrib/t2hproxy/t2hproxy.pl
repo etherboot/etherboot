@@ -50,12 +50,6 @@ sub send_error ($$$) {
 	send(STDOUT, pack('nna*', TFTP_ERROR, $error, $message), 0, $iaddr);
 }
 
-sub blockno_of_ack ($) {
-	my ($opcode, $blockno) = unpack('nn', $_[0]);
-	# Return the block number in the packet
-	return ($blockno);
-}
-
 sub send_ack_retry ($$$$$) {
 	my ($iaddr, $udptimeout, $maxretries, $blockno, $sendfunc) = @_;
 RETRY:
@@ -71,9 +65,10 @@ RETRY:
 			my $theiripaddr = recv($sockh, $ack, 256, 0);
 			# check it's for us
 			if ($theiripaddr eq $iaddr) {
-				# fixme: check for error packet also
+				my ($opcode, $ackblock) = unpack('nn', $ack);
+				return (0) if ($opcode == TFTP_ERROR);
 				# check that the right block was acked
-				if (blockno_of_ack($ack) == $blockno) {
+				if ($ackblock == $blockno) {
 					return (1);
 				} else {
 					syslog('info', "Resending block $blockno");
@@ -103,7 +98,7 @@ sub handle_options ($$) {
 		$optstr .= pack('Z*Z*', 'blksize', $bsize . '');
 	}
 	# OACK expects an ack for block 0
-	log_and_exit('Retransmit limit reached, exiting')
+	log_and_exit('Abort received or retransmit limit reached, exiting')
 		unless send_ack_retry($iaddr, 2, 5, 0,
 		sub { send($sockh, pack('na*', TFTP_OACK, $optstr), 0, $iaddr); });
 }
@@ -126,7 +121,7 @@ sub send_file ($$) {
 	do {
 		$data = substr($$contentref, ($blockno - 1) * $bsize, $bsize);
 		# syslog('info', "Block $blockno length " . length($data));
-		log_and_exit('Retransmit limit reached, exiting')
+		log_and_exit('Abort received or retransmit limit reached, exiting')
 			unless send_ack_retry($iaddr, 2, 5, $blockno,
 			sub { send($sockh, pack('nna*', TFTP_DATA, $blockno, $data), 0, $iaddr); });
 		$blockno++;
