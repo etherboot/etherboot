@@ -1,5 +1,5 @@
 #undef CODE16
-#if defined(PCBIOS) || defined(TAGGED_IMAGE) || defined(PXE_IMAGE)
+#if defined(PCBIOS)
 #define	CODE16
 #endif
 
