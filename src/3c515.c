@@ -722,7 +722,7 @@ corkscrew_probe1(int ioaddr, int irq, int product_index, struct nic *nic)
 	outw(EEPROM_Read + i, ioaddr + Wn0EepromCmd);
 	/* Pause for at least 162 us. for the read to take place. */
 	for (timer = 4; timer >= 0; timer--) {
-	    udelay(162);
+	    DELAY(350);
 	    if ((inw(ioaddr + Wn0EepromCmd) & 0x0200) == 0)
 		break;
 	}
@@ -732,18 +732,8 @@ corkscrew_probe1(int ioaddr, int irq, int product_index, struct nic *nic)
 #endif
 	checksum ^= eeprom[i];
 
-/*
-#ifdef ISA_PNP
-	phys_addr[0] = htons(eeprom[11]);
-	phys_addr[1] = htons(eeprom[12]);
-	phys_addr[2] = htons(eeprom[13]);
-#else
-*/
 	if (i < 3)
 	    phys_addr[i] = htons(eeprom[i]);
-/*
-#endif
-*/
     }
     checksum = (checksum ^ (checksum >> 8)) & 0xff;
     if (checksum != 0x00)
