@@ -1014,20 +1014,28 @@ static int undi_unload_base_code ( void ) {
 	size_t bc_stck_size = undi.pxe->Stack.Seg_Size;
 	firing_squad_lineup_t lineup;
 
-	/* Don't unload if there is no base code present */
-	if ( undi.pxe->BC_Code.Seg_Addr == 0 ) return 1;
-
 	/* Since we never start the base code, the only time we should
 	 * reach this is if we were loaded via PXE.  There are many
 	 * different and conflicting versions of the "correct" way to
 	 * unload the PXE base code, several of which appear within
 	 * the PXE specification itself.  This one seems to work for
 	 * our purposes.
+	 *
+	 * We always call PXENV_STOP_BASE and PXENV_UNLOAD_STACK even
+	 * if the !PXE structure indicates that no base code is
+	 * present.  We do this for the case that there is a
+	 * base-code-less UNDI driver loaded that has hooked some
+	 * interrupts.  If the base code really is absent, then these
+	 * calls will fail, we will ignore the failure, and our
+	 * subsequent memory-freeing code is robust enough to handle
+	 * whatever's thrown at it.
 	 */
 	eb_pxenv_stop_base();
 	eb_pxenv_unload_stack();
 	if ( ( undi.pxs->unload_stack.Status != PXENV_STATUS_SUCCESS ) &&
-	     ( undi.pxs->unload_stack.Status != PXENV_STATUS_FAILURE ) ) {
+	     ( undi.pxs->unload_stack.Status != PXENV_STATUS_FAILURE ) &&
+	     ( undi.pxe->BC_Code.Seg_Addr != 0 ) )
+	{
 		printf ( "Could not free memory allocated to PXE base code: "
 			 "possible memory leak\n" );
 		return 0;
@@ -1107,11 +1115,21 @@ static int undi_full_startup ( void ) {
 
 static int undi_full_shutdown ( void ) {
 	if ( undi.pxe != NULL ) {
-		/* If we didn't allocate the driver's memory  don't
-		 * attempt to free it here.  Ugly things can
-		 * happen like stomping on the e820 interrupt
-		 * service routine.
+		/* In case we didn't allocate the driver's memory in the first
+		 * place, try to grab the code and data segments and sizes
+		 * from the !PXE structure.
 		 */
+		if ( undi.driver_code == NULL ) {
+			undi.driver_code = VIRTUAL(undi.pxe->UNDICode.Seg_Addr,
+						   0 );
+			undi.driver_code_size = undi.pxe->UNDICode.Seg_Size;
+		}
+		if ( undi.driver_data == NULL ) {
+			undi.driver_data = VIRTUAL(undi.pxe->UNDIData.Seg_Addr,
+						   0 );
+			undi.driver_data_size = undi.pxe->UNDIData.Seg_Size;
+		}
+
 		/* Ignore errors and continue in the hope of shutting
 		 * down anyway
 		 */
