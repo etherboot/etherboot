@@ -8,9 +8,9 @@
 #include <pic8259.h>
 
 #ifdef DEBUG_IRQ
-#define IRQ_DBG(...) printf ( __VA_ARGS__ )
+#define DBG(...) printf ( __VA_ARGS__ )
 #else
-#define IRQ_DBG(...)
+#define DBG(...)
 #endif
 
 /* Current locations of trivial IRQ handler.  These will change at
@@ -38,17 +38,17 @@ int install_irq_handler ( irq_t irq, segoff_t *handler,
 	*previously_enabled = irq_enabled ( irq );
 
 	if ( irq > IRQ_MAX ) {
-		IRQ_DBG ( "Invalid IRQ number %d\n" );
+		DBG ( "Invalid IRQ number %d\n" );
 		return 0;
 	}
 
 	previous_handler->segment = irq_vector->segment;
 	previous_handler->offset = irq_vector->offset;
 	if ( *previously_enabled ) disable_irq ( irq );
-	IRQ_DBG ( "Installing handler at %hx:%hx for IRQ %d, leaving %s\n",
+	DBG ( "Installing handler at %hx:%hx for IRQ %d, leaving %s\n",
 		  handler->segment, handler->offset, irq,
 		  ( *previously_enabled ? "enabled" : "disabled" ) );
-	IRQ_DBG ( "...(previous handler at %hx:%hx)\n",
+	DBG ( "...(previous handler at %hx:%hx)\n",
 		  previous_handler->segment, previous_handler->offset );
 	irq_vector->segment = handler->segment;
 	irq_vector->offset = handler->offset;
@@ -68,12 +68,12 @@ int remove_irq_handler ( irq_t irq, segoff_t *handler,
 	segoff_t *irq_vector = IRQ_VECTOR ( irq );
 
 	if ( irq > IRQ_MAX ) {
-		IRQ_DBG ( "Invalid IRQ number %d\n" );
+		DBG ( "Invalid IRQ number %d\n" );
 		return 0;
 	}
 	if ( ( irq_vector->segment != handler->segment ) ||
 	     ( irq_vector->offset != handler->offset ) ) {
-		IRQ_DBG ( "Cannot remove handler for IRQ %d\n" );
+		DBG ( "Cannot remove handler for IRQ %d\n" );
 		return 0;
 	}
 
@@ -89,27 +89,27 @@ int install_trivial_irq_handler ( irq_t irq ) {
 	segoff_t trivial_irq_handler_segoff = SEGOFF(trivial_irq_handler);
 	
 	if ( trivial_irq_installed_on != IRQ_NONE ) {
-		IRQ_DBG ( "Can install trivial IRQ handler only once\n" );
+		DBG ( "Can install trivial IRQ handler only once\n" );
 		return 0;
 	}
 
-	IRQ_DBG ( "Installing trivial IRQ handler on IRQ %d\n", irq );
+	DBG ( "Installing trivial IRQ handler on IRQ %d\n", irq );
 	installed = install_irq_handler ( irq, &trivial_irq_handler_segoff,
 					  trivial_irq_chain,
 					  trivial_irq_chain_to );
 	if ( ! installed ) return 0;
 	trivial_irq_installed_on = irq;
 
-	IRQ_DBG ( "Testing trivial IRQ handler\n" );
+	DBG ( "Testing trivial IRQ handler\n" );
 	disable_irq ( irq );
 	*trivial_irq_triggered = 0;
 	fake_irq ( irq );
 	if ( *trivial_irq_triggered != 1 ) {
-		IRQ_DBG ( "Installation of trivial IRQ handler failed\n" );
+		DBG ( "Installation of trivial IRQ handler failed\n" );
 		remove_trivial_irq_handler ();
 		return 0;
 	}
-	IRQ_DBG ( "Trivial IRQ handler installed successfully\n" );
+	DBG ( "Trivial IRQ handler installed successfully\n" );
 	*trivial_irq_triggered = 0;
 	enable_irq ( irq );
 	return 1;
