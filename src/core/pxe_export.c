@@ -523,9 +523,11 @@ PXENV_EXIT_t pxenv_undi_initiate_diags ( t_PXENV_UNDI_INITIATE_DIAGS
 PXENV_EXIT_t pxenv_undi_force_interrupt ( t_PXENV_UNDI_FORCE_INTERRUPT
 					  *undi_force_interrupt ) {
 	DBG ( "PXENV_UNDI_FORCE_INTERRUPT" );
-	/* ENSURE_READY ( undi_force_interrupt ); */
-	undi_force_interrupt->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( undi_force_interrupt );
+
+	eth_irq ( FORCE );
+	undi_force_interrupt->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_GET_MCAST_ADDRESS
