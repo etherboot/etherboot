@@ -1957,4 +1957,99 @@ of -oformat as old ld accepts both while new ld requires --oformat.
 + contrib/{tftp-hpa,atftp} are distributed separately from the
 distribution page to make them easy to update.
 
++ Eric Biederman contributed many small changes in the code to improve
+the behaviour in exceptions and generally improve the code structure:
+
+1) Cleanup etherboot restarting.  There is now only one place that needs
+to test for EMERGENCYBOOTDISK.
+
+2) Change pci.c as I have suggested.  It is setup to scan every possible
+pci bus until it finds an etherboot card.
+
+3) Change osloader.c so that if an image that can return, but isn't
+supposed to it restarts etherboot with -2 instead of the returned value.
+
+4) Rewrites the delay logic so that we compute how long we should sleep,
+and then sleep the whole time in await_reply so in a congested networks
+we don't miss slow packets.
+
+5) divides load into load & load_configuration.  This removes the need
+for the weird bootp_completed variable.  And makes it a little more
+explicit what we are doing.
+
+6) add an interruptible_sleep function so that we can sleep and still
+process keystrokes.
+
+7) rewrites the restart logic:
+   - renames jmp_bootmenu to restart_etherboot.
+   - removes bootmenu (The function isn't)
+   - It explicitly does an eth_reset & eth_probe pair to reinitialize
+     the interface.  This should help if someone has plugged the
+interface into a different switch since booting started.
+   - moves ASK_BOOT and TRY_FLOPPY_FIRST into their own functions.
+   - On every restart calls ask_boot and try_floppy_first.  Allowing you
+     to change your mind on how you want to boot after network booting
+starts.
+
+8) In cleanup calls both eth_disable (to disable the interface) &
+eth_reset to make certain the interface can be initialized from linux.
+(If nothing else this should cause more hidden bugs to show up).
+
+9) Restart etherboot when downloading a bootfile fails, instead of just
+looping trying to get that file.  Allowing typos in dhcpd.conf to be
+corrected without having to reboot the client machine running etherboot.
+
+Released as Etherboot 5.1.0 (development)
+
++ All the changes from 5.1.0 carried over except calling eth_reset()
+from cleanup().
+
++ Marty Connor, funded by Sicom System (http://www.sicompos.com/), wrote
+a driver for NICs based on the National Semiconductor DP83815, e.g.
+Netgear FA311/FA312. Also independently created by Jason McMullan just
+at the time Marty released his driver. Thanks for the effort Jason;
+great minds think alike. Both are based on Donald Becker's Linux driver,
+of course.
+
++ Doug Ambrisko contributed a patch to take environment bindings for
+FreeBSD kernels from a BOOTP/DHCP option or config variable.
+
++ Dax Kelson contributed an example of an ISC DHCP config file that uses
+Vendor Class Identifier to tailor the response to Etherboot clients.
+Also discovered that the Etherboot VCI should also be sent in the
+DHCPREQUEST message, in addition to the DHCPDISCOVER message.  Note that
+the DHCP server must be set to non authorititative if you have an
+authoritative server running already or it will interfere with that
+one's operation.
+
++ Peter Lister and Vasil Vasilev contributed changes to generate .pxe
+images bootable via PXE.
+
++ Eric Biederman added code to 3c90x.c to enable the NIC: set up
+busmastering and set the latency timer in case the NIC is not already
+set correctly, and fixed a couple of related bugs in eepro100.c.
+Verified that the 3c90x driver works for the 3c980.
+
++ Moved strncmp from osdep.h to linux-asm-string.h. Use the general
+version using string ops, not the deprecated 486 version (what was I
+thinking).  Also added strlen, needed for FreeBSD patch above.
+
++ Thanks to gcc 3.0, found and corrected a couple of C constructs of
+undefined semantics in rtl8139.c and lance.c of the form: i = ++i &
+MASK;
+
++ In Config/CFLAGS32: changed -m386 to prefered form, -mcpu=i386,
+changed -O2 to -Os, and added -ffreestanding. These changes allow
+warning-free compilation under gcc 3.0. Only mimimal testing has been
+done with gcc 3.0 compiled binaries, we hope there are no problems but
+don't throw away your gcc 2.9.5 yet.
+
++ Added an .org 0 to loader.S just before _start. May or may not fix
+alleged assembly problem with gas 2.11.
+
++ Cosmetic change: in boot1a.s replaced "loaded" with "done\r\n" so that
+Etherboot messages start at beginning of line.
+
++ More improvements to contrib/mkffwnb.
+
 Released as Etherboot 5.0.2 (production)
