@@ -1,3 +1,9 @@
+#define EB51
+
+#ifdef EB50
+#define __unused __attribute__((unused))
+#endif
+
 /**************************************************************************
 *
 *    tlan.c -- Etherboot device driver for the Texas Instruments ThunderLAN
@@ -34,7 +40,8 @@
 *    REVISION HISTORY:
 *    ================
 *    v1.0	07-08-2003	timlegge	Initial not quite working version
-*
+*    v1.1	07-27-2003	timlegge	Sync 5.0 and 5.1 versions
+*    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
 
@@ -54,11 +61,19 @@
 #define HZ 100
 #define TX_TIME_OUT	  (6*HZ)
 
+#ifdef EB50
+#define	cpu_to_le32(val) (val)
+#define	le32_to_cpu(val) (val)
+#define	virt_to_bus(x) ((unsigned long) x)
+#define	bus_to_virt(x) ((unsigned long) x)
+#endif
+
 /* Condensed operations for readability. */
 #define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
 #define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
 int tx_started = 0;
+
 static void TLan_ResetLists(struct nic *nic __unused);
 static void TLan_ResetAdapter(struct nic *nic __unused);
 static void TLan_FinishReset(struct nic *nic __unused);
@@ -68,15 +83,17 @@ static int TLan_EeSendByte(u16, u8, int);
 static void TLan_EeReceiveByte(u16, u8 *, int);
 static int TLan_EeReadByte(u16 io_base, u8, u8 *);
 
-
 static void TLan_PhyDetect(struct nic *nic);
 static void TLan_PhyPowerDown(struct nic *nic);
 static void TLan_PhyPowerUp(struct nic *nic);
+
+
 static void TLan_SetMac(struct nic *nic __unused, int areg, char *mac);
 
 static void TLan_PhyReset(struct nic *nic);
 static void TLan_PhyStartLink(struct nic *nic);
 static void TLan_PhyFinishAutoNeg(struct nic *nic);
+
 #ifdef MONITOR
 static void TLan_PhyMonitor(struct nic *nic);
 #endif
@@ -192,10 +209,10 @@ typedef u8 TLanBuffer[TLAN_MAX_FRAME_SIZE];
 int chip_idx;
 
 
-	/*****************************************************************
-	 * TLAN Private Information Structure
-	 *
-	 ****************************************************************/
+/*****************************************************************
+* TLAN Private Information Structure
+*
+****************************************************************/
 struct tlan_private {
 	unsigned short vendor_id;	/* PCI Vendor code */
 	unsigned short dev_id;	/* PCI Device code */
@@ -547,7 +564,6 @@ static int tlan_poll(struct nic *nic)
 	hex_dump(nic->packet, nic->packetlen);
 	printf("%d", entry);  
 #endif
-
 	entry = (entry + 1) % TLAN_NUM_RX_LISTS;
 	priv->cur_rx = entry;
 	if (eoc) {
@@ -769,7 +785,11 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
+#ifdef EB51
 static void tlan_disable(struct dev *dev __unused)
+#else
+static void tlan_disable(struct nic *nic __unused)
+#endif
 {
 	/* put the card in its initial state */
 	/* This function serves 3 purposes.
@@ -791,10 +811,15 @@ PROBE - Look for an adapter, this routine's visible to the outside
 
 #define board_found 1
 #define valid_link 0
+#ifdef EB51
 static int tlan_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *) dev;
-	u16 data = 0;
+#else
+struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
+{
+#endif
+		u16 data = 0;
 	int err;
 	int i;
 
@@ -861,13 +886,17 @@ static int tlan_probe(struct dev *dev, struct pci_device *pci)
 /*	if (board_found && valid_link)
 	{*/
 	/* point to NIC specific routines */
+#ifdef EB51
 	dev->disable = tlan_disable;
 	nic->poll = tlan_poll;
 	nic->transmit = tlan_transmit;
 	return 1;
-/*	} */
-	/* else */
-	return 0;
+#else
+	nic->disable = tlan_disable;
+	nic->poll = tlan_poll;
+	nic->transmit = tlan_transmit;
+	return nic;
+#endif
 }
 
 
@@ -1398,7 +1427,7 @@ void TLan_PhyDetect(struct nic *nic)
 		TLan_MiiReadReg(nic, phy, MII_GEN_ID_LO, &lo);
 		if ((control != 0xFFFF) || (hi != 0xFFFF)
 		    || (lo != 0xFFFF)) {
-			printf("PHY found at %02x %04x %04x %04x\n", phy,
+			printf("PHY found at %hX %hX %hX %hX\n", phy,
 			       control, hi, lo);
 			if ((priv->phy[1] == TLAN_PHY_NONE)
 			    && (phy != TLAN_PHY_MAX_ADDR)) {
@@ -1705,7 +1734,7 @@ void TLan_PhyMonitor(struct net_device *dev)
 		if (priv->link) {
 			priv->link = 0;
 			printf("TLAN: %s has lost link\n", priv->nic_name);
-			dev->flags &= ~IFF_RUNNING;
+			priv->flags &= ~IFF_RUNNING;
 			mdelay(2000);
 			TLan_PhyMonitor(nic);
 			/* TLan_SetTimer( dev, (2*HZ), TLAN_TIMER_LINK_BEAT ); */
@@ -1718,7 +1747,7 @@ void TLan_PhyMonitor(struct net_device *dev)
 		priv->link = 1;
 		printf("TLAN: %s has reestablished link\n",
 		       priv->nic_name);
-		dev->flags |= IFF_RUNNING;
+		priv->flags |= IFF_RUNNING;
 	}
 
 	/* Setup a new monitor */
@@ -1729,7 +1758,7 @@ void TLan_PhyMonitor(struct net_device *dev)
 
 #endif				/* MONITOR */
 
-
+#ifdef EB51
 static struct pci_id tlan_nics[] = {
 	PCI_ROM(0x0e11, 0xae34, "netel10", "Compaq Netelligent 10 T PCI UTP"),
 	PCI_ROM(0x0e11, 0xae32, "netel100","Compaq Netelligent 10/100 TX PCI UTP"),
@@ -1754,3 +1783,4 @@ static struct pci_driver tlan_driver __pci_driver = {
 	.id_count = sizeof(tlan_nics) / sizeof(tlan_nics[0]),
 	.class = 0,
 };
+#endif
