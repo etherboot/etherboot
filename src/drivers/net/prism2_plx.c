@@ -16,3 +16,17 @@ $Id$
 
 #define WLAN_HOSTIF WLAN_PLX
 #include "prism2.c"
+
+static struct pci_id prism2_plx_nics[] = {
+PCI_ROM(0x1385, 0x4100, "ma301", "Netgear MA301"),
+};
+
+static struct pci_driver prism2_plx_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "Prism2_PLX",
+	.probe    = prism2_plx_probe,
+	.ids      = prism2_plx_nics,
+	.id_count = sizeof(prism2_plx_nics)/sizeof(prism2_plx_nics[0]),
+	.class    = 0,
+};
+

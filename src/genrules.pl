@@ -201,12 +201,10 @@ family		drivers/net/natsemi
 family		drivers/net/fa311
 
 family		drivers/net/prism2_plx
-ma301		0x1385,0x4100	Netgear MA301
 
 family		drivers/net/prism2_pci
 # Various Prism2.5 (PCI) devices that manifest themselves as Harris Semiconductor devices
 # (with the actual vendor appearing as the vendor of the first subsystem)
-prism2_pci	0x1260,0x3873	Generic Prism2.5 PCI device
 hwp01170	0x1260,0x3873	ActionTec HWP01170
 dwl520		0x1260,0x3873	DLink DWL-520
 
