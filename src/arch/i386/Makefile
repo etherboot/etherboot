@@ -43,8 +43,8 @@ SRCS+=	arch/i386/core/realmode_asm.S
 SRCS+=	arch/i386/core/pxe_callbacks.c
 
 # ROM loaders: ISA and PCI versions
-ISAPREFIX=	$(BIN)/isaprefix.bin
-PCIPREFIX=	$(BIN)/pciprefix.bin
+ISAPREFIX=	$(BIN)/isaprefix.o
+PCIPREFIX=	$(BIN)/pciprefix.o
 
 FLOPPYPREFIX=	$(BIN)/floppyprefix.bin
 COMPREFIX=	$(BIN)/comprefix.bin
@@ -95,8 +95,6 @@ BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
 BOBJS+=		$(BIN)/pic8259.o $(BIN)/hooks.o
 
 # Prepended loaders
-$(BIN)/isaprefix.bin:	$(BIN)/isaprefix.o
-$(BIN)/pciprefix.bin:	$(BIN)/isaprefix.o
 $(BIN)/floppyprefix.bin: $(BIN)/floppyprefix.o
 $(BIN)/comprefix.bin:   $(BIN)/comprefix.o
 $(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
@@ -109,6 +107,9 @@ $(BIN)/isaprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 
 $(BIN)/pciprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 	$(CPP) -DPCI_PNP_HEADER $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
+
+# Linker command for prepending ROM loaders
+LDPREFIX = $(LD) --accept-unknown-input-arch -T arch/i386/core/prefix.lds --oformat binary
 
 # 16 to 32bit transition
 $(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
@@ -236,11 +237,11 @@ $(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
 # general rules for normal/compressed ROM images, may be overridden
 SUFFIXES +=	rom zrom
 $(BIN)/%.rom: $(BIN)/%.bin $(ISAPREFIX)
-	cat $(ISAPREFIX) $< > $@
+	$(LDPREFIX) -o $@ $(ISAPREFIX) bin/$*.sym -b binary $< 
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT) $@
 
 $(BIN)/%.zrom: $(BIN)/%.zbin $(ISAPREFIX)
-	cat $(ISAPREFIX) $< > $@
+	$(LDPREFIX) -o $@ $(ISAPREFIX) bin/$*.sym -b binary $< 
 	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT) $@
 
 # general rules for ELF images

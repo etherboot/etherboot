@@ -35,8 +35,8 @@
 	.code16
 	.arch i386
 	.org 0
-	.globl _start
-_start: 
+	.globl _prefix
+_prefix: 
 	.word 0xAA55			/* BIOS extension signature */
 size:	.byte 0				/* number of 512 byte blocks */
 					/* = number of 256 word blocks */
@@ -49,9 +49,15 @@ size:	.byte 0				/* number of 512 byte blocks */
 #ifdef	PCI_PNP_HEADER
 mfgstr:
 	.asciz	"Etherboot"
+	
+#ifdef	PXE_EXPORT
+	.org	0x16
+	.word	UNDIROMID - _prefix
+#endif	/* PXE_EXPORT */
+	
 	.org	0x18
-	.word	PCI - _start
-	.word	PnP - _start
+	.word	PCI - _prefix
+	.word	PnP - _prefix
 
 PCI: 
 	.ascii	"PCIR"
@@ -77,7 +83,7 @@ PnP:
 	.byte 0x00			/* Reserved */
 	.byte 0x00			/* checksum filled by makerom */
 	.long 0x00000000		/* Device identifier */
-	.word mfgstr - _start
+	.word mfgstr - _prefix
 	.word 0x0			/* pointer to product name */
 					/* filled by makerom */
 	.byte 0x02			/* Device Base Type code */
@@ -86,9 +92,27 @@ PnP:
 	.byte 0x14			/* device indicator */
 	.word 0x0000			/* boot connection vector */
 	.word 0x0000			/* disconnect vector */
-	.word pnpentry - _start
+	.word pnpentry - _prefix
 	.word 0x0000			/* reserved */
 	.word 0x0000			/* static resource information vector */
+#ifdef	PXE_EXPORT
+UNDIROMID:
+	.ascii	"UNDI"
+	.byte	UNDIROMID_end - UNDIROMID /* length of structure */
+	.byte	0			/* Checksum */
+	.byte	0			/* Structure revision */
+	.byte	0,1,2			/* PXE version 2.1.0 */
+	.word	UNDILoader - _prefix	/* Offset to loader routine */
+	.word	UNDIDataSize		/* Stack segment size */
+	.word	UNDIDataSize		/* Data segment size */
+	.word	UNDICodeSize		/* Code segment size */
+	.ascii	"PCIR"
+
+	.equ	UNDIDataSize, 0x1000
+	.equ	UNDICodeSize, 0x1000
+UNDIROMID_end:	
+#endif	/* PXE_EXPORT */
+	
 #endif	/* PCI_PNP_HEADER */
 
 /*
@@ -123,7 +147,7 @@ notpnp:
 	movw	%ax, SCRATCHVEC
 	movw	BOOT_INT_VEC+2, %ax
 	movw	%ax, SCRATCHVEC+2
-	movw	$start_int - _start, %ax
+	movw	$start_int - _prefix, %ax
 	movw	%ax, BOOT_INT_VEC
 	movw	%cs,%ax
 	movw	%ax, BOOT_INT_VEC+2
@@ -181,11 +205,15 @@ start16:
 	 */
 	push	%cs
 	pop	%ax
-	add	$((payload-_start)/16), %ax
+	add	$((payload-_prefix)/16), %ax
 	push	%ax
 	pushw	$0
 	lret				/* Jump to start16.S */
-	
+
+#ifdef 	PXE_EXPORT
+UNDILoader:
+#endif	/* PXE_EXPORT */
+		
 /* Force 16 byte alignment */
 	.balign 16, 0
 payload: 
