@@ -49,14 +49,15 @@ static inline unsigned long ask_boot(unsigned *index)
 #if ASK_BOOT > 0
 		{
 			unsigned long time;
-			for (time = currticks() + ASK_BOOT*TICKS_PER_SEC; !iskey(); ) {
+			for ( time = currticks() + ASK_BOOT*TICKS_PER_SEC;
+			      !c && !iskey(); ) {
 				if (currticks() > time) c = ANS_DEFAULT;
 			}
 		}
 #endif /* ASK_BOOT > 0 */
-		if ( !c ) { c = getchar(); }
-		if ((c >= 'a') && (c <= 'z')) { c &= 0x5F; }
-		if ((c >= ' ') && (c <= '~')) { putchar(c); }
+		if ( !c ) c = getchar();
+		if ((c >= 'a') && (c <= 'z')) c &= 0x5F;
+		if ((c >= ' ') && (c <= '~')) putchar(c);
 		putchar('\n');
 
 		switch(c) {
