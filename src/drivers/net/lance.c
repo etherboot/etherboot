@@ -23,6 +23,10 @@ Ken Yap, July 1997
 #include "isa.h"
 #endif
 
+#ifdef	RELOCATE
+#error	This driver cannot work with -DRELOCATE
+#endif
+
 /* Offsets from base I/O address */
 #if	defined(INCLUDE_NE2100) || defined(INCLUDE_LANCE)
 #define	LANCE_ETH_ADDR	0x0
@@ -596,6 +600,7 @@ static struct isa_driver ni6510_driver __isa_driver = {
 #endif
 
 #ifdef INCLUDE_LANCE
+#ifdef	CONFIG_PCI
 static struct pci_id lance_nics[] = {
 PCI_ROM(0x1022, 0x2000, "lancepci",     "AMD Lance/PCI"),
 PCI_ROM(0x1022, 0x2625, "pcnetfastiii", "AMD Lance/PCI PCNet/32"),
@@ -610,4 +615,5 @@ static struct pci_driver lancepci_driver __pci_driver = {
 	.id_count = sizeof(lance_nics)/sizeof(lance_nics[0]),
 	.class    = 0,
 };
+#endif	/* CONFIG_PCI */
 #endif /* INCLUDE_LANCE */

@@ -105,7 +105,7 @@ BOBJS:=
 MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	2
-VERSION_PATCH=	0
+VERSION_PATCH=	1
 EXTRAVERSION=
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
@@ -180,9 +180,9 @@ UTILS+=		$(BIN)/nrv2b
 STDDEPS=	$(START) $(BLIB) $(UTILS)
 ELF_DEPS=	$(ELF_START) $(BLIB)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
-# If you are confident that gcc 2.96 works for you, you can delete gcccheck
-# from the next line
-MAKEDEPS+=	Makefile Makefile.main Config genrules.pl $(BIN)/gcccheck
+# If you are confident that gcc 2.96 works for you, you can remove the lines
+# that check gcc in the toolcheck rule
+MAKEDEPS+=	Makefile Makefile.main Config genrules.pl $(BIN)/toolcheck
 MAKEDEPS+=	arch/$(ARCH)/Makefile arch/$(ARCH)/Config
 
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
@@ -190,14 +190,14 @@ CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 
 # Start of targets
 
-$(BIN)/gcccheck:	Makefile Config
+$(BIN)/toolcheck:	Makefile Config
 	@if $(CC) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
 	then \
 		echo 'gcc 2.96 is unsuitable for compiling Etherboot'; \
 		echo 'Use gcc 2.95 or gcc 3.x instead'; \
 		exit 1; \
 	else \
-		touch $(BIN)/gcccheck; \
+		touch $(BIN)/toolcheck; \
 	fi; \
 	if [ `perl -e 'use bytes; print chr(255)' | wc -c` = 2 ]; \
 	then \
