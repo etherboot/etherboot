@@ -109,68 +109,12 @@ static sector_t dead_download ( unsigned char *data __unused, unsigned int len _
 #include "../arch/i386/core/pxe_loader.c"
 #endif
 
-#ifdef SAFEBOOTMODE
-extern void md5_put(unsigned int ch);
-extern void md5_done(char * buf);
-#include "rsaeuro.h"
-#include "safeboot_key.h"
-R_RSA_PUBLIC_KEY publicKey;
-char encryptedString[MAX_RSA_MODULUS_LEN+2];
-#endif
 static void done(int do_cleanup)
 {
-#ifdef SAFEBOOTMODE
-	unsigned char buf[16];
-	unsigned char i;
-	char decryptedString[256];
-	int decryptedLength;
-#endif
 #ifdef	SIZEINDICATOR
 	printf("K ");
 #endif
 	printf("done\n");
-#ifdef SAFEBOOTMODE
-	md5_done ( buf );
-	//printf ( "MD5 checksum for downloaded image is: [" );
-	//for ( i = 0; i < 16; ++i ) printf("%hhx", buf[i] );
-	//printf ( "]\n" );
-	// Now, decrypt the block from the file header
-	for ( i = 0; i < 128; ++i ) {
-		publicKey.exponent[i] = safemode_pubkey_d[i];
-		publicKey.modulus[i]  = safemode_pubkey_m[i];
-	}
-	i = RSAPublicDecrypt(decryptedString, &decryptedLength, encryptedString,
-	   64, &publicKey);
-	if ( ( i != 0 ) || ( decryptedLength != 16 ) ) {
-		  printf ( "\n\n*****************************************************\n" \
-			     "*****  SafeBoot: RSA Crypto Algorithm Failure  ******\n" \
-			     "***** (e.g. Signature does not match checksum) ******\n" \
-			     "*****************************************************\n\n" \
-			"This should be an alarm to the SysAdmin that something's\n" \
-			"going extremely wrong in his/her ethernet!\n\n" \
-			"To continue anyway, press >> C <<\n\n" );
-			while ( ( 'C' & 0x1f ) != ( getchar () & 0x1f ) ) { ; }
-	} else {
-		decryptedLength = 0;
-		for ( i = 0; i < 16; ++i ) {
-			// printf ( " %hhx:%hhx", buf[i], decryptedString[i] );
-			if ( buf[i] != *(unsigned char *)(decryptedString + i) ) decryptedLength = 1;
-		}
-		if ( decryptedLength != 0 ) {
-		  printf ( "\n\n*****************************************************\n" \
-			     "**** SafeBoot: VERIFICATION OF BOOT-IMAGE FAILED ****\n" \
-			     "**** (e.g. image has been manipulated / changed) ****\n" \
-			     "*****************************************************\n\n" \
-			"This should be an alarm to the SysAdmin that something's\n" \
-			"going extremely wrong in his/her ethernet!\n\n" \
-			"To continue anyway, press >> C <<\n\n" );
-			while ( ( 'C' & 0x1f ) != ( getchar () & 0x1f ) ) { ; }
-		} else {
-		  printf ( "\n\n****** SafeBoot Image-Verification SUCCESSFUL, Integrity established ******\n\n" );
-		}
-	}
-		
-#endif
 	/* We may not want to do the cleanup: when booting a PXE
 	 * image, for example, we need to leave the network card
 	 * enabled, and it helps debugging if the serial console
@@ -310,9 +254,6 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 	static os_download_t os_download;
 	static sector_t skip_sectors;
 	static unsigned int skip_bytes;
-#ifdef SAFEBOOTMODE
-	unsigned int i, j;
-#endif
 #ifdef	SIZEINDICATOR
 	static int rlen = 0;
 
@@ -351,20 +292,6 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 #endif
 			return 0;
 		}
-#ifdef SAFEBOOTMODE
-		if ( ( SAFEBOOTMODE & 0xf0 ) == 0 ) {
-			if ( os_download != tagged_download ) {
-		  	  printf ( "\n\n*****************************************************\n" \
-			     "***** SafeBoot: LOADING UNSUPPORTED FILE FORMAT *****\n" \
-			     "*****************************************************\n\n" \
-			  "SafeBoot has been activated to only support NBI - Net\n" \
-			  "Boot Images. You are downloading another filetype\n" \
-			  "for which integrity check is not possible.\n\n" \
-			  "To continue anyway, press >> C <<\n\n" );
-			  while ( ( 'C' & 0x1f ) != ( getchar () & 0x1f ) ) { ; }
-			}
-		}
-#endif
 	} /* end of block zero processing */
 
 	/* Either len is greater or the skip is greater */
@@ -380,17 +307,6 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 	else {
 		len -= (skip_sectors << 9) + skip_bytes;
 		data += (skip_sectors << 9) + skip_bytes;
-#ifdef SAFEBOOTMODE
-		if ( ( SAFEBOOTMODE & 0xf0 ) == 0 ) {
-			if ( ( block == 1 ) && ( len >= 446 ) ) j = 446; else j = len;
-			for ( i = 0; i < j; ++i ) md5_put(*(unsigned char *)(data+i));
-			if ( block == 1 ) {
-				for ( i = 446; i < 510; ++i ) md5_put ( (unsigned char) 0 );
-				for ( i = 510; i < len; ++i ) md5_put(*(unsigned char *)(data+i));
-				for ( i = 0; i < 64; ++i ) encryptedString[i] = *(unsigned char*)(data+446+i);
-			}
-		}
-#endif 
 	}
 	skip_sectors = os_download(data, len, eof);
 	skip_bytes = 0;

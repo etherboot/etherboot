@@ -179,17 +179,6 @@
 #			If defined, includes TFTP Multicast mode support.
 #	-DDOWNLOAD_PROTO_HTTP
 #			If defined, includes HTTP support.
-#	-DSAFEBOOTMODE
-#			Enables "Safe Boot Mode": Only boot images after verification
-#			with public-key-cryptography, this is WORK IN PROGRESS
-#			must be or'ed from one publickey storage method and
-#			one nbi-digest method value
-#			0  = store key in code (safeboot_key.h)
-#			1  = store key in ROM somewhere else (to do)
-#			0 = crypted digest in first 512 bytes -
-#			    as bytes 446...509 (compatible with most NBIs!?)
-#			16 = crypted digest as ELF block (to do... Eric?)
-#			So for now, only valid mode is "0" 
 #
 #	Console options:
 #
@@ -333,7 +322,7 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 #CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
 
 # Etherboot as a PXE ROM
-CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
+#CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS

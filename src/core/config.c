@@ -83,9 +83,6 @@ void print_config(void)
 #endif
 #endif /* All possible exports */
 		"  "
-#ifdef	SAFEBOOTMODE
-		"[SafeBoot] "
-#endif
 		);
 #if	(BOOTP_SERVER != 67) || (BOOTP_CLIENT != 68)
 	printf( "[DHCP ports %d and %d] ",

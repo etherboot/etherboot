@@ -157,23 +157,23 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS+=	core/serial.c core/rsa.c
+SRCS+=	core/serial.c
 SRCS+=	core/main.c core/pci.c core/osloader.c core/nfs.c
 SRCS+=	core/misc.c core/config.c core/relocate.c core/heap.c
 SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/timer.c
 SRCS+=	core/proto_eth_slow.c
 SRCS+=	core/proto_slam.c core/proto_tftm.c core/proto_http.c
-SRCS+=	core/isapnp.c core/md5.c
+SRCS+=	core/isapnp.c
 SRCS+=	core/pcmcia.c core/i82365.c
 SRCS+=	core/pxe_export.c core/dns_resolver.c
 
 BOBJS+=		$(BIN)/main.o $(BIN)/osloader.o $(BIN)/nfs.o $(BIN)/misc.o
 BOBJS+=		$(BIN)/proto_slam.o $(BIN)/proto_tftm.o $(BIN)/proto_http.o
-BOBJS+=		$(BIN)/floppy.o $(BIN)/md5.o
+BOBJS+=		$(BIN)/floppy.o
 BOBJS+=		$(BIN)/serial.o $(BIN)/timer.o  $(BIN)/relocate.o $(BIN)/heap.o
 BOBJS+=		$(BIN)/nic.o $(BIN)/disk.o
 BOBJS+=		$(BIN)/isapnp.o
-BOBJS+=		$(BIN)/pci.o $(BIN)/rsa.o
+BOBJS+=		$(BIN)/pci.o
 BOBJS+=		$(BIN)/vsprintf.o
 BOBJS+=		$(BIN)/pcmcia.o $(BIN)/i82365.o
 BOBJS+=		$(BIN)/pxe_export.o $(BIN)/dns_resolver.o
