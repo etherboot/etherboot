@@ -878,8 +878,8 @@ enum intr_status_bits {
         IntrTxDescRace=0x080000,        /* mapped from IntrStatus2 */
         IntrTxErrSummary=0x082218,
 };
-#define DEFAULT_INTR IntrRxDone | IntrRxErr | IntrRxEmpty| IntrRxOverflow | \
-                   IntrRxDropped | IntrRxNoBuf 
+#define DEFAULT_INTR (IntrRxDone | IntrRxErr | IntrRxEmpty| IntrRxOverflow | \
+                   IntrRxDropped | IntrRxNoBuf) 
 
 /***************************************************************************
  IRQ - PXE IRQ Handler
@@ -1205,9 +1205,10 @@ rhine_poll (struct nic *nic, int retreive)
 
         intr_status = inw(nic->ioaddr + IntrStatus);
         /* On Rhine-II, Bit 3 indicates Tx descriptor write-back race. */
-//      if (tp->chip_id == 0x3065)
-  //        intr_status |= inb(nic->ioaddr + IntrStatus2) << 16;
-
+#if 0
+	if (tp->chip_id == 0x3065)
+	  intr_status |= inb(nic->ioaddr + IntrStatus2) << 16;
+#endif
         /* Acknowledge all of the current interrupt sources ASAP. */
         if (intr_status & IntrTxDescRace)
            outb(0x08, nic->ioaddr + IntrStatus2);
