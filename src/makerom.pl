@@ -117,7 +117,7 @@ sub checksum ($) {
 }
 
 sub makerom () {
-	my ($rom);
+	my ($rom, $romsize);
 
 	getopts('3xi:p:s:v', \%opts);
 	$ARGV[0] or die "Usage: $0 [-s romsize] [-i ident] [-p vendorid,deviceid] [-x] [-3] rom-file\n";
@@ -133,15 +133,29 @@ sub makerom () {
 		&writerom($ARGV[0], \$rom);
 		return;
 	}
-	# Don't work out romsize in image if size specified
-	my $romsize = defined($opts{'s'}) ? oct($opts{'s'}) : &getromsize(\$rom);
-	$romsize = MAXROMSIZE if ($romsize <= 0);
-	print STDERR "ROM size of $romsize not big enough for data\n"
-		if ($filesize > $romsize);
-	# Shrink it down to the smallest size that will do
-	for ($romsize = MAXROMSIZE;
-		$romsize > MINROMSIZE and $romsize >= 2*$filesize;
-		$romsize /= 2) { }
+	# Size specified with -s overrides value in 3rd byte in image
+	# -s 0 means round up to next 512 byte block
+	if (defined($opts{'s'})) {
+		if (($romsize = oct($opts{'s'})) <= 0) {
+			# NB: This roundup trick only works on powers of 2
+			$romsize = ($filesize + 511) & ~511
+		}
+	} else {
+		$romsize = &getromsize(\$rom);
+		# 0 put there by *loader.S means makerom should pick the size
+		if ($romsize == 0) {
+			# Shrink romsize down to the smallest power of two that will do
+			for ($romsize = MAXROMSIZE;
+				$romsize > MINROMSIZE and $romsize >= 2*$filesize;
+				$romsize /= 2) { }
+		}
+	}
+	if ($filesize > $romsize) {
+		print STDERR "ROM size of $romsize not big enough for data, ";
+		# NB: This roundup trick only works on powers of 2
+		$romsize = ($filesize + 511) & ~511;
+		print "will use $romsize instead\n"
+	}
 	# Pad with 0xFF to $romsize
 	$rom .= "\xFF" x ($romsize - length($rom));
 	substr($rom, 2, 1) = chr($romsize / 512);

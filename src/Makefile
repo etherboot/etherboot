@@ -102,6 +102,8 @@ GCC=		gcc
 CPP=		gcc -E -Wp,-Wall
 STRIP=		strip
 OBJCOPY=	objcopy
+# MAKEROM=	bin/makerom
+MAKEROM=	./makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	0
 VERSION_PATCH=	7
@@ -355,20 +357,20 @@ bin/%.bin:	bin/%.s
 # general rules for normal/compressed ROM images, may be overridden
 bin32/%.rom:	bin32/%.img $(RLOADER)
 	cat $(RLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
 
 bin32/%.lzrom:	bin32/%.huf $(RZLOADER)
 	cat $(RZLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
 
 # general rules for normal/compressed PXE images, may be overridden
 bin32/%.pxe:	bin32/%.img $(PXELOADER)
 	cat $(PXELOADER) $< > $@
-	bin/makerom -x $@
+	$(MAKEROM) -x $@
 
 bin32/%.lzpxe:	bin32/%.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
-	bin/makerom -x $@
+	$(MAKEROM) -x $@
 
 
 # rules to write the .rom/.lzrom image onto a blank floppy

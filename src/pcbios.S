@@ -318,20 +318,33 @@ memsize:
 	pushl	%edi
 	call	_prot_to_real
 	.code16
+	stc					# fix to work around buggy
+	xorw	%cx,%cx				# BIOSes which dont clear/set
+	xorw	%dx,%dx				# carry on pass/error of
+						# e801h memory size call
+						# or merely pass cx,dx though
+						# without changing them.
 	movw	$0xe801,%ax
-	stc
 	int	$0x15
-	jc	1f
+	jc	3f
+	cmpw	$0,%cx				# Kludge to handle BIOSes
+	jne	1f				# which report their extended
+	cmpw	$0,%dx				# memory in AX/BX rather than
+	je	2f				# CX/DX.  The spec I have read
+1:
+	movw	%cx,%ax				# seems to indicate AX/BX 
+	movw	%dx,%bx				# are more reasonable anyway...
+2:
 	andl	$0xffff,%eax
 	andl	$0xffff,%ebx
 	shll	$6,%ebx
 	addl	%ebx,%eax
-	jmp	2f
-1:
+	jmp	4f
+3:
 	movw	$0x8800,%ax
 	int	$0x15
 	andl	$0xffff,%eax
-2:
+4:
 	movl	%eax,%esi
 	DATA32 call	_real_to_prot
 	.code32

@@ -112,19 +112,21 @@ static struct pci_id eepro100_nics[] = {
 		"Intel Corporation 82559 InBusiness 10/100" },
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82562,
 		"Intel EtherExpressPro100 82562EM" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1038,
+		"Intel(R) PRO/100 VM Network Connection" },
 };
 #endif
 #ifdef INCLUDE_E1000
 static struct pci_id e1000_nics[] = {
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82542,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82542,
                "Intel EtherExpressPro1000" },
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82543GC_FIBER,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82543GC_FIBER,
                "Intel EtherExpressPro1000 82543GC Fiber" },
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82543GC_COPPER,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82543GC_COPPER,
                "Intel EtherExpressPro1000 82543GC Copper" },
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82544EI_COPPER,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82544EI_COPPER,
                "Intel EtherExpressPro1000 82544EI Copper" },
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82544GC_CREB,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82544GC_CREB,
                "Intel EtherExpressPro1000 82544GC Creb" },
 };
 #endif
