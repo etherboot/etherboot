@@ -18,6 +18,9 @@
 #			Assume Network to previous question
 #			(alternative: ANS_LOCAL) on timeout or Return key
 #			See etherboot.h for prompt and answer strings.
+#	-DBAR_PROGRESS
+#			Use rotating bar instead of sequential dots
+#			to indicate a packet transmitted.
 #	-DMOTD
 #			Display message of the day; read vendortags.html
 #			for further information.
@@ -175,7 +178,7 @@
 #			Only works for BIOSes of a certain era.
 #	-DCONFIG_TSC_CURRTICKS
 #			Uses the processor time stamp counter instead of reading
-#			the BIOS time counter.  This allows etherboot to work
+#			the BIOS time counter.  This allows Etherboot to work
 #			even without a BIOS.  This only works on late model
 #			486s and above.
 #
@@ -208,6 +211,8 @@
 
 # For prompting and default on timeout
 CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
+# If  you prefer the old style rotating bar progress display
+# CFLAGS32+=	-DBAR_PROGRESS
 CFLAGS32+=	-DMOTD -DIMAGE_MENU
 
 # Enabling this makes the boot ROM require a Vendor Class Identifier
@@ -237,7 +242,7 @@ CFLAGS32+=	-DTAGGED_IMAGE -DELF_IMAGE
 # Change download protocol to NFS, default is TFTP
 # CFLAGS32+=	-DDOWNLOAD_PROTO_NFS
 
-# Options to make a version of etherboot that will work under linuxBIOS.
+# Options to make a version of Etherboot that will work under linuxBIOS.
 #CFLAGS32+= -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCONSPEED=115200 -DCONFIG_PCI_DIRECT -DELF_IMAGE -DIMAGE_MULTIBOOT
 
 # These flags affect the loader that is prepended to the Etherboot image

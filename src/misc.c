@@ -34,6 +34,7 @@ TWIDDLE
 **************************************************************************/
 void twiddle(void)
 {
+#ifdef	BAR_PROGRESS
 	static unsigned long lastticks = 0;
 	static int count=0;
 	static const char tiddles[]="-\\|/";
@@ -43,6 +44,9 @@ void twiddle(void)
 	lastticks = ticks;
 	putchar(tiddles[(count++)&3]);
 	putchar('\b');
+#else
+	putchar('.');
+#endif	/* DOT_PROGRESS */
 }
 
 /**************************************************************************
