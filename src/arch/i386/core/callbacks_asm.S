@@ -47,10 +47,10 @@
 	.arch i386
 	.code32
 
-/* _ext_call : call to an external routine.
+/* v_ext_call : call to an external routine.
  */
-	.globl _ext_call
-_ext_call:
+	.globl v_ext_call
+v_ext_call:
 	/* Save registers required to return to C code */
 	pushl	%ebp
 	pushl	%ebx
@@ -139,7 +139,7 @@ _ext_call:
 	pushfl
 
 	/* Set %ebx to point to first argument in list */
-	leal	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
+	movl	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
 	
 	/* Mask interrupts around non-reentrant code */
 	cli
@@ -417,7 +417,7 @@ ec_return:
 	popfw			/* Restore interrupt status */
 
 	/* %ebx now points to first parameter in list, as before */
-	leal	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
+	movl	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
 
 	/* Reprocess argument list */
 process_ecr_params:
