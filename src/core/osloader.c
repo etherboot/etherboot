@@ -126,7 +126,10 @@ static void done(int do_cleanup)
 	 * remains enabled.  The call the cleanup() will be triggered
 	 * when the PXE stack is shut down.
 	 */
-	if ( do_cleanup ) cleanup();
+	if ( do_cleanup ) {
+		cleanup();
+		arch_cleanup();
+	}
 }
 
 static int prep_segment(unsigned long start, unsigned long mid, unsigned long end,

@@ -519,7 +519,6 @@ void cleanup(void)
 	eth_disable();
 	disk_disable();
 	console_fini();
-	arch_cleanup();
 	initialized = 0;
 }
 
