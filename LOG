@@ -2423,3 +2423,39 @@ to taking the difference between symbols in different sections,
 main and .rodata. Anybody with a 286 CPU deserves what they get.
 
 Released as Etherboot 5.0.8 (production)
+
++ Steal timer.c and timer.h from 5.1.x. This has alternate
+implementations of udelay and mdelay using the TSC. Removed define of
+udelay in many drivers.  Thanks Eric.
+
++ Matthew Stapleton fixed the DOS booting problem chaining from PXE.
+Involves additional PXE calls.
+
++ Rename jmpbuf to jmp_buf to fall in line with gcc's includes.
+
++ Add a bit of code in printf to skip width specs so that at least
+something is printed if not the right width.
+
++ Geert Stappers found a VIA6105 (via-rhine.c) with id 0x3106.
+
++ Wojciech Puchar added NetBSD support.
+
+Released as Etherboot 5.0.9 (production)
+
++ Updated NIC list with entries obtained from 5.1.7 courtesy of Georg
+Baum.
+
++ Dave Airlie found a patch for an old bug in eepro100 driver on Linux
+that applies to Etherboot driver too.
+
++ Add use bytes; pragma to Perl scripts to avoid problems with UTF-8
+handling of input data.
+
++ Fix for eepro100 timing problem by Georg Baum.
+
++ Additional fix to mask interrupts after PortPartialReset by Georg
+Baum that might help with booting DOS.
+
++ Sundance driver contributed by Timothy Legge.
+
+Released as Etherboot 5.0.10 (production)
