@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /*
  * Etherboot -  BOOTP/TFTP Bootstrap Program
  *
@@ -46,6 +43,9 @@
  *                                       using timer2 routines. Proposed
  *                                       by Ken Yap to eliminate CPU speed
  *                                       dependency.
+ *             Dec 12 2003  V0.94   timlegge	Fixed issues in 5.2, removed 
+ *             					interrupt usage, enabled
+ *             					multicast support
  *
  * This is the etherboot driver for cards based on Winbond W89c840F chip.
  *
@@ -82,7 +82,7 @@
 #include "pci.h"
 #include "timer.h"
 
-static const char *w89c840_version = "diver Version 0.92 - August 27, 2000";
+static const char *w89c840_version = "driver Version 0.94 - December 12, 2003";
 
 typedef unsigned char  u8;
 typedef   signed char  s8;
@@ -108,7 +108,6 @@ typedef   signed int   s32;
    bonding and packet priority.
    There are no ill effects from too-large receive rings. */
 #define TX_RING_SIZE    2
-
 #define RX_RING_SIZE    2
 
 /* The presumed FIFO size for working around the Tx-FIFO-overflow bug.
@@ -270,14 +269,6 @@ static void check_duplex(void);
 static void set_rx_mode(void);
 static void init_ring(void);
 
-/*
-static void wait_long_time(void)
-{
-    printf("Paused - please read output above this line\n");
-    sleep(3);
-}
-*/
-
 #if defined W89C840_DEBUG
 static void decode_interrupt(u32 intr_status)
 {
@@ -342,10 +333,11 @@ static void w89c840_reset(struct nic *nic)
     check_duplex();
     set_rx_mode();
 
-    /* Clear and Enable interrupts by setting the interrupt mask. */
+    /* Do not enable the interrupts Etherboot doesn't need them */
+/*
     writel(0x1A0F5, ioaddr + IntrStatus);
     writel(0x1A0F5, ioaddr + IntrEnable);
-
+*/
 #if defined(W89C840_DEBUG)
     printf("winbond-840 : Done reset.\n");
 #endif
@@ -388,7 +380,6 @@ static int w89c840_poll(struct nic *nic)
     int packet_received = 0;
 
     u32 intr_status = readl(ioaddr + IntrStatus);
-    /* handle_intr(intr_status); */ /* -- handled later */
 
     do {
         /* Code from netdev_rx(dev) */
@@ -471,11 +462,7 @@ static int w89c840_poll(struct nic *nic)
         entry = (++w840private.cur_rx) % RX_RING_SIZE;
         w840private.rx_head_desc = &w840private.rx_ring[entry];
     } while (0);
-
-    if (intr_status & (AbnormalIntr | TxFIFOUnderflow | IntrPCIErr |TimerInt | IntrTxStopped)) {
-        handle_intr(intr_status);
-    }
-
+    
     return packet_received;
 }
 
@@ -514,13 +501,13 @@ static void w89c840_transmit(
 
     w840private.tx_ring[entry].buffer1 = virt_to_le32desc(tx_packet);
 
-    w840private.tx_ring[entry].length = (DescWholePkt | s);
+    w840private.tx_ring[entry].length = (DescWholePkt | (u32) s);
     if (entry >= TX_RING_SIZE-1)         /* Wrap ring */
         w840private.tx_ring[entry].length |= (DescIntr | DescEndRing);
     w840private.tx_ring[entry].status = (DescOwn);
     w840private.cur_tx++;
 
-    w840private.tx_q_bytes += s;
+    w840private.tx_q_bytes = (u16) s;
     writel(0, ioaddr + TxStartDemand);
 
     /* Work around horrible bug in the chip by marking the queue as full
@@ -547,29 +534,24 @@ static void w89c840_transmit(
 
         while (1) {
 
-            intr_stat = readl(ioaddr + IntrStatus);
 #if defined(W89C840_DEBUG)
-            decode_interrupt(intr_stat);
+	      decode_interrupt(intr_stat);
 #endif
-
-            if (intr_stat & (NormalIntr | IntrTxDone)) {
 
                 while ( (transmit_status & DescOwn) && timer2_running()) {
 
                     transmit_status = w840private.tx_ring[entry].status;
                 }
 
-                writel(intr_stat & 0x0001ffff, ioaddr + IntrStatus);
                 break;
-            }
         }
     }
 
     if ((transmit_status & DescOwn) == 0) {
 
 #if defined(W89C840_DEBUG)
-        printf("winbond-840 : transmission complete after %d wait loop iterations, status %X\n",
-               TX_LOOP_COUNT - transmit_loop_counter, w840private.tx_ring[entry].status);
+        printf("winbond-840 : transmission complete after wait loop iterations, status %X\n",
+                w840private.tx_ring[entry].status);
 #endif
 
         return;
@@ -870,12 +852,10 @@ static void set_rx_mode(void)
     memset(mc_filter, 0xff, sizeof(mc_filter));
 
 /*
- * Actually, should work OK with multicast enabled. -- iko
+ * works OK with multicast enabled. 
  */
-/*
- *  rx_mode = AcceptBroadcast | AcceptMyPhys | AcceptMulticast;
- */
-    rx_mode = AcceptBroadcast | AcceptMyPhys;
+
+    rx_mode = AcceptBroadcast | AcceptMyPhys | AcceptMulticast;
 
     writel(mc_filter[0], ioaddr + MulticastFilter0);
     writel(mc_filter[1], ioaddr + MulticastFilter1);
