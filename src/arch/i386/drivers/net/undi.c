@@ -340,6 +340,11 @@ int hunt_undi_rom ( void ) {
 			printf ( "Invalid UNDI signature\n" );
 			continue;
 		}
+		if ( checksum ( undi.undi_rom_id,
+				undi.undi_rom_id->struct_length ) != 0 ) {
+			printf ( "Invalid checksum\n" );
+			continue;
+		}
 		printf ( "Located UNDI ROM supporting revision %d.%d.%d\n",
 			 undi.undi_rom_id->undi_rev[2],
 			 undi.undi_rom_id->undi_rev[1],
