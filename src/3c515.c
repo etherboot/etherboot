@@ -732,16 +732,18 @@ corkscrew_probe1(int ioaddr, int irq, int product_index, struct nic *nic)
 #endif
 	checksum ^= eeprom[i];
 
+/*
 #ifdef ISA_PNP
 	phys_addr[0] = htons(eeprom[11]);
 	phys_addr[1] = htons(eeprom[12]);
 	phys_addr[2] = htons(eeprom[13]);
 #else
-
+*/
 	if (i < 3)
 	    phys_addr[i] = htons(eeprom[i]);
+/*
 #endif
-
+*/
     }
     checksum = (checksum ^ (checksum >> 8)) & 0xff;
     if (checksum != 0x00)
