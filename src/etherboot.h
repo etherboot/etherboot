@@ -607,15 +607,18 @@ extern int int15 P((int));
 #ifdef	POWERSAVE
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */
+
+#define PACKED __attribute__((packed))
+
 struct e820entry {
-	unsigned long long addr;
-	unsigned long long size;
-	unsigned long type;
+	uint64_t addr;
+	uint64_t size;
+	uint32_t type;
 #define E820_RAM	1
 #define E820_RESERVED	2
 #define E820_ACPI	3 /* usable as RAM once ACPI tables have been read */
 #define E820_NVS	4
-};
+} PACKED;
 #define E820MAX 32
 struct meminfo {
 	unsigned short basememsize;

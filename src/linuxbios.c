@@ -5,6 +5,7 @@
 #include "linuxbios_tables.h"
 
 struct meminfo meminfo;
+static int lb_failsafe = 1;
 static unsigned long lb_boot_first = NO_DRIVER;
 static unsigned long lb_boot_second;
 static unsigned long lb_boot_third;
@@ -159,6 +160,9 @@ static void read_linuxbios_values(struct meminfo *info,
 				else if (memcmp(entry->name, "boot_third", 11) == 0) {
 					lb_boot_third = cmos_read(entry->bit, entry->length);
 				}
+				else if (memcmp(entry->name, "last_boot", 10) == 0) {
+					lb_failsafe = cmos_read(entry->bit, entry->length) == 0;
+				}
 			}
 			break;
 		}
@@ -264,7 +268,7 @@ void get_memsizes(void)
 
 unsigned long get_boot_order(unsigned long order)
 {
-	if (lb_boot_first != NO_DRIVER) {
+	if (!lb_failsafe && (lb_boot_first != NO_DRIVER)) {
 		order =	(lb_boot_first  << (0*DRIVER_BITS)) |
 			(lb_boot_second << (1*DRIVER_BITS)) |
 			(lb_boot_third  << (2*DRIVER_BITS)) |
