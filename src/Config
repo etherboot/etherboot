@@ -440,10 +440,11 @@ OBJCOPY=	objcopy
 
 CFLAGS+=	-Os -ffreestanding
 CFLAGS+=	-Wall -W -Wno-format
-ASFLAGS+=
-LDFLAGS+=
+CFLAGS+=	$(EXTRA_CFLAGS)
+ASFLAGS+=	$(EXTRA_ASFLAGS)
+LDFLAGS+=	$(EXTRA_LDFLAGS)
 # For debugging
-#LDFLAGS+=	-Map $@.map
+# LDFLAGS+=	-Map $@.map
 
 # Location to place generated binaries, and files
 BIN=bin

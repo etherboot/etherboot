@@ -354,14 +354,14 @@ $(BIN)/%.o:     $(FILO)/usb/%.c $(MAKEDEPS) $(FILO)/config.h
 
 # Rule for the super etherboot image.
 $(BIN)/etherboot.o: $(DOBJS)
-	$(LD) -r $(DOBJS) -o $@
+	$(LD) $(LDFLAGS) -r $(DOBJS) -o $@
 
 $(BIN)/etherboot-pci.o: $(PCIOBJS)
-	$(LD) -r $(PCIOBJS) -o $@
+	$(LD) $(LDFLAGS) -r $(PCIOBJS) -o $@
 
 # General rules for generating runtime (rt) files
 $(BIN)/%.rt.o:  $(BIN)/%.o $(START) $(BIN)/config.o $(LIBS) $(STDDEPS) $(MAKEDEPS)
-	$(LD) -r $(START) $(BIN)/config.o $< $(LIBS) -o $@
+	$(LD) $(LDFLAGS) -r $(START) $(BIN)/config.o $< $(LIBS) -o $@
 
 #   Rule for $(BIN)/%.FORMAT.rt is architecture and target-format specific
 
