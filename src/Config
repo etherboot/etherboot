@@ -294,6 +294,9 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 # Change download protocol to NFS, default is TFTP
 # CFLAGS+=	-DDOWNLOAD_PROTO_NFS
 
+# Multicast Support
+# CFLAGS+=-DALLMULTI -MULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
+
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
 # CFLAGS+=	-DFREEBSD_PXEEMU
