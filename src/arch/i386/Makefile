@@ -11,7 +11,7 @@ BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMG
 START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
 	$(BIN)/bios.o $(BIN)/console.o $(BIN)/memsizes.o $(BIN)/basemem.o \
 	$(BIN)/realmode.o $(BIN)/realmode_asm.o \
-	$(BIN)/callbacks_arch.o $(BIN)/pxe_callbacks.o
+	$(BIN)/callbacks.o $(BIN)/pxe_callbacks.o
 
 SRCS+=	arch/i386/prefix/floppyprefix.S
 SRCS+=	arch/i386/prefix/unhuf.S
@@ -37,7 +37,7 @@ SRCS+=	arch/i386/core/cpu.c
 SRCS+=	arch/i386/core/video_subr.c
 SRCS+=	arch/i386/core/pic8259.c
 SRCS+=	arch/i386/core/hooks.c
-SRCS+=	arch/i386/core/callbacks_arch.c
+SRCS+=	arch/i386/core/callbacks.c
 SRCS+=	arch/i386/core/realmode.c
 SRCS+=	arch/i386/core/realmode_asm.S
 SRCS+=	arch/i386/core/pxe_callbacks.c
