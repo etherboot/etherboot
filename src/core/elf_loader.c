@@ -164,11 +164,11 @@ static inline os_download_t elf32_probe(unsigned char *data, unsigned int len)
 	phdr_size = estate.e.elf32.e_phnum * estate.e.elf32.e_phentsize;
 	if (estate.e.elf32.e_phoff + phdr_size > len) {
 		printf("ELF header outside first block\n");
-		return 0;
+		return dead_download;
 	}
 	if (phdr_size > sizeof(estate.p.dummy)) {
 		printf("Program header to big\n");
-		return 0;
+		return dead_download;
 	}
 	memcpy(&estate.p.phdr32, data + estate.e.elf32.e_phoff, phdr_size);
 #if ELF_NOTES
@@ -201,10 +201,10 @@ static inline os_download_t elf32_probe(unsigned char *data, unsigned int len)
 		istart = estate.p.phdr32[estate.segment].p_offset;
 		iend = istart + estate.p.phdr32[estate.segment].p_filesz;
 		if (!prep_segment(start, mid, end, istart, iend)) {
-			return 0;
+			return dead_download;
 		}
 		if (!elf_prep_segment(start, mid, end, istart, iend)) {
-			return 0;
+	                return dead_download;
 		}
 	}
 	estate.segment = -1;
@@ -378,15 +378,15 @@ static inline os_download_t elf64_probe(unsigned char *data, unsigned int len)
 	phdr_size = estate.e.elf64.e_phnum * estate.e.elf64.e_phentsize;
 	if (estate.e.elf64.e_phoff + phdr_size > len) {
 		printf("ELF header outside first block\n");
-		return 0;
+                return dead_download;
 	}
 	if (phdr_size > sizeof(estate.p.dummy)) {
 		printf("Program header to big\n");
-		return 0;
+                return dead_download;
 	}
 	if (estate.e.elf64.e_entry > ULONG_MAX) {
 		printf("ELF entry point exceeds address space\n");
-		return 0;
+                return dead_download;
 	}
 	memcpy(&estate.p.phdr64, data + estate.e.elf64.e_phoff, phdr_size);
 #if ELF_NOTES
@@ -414,7 +414,7 @@ static inline os_download_t elf64_probe(unsigned char *data, unsigned int len)
 			((estate.p.phdr64[estate.segment].p_paddr + estate.p.phdr64[estate.segment].p_filesz) > ULONG_MAX) ||
 			((estate.p.phdr64[estate.segment].p_paddr + estate.p.phdr64[estate.segment].p_memsz) > ULONG_MAX)) {
 			printf("ELF segment exceeds address space\n");
-			return 0;
+                	return dead_download;
 		}
 		start = estate.p.phdr64[estate.segment].p_paddr;
 		mid = start + estate.p.phdr64[estate.segment].p_filesz;
@@ -427,10 +427,10 @@ static inline os_download_t elf64_probe(unsigned char *data, unsigned int len)
 			iend   = istart + estate.p.phdr64[estate.segment].p_filesz;
 		} 
 		if (!prep_segment(start, mid, end, istart, iend)) {
-			return 0;
+                	return dead_download;
 		}
 		if (!elf_prep_segment(start, mid, end, istart, iend)) {
-			return 0;
+                	return dead_download;
 		}
 	}
 	estate.segment = -1;

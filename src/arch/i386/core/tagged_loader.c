@@ -53,7 +53,7 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 	printf("(NBI)");
 	/* If we don't have enough data give up */
 	if (len < 512)
-		return 0;
+		return dead_download;
 	/* Zero all context info */
 	memset(&tctx, 0, sizeof(tctx));
 	/* Copy first 4 longwords */
@@ -63,7 +63,7 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 		((tctx.img.u.segoff.segment) << 4) + tctx.img.u.segoff.offset;
 	if (!prep_segment(tctx.segaddr, tctx.segaddr + 512, tctx.segaddr + 512,
 			  0, 512)) {
-		return 0;
+		return dead_download;
 	}
 	/* Now verify the segments we are about to load */
 	loc = 512;
@@ -78,14 +78,14 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 			sh->loadaddr + sh->imglength,
 			sh->loadaddr + sh->imglength,
 			loc, loc + sh->imglength)) {
-			return 0;
+			return dead_download;
 		}
 		loc = loc + sh->imglength;
 		if (sh->flags & 0x04) 
 			break;
 	}
 	if (!(sh->flags & 0x04))
-		return 0;
+		return dead_download;
 	/* Grab a copy */
 	memcpy(phys_to_virt(tctx.segaddr), data, 512);
 	/* Advance to first segment descriptor */

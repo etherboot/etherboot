@@ -44,13 +44,13 @@ static inline os_download_t coff_probe(unsigned char *data, unsigned int len)
 
 	if (cstate.coff32.f_opthdr == 0){
 		printf("No optional header in COFF file, cannot find the entry point\n");
-		return 0;
+                return dead_download;
 	}
 
 	phdr_size = cstate.coff32.f_nscns * sizeof(cstate.p.scnhdr32);
 	if (sizeof(cstate.coff32) +  cstate.coff32.f_opthdr + phdr_size > len) {
 		printf("COFF header outside first block\n");
-		return 0;
+                return dead_download;
 	}
 
 	memcpy(&cstate.p.scnhdr32, data + (sizeof(cstate.coff32) +  cstate.coff32.f_opthdr), phdr_size);
@@ -80,7 +80,7 @@ static inline os_download_t coff_probe(unsigned char *data, unsigned int len)
 	iend = 0x8000;
 
 		if (!prep_segment(start, mid, end, istart, iend)) {
-			return 0;
+                	return dead_download;
 		}
 }
 	cstate.segment = -1;

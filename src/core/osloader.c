@@ -42,6 +42,7 @@ static struct ebinfo		loaderinfo = {
 
 static int prep_segment(unsigned long start, unsigned long mid, unsigned long end,
 	unsigned long istart, unsigned long iend);
+static sector_t dead_download ( unsigned char *data, unsigned int len, int eof);
 static void done(int do_cleanup);
 
 #if defined(IMAGE_FREEBSD) && defined(ELF_IMAGE)
@@ -64,6 +65,13 @@ static void aout_freebsd_boot(void);
 #define aout_freebsd_probe() do {} while(0)
 #define aout_freebsd_boot() do {} while(0)
 #endif
+
+/**************************************************************************
+dead_download - Restart etherboot if probe image fails
+**************************************************************************/
+static sector_t dead_download ( unsigned char *data __unused, unsigned int len __unused, int eof __unused) {
+        longjmp(restart_etherboot, -2);
+}
 
 #ifdef	IMAGE_MULTIBOOT
 #include "../arch/i386/core/multiboot_loader.c"
@@ -109,7 +117,6 @@ extern void md5_done(char * buf);
 R_RSA_PUBLIC_KEY publicKey;
 char encryptedString[MAX_RSA_MODULUS_LEN+2];
 #endif
-
 static void done(int do_cleanup)
 {
 #ifdef SAFEBOOTMODE

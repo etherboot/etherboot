@@ -43,7 +43,7 @@ static inline os_download_t aout_probe(unsigned char *data, unsigned int len)
 	istart = 4096;
 	iend   = istart + (mid - start);
 	if (!prep_segment(start, mid, end, istart, iend))
-		return 0;
+		return dead_download;
 	astate.segment = -1;
 	astate.loc = 0;
 	astate.skip = 0;
