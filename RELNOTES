@@ -1,5 +1,10 @@
 Etherboot 5.0.7
 
+In 5.0.7, if the server IP is all zeros, or the filename is null unless
+DEFAULT_BOOTFILE is defined, the DHCP offer will be ignored. This will
+ignore many Windows DHCP servers. If you depend on the fallback filename
+of /tftpboot/kernel, you can edit etherboot.h.
+
 If you can't get a SMC EtherEZ to work on a hybrid PCI/ISA system due to
 inability to map shared memory, you might want to try the -DWD_790_PIO
 compile option, which makes the NE driver use PIO instead.
