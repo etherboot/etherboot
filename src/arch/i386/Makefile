@@ -91,7 +91,6 @@ $(BIN)/memsizes.o:	arch/i386/firmware/pcbios/memsizes.c
 $(BIN)/pcbios.o:	arch/i386/firmware/pcbios/pcbios.S
 $(BIN)/liloprefix.o:	arch/i386/prefix/liloprefix.S
 $(BIN)/elfprefix.o:	arch/i386/prefix/elfprefix.S
-$(BIN)/floppyload.o:	arch/i386/prefix/floppyload.S
 $(BIN)/comprefix.o:	arch/i386/prefix/comprefix.S
 $(BIN)/pxeprefix.o:	arch/i386/prefix/pxeprefix.S
 $(BIN)/loader.o:	arch/i386/prefix/loader.S
@@ -101,7 +100,6 @@ $(BIN)/loader.o:	arch/i386/prefix/loader.S
 $(BIN)/rloader.bin:	$(BIN)/rloader.o
 $(BIN)/prloader.bin:	$(BIN)/prloader.o
 $(BIN)/start16.bin:	$(BIN)/rloader.o
-$(BIN)/floppyload.bin:	$(BIN)/floppyload.o
 $(BIN)/comprefix.bin:   $(BIN)/comprefix.o
 $(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
 $(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
@@ -115,11 +113,6 @@ $(BIN)/prloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
 # 16 to 32bit transition
 $(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@
-
-# Old floppy loader, may be required for non-1.44 MB floppies
-
-$(BIN)/floppyload.s:	arch/i386/prefix/floppyload.S $(MAKEDEPS)
-	$(CPP) -o $@ $<
 
 # New floppy / hard disk loader
 
