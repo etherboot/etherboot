@@ -494,7 +494,7 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 	/* Walk through the segments and verify the load addresses */
 	loc = 512;
 	for(sh = phys_to_virt(tctx.segaddr); 
-		!(sh->flags & 0x04); 
+		sh->length != 0; 
 		sh = phys_to_virt(virt_to_phys(sh) + 
 			((sh->length & 0x0f) << 2) +
 			((sh->length & 0xf0) >> 2))) {
@@ -506,6 +506,7 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 			return 0;
 		}
 		loc = loc + sh->imglength;
+		if ( sh->flags & 0x04 ) break;
 	}
 	return tagged_download;
 
