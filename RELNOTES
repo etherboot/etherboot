@@ -1,4 +1,4 @@
-Etherboot 5.2.2
+Etherboot 5.2.3
 
 Here are some things you should be aware of:
 
@@ -23,7 +23,7 @@ probably they don't expect a return.  Also note that the Q option will
 also become undefined if anything is partially loaded that overwrites
 the return trail to the environment.
 
-The .lzdsk images used to work from a raw hard disk in 5.0 but the 5.1
+The .lzdsk images used to work from a raw hard disk in 5.0 but the 5.2
 .zdsk doesn't any more because it's too hard to support large images
 with the old boot1a.s. Since very few people boot from a raw hard disk
 (flash disks and supporting BIOSes seem to have some kind of filesystem

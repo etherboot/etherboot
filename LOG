@@ -2555,3 +2555,50 @@ Java version now also available.
 ALTERNATE_DHCP_PORTS_1067_1068 switches to ports 1067 and 1068.
 
 Released as Etherboot 5.2.2 (production)
+
++ UNDI driver by Michael Brown.
+
++ More UNDI improvements by Michael Brown.
+
++ Michael Brown pointed out error in ASK_BOOT behaviour. Make it match
+documentation. < 0 or undefined means no prompt,  = 0 means wait
+forever, > 0 means wait that many seconds.
+
++ Start of PCMCIA subsystem by Anselm Martin Hoffmeister.
+
++ Port to Hyperstone architecture (big-endian) by Yannis Mitsos and
+George Thanos at NTUA, Greece.
+
++ Timothy Legge got the epic100 driver working again, was not working
+when 5.2 released. Also implemented multicasting. Also tentatively
+fixed the tg3 driver.
+
++ Use Perl script to make .z?lilo images.
+
++ Added an .iso Makefile rule. This requires newer BIOSes as it
+uses no floppy emulation mode.
+
++ Guard Kuo sent in a patch for the via-rhine driver not being
+reset properly, Timothy Legge improved it based in the Linux driver.
+
++ David D. Smith, with help from Georg Baum, sent in a patch for the
+eepro100 driver which might help unjam the NIC when the receiver has
+suspended reception.
+
++ Timothy Legge and Eric Biederman fixed a bug in the tg3 driver which
+caused some models to not receive DHCP replies.
+
++ Timothy Legge ported the Linux Realtek 8169 driver.
+
++ Michael Brown removed irritating A20 status change messages.
+
++ Sis900, w89c840 and tg3 drivers fixed by Timothy Legge. genrules.pl
+was not updated for the r8169 in previous release.
+
++ Revert to normal way of assigning string to DEFAULT_BOOTFILE as
+tricky stringify macro falls foul of C++ // comments in gcc 3.x.
+
++ Whew, I think we've caught up with the 5.3 series, but only for a
+while, lots of exciting stuff coming.
+
+Released as Etherboot 5.2.3 (production)
