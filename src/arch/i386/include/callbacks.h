@@ -20,6 +20,7 @@
 #define EXTCALL_STACK		(0x0004)
 #define EXTCALL_RET_STACK	(0x0005)
 #define EXTCALL_RELOC_STACK	(0x0006)
+#define EXTCALL_TRAMPOLINE	(0x0007)
 #define EXTCALL_END_LIST	(0xffff)
 
 /* Skip the definitions that won't make sense to the assembler */
@@ -222,6 +223,9 @@ typedef struct {
 
 #define EP_RELOC_STACK(top) EXTCALL_RELOC_STACK, (top)
 
+#define EP_TRAMPOLINE(start,end) \
+	EXTCALL_TRAMPOLINE, (void*)(start), ((void*)(end) - (void*)(start))
+
 #define EP_TRACE EXTCALL_NONE
 
 /* Function prototypes */
@@ -232,7 +236,7 @@ extern uint32_t _v_ext_call ( uint32_t address, va_list ap );
 
 #ifdef DEBUG_EXT_CALL
 extern uint32_t v_ext_call ( uint32_t address, va_list ap );
-extern void v_ext_call_check ( uint32_t address, va_list ap );
+extern int v_ext_call_check ( uint32_t address, va_list ap );
 #define ext_call_trace(address, ...) \
 	ext_call( (address), EP_TRACE, ##__VA_ARGS__ )
 #else
