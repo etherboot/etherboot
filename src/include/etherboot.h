@@ -39,20 +39,10 @@
 
 #ifdef FREEBSD_PXEEMU
 #undef DEFAULT_BOOTFILE
-#undef DEFAULT_BOOTFILE_STRINGIFIED
 #ifndef PXENFSROOTPATH
 #define PXENFSROOTPATH ""
 #endif
-#define DEFAULT_BOOTFILE
-#define DEFAULT_BOOTFILE_STRINGIFIED	PXENFSROOTPATH "/boot/pxeboot"
-#endif
-
-/* Stringify DEFAULT_BOOTFILE here in order to make the Config file more
- * user-friendly - avoids need for "\"...\"" in Config */
-#if defined(DEFAULT_BOOTFILE) && !defined(DEFAULT_BOOTFILE_STRINGIFIED)
-#define STRINGIFY(x) #x
-#define STRINGIFY_MACRO(x) STRINGIFY(x)
-#define DEFAULT_BOOTFILE_STRINGIFIED STRINGIFY_MACRO(DEFAULT_BOOTFILE)
+#define DEFAULT_BOOTFILE	PXENFSROOTPATH "/boot/pxeboot"
 #endif
 
 /* Clean up console settings... mainly CONSOLE_FIRMWARE and CONSOLE_SERIAL are used

@@ -65,7 +65,7 @@
 #			should be enabled unless you have a legacy DHCP server
 #			configuration from the bad old days before the use of
 #			encapsulated Etherboot options.
-#	-DDEFAULT_BOOTFILE="default_bootfile_name"
+#	-DDEFAULT_BOOTFILE=\"default_bootfile_name\"
 #			Define a default bootfile for the case where your DHCP
 #			server does not provide the information.  Example:
 #			  -DDEFAULT_BOOTFILE="tftp:///tftpboot/kernel"
@@ -275,7 +275,7 @@ CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
 # Specify a default bootfile to be used if the DHCP server does not
 # provide the information.  If you do not specify this option, then
 # DHCP offers that do not contain bootfiles will be ignored.
-# CFLAGS+=	-DDEFAULT_BOOTFILE="tftp:///tftpboot/kernel"
+# CFLAGS+=	-DDEFAULT_BOOTFILE=\"tftp:///tftpboot/kernel\"
 
 # Limit the delay on packet loss/congestion to a more bearable value. See
 # description above.  If unset, do not limit the delay between resend.

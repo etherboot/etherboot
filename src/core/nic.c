@@ -267,7 +267,7 @@ int eth_load(struct dev *dev __unused)
 	rpc_init();
 #endif
 #ifdef	DEFAULT_BOOTFILE
-	kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE_STRINGIFIED;
+	kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
 #else
 	kernel = KERNEL_BUF;
 #endif
