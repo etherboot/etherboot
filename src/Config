@@ -43,6 +43,13 @@
 #
 #	Boot autoconfiguration protocol options:
 #
+#	-DALTERNATE_DHCP_PORTS_1067_1068
+#			Use ports 1067 and 1068 for DHCP instead of 67 and 68.
+#			As these ports are non-standard, you need to configure
+#			your DHCP server to use them. This option gets around
+#			existing DHCP servers which cannot be touched, for
+#			one reason or another, at the cost of non-standard
+#			boot images.
 #	-DNO_DHCP_SUPPORT
 #			Use BOOTP instead of DHCP.
 #	-DRARP_NOT_BOOTP
@@ -242,6 +249,10 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 
 # If you prefer the old style rotating bar progress display
 # CFLAGS+=	-DBAR_PROGRESS
+
+# Enabling this creates non-standard images which use ports 1067 and 1068
+# for DHCP/BOOTP
+# CFLAGS+=	-DALTERNATE_DHCP_PORTS_1067_1068
 
 # Enabling this makes the boot ROM require a Vendor Class Identifier
 # of "Etherboot" in the Vendor Encapsulated Options
