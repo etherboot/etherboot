@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>LILO with Etherboot: Notes</TITLE>
+ <LINK HREF="lilo+etherboot-2.html" REL=previous>
+ <LINK HREF="lilo+etherboot.html#toc3" REL=contents>
+</HEAD>
+<BODY>
+Next
+<A HREF="lilo+etherboot-2.html">Previous</A>
+<A HREF="lilo+etherboot.html#toc3">Contents</A>
+<HR>
+<H2><A NAME="s3">3. Notes</A></H2>
+
+<P>
+<P>
+<UL>
+<LI>The reason for making LILO afresh instead of using the one on the
+rescue floppy is that the lilo executable must match the boot programs,
+otherwise you get mysterious errors like Map segment is too big.  For
+example the LILO in tomsbtrt is version 20.
+</LI>
+<LI>Since LILO relies on the boot images staying at their block
+locations on the disk, if you ever defrag the partition containing the
+boot/ files, and the files get moved as a result, then LILO will fail.
+So it would be a good idea to mark those files as unmovable (system and
+RO I think). If you accidentally move the images, then you have to run
+the LILO install step again.
+</LI>
+</UL>
+<P>
+<HR>
+Next
+<A HREF="lilo+etherboot-2.html">Previous</A>
+<A HREF="lilo+etherboot.html#toc3">Contents</A>
+</BODY>
+</HTML>

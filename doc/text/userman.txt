@@ -1,7 +1,7 @@
   Etherboot User Manual
   Ken Yap and Markus Gutschke, <ken_yap@users.source-
   forge.net>, <markus+etherboot@gutschke.com>
-  v5.0.2, 23 June 2001
+  v5.0.3, 5 August 2001
 
   This User Manual explains how to install, configure and use the Ether-
   boot package.  The instructions here apply to version 5.0 of Ether-
@@ -155,6 +155,10 @@
 
 
 
+     55..00..33 22000011--0088--0055
+        Released as Etherboot-doc 5.0.3.
+
+
      55..00..22 22000011--0066--2233
         Released as Etherboot-doc 5.0.2.
 
@@ -286,17 +290,13 @@
   22..33..  WWhhaatt hhaarrddwwaarree iiss ssuuppppoorrtteedd??
 
 
-  The following is the current NIC configuration file as of 2001-06-23.
+  The following is the current NIC configuration file as of 2001-08-04.
 
   Even if your NIC does not appear in the list, it may still be
   supported if the chip is one of those supported.  Many OEMs use chips
   from foundries. An exhaustive list of brand names is impossible.  The
   best strategy is to read the number on the LAN controller chip on the
   board.
-
-
-
-
 
 
 
@@ -401,6 +401,8 @@
   3c905b-fx       3c90x           0x10b7,0x905a
   3c905c-tpo      3c90x           0x10b7,0x9200
   3c980           3c90x           0x10b7,0x9800
+  3c9805          3c90x           0x10b7,0x9805
+  3csoho100-tx    3c90x           0x10b7,0x7646
   # Intel Etherexpress Pro/100
   eepro100        eepro100        0x8086,0x1229
   82559er         eepro100        0x8086,0x1209
@@ -526,6 +528,7 @@
   fa312           natsemi         0x100B,0x0020
   dp83815         natsemi         0x100B,0x0020
 
+
   The following drivers have notes in the src directory, please read them:
 
   3c90x.txt
@@ -587,10 +590,9 @@
   here as I do not administer the Netboot mailing list.
 
 
+
+
   33..  UUnnppaacckkiinngg,, ccoommppiilliinngg aanndd tteessttiinngg tthhee ppaacckkaaggee
-
-
-
 
   33..11..  AA sshhoorrtt ccuutt ttoo ggeettttiinngg RROOMM iimmaaggeess
 
@@ -612,7 +614,7 @@
 
   ______________________________________________________________________
           tar zxvf etherboot-5.0.x.tar.gz
-          tar Ixvf etherboot-5.0.x.tar.bz2
+          tar jxvf etherboot-5.0.x.tar.bz2
           gunzip < etherboot-5.0.x.tar.gz | tar xvf -
           bunzip2 < etherboot-5.0.x.tar.bz2 | tar xvf -
   ______________________________________________________________________
@@ -636,7 +638,7 @@
 
   ______________________________________________________________________
           tar zxvf ../etherboot-doc-5.0.x.tar.gz
-          tar Ixvf ../etherboot-doc-5.0.x.tar.bz2
+          tar jxvf ../etherboot-doc-5.0.x.tar.bz2
           gunzip < ../etherboot-doc-5.0.x.tar.gz | tar xvf -
           bunzip2 < ../etherboot-doc-5.0.x.tar.bz2 | tar xvf -
   ______________________________________________________________________
@@ -657,6 +659,8 @@
   in loader.S. Use gas 2.9.5 at least. Also the "gcc 2.96" used in
   RedHat 7.0 (and later versions maybe) generates faulty machine code
   compiling Etherboot.  Use kgcc from those distributions instead.
+
+
 
   You only have to go to src/, edit the options in Config and say make.
   We suggest you accept the default options if you are not sure what to
@@ -720,10 +724,6 @@
 
 
 
-
-
-
-
   ______________________________________________________________________
   User interaction options:
 
@@ -738,6 +738,9 @@
                   Assume Network to previous question
                   (alternative: ANS_LOCAL) on timeout or Return key
                   See etherboot.h for prompt and answer strings.
+  -DBAR_PROGRESS
+                  Use rotating bar instead of sequential dots
+                  to indicate a packet transmitted.
   -DMOTD
                   Display message of the day; read vendortags.html
                   for further information.
@@ -816,14 +819,15 @@
 
   Boot device options:
 
-  -DFLOPPY
-                  Boot from floppy/hd if bootimage matches the
+  -DCAN_BOOT_DISK
+                  Can boot from floppy/hd if bootimage matches the
                   pattern "/dev/[fh]d*".
   -DTRY_FLOPPY_FIRST
                   If > 0, tries that many times to read the boot
                   sector from a floppy drive before booting from
                   ROM. If successful, does a local boot.
-                  It assumes the floppy is bootable. Requires -DFLOPPY.
+                  It assumes the floppy is bootable.
+                  Requires -DCAN_BOOT_DISK.
   -DEMERGENCYDISKBOOT
                   If no BOOTP server can be found, then boot from
                   local disk. The accessibility of the TFTP server
@@ -856,6 +860,7 @@
                   if neither is defined.
 
   Console options:
+
   -DCONSOLE_CRT
                   Set for CRT console (default if nothing else is set).
   -DCONSOLE_SERIAL
@@ -891,9 +896,18 @@
                   Define this for PCI BIOSes that do not implement
                   BIOS32 or not correctly. Normally not needed.
                   Only works for BIOSes of a certain era.
+  -DCONFIG_TSC_CURRTICKS
+                  Uses the processor time stamp counter instead of reading
+                  the BIOS time counter.  This allows Etherboot to work
+                  even without a BIOS.  This only works on late model
+                  486s and above.
 
   Obscure options you probably don't need to touch:
 
+  -DPOWERSAVE
+                  Halt the processor when waiting for keyboard input
+                  which saves power while waiting for user interaction.
+                  Good for compute clusters and VMware emulation.
   -DT503_AUI
                   Use AUI by default on 3c503 cards.
   -DMOVEROM
@@ -988,6 +1002,7 @@
   ______________________________________________________________________
 
 
+
   you would say
 
 
@@ -1022,8 +1037,20 @@
 
 
 
+  The fact that .(lz)lilo images look like a Linux kernel to LILO and
+  SYSLINUX allows some interesting booting possibilities. For example,
+  you could use LILO to select between DOS/Windows and Etherboot images
+  from a disk that contains no Linux partitions, only FAT based
+  partitions. This HOWTO <lilo+etherboot.html> shows you how this can be
+  arranged.
+
+
+
   The ones ending in .pxe can be booted by a PXE booter. This is useful
-  to chain to Etherboot from PXE.
+  to chain to Etherboot from PXE. Here
+  <http://www.geocrawler.com/lists/3/SourceForge/5299/125/6129709/> are
+  some notes on how to combine PXE and Etherboot.
+
 
 
 
@@ -1117,9 +1144,6 @@
   Here is a sample DHCP configuration for ISC dhcpd:
 
 
-
-
-
   ______________________________________________________________________
   option domain-name "ken.net.au";
   option domain-name-servers 192.168.26.1;
@@ -1186,6 +1210,8 @@
   values, i.e. byte values 53 and 48 respectively. This allows the
   server to identify Etherboot clients and ignore all others.
 
+
+
   The second part is Etherboot can be conditionally compiled to require
   a Vendor Encapsulated Option containing a VCI of "Etherboot",
   otherwise it will ignore the DHCPOFFER. The option is not compiled in
@@ -1226,9 +1252,6 @@
 
   More information about DHCP can be found at the DHCP FAQ Web Page
   <http://web.syr.edu/~jmwobus/comfaqs/dhcp.faq.html>.
-
-
-
   If you are on a local network that is not directly connected to the
   Internet, you can use the "private" IP addresses 192.168.x.y (or in
   the other ranges mentioned in RFC1918
@@ -1250,6 +1273,7 @@
   ______________________________________________________________________
   bootps  dgram   udp     wait    root    /usr/sbin/tcpd  bootpd
   ______________________________________________________________________
+
 
 
   Then you need to edit /etc/bootptab. The essential pieces of
@@ -1426,8 +1450,6 @@
   the server from the client. Be aware that practically all Linux
   distributions have a few "bugs" relating to symlinks and so forth for
   diskless booting.  These are mentioned in the tutorial.
-
-
   55..22..  IInniittiiaall rraammddiisskk
 
 
@@ -1449,6 +1471,7 @@
   (BOOTP/DHCP from the kernel) may be removed from the Linux kernel and
   initrds may be the way to start up a diskless system that can acquire
   an identity using a userland DHCP client program.
+
 
   55..33..  OOtthheerr ffiilleessyysstteemm sseettuuppss
 
@@ -1492,7 +1515,6 @@
   There is also the follow-on project ENBD
   <http://www.it.uc3m.es/~ptb/nbd/>, the Enhanced Network Block Driver.
   I have no experience with this for swapping. Comments welcome.
-
 
   66..  BBoooottiinngg DDOOSS
 
@@ -1559,6 +1581,7 @@
   information.
 
 
+
   77..11..  CChhoooossiinngg tthhee EEPPRROOMM
 
 
@@ -1582,6 +1605,9 @@
   Secondly, you must discover what size and speed of EPROM is needed.
   This can be difficult as network card manufacturers often neglect to
   provide this information.
+
+
+
   The smallest EPROM that is accepted by network cards is an 8k EPROM
   (2764). 16kB (27128) or 32kB (27256) are the norm. Some cards will
   even go up to 64kB EPROMs (27512). (You will often see a C after the
@@ -1620,7 +1646,6 @@
   upper half or upper quarter of the larger EPROM, as the case may be.
   However you should double check the voltages on the pins armed with
   data sheet and a meter because CMOS EPROMs don't like floating pins.
-
 
 
   If the ROM is larger than the size of the image, for example, a 32 kB
@@ -1755,7 +1780,6 @@
      reset addresses while interrupts are active. You may need to do a
      hard reset of the computer, i.e. power down and up again before
      running Etherboot.
-
   +o  Etherboot detects card but does nothing after saying Searching for
      server. Check your network hardware. Did you select the right
      hardware interface (AUI, BNC, RJ45)? Is the cabling ok? If you have
@@ -1780,6 +1804,7 @@
 
   +o  You do not have a private copy of the /, /etc, /var, ...
      directories
+
   +o  Your /dev directory is missing entries for /dev/zero and/or
      /dev/null or is sharing device entries from a server that uses
      different major and minor numbers (i.e. a server that is not
@@ -1843,7 +1868,6 @@
 
 
   99..  FFrreeqquueennttllyy AAnnsswweerreedd QQuueessttiioonnss
-
 
 
   Please check this section if you have a problem before asking on the
@@ -1912,6 +1936,8 @@
      makes ROM images for you on demand from specifications given to a
      web form and returns the image as the result of the form.
 
+
+
   99..22..  TTeessttiinngg EEtthheerrbboooott
 
 
@@ -1976,6 +2002,7 @@
 
   3. Etherboot gets the BOOTP/DHCP parameters but cannot find a TFTP
      server.
+
 
 
      Do you have a TFTP server installed and running and is it allowed
@@ -2083,8 +2110,6 @@
      network adaptor at an address that is probed by the driver? If not,
      perhaps you need to provide some kernel parameters to help it find
      the hardware.
-
-
   2. The kernel loads but it cannot mount a root filesystem, then it
      asks me to insert a floppy.
 
@@ -2151,7 +2176,6 @@
         for your distribution, I used it on a RedHat 5.2 system long
         ago. If you don't feel up to understanding what needs to be
         fixed, see the next item.
-
      b. You could use the packaged solution from LTSP
         <http://www.ltsp.org/>, which creates a shareable NFS root for
         multiple clients.
@@ -2170,9 +2194,6 @@
      If you have an approach which you think the world should know
      about, please send the URL of a web page that describes it to me
      <mailto:ken_yap@users.sourceforge.net>.
-
-
-
 
 
 
@@ -2221,7 +2242,6 @@
      locally.
 
 
-
      The client can be configured to allow you to run programs locally.
      What you have to do is either start the application from the init
      scripts run during bootup, as would be the case for the printer and
@@ -2240,6 +2260,7 @@
      use the font server? The last point is usually configured in the
      XF86Config file, or by a xset command to modify the font path after
      logging in.
+
 
 
      Also note that RedHat (and possibly other distributions) has made
@@ -2353,8 +2374,6 @@
 
   1. I want to boot FreeDOS.
 
-
-
      The new mknbi utility supports creating tagged images from FreeDOS
      kernels now.  See the man page <mknbi.html> for details.  FreeDOS
      is a moving target and the layout of the kernel image or other
@@ -2371,7 +2390,6 @@
      with the DR-DOS 7.03 kernel, so you can substitute that. There are
      instructions to extract the bootblock in the AT netbooting document
      <atnetboot.html>.
-
 
 
   3. DOS dies when I load HIMEM.SYS.
@@ -2447,24 +2465,6 @@
 
      Here is some text contributed by Dirk von Suchodoletz. He hopes to
      put it on a web site someday:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2614,14 +2614,14 @@
 
 
      These jumperless cards need a card-specific utility program to
-     enable the ROM. Normally the manufacturer supplies it on a diskette
-     or CDROM.  You lost the diskette? If you know the manufacturer, you
-     might be able to get the program from their website. You have a
-     mystery card? Well the first thing to do is to identify the card.
-     If it is an ISA card and made in Taiwan or China it's almost
-     certainly a NE2000 clone. For some information, try here
-     <http://members.nbci.com/ken_yap/NIC/>. If it's a PCI card, then
-     either the BIOS or the Linux PCI Utilities
+     enable the ROM.  Normally the manufacturer supplies it on a
+     diskette or CDROM.  You lost the diskette? If you know the
+     manufacturer, you might be able to get the program from their
+     website. You have a mystery card? Well the first thing to do is to
+     identify the card. If it is an ISA card and made in Taiwan or China
+     it's almost certainly a NE2000 clone. For some information, try
+     here <http://www.geocities.com/SiliconValley/Lab/9247/NIC/>. If
+     it's a PCI card, then either the BIOS or the Linux PCI Utilities
      <http://atrey.karlin.mff.cuni.cz/~mj/pciutils.html> should be able
      to tell you the manufacturer and device IDs, which you can then
      look up to convert to names.
@@ -3090,7 +3090,6 @@
   otulip.h                BSD
   pci.c                   GPL
   pci.h                   GPL
-  pxeloader.S             GPL
   rtl8139.c               GPL
   serial.S                Mach
   sis900.c                GPL
@@ -3106,6 +3105,9 @@
   timer.c                 GPL
   timer.h                 GPL
   tulip.c                 BSD
+  ube.c                   GPL
+  ube_start32.S           GPL
+  uniform_boot.h          GPL
   via-rhine.c             GPL
   w89c840.c               GPL
 
@@ -3178,8 +3180,6 @@
    * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
    */
   ______________________________________________________________________
-
-
 
 
 

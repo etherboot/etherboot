@@ -11,6 +11,9 @@ User interaction options:
 		Assume Network to previous question
 		(alternative: ANS_LOCAL) on timeout or Return key
 		See etherboot.h for prompt and answer strings.
+-DBAR_PROGRESS
+		Use rotating bar instead of sequential dots
+		to indicate a packet transmitted.
 -DMOTD
 		Display message of the day; read vendortags.html
 		for further information.
@@ -89,14 +92,15 @@ Boot tuning parameters:
 
 Boot device options:
 
--DFLOPPY
-		Boot from floppy/hd if bootimage matches the
+-DCAN_BOOT_DISK
+		Can boot from floppy/hd if bootimage matches the
 		pattern "/dev/[fh]d*".
 -DTRY_FLOPPY_FIRST
 		If > 0, tries that many times to read the boot
 		sector from a floppy drive before booting from
 		ROM. If successful, does a local boot.
-		It assumes the floppy is bootable. Requires -DFLOPPY.
+		It assumes the floppy is bootable.
+		Requires -DCAN_BOOT_DISK.
 -DEMERGENCYDISKBOOT
 		If no BOOTP server can be found, then boot from
 		local disk. The accessibility of the TFTP server
@@ -165,9 +169,18 @@ BIOS interface options:
 		Define this for PCI BIOSes that do not implement
 		BIOS32 or not correctly. Normally not needed.
 		Only works for BIOSes of a certain era.
+-DCONFIG_TSC_CURRTICKS
+		Uses the processor time stamp counter instead of reading
+		the BIOS time counter.  This allows Etherboot to work
+		even without a BIOS.  This only works on late model
+		486s and above.
 
 Obscure options you probably don't need to touch:
 
+-DPOWERSAVE
+		Halt the processor when waiting for keyboard input
+		which saves power while waiting for user interaction.
+		Good for compute clusters and VMware emulation.
 -DT503_AUI
 		Use AUI by default on 3c503 cards.
 -DMOVEROM

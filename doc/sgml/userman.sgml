@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/,
 <tt/&lt;markus+etherboot@gutschke.com&gt;/
-<date>v5.0.2, 23 June 2001
+<date>v5.0.3, 5 August 2001
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -40,6 +40,8 @@ documentation.
 <p>
 
 <descrip>
+
+<tag/5.0.3 2001-08-05/ Released as Etherboot-doc 5.0.3.
 
 <tag/5.0.2 2001-06-23/ Released as Etherboot-doc 5.0.2.
 
@@ -171,7 +173,7 @@ listed on the Etherboot home page.</it>
 
 <p>
 
-The following is the current NIC configuration file as of 2001-06-23.
+The following is the current NIC configuration file as of 2001-08-04.
 
 Even if your NIC does not appear in the list, it may still be supported
 if the chip is one of those supported.  Many OEMs use chips from
@@ -251,6 +253,8 @@ strategy is to read the number on the LAN controller chip on the board.
 3c905b-fx	3c90x		0x10b7,0x905a
 3c905c-tpo	3c90x		0x10b7,0x9200
 3c980		3c90x		0x10b7,0x9800
+3c9805		3c90x		0x10b7,0x9805
+3csoho100-tx	3c90x		0x10b7,0x7646
 # Intel Etherexpress Pro/100
 eepro100	eepro100	0x8086,0x1229
 82559er		eepro100	0x8086,0x1209
@@ -458,7 +462,7 @@ commands, where you replace x by the patchlevel number:
 
 <code>
 	tar zxvf etherboot-5.0.x.tar.gz
-	tar Ixvf etherboot-5.0.x.tar.bz2
+	tar jxvf etherboot-5.0.x.tar.bz2
 	gunzip < etherboot-5.0.x.tar.gz | tar xvf -
 	bunzip2 < etherboot-5.0.x.tar.bz2 | tar xvf -
 </code>
@@ -476,7 +480,7 @@ followed by one of the following:
 
 <code>
 	tar zxvf ../etherboot-doc-5.0.x.tar.gz
-	tar Ixvf ../etherboot-doc-5.0.x.tar.bz2
+	tar jxvf ../etherboot-doc-5.0.x.tar.bz2
 	gunzip < ../etherboot-doc-5.0.x.tar.gz | tar xvf -
 	bunzip2 < ../etherboot-doc-5.0.x.tar.bz2 | tar xvf -
 </code>
@@ -526,6 +530,9 @@ User interaction options:
 		Assume Network to previous question
 		(alternative: ANS_LOCAL) on timeout or Return key
 		See etherboot.h for prompt and answer strings.
+-DBAR_PROGRESS
+		Use rotating bar instead of sequential dots
+		to indicate a packet transmitted.
 -DMOTD
 		Display message of the day; read vendortags.html
 		for further information.
@@ -604,14 +611,15 @@ Boot tuning parameters:
 
 Boot device options:
 
--DFLOPPY
-		Boot from floppy/hd if bootimage matches the
+-DCAN_BOOT_DISK
+		Can boot from floppy/hd if bootimage matches the
 		pattern "/dev/[fh]d*".
 -DTRY_FLOPPY_FIRST
 		If > 0, tries that many times to read the boot
 		sector from a floppy drive before booting from
 		ROM. If successful, does a local boot.
-		It assumes the floppy is bootable. Requires -DFLOPPY.
+		It assumes the floppy is bootable.
+		Requires -DCAN_BOOT_DISK.
 -DEMERGENCYDISKBOOT
 		If no BOOTP server can be found, then boot from
 		local disk. The accessibility of the TFTP server
@@ -680,9 +688,18 @@ BIOS interface options:
 		Define this for PCI BIOSes that do not implement
 		BIOS32 or not correctly. Normally not needed.
 		Only works for BIOSes of a certain era.
+-DCONFIG_TSC_CURRTICKS
+		Uses the processor time stamp counter instead of reading
+		the BIOS time counter.  This allows Etherboot to work
+		even without a BIOS.  This only works on late model
+		486s and above.
 
 Obscure options you probably don't need to touch:
 
+-DPOWERSAVE
+		Halt the processor when waiting for keyboard input
+		which saves power while waiting for user interaction.
+		Good for compute clusters and VMware emulation.
 -DT503_AUI
 		Use AUI by default on 3c503 cards.
 -DMOVEROM
@@ -801,8 +818,19 @@ analogous to the difference between .rom and .lzrom.
 
 <p>
 
+The fact that .(lz)lilo images look like a Linux kernel to LILO and
+SYSLINUX allows some interesting booting possibilities. For example, you
+could use LILO to select between DOS/Windows and Etherboot images from a
+disk that contains no Linux partitions, only FAT based partitions. This
+<url name="HOWTO" url="lilo+etherboot.html"> shows you how this can be
+arranged.
+
+<p>
+
 The ones ending in .pxe can be booted by a PXE booter. This is useful to
-chain to Etherboot from PXE.
+chain to Etherboot from PXE. <url name="Here"
+url="http://www.geocrawler.com/lists/3/SourceForge/5299/125/6129709/">
+are some notes on how to combine PXE and Etherboot.
 
 <p>
 
@@ -2286,18 +2314,17 @@ no jumpers on the card.
 
 <p>
 
-These jumperless cards need a card-specific utility program to enable
-the ROM. Normally the manufacturer supplies it on a diskette or CDROM.
-You lost the diskette? If you know the manufacturer, you might be able
-to get the program from their website. You have a mystery card? Well the
-first thing to do is to identify the card. If it is an ISA card and made
-in Taiwan or China it's almost certainly a NE2000 clone. For some
-information, try <url name="here"
-url="http://members.nbci.com/ken_yap/NIC/">. If it's a PCI card, then
-either the BIOS or the <url
-url="http://atrey.karlin.mff.cuni.cz/&tilde;mj/pciutils.html"
-name="Linux PCI Utilities"> should be able to tell you the manufacturer
-and device IDs, which you can then look up to convert to names.
+These jumperless cards need a card-specific utility program to enable the ROM.
+Normally the manufacturer supplies it on a diskette or CDROM.  You lost the
+diskette? If you know the manufacturer, you might be able to get the program
+from their website. You have a mystery card? Well the first thing to do is to
+identify the card. If it is an ISA card and made in Taiwan or China it's almost
+certainly a NE2000 clone. For some information, try <url name="here"
+url="http://www.geocities.com/SiliconValley/Lab/9247/NIC/">. If it's a PCI
+card, then either the BIOS or the <url
+url="http://atrey.karlin.mff.cuni.cz/&tilde;mj/pciutils.html" name="Linux PCI
+Utilities"> should be able to tell you the manufacturer and device IDs, which
+you can then look up to convert to names.
 
 <item>I would like to boot my laptop diskless from a floppy containing
 Etherboot.
@@ -2650,7 +2677,6 @@ otulip.c		BSD
 otulip.h		BSD
 pci.c			GPL
 pci.h			GPL
-pxeloader.S		GPL
 rtl8139.c		GPL
 serial.S		Mach
 sis900.c		GPL
@@ -2666,6 +2692,9 @@ tiara.c			GPL
 timer.c			GPL
 timer.h			GPL
 tulip.c			BSD
+ube.c			GPL
+ube_start32.S		GPL
+uniform_boot.h		GPL
 via-rhine.c		GPL
 w89c840.c		GPL
 

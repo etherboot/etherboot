@@ -1,0 +1,121 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>LILO with Etherboot
+<author>Ken Yap,
+<tt/&lt;ken_yap@users.sourceforge.net&gt;/
+<date>22 July 2001
+
+<abstract>
+This HOWTO explains how to install LILO on disks that do not have any
+Linux filesystems to boot DOS as well as Etherboot .(lz)lilo images.
+</abstract>
+
+<sect>Motivation
+
+<p>
+
+LILO is perhaps the best known Linux boot loader and many people use it
+to single or multiple boot OSes. What is less well known is that LILO
+can also boot from disks that do not have any Linux partitions at all.
+This follows from the design of LILO. The installer stores lists of disk
+blocks to read in and the boot time portion does not care what kind of
+partition the boot images are stored on. All that is needed is a way to
+run the installer on a non-Linux partition. Any filesystem supported by
+Linux can be handled, provided it can be mounted RW. This includes all
+the FAT based DOS and Windows filesystems.
+
+<p>
+
+What I describe below is not actually Etherboot specific. It will work
+just as well if you want to boot a Linux kernel from a DOS partition.
+It just so happens that Etherboot can build images that look like Linux
+kernels to the LILO installer.  Therefore most of the cleverness is in
+getting a LILO installer to run on a non-Linux partition.
+
+<sect>The steps
+
+<p>
+
+<enum>
+
+<item>Get hold of a rescue floppy like tomsbtrt (www.toms.net). Other
+rescue floppies or CDs should work also. All you have to be able to do
+with the rescue disk is mount a DOS/Windows filesystem on the Linux
+filesystem.
+
+<p>
+
+The next 4 steps are done on a host Linux system.
+
+<item>Get hold of a recent LILO distribution. I used lilo-21.7-5. Edit the
+Makefile to generate a statically linked lilo executable by adding
+--static to the link command. Do a make. This will generate a lilo
+executable. You might want to run strip on this to reduce the size. Also
+generated will be various boot programs ending in .b.
+
+<item>Create a working directory, say /tmp/lilo and under it mkdir boot/,
+sbin/ and etc/.
+
+<item>Copy the .b files to /tmp/lilo/boot.  cp -p /tmp/lilo/boot-menu.b
+/tmp/lilo/boot.b. You can also substitute -text for -menu if you prefer
+a plain text prompt. Copy the lilo executable to /tmp/lilo/sbin.  Create
+/tmp/lilo/etc/lilo.con and add an entry for DOS.
+
+<item>In /tmp/lilo, zip the contents to say /tmp/lilo.zip. Use a floppy
+or other means to transfer this to the DOS system. To save you work, you
+can find a copy of this zip archive <url name="here"
+url="http://etherboot.sourceforge.net/lilo2175.zip">.
+
+<item>Unpack the archive in the root directory of the DOS system. If you
+are using pkunzip, remember to use the option that preserves the paths.
+You should end up with three new top level directories: \boot, \sbin and
+\etc.
+
+<item>Generate the Etherboot .lzlilo or .lilo images you want and copy
+them to \boot.  Remember to alter the names to 8.3 standard as necessary.
+
+<item>Reboot the DOS system using the rescue floppy. Mount the DOS
+filesystem, say on /mnt.
+
+<item>Using the editor on your rescue floppy, add entries to
+\etc\lilo.con for the Etherboot images.
+
+<item>Make a symlink from /mnt/boot to /boot. You can't use the -r /mnt
+option of lilo because it will chroot to /mnt and look for /mnt/dev/hda,
+and of course those device files don't exist on a DOS FS.
+
+<item>Run /mnt/sbin/lilo -v -C /mnt/etc/lilo.con This will write LILO into
+the master boot sector.
+
+<item>Umount /mnt and reboot. Keep the rescue floppy around for future
+modifications to \etc\lilo.con.
+
+<item>LILO should take control on boot up and there should be entries for
+DOS and each Etherboot image. You can even have fancy splash graphics,
+this is a LILO enhancement in some distributions like SuSE.
+
+</enum>
+
+<sect>Notes
+
+<p>
+
+<itemize>
+
+<item>The reason for making LILO afresh instead of using the one on the
+rescue floppy is that the lilo executable must match the boot programs,
+otherwise you get mysterious errors like Map segment is too big.  For
+example the LILO in tomsbtrt is version 20.
+
+<item>Since LILO relies on the boot images staying at their block
+locations on the disk, if you ever defrag the partition containing the
+boot/ files, and the files get moved as a result, then LILO will fail.
+So it would be a good idea to mark those files as unmovable (system and
+RO I think). If you accidentally move the images, then you have to run
+the LILO install step again.
+
+</itemize>
+
+</article>

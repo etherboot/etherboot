@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/,
 <tt/&lt;markus+etherboot@gutschke.com&gt;/
-<date>v5.0.2, 23 June 2001
+<date>v5.0.3, 5 August 2001
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -40,6 +40,8 @@ documentation.
 <p>
 
 <descrip>
+
+<tag/5.0.3 2001-08-05/ Released as Etherboot-doc 5.0.3.
 
 <tag/5.0.2 2001-06-23/ Released as Etherboot-doc 5.0.2.
 
@@ -257,7 +259,7 @@ commands, where you replace x by the patchlevel number:
 
 <code>
 	tar zxvf etherboot-5.0.x.tar.gz
-	tar Ixvf etherboot-5.0.x.tar.bz2
+	tar jxvf etherboot-5.0.x.tar.bz2
 	gunzip < etherboot-5.0.x.tar.gz | tar xvf -
 	bunzip2 < etherboot-5.0.x.tar.bz2 | tar xvf -
 </code>
@@ -275,7 +277,7 @@ followed by one of the following:
 
 <code>
 	tar zxvf ../etherboot-doc-5.0.x.tar.gz
-	tar Ixvf ../etherboot-doc-5.0.x.tar.bz2
+	tar jxvf ../etherboot-doc-5.0.x.tar.bz2
 	gunzip < ../etherboot-doc-5.0.x.tar.gz | tar xvf -
 	bunzip2 < ../etherboot-doc-5.0.x.tar.bz2 | tar xvf -
 </code>
@@ -414,8 +416,19 @@ analogous to the difference between .rom and .lzrom.
 
 <p>
 
+The fact that .(lz)lilo images look like a Linux kernel to LILO and
+SYSLINUX allows some interesting booting possibilities. For example, you
+could use LILO to select between DOS/Windows and Etherboot images from a
+disk that contains no Linux partitions, only FAT based partitions. This
+<url name="HOWTO" url="lilo+etherboot.html"> shows you how this can be
+arranged.
+
+<p>
+
 The ones ending in .pxe can be booted by a PXE booter. This is useful to
-chain to Etherboot from PXE.
+chain to Etherboot from PXE. <url name="Here"
+url="http://www.geocrawler.com/lists/3/SourceForge/5299/125/6129709/">
+are some notes on how to combine PXE and Etherboot.
 
 <p>
 
@@ -1899,18 +1912,17 @@ no jumpers on the card.
 
 <p>
 
-These jumperless cards need a card-specific utility program to enable
-the ROM. Normally the manufacturer supplies it on a diskette or CDROM.
-You lost the diskette? If you know the manufacturer, you might be able
-to get the program from their website. You have a mystery card? Well the
-first thing to do is to identify the card. If it is an ISA card and made
-in Taiwan or China it's almost certainly a NE2000 clone. For some
-information, try <url name="here"
-url="http://members.nbci.com/ken_yap/NIC/">. If it's a PCI card, then
-either the BIOS or the <url
-url="http://atrey.karlin.mff.cuni.cz/&tilde;mj/pciutils.html"
-name="Linux PCI Utilities"> should be able to tell you the manufacturer
-and device IDs, which you can then look up to convert to names.
+These jumperless cards need a card-specific utility program to enable the ROM.
+Normally the manufacturer supplies it on a diskette or CDROM.  You lost the
+diskette? If you know the manufacturer, you might be able to get the program
+from their website. You have a mystery card? Well the first thing to do is to
+identify the card. If it is an ISA card and made in Taiwan or China it's almost
+certainly a NE2000 clone. For some information, try <url name="here"
+url="http://www.geocities.com/SiliconValley/Lab/9247/NIC/">. If it's a PCI
+card, then either the BIOS or the <url
+url="http://atrey.karlin.mff.cuni.cz/&tilde;mj/pciutils.html" name="Linux PCI
+Utilities"> should be able to tell you the manufacturer and device IDs, which
+you can then look up to convert to names.
 
 <item>I would like to boot my laptop diskless from a floppy containing
 Etherboot.

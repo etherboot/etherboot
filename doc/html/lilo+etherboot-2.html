@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>LILO with Etherboot: The steps</TITLE>
+ <LINK HREF="lilo+etherboot-3.html" REL=next>
+ <LINK HREF="lilo+etherboot-1.html" REL=previous>
+ <LINK HREF="lilo+etherboot.html#toc2" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="lilo+etherboot-3.html">Next</A>
+<A HREF="lilo+etherboot-1.html">Previous</A>
+<A HREF="lilo+etherboot.html#toc2">Contents</A>
+<HR>
+<H2><A NAME="s2">2. The steps</A></H2>
+
+<P>
+<P>
+<OL>
+<LI>Get hold of a rescue floppy like tomsbtrt (www.toms.net). Other
+rescue floppies or CDs should work also. All you have to be able to do
+with the rescue disk is mount a DOS/Windows filesystem on the Linux
+filesystem.
+
+<P>
+<P>The next 4 steps are done on a host Linux system.
+<P>
+</LI>
+<LI>Get hold of a recent LILO distribution. I used lilo-21.7-5. Edit the
+Makefile to generate a statically linked lilo executable by adding
+--static to the link command. Do a make. This will generate a lilo
+executable. You might want to run strip on this to reduce the size. Also
+generated will be various boot programs ending in .b.
+</LI>
+<LI>Create a working directory, say /tmp/lilo and under it mkdir boot/,
+sbin/ and etc/.
+</LI>
+<LI>Copy the .b files to /tmp/lilo/boot.  cp -p /tmp/lilo/boot-menu.b
+/tmp/lilo/boot.b. You can also substitute -text for -menu if you prefer
+a plain text prompt. Copy the lilo executable to /tmp/lilo/sbin.  Create
+/tmp/lilo/etc/lilo.con and add an entry for DOS.
+</LI>
+<LI>In /tmp/lilo, zip the contents to say /tmp/lilo.zip. Use a floppy
+or other means to transfer this to the DOS system. To save you work, you
+can find a copy of this zip archive 
+<A HREF="http://etherboot.sourceforge.net/lilo2175.zip">here</A>.
+</LI>
+<LI>Unpack the archive in the root directory of the DOS system. If you
+are using pkunzip, remember to use the option that preserves the paths.
+You should end up with three new top level directories: \boot, \sbin and
+\etc.
+</LI>
+<LI>Generate the Etherboot .lzlilo or .lilo images you want and copy
+them to \boot.  Remember to alter the names to 8.3 standard as necessary.
+</LI>
+<LI>Reboot the DOS system using the rescue floppy. Mount the DOS
+filesystem, say on /mnt.
+</LI>
+<LI>Using the editor on your rescue floppy, add entries to
+\etc\lilo.con for the Etherboot images.
+</LI>
+<LI>Make a symlink from /mnt/boot to /boot. You can't use the -r /mnt
+option of lilo because it will chroot to /mnt and look for /mnt/dev/hda,
+and of course those device files don't exist on a DOS FS.
+</LI>
+<LI>Run /mnt/sbin/lilo -v -C /mnt/etc/lilo.con This will write LILO into
+the master boot sector.
+</LI>
+<LI>Umount /mnt and reboot. Keep the rescue floppy around for future
+modifications to \etc\lilo.con.
+</LI>
+<LI>LILO should take control on boot up and there should be entries for
+DOS and each Etherboot image. You can even have fancy splash graphics,
+this is a LILO enhancement in some distributions like SuSE.
+</LI>
+</OL>
+<P>
+<HR>
+<A HREF="lilo+etherboot-3.html">Next</A>
+<A HREF="lilo+etherboot-1.html">Previous</A>
+<A HREF="lilo+etherboot.html#toc2">Contents</A>
+</BODY>
+</HTML>
