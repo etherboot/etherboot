@@ -12,7 +12,7 @@
 #define	QUERYIDENTIFIER	1
 
 // Query flags are standard values here
-#define	QUERYFLAGS	0
+#define	QUERYFLAGS	0x1
 #define	QUERYFLAGS_MASK	0xf8
 #define	QUERYFLAGS_WANT	0x80
 

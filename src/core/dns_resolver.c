@@ -249,9 +249,9 @@ int	chars_to_next_dot ( char * countfrom, int maxnum ) {
  *	Return:	0 for success, >0 for failure
  */
 int	donameresolution ( char * hostname, int hnlength, char * deststring ) {
-	char	querybuf[260+sizeof(struct iphdr)+sizeof(struct udphdr)];
+	unsigned char	querybuf[260+sizeof(struct iphdr)+sizeof(struct udphdr)];
 		// 256 for the DNS query packet, +4 for the result temporary
-	char	*query = &querybuf[sizeof(struct iphdr)+sizeof(struct udphdr)];
+	unsigned char	*query = &querybuf[sizeof(struct iphdr)+sizeof(struct udphdr)];
 	int	i, h = hnlength;
 	long	timeout;
 	int	retry, recursion;
@@ -315,11 +315,11 @@ int	donameresolution ( char * hostname, int hnlength, char * deststring ) {
 		}
 		switch ( i ) {
 		  case	RET_GOT_ADDR:	// Address successfully retrieved
-			sprintf( deststring, "%d.%d.%d.%d",
-				query[QINDEX_STORE_A  ],
-				query[QINDEX_STORE_A+1],
-				query[QINDEX_STORE_A+2],
-				query[QINDEX_STORE_A+3] );
+			sprintf( deststring, "%@",
+				  (long)query[QINDEX_STORE_A  ]           +
+				( (long)query[QINDEX_STORE_A+1] * 256 ) +
+				( (long)query[QINDEX_STORE_A+2] * 65536 )+
+				( (long)query[QINDEX_STORE_A+3] * 16777216 ));
 			printf ( " -> IP [%s]\n", deststring );
 			return	RET_DNS_OK;
 		  case	RET_RUN_CNAME_Q: // No A record found, try CNAME
