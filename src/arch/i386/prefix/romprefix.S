@@ -103,13 +103,26 @@ UNDIROMID:
 	.byte	0			/* Structure revision */
 	.byte	0,1,2			/* PXE version 2.1.0 */
 	.word	UNDILoader - _prefix	/* Offset to loader routine */
-	.word	UNDIDataSize		/* Stack segment size */
+	.word	UNDIStackSize		/* Stack segment size */
 	.word	UNDIDataSize		/* Data segment size */
 	.word	UNDICodeSize		/* Code segment size */
 	.ascii	"PCIR"
 
-	.equ	UNDIDataSize, 0x1000
-	.equ	UNDICodeSize, 0x1000
+	/* The code segment contains our pxe_stack_t plus the PXE and
+	 * RM callback interfaces.  We don't actually use a data
+	 * segment, but we put a nonzero value here to avoid confusing
+	 * things.  16k of stack space should be enough.
+	 *
+	 * When we claim our own memory, we fill out the data segment
+	 * with the address and size of the real-mode stack, so that
+	 * NBPs will free that area of memory for us.  When the UNDI
+	 * loader is used to initialise us, we will never need a
+	 * real-mode stack because we will only ever be called via the
+	 * PXE API, hence our stack is already in base memory.
+	 */
+	.equ	UNDICodeSize, _pxe_stack_size
+	.equ	UNDIDataSize, 0x1
+	.equ	UNDIStackSize, 0x1000
 UNDIROMID_end:	
 #endif	/* PXE_EXPORT */
 	
@@ -211,7 +224,25 @@ start16:
 	lret				/* Jump to start16.S */
 
 #ifdef 	PXE_EXPORT
+	/* Placeholder UNDI loader routine: just print out a message
+	 * and return failure.
+	 */
+loadermsg:	.ascii "Dummy UNDI loader called\r\n"
+loadermsg_end:	
 UNDILoader:
+	pushw	%cs
+	popw	%ds
+	movw	$loadermsg - _prefix, %si
+	movw	$loadermsg_end - loadermsg, %cx
+	movw	$0x0007, %bx
+	movb	$0x0e, %ah
+prloop:	
+	lodsb
+	int	$0x10
+	loop	prloop
+	/* Return failure */
+	movw	$1, %ax
+	lret
 #endif	/* PXE_EXPORT */
 		
 /* Force 16 byte alignment */
