@@ -337,10 +337,11 @@ static void rtl_transmit(struct nic *nic, const char *destaddr,
 	unsigned int status, to, nstype;
 	unsigned long txstatus;
 
+	/* nstype assignment moved up here to avoid gcc 3.0.3 compiler bug */
+	nstype = htons(type);
 	memcpy(tx_buffer, destaddr, ETH_ALEN);
 	memcpy(tx_buffer + ETH_ALEN, nic->node_addr, ETH_ALEN);
-	nstype = htons(type);
-	memcpy(tx_buffer + 2 * ETH_ALEN, (char*)&nstype, 2);
+	memcpy(tx_buffer + 2 * ETH_ALEN, &nstype, 2);
 	memcpy(tx_buffer + ETH_HLEN, data, len);
 
 	len += ETH_HLEN;

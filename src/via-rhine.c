@@ -1170,6 +1170,9 @@ rhine_transmit (struct nic *nic,
     /*printf("td4=[%X]",inl(dwCurrentTDSE3)); */
 
     outb (CR1bak, byCR1);
+    /* Wait until transmit is finished */
+    while (tp->tx_ring[entry].tx_status.bits.own_bit != 0)
+	;
     tp->cur_tx++;
 
     /*outw(IMRShadow,byIMR0); */

@@ -34,6 +34,11 @@ Author: Martin Renters
 #define DEFAULT_BOOTFILE	"/tftpboot/kernel"
 #endif
 
+#ifdef FREEBSD_PXEEMU
+#undef DEFAULT_BOOTFILE
+#define DEFAULT_BOOTFILE	PXENFSROOTPATH "/boot/pxeboot"
+#endif
+
 /* Clean up console settings... mainly CONSOLE_CRT and CONSOLE_SERIAL are used
  * in the sources (except start.S and serial.S which cannot include
  * etherboot.h).  At least one of the CONSOLE_xxx has to be set, and
@@ -258,6 +263,9 @@ Author: Martin Renters
 #define AWAIT_RARP	3
 #define AWAIT_RPC	4
 #define AWAIT_QDRAIN	5	/* drain queue, process ARP requests */
+#ifdef FREEBSD_PXEEMU
+#define AWAIT_UDP	6
+#endif
 
 typedef struct {
 	unsigned long	s_addr;
@@ -468,6 +476,18 @@ struct ebinfo {
 	unsigned short	flags;		/* Bit flags */
 };
 
+#ifdef FREEBSD_PXEEMU
+static __inline u_int min(u_int a, u_int b) { return (a < b ? a : b); }
+
+#define UDP_MAX_PAYLOAD	(ETH_FRAME_LEN - ETH_HLEN - sizeof(struct iphdr) \
+			 - sizeof(struct udphdr))
+struct udppacket_t {
+	struct iphdr	ip;
+	struct udphdr	udp;
+	char		payload[UDP_MAX_PAYLOAD];
+};
+#endif
+
 /***************************************************************************
 External prototypes
 ***************************************************************************/
@@ -488,7 +508,7 @@ extern void nfs_umountall P((int));
 /* config.c */
 extern void print_config(void);
 extern void eth_reset(void);
-extern int eth_probe(void);
+extern int eth_probe(int adapter);
 extern int eth_poll(void);
 extern void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p);
 extern void eth_disable(void);

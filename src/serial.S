@@ -186,6 +186,7 @@ serial_ischar:
  */
 	.globl serial_init
 serial_init:
+#ifndef COMPRESERVE
 	movl	$COMCONSOLE + 3, %edx	# line control reg
 	movb	$0x80, %al
 	outb	%al, %dx	# enable DLAB
@@ -215,9 +216,9 @@ serial_init:
 
 	incl	%edx		# modem control reg
 	outb	%al, %dx	# enable DTR/RTS
-
+#endif
 	/* Flush the input buffer. */
-	incl	%edx		# line status reg
+	movl	$COMCONSOLE + 5, %edx	# line status reg
 3:
 	subl	$5, %edx	# rx buffer reg
 	inb	%dx, %al	# throw away (unconditionally the first time)

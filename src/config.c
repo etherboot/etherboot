@@ -412,7 +412,25 @@ void eth_reset(void)
 	(*nic.reset)(&nic);
 }
 
-int eth_probe(void)
+#ifdef INCLUDE_PCI
+static struct pci_device *find_next_pci_adapter(int last_adapter)
+{
+	struct pci_device	*p;
+
+	/* Pick the first PCI canidate above adapter with a non-zero ioaddr  */
+	for (p = pci_nic_list; p->vendor != 0; ++p) {
+		if ((p - pci_nic_list) <= last_adapter)
+			continue;
+		if (p->ioaddr != 0) {
+			pci_ioaddrs[0] = p->ioaddr;
+			break;
+		}
+	}
+	return (p);
+}
+#endif 
+
+int eth_probe(int last_adapter)
 {
 	struct pci_device	*p;
 	const struct dispatch_table	*t;
@@ -422,28 +440,30 @@ int eth_probe(void)
 	eth_pci_init(pci_nic_list);
 	pci_ioaddrs[0] = 0;
 	pci_ioaddrs[1] = 0;
-	/* at this point we have a list of possible PCI candidates
-	   we just pick the first one with a non-zero ioaddr */
-	for (p = pci_nic_list; p->vendor != 0; ++p) {
-		if (p->ioaddr != 0) {
-			pci_ioaddrs[0] = p->ioaddr;
-			break;
-		}
-	}
+	/* at this point we have a list of possible PCI candidates */
+#ifndef TRY_ALL_DEVICES
+	/* Force a reset of the list every time... */
+	last_adapter = -1;
+#endif
+	p = find_next_pci_adapter(last_adapter);
+	if (p->vendor == 0)
+		p = find_next_pci_adapter(-1);
+	if (p->vendor == 0)
+		return (-1);
 #endif
 	printf("Probing...");
 	for (t = NIC; t->nic_name != 0; ++t)
 	{
 		printf("[%s]", t->nic_name);
 #ifdef	INCLUDE_PCI
-		if ((*t->eth_probe)(&nic, t->probe_ioaddrs, p)) {
+		if ((*t->eth_probe)(&nic, t->probe_ioaddrs, p))
+			return (p - pci_nic_list);
 #else
-		if ((*t->eth_probe)(&nic, t->probe_ioaddrs)) {
+		if ((*t->eth_probe)(&nic, t->probe_ioaddrs))
+			return (0);
 #endif	/* INCLUDE_PCI */
-			return (1);
-		}
 	}
-	return (0);
+	return (-1);
 }
 
 int eth_poll(void)

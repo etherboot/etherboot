@@ -43,7 +43,11 @@ while(<>) {
 	while ($#new_dep >= 0) {
 		@collect_dep = ();
 		foreach $source (@new_dep) {
-			open(INFILE, "$source");
+# Warn about failure to open, then skip, rather than soldiering on with the read
+			unless (open(INFILE, "$source")) {
+				print STDERR "$source: $! (shouldn't happen)\n";
+				next;
+			}
 			while (<INFILE>) {
 				chomp($_);
 # This code is not very smart: no C comments or CPP conditionals processing is
@@ -52,8 +56,10 @@ while(<>) {
 # figure out a superset of all the headers for the driver source.  The pci.h
 # file is treated specially, because we know which cards are PCI and not ISA.
 				next unless (s/^\s*#include\s*"([^"]*)".*$/$1/);
+				next if ($_ eq 'pci.h');
+# Ignore system includes, like the ones in osdep.h
+				next if ($_ =~ m:^/:);
 				next if (exists $driver_dep{"$_"});
-				next if ("$_" eq "pci.h");
 				$driver_dep{"$_"} = "$_";
 				push(@collect_dep,($_));
 			}

@@ -39,12 +39,22 @@ void twiddle(void)
 	static int count=0;
 	static const char tiddles[]="-\\|/";
 	unsigned long ticks;
+#ifdef FREEBSD_PXEEMU
+	extern char pxeemu_nbp_active;
+	if(pxeemu_nbp_active != 0)
+		return;
+#endif
 	if ((ticks = currticks()) == lastticks)
 		return;
 	lastticks = ticks;
 	putchar(tiddles[(count++)&3]);
 	putchar('\b');
 #else
+#ifdef FREEBSD_PXEEMU
+	extern char pxeemu_nbp_active;
+	if(pxeemu_nbp_active != 0)
+		return;
+#endif
 	putchar('.');
 #endif	/* BAR_PROGRESS */
 }

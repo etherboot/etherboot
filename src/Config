@@ -160,6 +160,15 @@
 #			bits and parity. See a National Semiconditor 8250/
 #			16450/16550 data sheet for bit meanings.
 #			If undefined, defaults to 0x03 = 8N1.
+#	-DCOMPRESERVE
+#			Ignore COMSPEED and COMPARAM and instead preserve
+#			the com port parameters from the previous user
+#			of the com port.  Examples of previous user are a BIOS
+#			that implements console redirection, lilo and LinuxBIOS.
+#			This makes it trivial to keep the serial port
+#			speed setting in sync between multiple users.
+#			You set the speed in the first user and the
+#			rest follow along.
 #
 #	BIOS interface options:
 #
@@ -290,3 +299,7 @@ ASFLAGS32=
 LDFLAGS32+=	-N -Ttext $(RELOCADDR) -e _start
 LDBINARY32=	--oformat binary	# flag for headerless binary
 LIBC32=					# not needed
+
+# Support for PXE emulation. Works only with FreeBSD to load the kernel
+# via pxeboot, use only with DOWNLOAD_PROTO_NFS
+#CFLAGS32+= -DFREEBSD_PXEEMU

@@ -130,10 +130,17 @@ currticks:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
+#ifdef FREEBSD_PXEEMU
+	cmpb	$0, pxeemu_nbp_active
+	jne	currticks_postswitch
+#endif
 	call	_prot_to_real
 	.code16
 	DATA32 call	_real_to_prot
 	.code32
+#ifdef FREEBSD_PXEEMU
+currticks_postswitch:
+#endif
 	movl	0x46C, %eax
 	movb	0x470, %bl
 	cmpb	$0, %bl
@@ -154,6 +161,19 @@ CONSOLE_PUTC - Print a character on console
 **************************************************************************/
 	.globl	console_putc
 console_putc:
+#ifdef FREEBSD_PXEEMU
+	.globl	pxeemu_console_putc
+	cmpb	$0, pxeemu_nbp_active
+	je	console_putc_switch
+
+	movb	$0x0e, %ah
+	movb	%cl, %al
+	pushl	%eax
+	call	pxeemu_console_putc
+	addl	$4, %esp
+	ret
+console_putc_switch:
+#endif
 	pushl	%ebp
 	movl	%esp,%ebp
 	pushl	%ebx
@@ -168,6 +188,9 @@ console_putc:
 	int	$0x10
 	DATA32 call	_real_to_prot
 	.code32
+#ifdef FREEBSD_PXEEMU
+console_putc_exit:
+#endif
 	popl	%edi
 	popl	%esi
 	popl	%ebx
@@ -735,6 +758,12 @@ _rmds:
 	/* 16 bit real mode data segment */
 	.word	0xffff,(RELOC&0xffff)
 	.byte	(RELOC>>16),0x93,0x00,(RELOC>>24)
+
+#ifdef FREEBSD_PXEEMU
+.globl initsp
+.globl pxeemu_nbp_active
+pxeemu_nbp_active: 	.byte	0
+#endif
 
 initss:	.word	0
 initsp:	.word	0
