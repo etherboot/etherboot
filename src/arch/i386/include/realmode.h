@@ -92,4 +92,8 @@ extern uint16_t pxe_callback_interface_size;
 extern void _pxe_in_call_far ( void );
 extern void _pxenv_in_call_far ( void );
 
+/* Global variables
+ */
+extern uint32_t real_mode_stack;
+
 #endif /* ASSEMBLY */

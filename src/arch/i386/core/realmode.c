@@ -9,6 +9,15 @@
 
 #define RM_STACK_SIZE ( 0x1000 )
 
+/* Put the stack just below the dos load address.
+ *
+ * Note that this will probably never be used; while Etherboot remains
+ * in base memory the real-mode stack is placed in the Etherboot main
+ * stack, and when Etherboot is relocated real_mode_stack is
+ * recalculated.
+ */
+uint32_t real_mode_stack = 0x7c00;
+
 /* Make a call to a real-mode code block.
  */
 

@@ -360,8 +360,6 @@ struct regs {
 };
 extern struct os_entry_regs os_regs;
 extern struct regs initial_regs;
-extern unsigned long real_mode_stack;
-extern void xstart16 P((unsigned long, unsigned long, unsigned long));
 extern int xstart32(unsigned long entry_point, ...);
 extern int xstart_lm(unsigned long entry_point, unsigned long params);
 extern void xend32 P((void));

@@ -1,6 +1,7 @@
 #ifdef PCBIOS
 
 #include "etherboot.h"
+#include "realmode.h" /* for real_mode_stack */
 
 /* Routines to allocate base memory in a BIOS-compatible way, by
  * updating the Free Base Memory Size counter at 40:13h.
