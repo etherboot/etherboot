@@ -22,6 +22,7 @@
 #include "shared.h"
 #include "filesys.h"
 #include <lib.h>
+#include "string.h"
 
 #undef REISERDEBUG
 

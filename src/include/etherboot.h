@@ -27,7 +27,7 @@
 #define DEFAULT_BOOT_INDEX 0
 #endif
 
-#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE) && !defined(COFF_IMAGE)
+#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE) && !defined(COFF_IMAGE) && !defined(RAW_IMAGE)
 #define	TAGGED_IMAGE		/* choose at least one */
 #endif
 
@@ -169,12 +169,12 @@
 struct arptable_t {
 	in_addr ipaddr;
 	uint8_t node[6];
-};
+} PACKED;
 
 struct igmptable_t {
 	in_addr group;
 	unsigned long time;
-};
+} PACKED;
 
 #define	KERNEL_BUF	(BOOTP_DATA_ADDR->bootp_reply.bp_file)
 
@@ -338,8 +338,12 @@ struct meminfo {
 extern struct meminfo meminfo;
 extern void get_memsizes(void);
 extern unsigned long get_boot_order(unsigned long order, unsigned *index);
+#ifdef RELOCATE
 extern void relocate(void);
 extern void relocate_to(unsigned long phys_dest);
+#else
+#define relocate() do {} while(0)
+#endif
 extern void disk_init P((void));
 extern unsigned int pcbios_disk_read P((int drv,int c,int h,int s,char *buf));
 

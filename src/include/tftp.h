@@ -39,7 +39,7 @@ struct tftp_t {
 			uint8_t  data[TFTP_DEFAULTSIZE_PACKET+2];
 		} oack;
 	} u;
-};
+} PACKED;
 
 /* define a smaller tftp packet solely for making requests to conserve stack
    512 bytes should be enough */
@@ -57,20 +57,20 @@ struct tftpreq_t {
 			uint8_t  errmsg[512-2];
 		} err;
 	} u;
-};
+} PACKED;
 
 struct tftpreq_info_t {
 	const char *name;
 	unsigned short port;
 	unsigned short blksize;
-};
+} PACKED;
 
 struct tftpblk_info_t {
 	char *data;
 	unsigned int block;
 	unsigned int len;
 	int eof;
-};
+} PACKED;
 
 #define TFTP_MIN_PACKET	(sizeof(struct iphdr) + sizeof(struct udphdr) + 4)
 

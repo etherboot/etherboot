@@ -10,14 +10,14 @@ struct udp_pseudo_hdr {
 	uint8_t  unused;
 	uint8_t  protocol;
 	uint16_t len;
-};
+} PACKED;
 struct udphdr {
 	uint16_t src;
 	uint16_t dest;
 	uint16_t len;
 	uint16_t chksum;
 	struct {} payload;
-};
+} PACKED;
 struct udppacket {
 	struct iphdr	ip;
 	struct udphdr	udp;

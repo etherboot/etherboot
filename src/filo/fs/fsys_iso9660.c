@@ -37,6 +37,7 @@
 #ifdef FSYS_ISO9660
 
 #include <lib.h>
+#include "string.h"
 #include "shared.h"
 #include "filesys.h"
 #include "iso9660.h"

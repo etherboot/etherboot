@@ -15,24 +15,7 @@ int prog_if, int index);
 void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
 
-size_t strnlen(const char *src, size_t max);
-//size_t strlen(const char *src);
-int strcmp(const char *s1, const char *s2);
-#if 0
-int memcmp(const void *s1, const void *s2, size_t n);
-void *memcpy(void *dest, const void *src, size_t n);
-void *memset(void *s, int c, size_t n);
-void *memmove(void *dest, const void *src, size_t n);
-#endif
-int isspace(int c);
-#if 0
-int isdigit(int c);
-#endif
-int tolower(int c);
 char *strdup(const char *s);
-char *strchr(const char *s, int c);
-char *strncpy(char *to, const char *from, int count);
-char *strcpy(char *to, const char *from);
 unsigned long long simple_strtoull(const char *cp,char **endp,unsigned int base);
 unsigned long long strtoull_with_suffix(const char *cp,char **endp,unsigned int base);
 

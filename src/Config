@@ -290,6 +290,9 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # If you prefer the old style rotating bar progress display
 # CFLAGS+=	-DBAR_PROGRESS
 
+# Show size indicator
+# CFLAGS+=	-DSIZEINDICATOR
+
 # Enabling this creates non-standard images which use ports 1067 and 1068
 # for DHCP/BOOTP
 # CFLAGS+=	-DALTERNATE_DHCP_PORTS_1067_1068
@@ -355,6 +358,9 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # encapsulated Etherboot options.
 CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
 
+# Disable DHCP support
+# CFLAGS+=	-DNO_DHCP_SUPPORT
+
 # Specify a default bootfile to be used if the DHCP server does not
 # provide the information.  If you do not specify this option, then
 # DHCP offers that do not contain bootfiles will be ignored.
@@ -375,6 +381,8 @@ CFLAGS+=	-DBACKOFF_LIMIT=7 -DCONGESTED
 CFLAGS+=	-DTAGGED_IMAGE -DELF_IMAGE
 # CFLAGS+=	-DAOUT_IMAGE -DIMAGE_MULTIBOOT -DIMAGE_FREEBSD
 # CFLAGS+=	-DAOUT_IMAGE -DAOUT_LYNX_KDI
+# CFLAGS+=	-DCOFF_IMAGE 
+# CFLAGS+=	-DRAW_IMAGE
 
 # Download files via TFTP
 CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
@@ -382,6 +390,8 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 # CFLAGS+=	-DDOWNLOAD_PROTO_NFS
 # Change download protocol to HTTP, default is TFTP
 # CFLAGS+=	-DDOWNLOAD_PROTO_HTTP
+# Change default protocol to NFS
+#CFLAGS+=	-DDEFAULT_PROTO_NFS
 # Support to resolve hostnames in boot filename
 #CFLAGS+=	-DDNS_RESOLVER
 
@@ -402,6 +412,10 @@ CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
 # CFLAGS+= -DBUILD_SERIAL
 # CFLAGS+= -DBUILD_SERIAL -DBUILD_ID=\"testing\"
 
+# Relocate etherboot to just below 4GB.
+# A couple of drivers do not work with relocation, notably lance.
+#CFLAGS+=	-DRELOCATE
+
 # you should normally not need to change these
 HOST_CC=	gcc
 CPP=		gcc -E -Wp,-Wall
@@ -416,10 +430,11 @@ AR=		ar
 RANLIB=		ranlib
 OBJCOPY=	objcopy
 
-CFLAGS+=	-Os -ffreestanding 
+CFLAGS+=	-Os -ffreestanding
 CFLAGS+=	-Wall -W -Wno-format
 ASFLAGS+=
 LDFLAGS+=
+#LDFLAGS+=	-Map $(BIN)/etherboot.map
 LDBINARY=	--oformat binary	# flag for headerless binary
 
 # Location to place generated binaries, and files

@@ -109,6 +109,10 @@ static sector_t dead_download ( unsigned char *data __unused, unsigned int len _
 #include "../arch/i386/core/pxe_loader.c"
 #endif
 
+#ifdef RAW_IMAGE
+#include "../arch/armnommu/core/raw_loader.c"
+#endif
+
 static void done(int do_cleanup)
 {
 #ifdef	SIZEINDICATOR
@@ -242,6 +246,9 @@ os_download_t probe_image(unsigned char *data, unsigned int len)
 /* PXE_IMAGE must always be last */
 #ifdef PXE_IMAGE
 	if (!os_download) os_download = pxe_probe(data, len);
+#endif
+#ifdef RAW_IMAGE
+	if (!os_download) os_download = raw_probe(data, len);
 #endif
 	return os_download;
 }

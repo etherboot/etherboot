@@ -12,6 +12,6 @@ struct iphdr {
 	uint16_t chksum;
 	in_addr src;
 	in_addr dest;
-};
+} PACKED;
 
 #endif	/* _IP_H */

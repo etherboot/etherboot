@@ -16,6 +16,6 @@
 
 typedef struct {
 	uint32_t	s_addr;
-} in_addr;
+} in_addr PACKED;
 
 #endif	/* _IN_H */

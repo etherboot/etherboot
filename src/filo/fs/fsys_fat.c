@@ -23,6 +23,7 @@
 #include "filesys.h"
 #include "fat.h"
 #include <lib.h>
+#include "string.h"
 
 struct fat_superblock 
 {

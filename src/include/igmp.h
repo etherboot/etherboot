@@ -12,12 +12,12 @@ struct igmp {
 	uint8_t  response_time;
 	uint16_t chksum;
 	in_addr group;
-};
+} PACKED;
 
 struct igmp_ip_t { /* Format of an igmp ip packet */
 	struct iphdr ip;
 	uint8_t router_alert[4]; /* Router alert option */
 	struct igmp igmp;
-};
+} PACKED;
 
 #endif	/* _IGMP_H */

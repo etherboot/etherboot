@@ -22,6 +22,7 @@
 #include "shared.h"
 #include "filesys.h"
 #include <lib.h>
+#include "string.h"
 
 static int mapblock1, mapblock2;
 

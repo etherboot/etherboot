@@ -198,7 +198,7 @@ BOBJS+=		$(BIN)/btext.o $(BIN)/pc_kbd.o
 BOBJS+=		$(BIN)/nic.o $(BIN)/disk.o
 BOBJS+=		$(BIN)/isapnp.o
 BOBJS+=		$(BIN)/pci.o $(BIN)/isa_probe.o $(BIN)/pci_probe.o
-BOBJS+=		$(BIN)/vsprintf.o
+BOBJS+=		$(BIN)/vsprintf.o $(BIN)/string.o
 BOBJS+=		$(BIN)/pcmcia.o $(BIN)/i82365.o
 BOBJS+=		$(BIN)/pxe_export.o $(BIN)/dns_resolver.o
 
@@ -210,7 +210,7 @@ BOBJS+=		$(BIN)/context.o  $(BIN)/linux_load.o  $(BIN)/segment.o  $(BIN)/sys_inf
 BOBJS+=		$(BIN)/debug_x.o  $(BIN)/scsi_cmds.o $(BIN)/uhci.o $(BIN)/usb.o $(BIN)/ohci.o $(BIN)/usb_scsi_low.o $(BIN)/usb_x.o
 
 BLIB=		$(BIN)/bootlib.a 
-LIBS=		$(BLIB)
+LIBS=		$(BLIB) $(GLIB)
 UTILS+=		$(BIN)/nrv2b
 STDDEPS=	$(START) $(BLIB) $(UTILS)
 ELF_DEPS=	$(ELF_START) $(BLIB)

@@ -58,6 +58,6 @@ struct rpc_t {
 			uint32_t data[1];
 		} reply;
 	} u;
-};
+} PACKED;
 
 #endif	/* _NFS_H */

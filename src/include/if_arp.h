@@ -18,6 +18,6 @@ struct arprequest {
 	uint8_t  sipaddr[4];
 	uint8_t  thwaddr[6];
 	uint8_t  tipaddr[4];
-};
+} PACKED;
 
 #endif	/* _IF_ARP_H */
