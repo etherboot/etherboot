@@ -1,0 +1,15 @@
+ARCH:=version
+BIN:=/tmp/
+CC:=		/bin/false
+AS:=		/bin/false
+LD:=		/bin/false
+SIZE:=		/bin/false
+AR:=		/bin/false
+RANLIB:=	/bin/false
+OBJCOPY:=	/bin/false
+
+MAKEDEPS:=Makefile-version
+
+default: version
+
+include Makefile.main
