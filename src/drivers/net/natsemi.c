@@ -221,8 +221,9 @@ static void natsemi_init_rxd(struct nic *nic);
 static void natsemi_set_rx_mode(struct nic *nic);
 static void natsemi_check_duplex(struct nic *nic);
 static void natsemi_transmit(struct nic *nic, const char *d, unsigned int t, unsigned int s, const char *p);
-static int  natsemi_poll(struct nic *nic);
+static int  natsemi_poll(struct nic *nic, int retrieve);
 static void natsemi_disable(struct dev *dev);
+static void natsemi_irq(struct nic *nic, irq_action_t action);
 
 /* 
  * Function: natsemi_probe
@@ -249,14 +250,17 @@ natsemi_probe(struct dev *dev, struct pci_device *pci)
     if (pci->ioaddr == 0)
         return 0;
 
+    adjust_pci_device(pci);
+
     /* initialize some commonly used globals */
 	
+    nic->irqno  = 0;
+    nic->ioaddr = pci->ioaddr & ~3;
+
     ioaddr     = pci->ioaddr & ~3;
     vendor     = pci->vendor;
     dev_id     = pci->dev_id;
     nic_name   = pci->name;
-    
-    adjust_pci_device(pci);
 
     /* natsemi has a non-standard PM control register
      * in PCI config space.  Some boards apparently need
@@ -314,6 +318,7 @@ natsemi_probe(struct dev *dev, struct pci_device *pci)
     dev->disable  = natsemi_disable;
     nic->poll     = natsemi_poll;
     nic->transmit = natsemi_transmit;
+    nic->irq      = natsemi_irq;
 
     return 1;
 }
@@ -668,7 +673,7 @@ natsemi_transmit(struct nic  *nic,
  */
 
 static int
-natsemi_poll(struct nic *nic)
+natsemi_poll(struct nic *nic, int retrieve)
 {
     u32 rx_status = rxd[cur_rx].cmdsts;
     int retstat = 0;
@@ -678,6 +683,8 @@ natsemi_poll(struct nic *nic)
 
     if (!(rx_status & OWN))
         return retstat;
+
+    if ( ! retrieve ) return 1;
 
     if (natsemi_debug > 1)
         printf("natsemi_poll: got a packet: cur_rx:%d, status:%X\n",
@@ -734,6 +741,29 @@ natsemi_disable(struct dev *dev)
 	
     /* Restore PME enable bit */
     outl(SavedClkRun, ioaddr + ClkRun);
+}
+
+/* Function: natsemi_irq
+ *
+ * Description: Enable, Disable, or Force interrupts
+ *    
+ * Arguments: struct nic *nic:          NIC data structure
+ *            irq_action_t action:      requested action to perform
+ *
+ * Returns:   void.
+ */
+
+static void 
+natsemi_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
 }
 
 static struct pci_id natsemi_nics[] = {
