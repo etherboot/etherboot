@@ -526,7 +526,7 @@ void TLan_FinishReset(struct nic *nic)
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int tlan_poll(struct nic *nic)
+static int tlan_poll(struct nic *nic, int retrieve)
 {
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
@@ -537,8 +537,11 @@ static int tlan_poll(struct nic *nic)
 	int eoc = 0;
 	int entry = priv->cur_rx % TLAN_NUM_RX_LISTS;
 	u16 tmpCStat = le32_to_cpu(rx_ring[entry].cStat);
-	
 	u16 host_int = inw(BASE + TLAN_HOST_INT);
+
+	if ((tmpCStat & TLAN_CSTAT_FRM_CMP) && !retrieve)
+	  return 1;
+
 	outw(host_int, BASE + TLAN_HOST_INT);
 
 	if (!(tmpCStat & TLAN_CSTAT_FRM_CMP))
@@ -790,6 +793,21 @@ static void tlan_disable(struct nic *nic __unused)
 	outl(TLAN_HC_AD_RST, BASE + TLAN_HOST_CMD);
 }
 
+/**************************************************************************
+IRQ - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void tlan_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
 static void TLan_SetMulticastList(struct nic *nic) {
 	int i;
 	u8 tmp;
@@ -826,6 +844,9 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 
 	if (pci->ioaddr == 0)
 		return 0;
+
+	nic->irqno  = 0;
+	nic->ioaddr = pci->ioaddr & ~3;
 
 	BASE = pci->ioaddr;
 	printf("\n");
@@ -895,11 +916,13 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 	dev->disable = tlan_disable;
 	nic->poll = tlan_poll;
 	nic->transmit = tlan_transmit;
+	nic->irq    = tlan_irq;
 	return 1;
 #else
 	nic->disable = tlan_disable;
 	nic->poll = tlan_poll;
 	nic->transmit = tlan_transmit;
+	nic->irq    = tlan_irq;
 	return nic;
 #endif
 }
