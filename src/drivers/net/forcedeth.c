@@ -797,7 +797,7 @@ static int forcedeth_reset(struct nic *nic)
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int forcedeth_poll(struct nic *nic)
+static int forcedeth_poll(struct nic *nic, int retrieve)
 {
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
@@ -810,20 +810,23 @@ static int forcedeth_poll(struct nic *nic)
 	i = np->cur_rx % RX_RING;
 	prd = &rx_ring[i];
 
-	if (prd->Flags & cpu_to_le16(NV_RX_DESCRIPTORVALID)) {
-		/* got a valid packet - forward it to the network core */
-		len = cpu_to_le16(prd->Length);
-		nic->packetlen = len;
-		//hex_dump(rxb + (i * RX_NIC_BUFSIZE), len);
-		memcpy(nic->packet, rxb +
-		       (i * RX_NIC_BUFSIZE), nic->packetlen);
-
-		wmb();
-		np->cur_rx++;
-		alloc_rx(nic);
-		return 1;
+	if ( ! (prd->Flags & cpu_to_le16(NV_RX_DESCRIPTORVALID)) ) {
+	  return 0;
 	}
-	return 0;		/* initially as this is called to flush the input */
+
+	if ( ! retrieve ) return 1;
+
+	/* got a valid packet - forward it to the network core */
+	len = cpu_to_le16(prd->Length);
+	nic->packetlen = len;
+	//hex_dump(rxb + (i * RX_NIC_BUFSIZE), len);
+	memcpy(nic->packet, rxb +
+	       (i * RX_NIC_BUFSIZE), nic->packetlen);
+
+	wmb();
+	np->cur_rx++;
+	alloc_rx(nic);
+	return 1;
 }
 
 
@@ -902,6 +905,21 @@ static void forcedeth_disable(struct dev *dev __unused)
 }
 
 /**************************************************************************
+IRQ - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void forcedeth_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
+/**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 #define IORESOURCE_MEM 0x00000200
@@ -919,6 +937,9 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 
 	printf("forcedeth.c: Found %s, vendor=0x%hX, device=0x%hX\n",
 	       pci->name, pci->vendor, pci->dev_id);
+
+	nic->irqno  = 0;
+	nic->ioaddr = pci->ioaddr & ~3;
 
 	/* point to private storage */
 	np = &npx;
@@ -996,6 +1017,7 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable = forcedeth_disable;
 	nic->poll = forcedeth_poll;
 	nic->transmit = forcedeth_transmit;
+	nic->irq    = forcedeth_irq;
 	return 1;
 //      }
 	/* else */
