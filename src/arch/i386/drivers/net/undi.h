@@ -19,20 +19,6 @@ $Id$
 #include "pxe.h"
 #include "pic8259.h"
 
-/* __undi_call is the assembler wrapper to the real-mode UNDI calls.
- * Pass it the real-mode segment:offset address of an undi_call_info_t
- * structure.  The parameters are only uint16_t, but GCC will push
- * them on the stack as uint32_t anyway for the sake of alignment.  We
- * specify them here as uint32_t to remove ambiguity.
- */
-
-typedef struct undi_call_info {
-	SEGOFF16_t	routine;
-	uint16_t	stack[3];
-} undi_call_info_t;
-
-PXENV_EXIT_t __undi_call ( uint32_t, uint32_t );
-
 /* The UNDI loader parameter structure is not defined in pxe.h
  */
 
@@ -137,7 +123,6 @@ typedef struct undi_base_mem_xmit_data {
 } undi_base_mem_xmit_data_t;
 
 typedef struct undi_base_mem_data {
-	undi_call_info_t	undi_call_info;
 	pxenv_structure_t	pxs;
 	undi_base_mem_xmit_data_t xmit_data;
 	char			xmit_buffer[ETH_FRAME_LEN];
@@ -168,7 +153,6 @@ typedef struct undi {
 	rom_t			*rom;
 	undi_rom_id_t		*undi_rom_id;
 	pxe_t			*pxe;
-	undi_call_info_t	*undi_call_info;
 	pxenv_structure_t	*pxs;
 	undi_base_mem_xmit_data_t *xmit_data;
 	/* Pointers and sizes to keep track of allocated base memory */

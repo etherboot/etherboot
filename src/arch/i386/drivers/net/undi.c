@@ -26,9 +26,11 @@ $Id$
 #include "undi.h"
 /* 8259 PIC defines */
 #include "pic8259.h"
+/* Real-mode calls */
+#include "realmode.h"
 
 /* NIC specific static variables go here */
-static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL,
 		       NULL, NULL, 0, NULL, 0, NULL,
 		       0, 0, 0, 0,
 		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL },
@@ -89,7 +91,6 @@ int allocate_base_mem_data ( void ) {
 			return 0;
 		}
 		memset ( undi.base_mem_data, 0, sizeof(undi_base_mem_data_t) );
-		undi.undi_call_info = &undi.base_mem_data->undi_call_info;
 		undi.pxs = &undi.base_mem_data->pxs;
 		undi.xmit_data = &undi.base_mem_data->xmit_data;
 		undi.xmit_buffer = undi.base_mem_data->xmit_buffer;
@@ -105,7 +106,6 @@ int free_base_mem_data ( void ) {
 				     sizeof(undi_base_mem_data_t) +
 				     TRIVIAL_IRQ_HANDLER_SIZE );
 		undi.base_mem_data = NULL;
-		undi.undi_call_info = NULL;
 		undi.pxs = NULL;
 		undi.xmit_data = NULL;
 		undi.xmit_buffer = NULL;
@@ -334,21 +334,36 @@ int hunt_undi_rom ( void ) {
 /* Make a real-mode UNDI API call to the UNDI routine at
  * routine_seg:routine_off, passing in three uint16 parameters on the
  * real-mode stack.
- * Calls the assembler wrapper routine __undi_call.
  */
 
-static inline PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
-					uint16_t routine_off, uint16_t st0,
-					uint16_t st1, uint16_t st2 ) {
+PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
+			  uint16_t routine_off, uint16_t st0,
+			  uint16_t st1, uint16_t st2 ) {
 	PXENV_EXIT_t ret = PXENV_EXIT_FAILURE;
+	struct {
+		segoff_t routine;
+		uint16_t st0;
+		uint16_t st1;
+		uint16_t st2;
+	} PACKED in_stack = {
+		{ routine_off, routine_seg }, st0, st1, st2
+	};
 
-	undi.undi_call_info->routine.segment = routine_seg;
-	undi.undi_call_info->routine.offset = routine_off;
-	undi.undi_call_info->stack[0] = st0;
-	undi.undi_call_info->stack[1] = st1;
-	undi.undi_call_info->stack[2] = st2;
-	ret = __undi_call ( SEGMENT( undi.undi_call_info ),
-			    OFFSET( undi.undi_call_info ) );
+	BEGIN_RM_FRAGMENT(rm_undi_call);
+	__asm__ ( "popw %di" );			/* %es:di = routine */
+	__asm__ ( "popw %es" );
+	__asm__ ( "pushw %cs" );		/* set up return address */
+	__asm__ ( "call 1f\n\t1:popw %bx" );
+	__asm__ ( "leaw (2f-1b)(%bx), %ax" );
+	__asm__ ( "pushw %ax" );
+	__asm__ ( "pushw %es" );		/* routine address to stack */
+	__asm__ ( "pushw %di" );
+	__asm__ ( "lret" );			/* calculated lcall */
+	__asm__ ( "\n2:" );			/* continuation point */
+	END_RM_FRAGMENT(rm_undi_call);
+
+	/* Parameters are left on stack: set out_stack = in_stack */
+	ret = real_call ( rm_undi_call, &in_stack, &in_stack );
 
 	/* UNDI API calls may rudely change the status of A20 and not
 	 * bother to restore it afterwards.  Intel is known to be
