@@ -20,10 +20,11 @@
 
 .equ	BOOTSEG, 0x07C0			/* original address of boot-sector */
 
-.equ	SYSSEG, 0x1000			/* system loaded at SYSSEG<<4 */
+.equ	SYSSEG, (BOOTSEG + 512/16)	/* system loaded at SYSSEG<<4 */
 
 	.org	0
 	.text
+	.section ".prefix", "ax", @progbits
 	.code16
 
 	jmp	$BOOTSEG, $go		/* reload cs:ip to match relocation addr */
@@ -142,8 +143,17 @@ sigok:
 
 /* after that (everything loaded), we call to the .ROM file loaded. */
 
-	call	$SYSSEG, $0
+	pushl	$0		/* No parameters to preserve for exit path */
+	pushw	$0		/* Use prefix exit path mechanism */
+	jmp	_start
+
+	.section ".text16", "ax", @progbits
+	.globl	prefix_exit
+prefix_exit:
 	int	$0x19		/* should try to boot machine */
+	.globl	prefix_exit_end
+prefix_exit_end:
+	.previous
 
 /* This routine loads the system at address SYSSEG<<4, making sure no 64kB
  * boundaries are crossed. We try to load it as fast as possible, loading whole
