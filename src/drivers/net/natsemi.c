@@ -73,12 +73,12 @@
 
 #define NUM_RX_DESC    4              /* Number of Rx descriptor registers. */
 
-typedef unsigned char  u8;
-typedef   signed char  s8;
-typedef unsigned short u16;
-typedef   signed short s16;
-typedef unsigned int   u32;
-typedef   signed int   s32;
+typedef uint8_t    u8;
+typedef int8_t     s8;
+typedef uint16_t   u16;
+typedef int16_t    s16;
+typedef uint32_t   u32;
+typedef int32_t    s32;
 
 /* helpful macroes if on a big_endian machine for changing byte order.
    not strictly needed on Intel */
@@ -446,7 +446,7 @@ natsemi_init(struct nic *nic)
  * Returns:   void.
  */
 static void 
-natsemi_reset(struct nic *nic __attribute__((unused)))
+natsemi_reset(struct nic *nic __unused)
 {
     outl(ChipReset, ioaddr + ChipCmd);
 	
@@ -498,7 +498,7 @@ natsemi_init_rxfilter(struct nic *nic)
  */
 
 static void
-natsemi_init_txd(struct nic *nic __attribute__((unused)))
+natsemi_init_txd(struct nic *nic __unused)
 {
     txd.link   = (u32) 0;
     txd.cmdsts = (u32) 0;
@@ -521,7 +521,7 @@ natsemi_init_txd(struct nic *nic __attribute__((unused)))
  */
  
 static void 
-natsemi_init_rxd(struct nic *nic __attribute__((unused))) 
+natsemi_init_rxd(struct nic *nic __unused) 
 { 
     int i;
 
@@ -556,14 +556,14 @@ natsemi_init_rxd(struct nic *nic __attribute__((unused)))
  * Returns:   void.
  */
 
-static void natsemi_set_rx_mode(struct nic *nic __attribute__((unused)))
+static void natsemi_set_rx_mode(struct nic *nic __unused)
 {
     u32 rx_mode = AcceptBroadcast | AcceptMyPhys;
 	
     outl(rx_mode, ioaddr + RxFilterAddr);
 }
 
-static void natsemi_check_duplex(struct nic *nic __attribute__((unused)))
+static void natsemi_check_duplex(struct nic *nic __unused)
 {
     int duplex = inl(ioaddr + ChipConfig) & 0x20000000 ? 1 : 0;
 	

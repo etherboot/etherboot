@@ -341,9 +341,6 @@ POLL - Wait for a frame
 ***************************************************************************/
 static int eepro_poll(struct nic *nic)
 {
-#if	0
-	int		i;
-#endif
 	unsigned int	rcv_car = virt_to_bus(rx_start);
 	unsigned int	rcv_event, rcv_status, rcv_next_frame, rcv_size;
 
@@ -373,10 +370,13 @@ static int eepro_poll(struct nic *nic)
 	rcv_size &= 0x3FFF;
 	insw(ioaddr + IO_PORT, nic->packet, ((rcv_size + 3) >> 1));
 #if	0
+{
+	int i;
 	for (i = 0; i < 48; i++) {
 		printf("%hhX", nic->packet[i]);
 		putchar(i % 16 == 15 ? '\n' : ' ');
 	}
+}
 #endif
 	nic->packetlen = rcv_size;
 	rcv_car = virt_to_bus(rx_start) + RCV_HEADER + rcv_size;
@@ -450,7 +450,7 @@ static void eepro_transmit(
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void eepro_disable(struct dev *dev __attribute((unused)))
+static void eepro_disable(struct dev *dev __unused)
 {
 	eepro_sw2bank0(ioaddr);	/* Switch to bank 0 */
 	/* Flush the Tx and disable Rx */

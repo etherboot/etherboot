@@ -300,6 +300,7 @@ static int t595_poll(struct nic *nic)
 	outw(RX_DISCARD_TOP_PACK, BASE + VX_COMMAND);
 	while (inw(BASE + VX_STATUS) & S_COMMAND_IN_PROGRESS);
 #ifdef EDEBUG
+{
 	unsigned short type = 0;	/* used by EDEBUG */
 	type = (nic->packet[12]<<8) | nic->packet[13];
 	if(nic->packet[0]+nic->packet[1]+nic->packet[2]+nic->packet[3]+nic->packet[4]+
@@ -307,6 +308,7 @@ static int t595_poll(struct nic *nic)
 		printf(",t=%hX,b]",type);
 	else
 		printf(",t=%hX]",type);
+}
 #endif
 	return 1;
 }
@@ -453,7 +455,7 @@ static void t595_disable(struct dev *dev)
 /**************************************************************************
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
-static struct nic *t595_probe(struct dev *dev, struct pci_device *pci)
+static int t595_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *)dev;
 	int i;

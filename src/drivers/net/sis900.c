@@ -159,7 +159,7 @@ static void sis900_disable(struct dev *dev);
  *	MAC address is read from read_eeprom() into @net_dev->dev_addr.
  */
 
-static int sis900_get_mac_addr(struct pci_device * pci_dev __attribute__((unused)), struct nic *nic)
+static int sis900_get_mac_addr(struct pci_device * pci_dev __unused, struct nic *nic)
 {
 	u16 signature;
 	int i;
@@ -187,7 +187,7 @@ static int sis900_get_mac_addr(struct pci_device * pci_dev __attribute__((unused
  *	MAC address is read into @net_dev->dev_addr.
  */
 
-static int sis630e_get_mac_addr(struct pci_device * pci_dev __attribute__((unused)), struct nic *nic)
+static int sis630e_get_mac_addr(struct pci_device * pci_dev __unused, struct nic *nic)
 {
 	u8 reg;
 	int i;
@@ -226,7 +226,7 @@ static int sis630e_get_mac_addr(struct pci_device * pci_dev __attribute__((unuse
  *      MAC address is read into @net_dev->dev_addr.
  */
 
-static int sis635_get_mac_addr(struct pci_device * pci_dev __attribute__((unused)), struct nic *nic)
+static int sis635_get_mac_addr(struct pci_device * pci_dev __unused, struct nic *nic)
 {
         u32 rfcrSave;
         u32 i;
@@ -573,7 +573,7 @@ sis900_init(struct nic *nic)
  */
 
 static void 
-sis900_reset(struct nic *nic __attribute__((unused)))
+sis900_reset(struct nic *nic __unused)
 {
     int i = 0;
     u32 status = TxRCMP | RxRCMP;
@@ -645,7 +645,7 @@ sis900_init_rxfilter(struct nic *nic)
  */
 
 static void
-sis900_init_txd(struct nic *nic __attribute__((unused)))
+sis900_init_txd(struct nic *nic __unused)
 {
     txd.link   = (u32) 0;
     txd.cmdsts = (u32) 0;
@@ -669,7 +669,7 @@ sis900_init_txd(struct nic *nic __attribute__((unused)))
  */
 
 static void 
-sis900_init_rxd(struct nic *nic __attribute__((unused))) 
+sis900_init_rxd(struct nic *nic __unused) 
 { 
     int i;
 
@@ -706,7 +706,7 @@ sis900_init_rxd(struct nic *nic __attribute__((unused)))
  * Returns:   void.
  */
 
-static void sis900_set_rx_mode(struct nic *nic __attribute__((unused)))
+static void sis900_set_rx_mode(struct nic *nic __unused)
 {
     int i;
 
@@ -782,7 +782,7 @@ sis900_check_mode(struct nic *nic)
  */
 
 static void
-sis900_read_mode(struct nic *nic __attribute__((unused)), int phy_addr, int *speed, int *duplex)
+sis900_read_mode(struct nic *nic __unused, int phy_addr, int *speed, int *duplex)
 {
     int i = 0;
     u32 status;
@@ -832,7 +832,7 @@ sis900_read_mode(struct nic *nic __attribute__((unused)), int phy_addr, int *spe
  */
 
 static void
-amd79c901_read_mode(struct nic *nic __attribute__((unused)), int phy_addr, int *speed, int *duplex)
+amd79c901_read_mode(struct nic *nic __unused, int phy_addr, int *speed, int *duplex)
 {
     int i;
     u16 status;
@@ -885,7 +885,7 @@ amd79c901_read_mode(struct nic *nic __attribute__((unused)), int phy_addr, int *
  *	to determine the speed and duplex mode for sis900
  */
 
-static void ics1893_read_mode(struct nic *nic __attribute__((unused)), int phy_addr, int *speed, int *duplex)
+static void ics1893_read_mode(struct nic *nic __unused, int phy_addr, int *speed, int *duplex)
 {
 	int i = 0;
 	u32 status;
@@ -925,7 +925,7 @@ static void ics1893_read_mode(struct nic *nic __attribute__((unused)), int phy_a
  *	to determine the speed and duplex mode for sis900
  */
 
-static void rtl8201_read_mode(struct nic *nic __attribute__((unused)), int phy_addr, int *speed, int *duplex)
+static void rtl8201_read_mode(struct nic *nic __unused, int phy_addr, int *speed, int *duplex)
 {
 	u32 status;
 
@@ -969,7 +969,7 @@ static void rtl8201_read_mode(struct nic *nic __attribute__((unused)), int phy_a
  *	to determine the speed and duplex mode for sis900
  */
 
-static void vt6103_read_mode(struct nic *nic __attribute__((unused)), int phy_addr, int *speed, int *duplex)
+static void vt6103_read_mode(struct nic *nic __unused, int phy_addr, int *speed, int *duplex)
 {
 	u32 status;
 

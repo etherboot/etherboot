@@ -315,7 +315,7 @@ static void pcibios_init(void)
 }
 #endif	/* CONFIG_PCI_DIRECT not defined*/
 
-unsigned long pcibios_bus_base(unsigned int bus __attribute__((unused)))
+unsigned long pcibios_bus_base(unsigned int bus __unused)
 {
 	/* architecturally this must be 0 */
 	return 0;

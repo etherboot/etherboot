@@ -724,7 +724,7 @@ static void prism2_transmit(
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void prism2_disable(struct dev *dev __attribute__((unused)))
+static void prism2_disable(struct dev *dev __unused)
 {
   /* put the card in its initial state */
 

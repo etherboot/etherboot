@@ -225,9 +225,9 @@ $(BIN)/lzhuf:	util/lzhuf.c
 
 # Roms file
 
-$(BIN)/Roms:	genrules.pl $(SRCS)
+$(BIN)/Roms $(BIN)/NIC:	genrules.pl $(SRCS)
 	mkdir -p $(@D)
-	$(PERL) ./genrules.pl $(ARCH) $(SRCS) > $@
+	$(PERL) ./genrules.pl $(BIN)/NIC $(ARCH) $(SRCS) > $(BIN)/Roms
 
 # Pattern Rules
 

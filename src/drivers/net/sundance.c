@@ -314,7 +314,7 @@ static void check_duplex(struct nic *nic)
 /**************************************************************************
  *  init_ring - setup the tx and rx descriptors
  *************************************************************************/
-static void init_ring(struct nic *nic __attribute((unused)))
+static void init_ring(struct nic *nic __unused)
 {
 	    int i;
 
@@ -732,7 +732,7 @@ static void mdio_sync(long mdio_addr)
 	}
 }
 
-static int mdio_read(struct nic *nic __attribute((unused)), int phy_id, unsigned int location)
+static int mdio_read(struct nic *nic __unused, int phy_id, unsigned int location)
 {
 	long mdio_addr = BASE + MIICtrl;
 	int mii_cmd = (0xf6 << 10) | (phy_id << 5) | location;
@@ -761,7 +761,7 @@ static int mdio_read(struct nic *nic __attribute((unused)), int phy_id, unsigned
 	return (retval>>1) & 0xffff;
 }
 
-static void mdio_write(struct nic *nic __attribute((unused)), int phy_id,
+static void mdio_write(struct nic *nic __unused, int phy_id,
 					   unsigned int location, int value)
 {
 	long mdio_addr = BASE + MIICtrl;
@@ -815,7 +815,7 @@ static inline unsigned ether_crc_le(int length, unsigned char *data)
 	return crc;
 }
 
-static void set_rx_mode(struct nic *nic __attribute((unused)))
+static void set_rx_mode(struct nic *nic __unused)
 {
 	outb((AcceptBroadcast | AcceptMyPhys), BASE + RxMode);
 	return;

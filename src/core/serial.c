@@ -1,4 +1,5 @@
 #include "etherboot.h"
+#include "timer.h"
 #ifdef	CONSOLE_SERIAL
 
 /*
@@ -63,6 +64,14 @@ static int found = 0;
 
 /* Status */
 #define UART_LSR 0x05
+#define  UART_LSR_TEMPT 0x40	/* Transmitter empty */
+#define  UART_LSR_THRE  0x20	/* Transmit-hold-register empty */
+#define  UART_LSR_BI	0x10	/* Break interrupt indicator */
+#define  UART_LSR_FE	0x08	/* Frame error indicator */
+#define  UART_LSR_PE	0x04	/* Parity error indicator */
+#define  UART_LSR_OE	0x02	/* Overrun error indicator */
+#define  UART_LSR_DR	0x01	/* Receiver data ready */
+
 #define UART_MSR 0x06
 #define UART_SCR 0x07
 
@@ -89,7 +98,7 @@ void serial_putc(int ch)
 	i = 1000; /* timeout */
 	while(--i > 0) {
 		status = uart_readb(UART_BASE + UART_LSR);
-		if (status & (1 << 5)) { 
+		if (status & UART_LSR_THRE) { 
 			/* TX buffer emtpy */
 			uart_writeb(ch, UART_BASE + UART_TBR);
 			break;
@@ -194,7 +203,7 @@ int serial_init(void)
 		uart_readb(UART_BASE + UART_RBR);
 		/* line status reg */
 		status = uart_readb(UART_BASE + UART_LSR);
-	} while(status & 1);
+	} while(status & UART_LSR_DR);
 	initialized = 1;
  out:
 	found = initialized;
@@ -219,7 +228,7 @@ void serial_fini(void)
 	i = 10000; /* timeout */
 	do {
 		status = uart_readb(UART_BASE + UART_LSR);
-	} while((--i > 0) || (!(status & (1 << 6))));
+	} while((--i > 0) && !(status & UART_LSR_TEMPT));
 	found = 0;
 }
 #endif

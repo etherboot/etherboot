@@ -230,7 +230,7 @@ static void eth_pio_write(const unsigned char *src, unsigned int dst, unsigned i
 /**************************************************************************
 ETH_PIO_READ - Dummy routine when NE2000 not compiled in
 **************************************************************************/
-static void eth_pio_read(unsigned int src __attribute((unused)), unsigned char *dst __attribute((unused)), unsigned int cnt __attribute((unused))) {}
+static void eth_pio_read(unsigned int src __unused, unsigned char *dst  __unused, unsigned int cnt __unused) {}
 #endif
 
 /**************************************************************************
@@ -570,7 +570,7 @@ ETH_PROBE - Look for an adapter
 #ifdef	INCLUDE_NS8390
 static int eth_probe (struct dev *dev, struct pci_device *pci)
 #else
-static int eth_probe (struct dev *dev, unsigned short *probe_addrs __attribute__((unused)))
+static int eth_probe (struct dev *dev, unsigned short *probe_addrs __unused)
 #endif
 {
 	struct nic *nic = (struct nic *)dev;
@@ -583,6 +583,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __attribute__
 	eth_drain_receiver = 0;
 
 #ifdef	INCLUDE_WD
+{
 	/******************************************************************
 	Search for WD/SMC cards
 	******************************************************************/
@@ -677,6 +678,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __attribute__
 		}
 		inb(0x84);
 	}
+}
 #endif
 #ifdef	INCLUDE_3C503
 #ifdef	T503_AUI
@@ -807,6 +809,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __attribute__
         }
 #endif
 #if	defined(INCLUDE_NE) || defined(INCLUDE_NS8390)
+{
 	/******************************************************************
 	Search for NE1000/2000 if no WD/SMC or 3com cards
 	******************************************************************/
@@ -873,6 +876,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __attribute__
 			(eth_flags & FLAG_16BIT) ? '2' : '1', eth_nic_base,
 			nic->node_addr);
 	}
+}
 #endif
 	if (eth_vendor == VENDOR_NONE)
 		return(0);

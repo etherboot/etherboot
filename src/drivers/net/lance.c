@@ -399,7 +399,7 @@ static void lance_disable(struct dev *dev)
 }
 
 #ifdef	INCLUDE_LANCE
-static int lance_probe1(struct nic *nic, struct pci_device *pci __attribute__((unused)))
+static int lance_probe1(struct nic *nic, struct pci_device *pci __unused)
 #else
 static int lance_probe1(struct nic *nic)
 #endif
@@ -458,6 +458,7 @@ static int lance_probe1(struct nic *nic)
 		nic->node_addr[i] = inb(ioaddr+LANCE_ETH_ADDR+i);
 	}
 #ifndef	INCLUDE_LANCE
+{
 	/* now probe for DMA channel */
 	short			dma_channels;
 	dma_channels = ((inb(DMA1_STAT_REG) >> 4) & 0xf) |
@@ -488,6 +489,7 @@ static int lance_probe1(struct nic *nic)
 		dma = 0;
 	printf("\n%s base %#X, DMA %d, addr %!\n",
 		chip_table[lance_version].name, ioaddr, dma, nic->node_addr);
+}
 #else
 	printf(" %s base %#hX, addr %!\n", chip_table[lance_version].name, ioaddr, nic->node_addr);
 #endif

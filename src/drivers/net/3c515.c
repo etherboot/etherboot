@@ -504,6 +504,7 @@ static int t515_poll(struct nic *nic)
     outw(RxDiscard, BASE + EL3_CMD);
     while (inw(BASE + EL3_STATUS) & CmdInProgress);
 #ifdef EDEBUG
+{
     unsigned short type = 0;
     type = (nic->packet[12] << 8) | nic->packet[13];
     if (nic->packet[0] + nic->packet[1] + nic->packet[2] + nic->packet[3] +
@@ -511,6 +512,7 @@ static int t515_poll(struct nic *nic)
 	printf(",t=0x%hX,b]", type);
     else
 	printf(",t=0x%hX]", type);
+}
 #endif
 
     return 1;
@@ -624,7 +626,7 @@ You should omit the last argument struct pci_device * for a non-PCI NIC
 ***************************************************************************/
 void config_pnp_device(void);
 
-static int t515_probe(struct dev *dev, unsigned short *probe_addrs __attribute((unused)))
+static int t515_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 {
     struct nic * nic = (struct nic *)dev;
     /* Direct copy from Beckers 3c515.c removing any ISAPNP sections */
@@ -703,7 +705,7 @@ corkscrew_found_device(int ioaddr, int irq,
 }
 
 static int
-corkscrew_probe1(int ioaddr, int irq, int product_index __attribute__((unused)), struct nic *nic)
+corkscrew_probe1(int ioaddr, int irq, int product_index __unused, struct nic *nic)
 {
     unsigned int eeprom[0x40], checksum = 0;	/* EEPROM contents */
     int i;

@@ -150,6 +150,7 @@ epic100_probe(struct dev *dev, struct pci_device *pci)
     }
 
 #ifdef	DEBUG_EEPROM
+{
     unsigned short sum = 0;
     unsigned short value;
     for (i = 0; i < 64; i++) {
@@ -157,6 +158,7 @@ epic100_probe(struct dev *dev, struct pci_device *pci)
 	eeprom[i] = value;
 	sum += value;
     }
+}
 
 #if	(EPIC_DEBUG > 1)
     printf("EEPROM contents\n");
@@ -393,7 +395,7 @@ epic100_poll(struct nic *nic)
 
 
     static void
-epic100_disable(struct dev *dev __attribute__((unused)))
+epic100_disable(struct dev *dev __unused)
 {
 	/* Soft reset the chip. */
 	outl(GC_SOFT_RESET, genctl);

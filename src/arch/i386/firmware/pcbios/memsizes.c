@@ -10,6 +10,7 @@ extern int meme820(struct e820entry *buf, int count);
 
 struct meminfo meminfo;
 
+#define MEMSIZES_DEBUG 0
 void get_memsizes(void)
 {
 	meminfo.basememsize = basememsize();
@@ -29,11 +30,12 @@ void get_memsizes(void)
 		meminfo.map[1].size = meminfo.memsize << 10;
 		meminfo.map[1].type = E820_RAM;
 	}
-#if 0
+#if MEMSIZES_DEBUG
+{
+	int i;
 	printf("basememsize %d\n", meminfo.basememsize);
 	printf("memsize %d\n",     meminfo.basememsize);
 	printf("Memory regions(%d):\n", meminfo.map_count);
-	int i;
 	for(i = 0; i < meminfo.map_count; i++) {
 		unsigned long long r_start, r_end;
 		r_start = meminfo.map[i].addr;
@@ -44,10 +46,9 @@ void get_memsizes(void)
 			(unsigned long)(r_end >> 32),
 			(unsigned long)r_end,
 			meminfo.map[i].type);
-#if 0	/* Careful we might not have the timer calibrated yet */
 		sleep(1); /* No way to see 32 entries on a standard 80x25 screen... */
-#endif
 	}
+}
 #endif
 	/* Allocate the real mode stack */
 	real_mode_stack = (meminfo.basememsize << 10);

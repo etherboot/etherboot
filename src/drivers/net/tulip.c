@@ -120,12 +120,12 @@ static int tulip_debug = 2;             /* 1 normal messages, 0 quiet .. 7 verbo
 
 #define TX_TIME_OUT       2*TICKS_PER_SEC
 
-typedef unsigned char  u8;
-typedef   signed char  s8;
-typedef unsigned short u16;
-typedef   signed short s16;
-typedef unsigned int   u32;
-typedef   signed int   s32;
+typedef uint8_t    u8;
+typedef  int8_t    s8;
+typedef uint16_t   u16;
+typedef  int16_t   s16;
+typedef uint32_t   u32;
+typedef  int32_t   s32;
 
 /* helpful macros if on a big_endian machine for changing byte order.
    not strictly needed on Intel */
@@ -561,7 +561,7 @@ static void tulip_wait(unsigned int nticks)
    MDIO protocol.  See the MII specifications or DP83840A data sheet
    for details. */
 
-int mdio_read(struct nic *nic __attribute__((unused)), int phy_id, int location)
+int mdio_read(struct nic *nic __unused, int phy_id, int location)
 {
     int i;
     int read_cmd = (0xf6 << 10) | (phy_id << 5) | location;
@@ -622,7 +622,7 @@ int mdio_read(struct nic *nic __attribute__((unused)), int phy_id, int location)
     return (retval>>1) & 0xffff;
 }
 
-void mdio_write(struct nic *nic __attribute__((unused)), int phy_id, int location, int value)
+void mdio_write(struct nic *nic __unused, int phy_id, int location, int value)
 {
     int i;
     int cmd = (0x5002 << 16) | (phy_id << 23) | (location<<18) | value;
@@ -895,7 +895,7 @@ static void parse_eeprom(struct nic *nic)
 /*********************************************************************/
 /* tulip_init_ring - setup the tx and rx descriptors                */
 /*********************************************************************/
-static void tulip_init_ring(struct nic *nic __attribute__((unused)))
+static void tulip_init_ring(struct nic *nic __unused)
 {
     int i;
 
@@ -1505,7 +1505,7 @@ static void start_link(struct nic *nic)
     }
 }
 
-static void nway_start(struct nic *nic __attribute__((unused)))
+static void nway_start(struct nic *nic __unused)
 {
     int csr14 = ((tp->sym_advertise & 0x0780) << 9)  |
         ((tp->sym_advertise&0x0020)<<1) | 0xffbf;
@@ -1659,7 +1659,7 @@ static void init_media(struct nic *nic)
     }
 }
 
-static void pnic_do_nway(struct nic *nic __attribute__((unused)))
+static void pnic_do_nway(struct nic *nic __unused)
 {
     u32 phy_reg = inl(ioaddr + 0xB8);
     u32 new_csr6 = tp->csr6 & ~0x40C40200;

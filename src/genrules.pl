@@ -10,7 +10,7 @@
 use strict;
 use File::Basename;
 
-use vars qw($config @families $curfam %drivers %pcient %isaent %isalist %buildent $arch @srcs);
+use vars qw($nic $config @families $curfam %drivers %pcient %isaent %isalist %buildent $arch @srcs);
 
 sub __gendep ($$$)
 {
@@ -122,7 +122,8 @@ sub isaonly ($) {
 	return ($#$aref < 0);
 }
 
-$#ARGV >= 0 or die "Usage: $0 arch sources...\n";
+$#ARGV >= 1 or die "Usage: $0 bin/NIC arch sources...\n";
+$nic  = shift(@ARGV);
 $arch = shift(@ARGV);
 @srcs = @ARGV;
 $config = <<'EOF';
@@ -269,7 +270,7 @@ for $_ (split(/\n/, $config)) {
 	}
 }
 
-open(N,">NIC") or die "NIC: $!\n";
+open(N,">$nic") or die "$nic: $!\n";
 print N <<EOF;
 # This is an automatically generated file, do not edit
 # It does not affect anything in the build, it's only for rom-o-matic

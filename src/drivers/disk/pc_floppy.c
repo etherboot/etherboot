@@ -211,7 +211,7 @@ static void show_floppy(void);
 static void floppy_reset(void);
 
 
-static int set_dor(int fdc __attribute__((unused)), char mask, char data)
+static int set_dor(char mask, char data)
 {
 	unsigned char newdor,olddor;
 
@@ -414,7 +414,7 @@ static void set_drive(int drive)
 #endif
 	new_dor |= (1 << (drive + 4)); /* Spinup the selected drive */
 	new_dor |= drive; /* Select the drive for commands as well */
-	set_dor(fdc, 0xc, new_dor);
+	set_dor(0xc, new_dor);
 
 	mdelay(DRIVE_H1440_SPINUP);
 
@@ -441,7 +441,7 @@ static void floppy_motor_off(int drive)
 	mask = 0xff;
 	mask &= ~(1 << (drive +4));
 	/* Now clear the bit in the Digital Output Register */
-	set_dor(0, mask, 0);
+	set_dor(mask, 0);
 }
 
 /* Set the FDC's data transfer rate on behalf of the specified drive.
@@ -1095,10 +1095,10 @@ static void floppy_reset(void)
 	fdc_state.in_sync = 1;
 }
 
-static void floppy_fini(struct dev *dev __attribute__((unused)))
+static void floppy_fini(struct dev *dev __unused)
 {
 	/* Disable the floppy and the floppy drive controller */
-	set_dor(0, 0, 0);
+	set_dor(0, 0);
 }
 
 static int floppy_probe(struct dev *dev, unsigned short *probe_addrs)
