@@ -170,6 +170,8 @@ UTILS+=		bin/makerom bin/lzhuf
 STDDEPS32=	$(START32) $(BLIB32) $(UTILS)
 UBE_DEPS32=	$(UBE_START32) $(BLIB32)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
+# If you are confident that gcc 2.96 works for you, you can delete gcccheck
+# from the next line
 MAKEDEPS=	Makefile Config Roms gcccheck
 
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
@@ -212,11 +214,13 @@ endif
 
 all:	$(UTILS) $(BUILD_LIBS) allbins
 
-gcccheck:
+gcccheck:	Makefile Config
 	@if $(CC32) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
 	then \
 		echo 'gcc 2.96 is unsuitable for compiling Etherboot, edit Config to use kgcc instead'; \
 		exit 1; \
+	else \
+		touch gcccheck; \
 	fi
 
 include Roms
@@ -401,6 +405,7 @@ clean:
 	$(RM) bin32/*.lilo bin32/*.lzlilo
 	$(RM) bin32/*.pxe bin32/*.lzpxe
 	$(RM) bin32/*.elf bin32/*.ebi
+	$(RM) gcccheck
 
 tarball:
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
