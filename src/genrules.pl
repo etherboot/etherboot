@@ -295,10 +295,13 @@ EOF
 # Generate the Rom rules
 print "# Rules to build the ROM files\n";
 foreach my $family (sort keys %pcient) {
+	my $img = basename($family);
+	print <<EOF;
+ROMTYPE_$img = PCI
+EOF
 	my $aref = $pcient{$family};
 	foreach my $entry (@$aref) {
 		my ($rom, $ids, $comment) = @$entry;
-		my $img = basename($family);
 		next if ($ids eq '-');
 		print <<EOF;
 ROMTYPE_$rom = PCI
