@@ -226,12 +226,12 @@ $(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
 		-o $@ $< $(BIN)/$*.ztmp.sym
 
 # general rules for normal/compressed ROM images, may be overridden
-$(BIN)/%.rom: $(ISAPREFIX) $(BIN)/%.bin
-	cat $^ > $@
+$(BIN)/%.rom: $(BIN)/%.bin $(ISAPREFIX)
+	cat $(ISAPREFIX) $< > $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT) $@
 
-$(BIN)/%.zrom: $(ISAPREFIX) $(BIN)/%.zbin
-	cat $^ > $@
+$(BIN)/%.zrom: $(BIN)/%.zbin $(ISAPREFIX)
+	cat $(ISAPREFIX) $< > $@
 	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT) $@
 
 # general rules for ELF images
@@ -265,40 +265,40 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
 # rules to generate a DOS loadable .com executable
-%.com:	$(COMPREFIX) %.zbin
-	cat $^ > $@
+%.com:	%.zbin $(COMPREFIX)
+	cat $(COMPREFIX) $< > $@
 
 # rules to make a LILO loadable image
-%.lilo:	$(LILOPREFIX) %.bin
-	$(PERL) util/makelilo.pl $^ > $@
+%.lilo:	%.bin $(LILOPREFIX)
+	$(PERL) util/makelilo.pl $(LILOPREFIX) $< > $@
 
-%.zlilo:	$(LILOPREFIX) %.zbin
-	$(PERL) util/makelilo.pl $^ > $@
+%.zlilo: %.zbin $(LILOPREFIX)
+	$(PERL) util/makelilo.pl $(LILOPREFIX) $< > $@
 
 # rules to generate a PXE loadable image
-%.pxe:	$(PXEPREFIX) %.bin
-	cat $^ > $@
+%.pxe:	%.bin $(PXEPREFIX)
+	cat $(PXEPREFIX) $< > $@
 
-%.zpxe:	$(PXEPREFIX) %.zbin
-	cat $^ > $@
+%.zpxe:	%.zbin $(PXEPREFIX)
+	cat $(PXEPREFIX) $< > $@
 
 # rules to generate the .dsk/.zdsk floppy images
-%.dsk:	$(FLOPPYPREFIX) %.bin
-	cat $^ > $@
+%.dsk:	%.bin $(FLOPPYPREFIX)
+	cat $(FLOPPYPREFIX) $< > $@
 
-%.zdsk:	$(FLOPPYPREFIX) %.zbin
-	cat $^ > $@
+%.zdsk:	%.zbin $(FLOPPYPREFIX)
+	cat $(FLOPPYPREFIX) $< > $@
 
 # rules to write the .img/.zimg image onto a blank floppy
-%.fd0:	$(FLOPPYPREFIX) %.bin
-	cat $^ > /dev/fd0
+%.fd0:	%.bin $(FLOPPYPREFIX)
+	cat $(FLOPPYPREFIX) $< > /dev/fd0
 
-%.zfd0:	$(FLOPPYPREFIX) %.zbin
-	cat $^ > /dev/fd0
+%.zfd0:	%.zbin $(FLOPPYPREFIX)
+	cat $(FLOPPYPREFIX) $< > /dev/fd0
 
 # rule to make a non-emulation ISO boot image
 %.iso:	%.zbin
 	mkdir -p $*.dir
-	cat $^ > $*.dir/$(*F).bin
+	cat $< > $*.dir/$(*F).bin
 	mkisofs -o $@ -c boot.cat -no-emul-boot -b $(*F).bin $*.dir
 	rm -fr $*.dir

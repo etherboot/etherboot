@@ -402,20 +402,20 @@ foreach my $family (sort keys %pcient) {
 		my $img = basename($family);
 		next if ($ids eq '-');
 		print <<EOF;
-\$(BIN)/$rom.rom:	\$(PCIPREFIX) \$(BIN)/$img.bin
-	cat \$^ > \$@
+\$(BIN)/$rom.rom:	\$(BIN)/$img.bin \$(PCIPREFIX)
+	cat \$(PCIPREFIX) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom--%.rom:	\$(PCIPREFIX) \$(BIN)/$img--%.bin
-	cat \$^ > \$@
+\$(BIN)/$rom--%.rom:	\$(BIN)/$img--%.bin \$(PCIPREFIX)
+	cat \$(PCIPREFIX) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom.zrom:	\$(PCIPREFIX) \$(BIN)/$img.zbin
-	cat \$^ > \$@
+\$(BIN)/$rom.zrom:	\$(BIN)/$img.zbin \$(PCIPREFIX)
+	cat \$(PCIPREFIX) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom--%.zrom:	\$(PCIPREFIX) \$(BIN)/$img--%.zbin
-	cat \$^ > \$@
+\$(BIN)/$rom--%.zrom:	\$(BIN)/$img--%.zbin \$(PCIPREFIX)
+	cat \$(PCIPREFIX) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
 EOF
