@@ -70,8 +70,16 @@ pmode:
 	movl	$(EB_OPCODE_MAIN|EB_USE_INTERNAL_STACK|EB_SKIP_OPCODE), %eax
 	xchgl	%eax, 4(%esp)		/* 4(%esp) = opcode, restore %eax */
 1:
-	/* jmp in_call */
-	ret
+	/* Run decompressor if necessary */
+	pushl	%eax
+	movl	$compressed, %eax
+	testl	%eax, %eax
+	jz	1f
+	call	decompress
+1:	popl	%eax
+
+	/* Make in_call to Etherboot */
+	jmp	in_call
 
 /******************************************************************************
  * Entered in real mode
@@ -86,7 +94,7 @@ rmode:
 	movw	%sp, %bp
 	cmpw	$0, 4(%bp)		/* Conventional entry point used? */
 	jne	1f
-	/* Entered via contentional entry point: set up stack */
+	/* Entered via conventional entry point: set up stack */
 	pushl	%eax
 	movw	10(%bp), %ax
 	movw	%ax, 6(%bp)		/* Move return address down */
@@ -97,9 +105,31 @@ rmode:
 1:	/* Entered via callback entry point: do nothing */
 	popw	%bp
 	popw	%ax
-2:	
+2:
 
-	/* jmp rm_in_call */
-	ret
+	/* Run decompressor if necessary.  Decompressor is 32-bit
+	 * code, so we must switch to pmode first.
+	 */
+	pushl	%eax
+	movl	$compressed, %eax
+	testl	%eax, %eax
+	jz	1f
+	pushw	%ds
+	pushw	%es
+	pushw	%fs
+	pushw	%gs
+	call	_real_to_prot
+	.code32
+	call	decompress
+	call	_prot_to_real
+	.code16
+	popw	%gs
+	popw	%fs
+	popw	%es
+	popw	%ds
+1:	popl	%eax
+
+	/* Make rm_in_call to Etherboot */
+	jmp	rm_in_call
 #endif /* CODE16 */
 	
