@@ -9,14 +9,14 @@
 
 #define RM_STACK_SIZE ( 0x1000 )
 
-/* Put the stack just below the dos load address.
- *
- * Note that this will probably never be used; while Etherboot remains
- * in base memory the real-mode stack is placed in the Etherboot main
- * stack, and when Etherboot is relocated real_mode_stack is
- * recalculated.
+/* While Etherboot remains in base memory the real-mode stack is
+ * placed in the Etherboot main stack.  The first allocation or
+ * deallocation of base memory will cause a 'proper' real-mode stack
+ * to be allocated.  This will happen before Etherboot is relocated to
+ * high memory.
  */
-uint32_t real_mode_stack = 0x7c00;
+uint32_t real_mode_stack = 0;
+size_t real_mode_stack_size = RM_STACK_SIZE;
 
 /* Make a call to a real-mode code block.
  */
@@ -43,7 +43,8 @@ uint32_t prepare_real_call ( real_call_params_t *p,
 	
 	/* Work out where we're putting the stack */
 	stack_base = ( virt_to_phys(local_stack) < 0xa0000 ) ? local_stack :
-		phys_to_virt(real_mode_stack) - local_stack_len;
+		( phys_to_virt(real_mode_stack) + real_mode_stack_size
+		  - local_stack_len );
 	stack = stack_base;
 
 	/* Compile input stack and trampoline code to stack */
@@ -61,7 +62,8 @@ uint32_t prepare_real_call ( real_call_params_t *p,
 	r2p_params = (real_to_prot_params_t*) ( stack - sizeof(*r2p_params) );
 
 	/* Set parameters within compiled stack */
-	p2r_params->ss = p2r_params->cs = SEGMENT ( stack - RM_STACK_SIZE );
+	p2r_params->ss =
+		p2r_params->cs = SEGMENT ( stack - real_mode_stack_size );
 	p2r_params->esp = virt_to_phys ( stack_base );
 	p2r_params->r2p_params = virt_to_phys ( r2p_params );
 	r2p_params->out_stack = ( p->out_stack == NULL ) ?

@@ -15,6 +15,10 @@
 #define FREE_BLOCK_MAGIC ( ('!'<<0) + ('F'<<8) + ('R'<<16) + ('E'<<24) )
 #define FREE_BASE_MEMORY ( (uint32_t) ( *fbms << 10 ) )
 
+/* Prototypes */
+void * _allot_base_memory ( size_t size );
+void _forget_base_memory ( void *ptr, size_t size );
+
 typedef struct free_base_memory_block {
 	uint32_t	magic;
 	uint16_t	size_kb;
@@ -27,12 +31,25 @@ uint32_t get_free_base_memory ( void ) {
 	return FREE_BASE_MEMORY;
 }
 
-/* Adjust the real mode stack pointer.  We keep the real mode stack at
- * the top of free base memory, rather than allocating space for it.
+/* Allot/free the real-mode stack
  */
 
-inline void adjust_real_mode_stack ( void ) {
-	real_mode_stack = FREE_BASE_MEMORY;
+void allot_real_mode_stack ( void ) {
+	void *new_real_mode_stack;
+
+	new_real_mode_stack = _allot_base_memory ( real_mode_stack_size );
+	if ( ! new_real_mode_stack ) {
+		printf ( "FATAL: No real-mode stack\n" );
+		while ( 1 ) {};
+	}
+	real_mode_stack = virt_to_phys ( new_real_mode_stack );
+}
+
+void forget_real_mode_stack ( void ) {
+	if ( real_mode_stack) {
+		_forget_base_memory ( phys_to_virt(real_mode_stack),
+				      real_mode_stack_size );
+	}
 }
 
 /* Allocate N bytes of base memory.  Amount allocated will be rounded
@@ -40,12 +57,12 @@ inline void adjust_real_mode_stack ( void ) {
  * counter.  Returns NULL if memory cannot be allocated.
  */
 
-void * allot_base_memory ( size_t size ) {
+void * _allot_base_memory ( size_t size ) {
 	uint16_t size_kb = ( size + 1023 ) >> 10;
 	void *ptr = NULL;
 
 #ifdef DEBUG_BASEMEM
-	printf ( "Trying to allocate %d kB of base memory, %d kB free\n",
+	printf ( "Trying to allocate %d kB of base memory from %d kB free\n",
 		 size_kb, *fbms );
 #endif
 
@@ -69,9 +86,18 @@ void * allot_base_memory ( size_t size ) {
 	memset ( ptr, 0, size_kb << 10 );
 #endif
 
-	/* Adjust real mode stack pointer */
-	adjust_real_mode_stack ();
+	return ptr;
+}
 
+void * allot_base_memory ( size_t size ) {
+	void *ptr;
+
+	/* Free real-mode stack, allocate memory, reallocate real-mode
+	 * stack.
+	 */
+	forget_real_mode_stack();
+	ptr = _allot_base_memory ( size );
+	allot_real_mode_stack();
 	return ptr;
 }
 
@@ -90,7 +116,7 @@ void * allot_base_memory ( size_t size ) {
  * API to be a feature! :-)
  */
 
-void forget_base_memory ( void *ptr, size_t size ) {
+void _forget_base_memory ( void *ptr, size_t size ) {
 	uint16_t remainder = virt_to_phys(ptr) & 1023;
 	uint16_t size_kb = ( size + remainder + 1023 ) >> 10;
 	free_base_memory_block_t *free_block =
@@ -135,6 +161,16 @@ void forget_base_memory ( void *ptr, size_t size ) {
 	free_unused_base_memory();
 }
 
+void forget_base_memory ( void *ptr, size_t size ) {
+	/* Free memory, free real-mode stack, re-allocate real-mode
+	 * stack.  Do this so that we don't end up wasting a huge
+	 * block of memory trapped behind the real-mode stack.
+	 */
+	_forget_base_memory ( ptr, size );
+	forget_real_mode_stack();
+	allot_real_mode_stack();
+}
+
 /* Do the actual freeing of memory.  This is split out from
  * forget_base_memory() so that it may be called separately.  It
  * should be called whenever base memory is deallocated by an external
@@ -176,8 +212,6 @@ void free_unused_base_memory ( void ) {
 #endif			
 	}
 
-	/* Adjust real mode stack pointer */
-	adjust_real_mode_stack ();
 }
 
 /* Free base memory used by the decompressor.  Called once at start of

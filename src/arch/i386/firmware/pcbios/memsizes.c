@@ -151,8 +151,6 @@ void get_memsizes(void)
 	}
 }
 #endif
-	/* Allocate the real mode stack */
-	adjust_real_mode_stack ();
 }
 
 #endif /* PCBIOS */

@@ -107,5 +107,6 @@ extern segoff_t _pxe_pxenv_location;
 /* Global variables
  */
 extern uint32_t real_mode_stack;
+extern size_t real_mode_stack_size;
 
 #endif /* ASSEMBLY */

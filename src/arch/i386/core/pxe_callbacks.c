@@ -134,8 +134,8 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxenv->RMEntry.offset = (void*)pxenv_in_call_far - (void*)pxe_stack;
 	pxenv->PMOffset = 0; /* "Do not use" says the PXE spec */
 	pxenv->PMSelector = 0; /* "Do not use" says the PXE spec */
-	pxenv->StackSeg = 0; /* Currently we use caller's stack */
-	pxenv->StackSize = 0;
+	pxenv->StackSeg = SEGMENT ( phys_to_virt ( real_mode_stack ) );
+	pxenv->StackSize = real_mode_stack_size;
 	pxenv->BC_CodeSeg = 0;
 	pxenv->BC_CodeSize = 0;
 	pxenv->BC_DataSeg = 0;
