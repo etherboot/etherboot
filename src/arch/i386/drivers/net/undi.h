@@ -16,11 +16,6 @@ $Id$
  * your option) any later version.
  */
 
-/* Include pxe.h from FreeBSD.
- * pxe.h defines PACKED, which etherboot.h has already defined.
- */
-
-#undef PACKED
 #include "pxe.h"
 #include "pic8259.h"
 
@@ -37,8 +32,6 @@ typedef struct undi_call_info {
 } undi_call_info_t;
 
 typedef uint16_t PXENV_EXIT_t;
-#define PXENV_EXIT_SUCCESS 0x0000
-#define PXENV_EXIT_FAILURE 0x0001
 PXENV_EXIT_t __undi_call ( uint32_t, uint32_t );
 
 /* The UNDI loader parameter structure is not defined in pxe.h
@@ -79,15 +72,6 @@ typedef union pxenv_structure {
 	t_PXENV_STOP_UNDI		stop_undi;
 	t_PXENV_UNLOAD_STACK		unload_stack;
 } pxenv_structure_t;
-
-/* UNDI status codes
- */
-
-#define PXENV_STATUS_SUCCESS			0x0000
-#define PXENV_STATUS_FAILURE			0x0001
-#define PXENV_STATUS_KEEP_UNDI			0x0004
-#define PXENV_STATUS_KEEP_ALL			0x0005
-#define PXENV_STATUS_UNDI_MEDIATEST_FAILED	0x0061
 
 /* BIOS PnP parameter block.  We scan for this so that we can pass it
  * to the UNDI driver.
