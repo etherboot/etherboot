@@ -56,7 +56,8 @@ do
 		continue
 	fi
 	# give Etherboot image a suffix that won't be mangled
-	g=$(basename $f zlilo)zli
+	g=${f%.zlilo}
+	g=${g:0:8}.zli
 	case "$first" in
 	"")
 		echo DEFAULT $g
