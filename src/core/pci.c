@@ -214,16 +214,31 @@ void adjust_pci_device(struct pci_device *p)
 /*
  * Find the start of a pci resource.
  */
-unsigned long pci_bar_start(struct pci_device *dev, unsigned int bar)
+unsigned long pci_bar_start(struct pci_device *dev, unsigned int index)
 {
-	uint32_t start;
-	pci_read_config_dword(dev, bar, &start);
-	if (start & PCI_BASE_ADDRESS_SPACE_IO) {
-		start &= PCI_BASE_ADDRESS_IO_MASK;
+	uint32_t lo, hi;
+	unsigned long bar;
+	pci_read_config_dword(dev, index, &lo);
+	if (lo & PCI_BASE_ADDRESS_SPACE_IO) {
+		bar = lo & PCI_BASE_ADDRESS_IO_MASK;
 	} else {
-		start &= PCI_BASE_ADDRESS_MEM_MASK;
+		bar = 0;
+		if ((lo & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_64) {
+			pci_read_config_dword(dev, index + 4, &hi);
+			if (hi) {
+				if (sizeof(unsigned long) > sizeof(uint32_t)) {
+					bar = hi;
+					bar <<=32;
+				}
+				else {
+					printf("Unhandled 64bit BAR\n");
+					return -1UL;
+				}
+			}
+		}
+		bar |= lo & PCI_BASE_ADDRESS_MEM_MASK;
 	}
-	return start + pcibios_bus_base(dev->bus);
+	return bar + pcibios_bus_base(dev->bus);
 }
 
 /*

@@ -167,7 +167,7 @@ foreach my $source (@srcs) {
 print "# Driver object files and ROM image files\n";
 print "IMGS\t:=\n";
 print "DOBJS\t:=\n";
- print "PCIOBJS\t:=\n";
+print "PCIOBJS\t:=\n";
 foreach my $pci (sort keys %pcient) {
 	my $img = basename($pci);
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
