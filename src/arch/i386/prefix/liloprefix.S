@@ -46,7 +46,7 @@
 #define	BOOTSEG 0x07C0		/* original address of boot-sector */
 #define	INITSEG DEF_INITSEG	/* we move boot here - out of the way */
 #define	SETUPSEG DEF_SETUPSEG	/* setup starts here */
-#define SYSSEG ( BOOTSEG + PREFIXSIZE/16 ) /* system loaded at end of prefix */
+#define SYSSEG DEF_SYSSEG	/* system loaded at 0x10000 (65536). */
 
 	.text
 	.code16
@@ -123,7 +123,7 @@ setup_code:
 
 	pushl	$0		/* No parameters to preserve for exit path */
 	pushw	$0		/* Use prefix exit path mechanism */
-	jmp	_start
+	ljmp	$(SYSSEG-(PREFIXSIZE/16)), $_start
 
 	.section ".text16", "ax", @progbits
 	.globl	prefix_exit
