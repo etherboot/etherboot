@@ -2532,3 +2532,16 @@ driver.
 mini-slamd.
 
 Released as Etherboot 5.3.0 (development)
+
++ Timothy Legge rewrite proto_tftm.c, got multicast working with atftp
+and enabled multicast for the Tulip.
+
+Released as Etherboot 5.3.1 (development)
+
++ Günter Knauf sent in a new version of romid that handles the new
+and old IDENT format.
+
++ Cai Qiang fixed the WINCE loader. It needs to handle > 512 byte packets
+and also the buffer has to be static.
+
+Released as Etherboot 5.3.2 (development)
