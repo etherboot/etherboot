@@ -304,6 +304,9 @@ xstart32:
 	pushl	$FLAT_CODE_SEG
 	pushl	%ecx
 
+	/* Cache virt_offset */
+	movl	virt_offset, %ebp
+	
 	/* Switch to using physical addresses */
 	call	_virt_to_phys
 
