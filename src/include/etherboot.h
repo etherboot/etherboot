@@ -641,6 +641,7 @@ extern uint32_t get_free_base_memory ( void );
 extern void adjust_real_mode_stack ( void );
 extern void * allot_base_memory ( size_t );
 extern void forget_base_memory ( void*, size_t );
+extern void free_unused_base_memory ( void );
 
 #define PACKED __attribute__((packed))
 
