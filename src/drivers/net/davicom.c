@@ -4,12 +4,9 @@
 /*  
     DAVICOM DM9009/DM9102/DM9102A Etherboot Driver	V1.00
 
-    This driver was ported from Marty Conner's Tulip Etherboot driver. 
-    Thanks Marty Connor (mdc@thinguin.org) 
-    You can get Tulip driver source file from this URL:
+    This driver was ported from Marty Connor's Tulip Etherboot driver. 
+    Thanks Marty Connor (mdc@etherboot.org) 
 
-    "http://etherboot.sourceforge..net/#Distribution"
-    
     This davicom etherboot driver supports DM9009/DM9102/DM9102A/
     DM9102A+DM9801/DM9102A+DM9802 NICs.
 
@@ -164,7 +161,6 @@ static void davicom_transmit(struct nic *nic, const char *d, unsigned int t,
 			   unsigned int s, const char *p);
 static int davicom_poll(struct nic *nic, int retrieve);
 static void davicom_disable(struct dev *dev);
-static void whereami (const char *str);
 #ifdef	DAVICOM_DEBUG
 static void davicom_more(void);
 #endif /* DAVICOM_DEBUG */
@@ -179,13 +175,10 @@ static void davicom_media_chk(struct nic *);
 /*********************************************************************/
 /* Utility Routines                                                  */
 /*********************************************************************/
-
-static inline void whereami (const char *str)
+static inline void whereami(const char *str)
 {
-#ifdef	DAVICOM_DEBUG_WHERE
   printf("%s\n", str);
   /* sleep(2); */
-#endif
 }
 
 #ifdef	DAVICOM_DEBUG
@@ -441,8 +434,8 @@ static void davicom_init_chain(struct nic *nic)
   /* Sten: Set 2 TX descriptor but use one TX buffer because
 	   it transmit a packet and wait complete every time. */
   for (i=0; i<NTXD; i++) {
-    txd[i].buf1addr = virt_to_bus(&txb[0]);	/* Used same TX buffer */
-    txd[i].buf2addr = virt_to_bus(&txd[i+1]);	/*  Point to Next TX desc */
+    txd[i].buf1addr = (void *)virt_to_bus(&txb[0]);	/* Used same TX buffer */
+    txd[i].buf2addr = (void *)virt_to_bus(&txd[i+1]);	/*  Point to Next TX desc */
     txd[i].buf1sz   = 0;
     txd[i].buf2sz   = 0;
     txd[i].control  = 0x184;           /* Begin/End/Chain */
@@ -461,8 +454,8 @@ static void davicom_init_chain(struct nic *nic)
 
   /* setup receive descriptor */
   for (i=0; i<NRXD; i++) {
-    rxd[i].buf1addr = virt_to_bus(&rxb[i * BUFLEN]);
-    rxd[i].buf2addr = virt_to_bus(&rxd[i+1]); /* Point to Next RX desc */
+    rxd[i].buf1addr = (void *)virt_to_bus(&rxb[i * BUFLEN]);
+    rxd[i].buf2addr = (void *)virt_to_bus(&rxd[i+1]); /* Point to Next RX desc */
     rxd[i].buf1sz   = BUFLEN;
     rxd[i].buf2sz   = 0;        /* not used */
     rxd[i].control  = 0x4;		/* Chain Structure */
@@ -470,8 +463,8 @@ static void davicom_init_chain(struct nic *nic)
   }
 
   /* Chain the last descriptor to first */
-  txd[NTXD - 1].buf2addr = virt_to_bus(&txd[0]);
-  rxd[NRXD - 1].buf2addr = virt_to_bus(&rxd[0]);
+  txd[NTXD - 1].buf2addr = (void *)virt_to_bus(&txd[0]);
+  rxd[NRXD - 1].buf2addr = (void *)virt_to_bus(&rxd[0]);
   TxPtr = 0;
   rxd_tail = 0;
 }
