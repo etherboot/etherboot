@@ -1,5 +1,9 @@
 Etherboot 5.1.2
 
+Major rework by Eric Biederman to include multicast support.
+
+Builtin menuing support has been removed.
+
 E820 memory sizing support has been added by Eric Biederman. LinuxBIOS
 compatibility is much better now, with major changes submitted by Eric.
 

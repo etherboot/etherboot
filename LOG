@@ -2321,3 +2321,55 @@ encounter strange behaviour and complain to the kernel developers.
 Greg also supplied a patch to 3c90x.c to print a warning message.
 
 Released as Etherboot 5.0.6 (production)
+
++ Andrew Bettison sent in a patch and the explanation: Here's a patch
+for some changes I made to Etherboot-5.0.6 because it didn't work with a
+SMC EtherEZ in an old PCI/ISA bybrid bus system.  The ISA shared memory
+isn't accessible on many such systems, so the only way to do I/O to the
+card is in Programmed I/O mode.  I studied the Linux 2.2.19 driver
+(drivers/net/smc-ultra.c) and hacked what I figured was equivalent code
+into src/ns8390.c, and it eventually worked.  All my new code is enabled
+with -DWD-790_PIO.
+
++ Small error in the ADMTEK Comet 983 IDs fixed.
+
++ Michael Rendell sent in patches for 3c90x.c to get the MAC address
+from location 10 of the EEPROM onwards, like the Linux driver does. Some
+905s have the MAC address at both 0 and 10 which is why it worked for
+some boards.
+
++ Michael Brown sent in drivers for 3 wireless NICs based in the prism2
+chipset, and a small patch to rtl8139.c to abort detection on no link.
+
++ Rewrote makerom.c in Perl to give makerom.pl.
+
++ Rewrite genrules.pl to parse a new NIC format.
+
++ Timothy Legge contributed a 3c515 driver. Requires a ISA PnP BIOS.
+
++ Modified call to int15h/e801 in pcbios.S to check for return values in
+CX, DX in case BIOS doesn't return them in AX, BX.
+
++ Richard Chan sent in PCI IDs for another Intel EEPRO100 product.
+Omigawd will they ever run out of EEPRO100 model numbers. :-)
+
++ Changed location of setup header from 0x97e000 to 0x93e000 in
+mkQNXnbi.c for recent Etherboot versions.
+
++ Renamed membase to addr1 to reflect its lack of predefined meaning in
+PCI config space. Should do similar to ioaddr, but too much work.
+
++ Samuel Clememts found another Intel EEPRO100 device ID, 0x1039.
+
++ Updated instructions in contrib/tomsrtbt for latest 2.0.103 release.
+
++ Folded in changes by Michael Brown to send PCI IDs to the server
+and to encapsulate Etherboot specific options.
+
++ Bug in sis900.c, wrongly classifies revisions 0x81 and 0x82 because
+first test catches too many revisions. Changed to match the Linux
+driver.
+
++ (5.1.2) Multicast support by Eric Biederman.
+
++ (5.1.2) Builtin menuing has been removed.
