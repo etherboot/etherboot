@@ -282,9 +282,9 @@ family		sundance
 sundancealta	0x13f0,0x0201	Sundance Alta st201 based 
 dfe530txs	0x1186,0x1002	D-Link DFE 530TXS
 
-#family		pcnet32
-#amd_lance	0x1022,0x2000		AMD Lance based card
-#amd_lance_home	0x1022,0x2001		AMD Lance Home based card
+family		pcnet32
+amd_lance	0x1022,0x2000		AMD Lance based card
+amd_lance_home	0x1022,0x2001		AMD Lance Home based card
 
 family		tlan
 netel10		0x0e11,0xae34		Compaq Netelligent 10 T PCI UTP
