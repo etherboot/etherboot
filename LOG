@@ -2492,6 +2492,10 @@ noticed.
 
 + PM stack was getting clobbered by zeroing of BSS, move to own segment
 in etherboot.lds. Move %ss out of the way of Etherboot in comprefix.S.
-Now Q works from .zrom and sort of from .com (DOS is odd after that).
+Now Q works from .zrom and sort of from .com (DOS is odd after return).
+
++ Make ASK_PROMPT reflect the device options available.
+
++ Removed many outdated comments and updated others.
 
 Released as Etherboot 5.1.10 (5.2 release candidate 2)
