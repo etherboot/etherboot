@@ -50,6 +50,20 @@ uint8_t checksum ( void *block, size_t size ) {
 	return sum;
 }
 
+/* Print the status of a !PXE structure
+ */
+
+void pxe_dump ( void ) {
+	printf ( "API %hx:%hx St %hx:%hx UD %hx:%hx UC %hx:%hx "
+		 "BD %hx:%hx BC %hx:%hx\n",
+		 undi.pxe->EntryPointSP.segment, undi.pxe->EntryPointSP.offset,
+		 undi.pxe->Stack.Seg_Addr, undi.pxe->Stack.Seg_Size,
+		 undi.pxe->UNDIData.Seg_Addr, undi.pxe->UNDIData.Seg_Size,
+		 undi.pxe->UNDICode.Seg_Addr, undi.pxe->UNDICode.Seg_Size,
+		 undi.pxe->BC_Data.Seg_Addr, undi.pxe->BC_Data.Seg_Size,
+		 undi.pxe->BC_Code.Seg_Addr, undi.pxe->BC_Code.Seg_Size );
+}
+
 /**************************************************************************
  * Base memory scanning functions
  **************************************************************************/
@@ -108,6 +122,7 @@ int hunt_pixie ( void ) {
 			}
 			printf ( "ok\n" );
 			undi.pxe = pxe;
+			pxe_dump();
 			return 1;
 		}
 	}
@@ -346,14 +361,7 @@ int undi_loader ( void ) {
 	}
 	printf ( "ok\n" );
 	undi.pxe = pxe;
-	printf ( "API %hx:%hx St %hx:%hx UD %hx:%hx UC %hx:%hx "
-		 "BD %hx:%hx BC %hx:%hx\n",
-		 undi.pxe->EntryPointSP.segment, undi.pxe->EntryPointSP.offset,
-		 undi.pxe->Stack.Seg_Addr, undi.pxe->Stack.Seg_Size,
-		 undi.pxe->UNDIData.Seg_Addr, undi.pxe->UNDIData.Seg_Size,
-		 undi.pxe->UNDICode.Seg_Addr, undi.pxe->UNDICode.Seg_Size,
-		 undi.pxe->BC_Data.Seg_Addr, undi.pxe->BC_Data.Seg_Size,
-		 undi.pxe->BC_Code.Seg_Addr, undi.pxe->BC_Code.Seg_Size );
+	pxe_dump();
 	return 1;
 }
 
@@ -486,6 +494,10 @@ int eb_pxenv_unload_stack ( void ) {
 	return 1;
 }
 
+int eb_pxenv_stop_base ( void ) {
+	return undi_call ( PXENV_STOP_BASE );
+}
+
 /* Unload UNDI base code (if any present) and free memory.
  */
 int undi_unload_base_code ( void ) {
@@ -499,6 +511,7 @@ int undi_unload_base_code ( void ) {
 	/* Don't unload if there is no base code present */
 	if ( undi.pxe->BC_Code.Seg_Addr == 0 ) return 1;
 
+	eb_pxenv_stop_base();
 	eb_pxenv_unload_stack();
 	if ( ( undi.pxs->unload_stack.Status != PXENV_STATUS_SUCCESS ) &&
 	     ( undi.pxs->unload_stack.Status != PXENV_STATUS_FAILURE ) ) {
