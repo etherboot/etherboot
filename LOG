@@ -2743,3 +2743,7 @@ Technologies, Inc
 + Fixed some bugs to enable compilation for gcc 3.4.x.
 
 Released as Etherboot 5.3.10 aka 5.4RC1 (development)
+
++ Changes to segment scheme to make large compressed images work.
+
++ Patch from Jan Kiszka fixing TFTP blocksize requested.
