@@ -135,7 +135,7 @@ void get_memsizes(void)
 {
 	int i;
 	printf("basememsize %d\n", meminfo.basememsize);
-	printf("memsize %d\n",     meminfo.basememsize);
+	printf("memsize %d\n",     meminfo.memsize);
 	printf("Memory regions(%d):\n", meminfo.map_count);
 	for(i = 0; i < meminfo.map_count; i++) {
 		unsigned long long r_start, r_end;
