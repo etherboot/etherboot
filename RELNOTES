@@ -1,36 +1,25 @@
-Etherboot 5.2.6 (Release Date ?)
+Etherboot 5.2.6 (Release Date 2004/11/13)
+
+This release has not been tested against gcc 3.4.  It is being worked 
+on but issue reports (or fixes) are welcome.
+
+This release contains a number of updates but is most notable for 
+the addition of support for filo, btext console and the ability to 
+boot from USB disks.  These features are only used when combined with
+LinuxBIOS at present.  The filo directory contains a number of README 
+files that explain the features.
 
 To generate ISO images you will to get need syslinux and/or isolinux
-separately. Google for them. If you have a very old BIOS and .liso 
+separately.  Google for them.  If you have a very old BIOS and .liso 
 images don't work you may wish to try adding the -s option of syslinux 
 as a last resort.
 
-This release (probably one of the last in the 5.2 stream) is mostly a 
-cleanup and maintenance release.  Most of the changes correct bugs 
-present in 5.2.4 and in some cases correct issues present since 5.2.0 
-but were only recently reported.  
-
-The sole new functionality is the addition of support for LACP (Link 
-Aggregation Control Protocol) as defined in IEEE 803.2ad/D3.0.  This 
-allows Etherboot to be used in combination with switches that require 
-first "speaking" LACP before packets are allowed through the switch.
-
-Support for loading FreeBSD images was fixed after resolving some 
-issues present since 5.2.0
-
-Support for loading Etherboot via pxe was improved for some pxe 
-implementations by ignoring the return code when unloading UNDI.
-
-Driver updates include cleanup and fixes for the e1000, lance, pcnet32,
-prism2_pci, r8169, sundance and via-rhine.  Most notable: 
-
-1) some e1000 based NICs that did not work in 5.2.4 now work,
-2) confirmed that the lance driver works if Relocation is undefined and 
-3) the prism2 based wireless pci cards now work again.
+Driver updates include cleanup and fixes for the eepro100, rtl8139, 
+sis900, tlan, tulip and via-rhine.  In addition, Two new drivers were 
+added for mtd80x and Davicom based cards.  The new "dmfe" driver still 
+needs work but *may* work beter for you than the "davicom" driver.
 
 Numerous other small housekeeping and cleanup changes
-
-Links:
 
 Download: http://sourceforge.net/project/showfiles.php?group_id=4233
 News: http://sourceforge.net/news/?group_id=4233
