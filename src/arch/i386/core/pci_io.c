@@ -10,9 +10,9 @@
 ** /usr/src/linux/include/linux/bios32.h
 ** /usr/src/linux/drivers/net/ne.c
 */
+#ifdef CONFIG_PCI
 #include "etherboot.h"
 #include "pci.h"
-
 #ifdef	CONFIG_PCI_DIRECT
 #define  PCIBIOS_SUCCESSFUL                0x00
 
@@ -333,3 +333,4 @@ void find_pci(int type, struct pci_device *dev)
 #endif
 	return scan_pci_bus(type, dev);
 }
+#endif /* CONFIG_PCI */
