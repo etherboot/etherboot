@@ -1,9 +1,5 @@
 #define EB52
 
-#ifdef ALLMULTICAST
-#error multicast support is not yet implemented
-#endif
-
 #ifdef EB50
 #define __unused __attribute__((unused))
 #endif
@@ -45,6 +41,7 @@
 *    REVISION HISTORY:
 *    ================
 *    v1.0	08-06-2003	timlegge	Initial port of Linux driver
+*    v1.1	08-23-2003	timlegge	Add multicast support
 *
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -61,8 +58,8 @@
 /* void hex_dump(const char *data, const unsigned int len); */
 
 /* Etherboot Specific definations */
-#define drv_version "v1.0"
-#define drv_date "08-06-2003"
+#define drv_version "v1.1"
+#define drv_date "08-23-2003"
 
 typedef unsigned char u8;
 typedef signed char s8;
@@ -506,8 +503,8 @@ static void pcnet32_reset(struct nic *nic)
 	}
 	lp->init_block.mode =
 	    le16_to_cpu((lp->options & PCNET32_PORT_PORTSEL) << 7);
-	lp->init_block.filter[0] = 0x00000000;
-	lp->init_block.filter[1] = 0x00000000;
+	lp->init_block.filter[0] = 0xffffffff;
+	lp->init_block.filter[1] = 0xffffffff;
 
 	pcnet32_init_ring(nic);
 
@@ -646,7 +643,6 @@ static void pcnet32_disable(struct dev *dev __unused)
 	lp->a.write_bcr(ioaddr, 20, 4);
 }
 
-
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 You should omit the last argument struct pci_device * for a non-PCI NIC
@@ -675,7 +671,7 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	/* BASE is used throughout to address the card */
 	ioaddr = pci->ioaddr;
 	printf("\n");	
-	printf("pcnet32.c: %s, %s tlegge@rogers.com\n", drv_version, drv_date);
+	printf("pcnet32.c: %s, %s Written by Timothy Legge (tlegge@rogers.com)\n", drv_version, drv_date);
 	printf("%s: Probing for Vendor=%hX   Device=%hX\n",
 	       pci->name, pci->vendor, pci->dev_id);
 
@@ -868,13 +864,13 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	    && nic->node_addr[2] == 0x75)
 		lp->options = PCNET32_PORT_FD | PCNET32_PORT_GPSI;
 
-	lp->init_block.mode = le16_to_cpu(0x0003);	/* Disable Rx and Tx. */
+	lp->init_block.mode = le16_to_cpu(0x0003); 	/* Disable Rx and Tx. */
 	lp->init_block.tlen_rlen =
 	    le16_to_cpu(TX_RING_LEN_BITS | RX_RING_LEN_BITS);
 	for (i = 0; i < 6; i++)
 		lp->init_block.phys_addr[i] = nic->node_addr[i];
-	lp->init_block.filter[0] = 0x00000000;
-	lp->init_block.filter[1] = 0x00000000;
+	lp->init_block.filter[0] = 0xffffffff;
+	lp->init_block.filter[1] = 0xffffffff;
 	lp->init_block.rx_ring = virt_to_bus(&rx_ring);
 	lp->init_block.tx_ring = virt_to_bus(&tx_ring);
 
@@ -896,7 +892,7 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	mdelay(1);
 
 	cards_found++;
-
+	
 	/* point to NIC specific routines */
 	pcnet32_reset(nic);
 
