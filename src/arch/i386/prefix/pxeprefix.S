@@ -127,8 +127,10 @@ unload_pxe:
 	call	pxe_call
 	mov	$PXENV_STOP_UNDI, %bx
 	call	pxe_call
+	pushfw				/* Ignore PXENV_UNDI_CLEANUP errors */
 	mov	$PXENV_UNDI_CLEANUP, %bx
 	call	pxe_call
+	popfw
 	/* On exit, zero flag is set iff all calls were successful */
 		
 /*****************************************************************************
