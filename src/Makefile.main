@@ -281,7 +281,7 @@ $(BIN)/%.img: $(BIN)/%.tmp $(MAKEDEPS)
 
 # Rules for generating symbol files (for use in conjunction with .img and .zimg files)
 $(BIN)/%.allsym: $(BIN)/%.tmp $(MAKEDEPS)
-	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=runtime_ $< $@
+	$(OBJCOPY) -x -O symbolsrec $< $@
 
 $(BIN)/%.sym: $(BIN)/%.allsym $(MAKEDEPS)
 	$(OBJCOPY) -O symbolsrec -j '*ABS*' $< $@

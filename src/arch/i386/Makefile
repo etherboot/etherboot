@@ -105,10 +105,10 @@ $(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
 # ROM loaders
 
 $(BIN)/isaprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
+	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
 $(BIN)/pciprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
-	$(CPP) -DPCI_PNP_HEADER $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
+	$(CPP) -DPCI_PNP_HEADER $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
 # 16 to 32bit transition
 $(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
@@ -227,7 +227,7 @@ $(BIN)/%.zimg: $(BIN)/%.ztmp $(MAKEDEPS)
 # Generate .zsym files containing symbols from decompressor alongside
 # symbols from .sym file
 $(BIN)/%.ztmp.allsym: $(BIN)/%.ztmp $(MAKEDEPS)
-	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=decompressor_ $< $@
+	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=__decompressor_ $< $@
 
 $(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
 	$(LD) --accept-unknown-input-arch --oformat symbolsrec -r \
