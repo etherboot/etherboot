@@ -280,7 +280,7 @@
 
 # Select which buses etherboot should support
 CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
-#CFLAGS+=	-DCONFIG_PCMCIA
+# CFLAGS+=	-DCONFIG_PCMCIA
 
 # For prompting and default on timeout
 CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
@@ -347,14 +347,14 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 #		-DDHCP_USER_CLASS_LEN=11
 
 # for btext console support
-# CFLAGS+= -DCONSOLE_BTEXT 
+# CFLAGS+=	-DCONSOLE_BTEXT 
 # for direct PC kbd support 
-# CFLAGS+= -DCONSOLE_PC_KBD
+# CFLAGS+=	-DCONSOLE_PC_KBD
 # Set to enable FILO support
 # for FILO support it will make main call pci_init
 # INCLUDE_FILO=y
 ifdef	INCLUDE_FILO
-CFLAGS+= -DCONFIG_FILO
+CFLAGS+=	-DCONFIG_FILO
 endif
 
 # Enabling this causes Etherboot to ignore Etherboot-specific options
@@ -398,12 +398,12 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 # Change download protocol to HTTP, default is TFTP
 # CFLAGS+=	-DDOWNLOAD_PROTO_HTTP
 # Change default protocol to NFS
-#CFLAGS+=	-DDEFAULT_PROTO_NFS
+# CFLAGS+=	-DDEFAULT_PROTO_NFS
 # Support to resolve hostnames in boot filename
-#CFLAGS+=	-DDNS_RESOLVER
+# CFLAGS+=	-DDNS_RESOLVER
 
 # Multicast Support
-#CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
+# CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
 
 # Etherboot as a PXE network protocol ROM
 CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
@@ -416,8 +416,8 @@ CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
 
 # Include an auto-incrementing build serial number and optional build
 # ID string
-# CFLAGS+= -DBUILD_SERIAL
-# CFLAGS+= -DBUILD_SERIAL -DBUILD_ID=\"testing\"
+# CFLAGS+=	-DBUILD_SERIAL
+# CFLAGS+=	-DBUILD_SERIAL -DBUILD_ID=\"testing\"
 
 # Do not relocate
 # core/relocate.c should really be moved to an arch specific directory
