@@ -502,6 +502,8 @@ struct rpc_t {
  * Chosen to be a power of two, as most NFS servers are optimized for this.  */
 #define NFS_READ_SIZE	1024
 
+#define NFS_MAXLINKDEPTH 16
+
 #define	FLOPPY_BOOT_LOCATION	0x7c00
 /* Must match offsets in loader.S */
 #define ROM_SEGMENT		0x1fa
