@@ -42,16 +42,18 @@
 #define	SYSSIZE	2048		/* 2048 * 16 bytes = 32kB maximum size of
 				   .ROM file */
 #define	SETUPSECS 4		/* Minimal nr of setup-sectors */
+#define PREFIXSIZE ((SETUPSECS+1)*512)
 #define	BOOTSEG 0x07C0		/* original address of boot-sector */
 #define	INITSEG DEF_INITSEG	/* we move boot here - out of the way */
 #define	SETUPSEG DEF_SETUPSEG	/* setup starts here */
-#define	SYSSEG DEF_SYSSEG	/* system loaded at 0x10000 (65536). */
+#define SYSSEG ( BOOTSEG + PREFIXSIZE/16 ) /* system loaded at end of prefix */
 
 	.text
 	.code16
 	.org	0
-	.globl	_start
-_start:
+	.section ".prefix", "ax", @progbits
+	.globl	_prefix
+_prefix:
 
 /* 
 	This is a minimal boot sector.	If anyone tries to execute it (e.g., if
@@ -59,7 +61,7 @@ _start:
 */
 
 bootsector: 
-	jmp	$BOOTSEG, $go - _start	/* reload cs:ip to match relocation addr */
+	jmp	$BOOTSEG, $go - _prefix	/* reload cs:ip to match relocation addr */
 go: 
 	movw	$0x2000, %di		/*  0x2000 is arbitrary value >= length
 					    of bootsect + room for stack */
@@ -74,7 +76,7 @@ go:
 	sti
 
 	movw	$why_end-why, %cx
-	movw	$why - _start, %si
+	movw	$why - _prefix, %si
 
 	movw	$0x0007, %bx		/* page 0, attribute 7 (normal) */
 	movb	$0x0e, %ah		/* write char, tty mode */
@@ -118,10 +120,20 @@ boot_flag:
 */
 setup_code: 
 /* Call to the bootrom code, if return, boot next device */
-	call	$SYSSEG, $0x0
-	int	$0x19
 
-	.org	(((SETUPSECS+1)*512)-1)
+	pushl	$0		/* No parameters to preserve for exit path */
+	pushw	$0		/* Use prefix exit path mechanism */
+	jmp	_start
+
+	.section ".text16", "ax", @progbits
+	.globl	prefix_exit
+prefix_exit:
+	int	$0x19		/* should try to boot machine */
+	.globl	prefix_exit_end
+prefix_exit_end:
+	.previous
+	
+	.org	(PREFIXSIZE-1)
 	.byte	0
 /*
 	That's about it.
