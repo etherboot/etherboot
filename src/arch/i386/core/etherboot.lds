@@ -31,6 +31,7 @@ SECTIONS {
 		. = ALIGN(16);
 		_text16 = .;
 		*(.text16)
+		*(.text16.*)
 		_etext16 = . ;
 	}
 	_etext = . ;
