@@ -206,7 +206,7 @@ int eth_poll(int retrieve)
 void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p)
 {
 	(*nic.transmit)(&nic, d, t, s, p);
-	if (t == IP) twiddle();
+	if (t == ETH_P_IP) twiddle();
 }
 
 void eth_disable(void)
@@ -317,7 +317,7 @@ static int await_arp(int ival, void *ptr,
 	struct tcphdr *tcp __unused)
 {
 	struct	arprequest *arpreply;
-	if (ptype != ARP)
+	if (ptype != ETH_P_ARP)
 		return 0;
 	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
 		return 0;
@@ -342,7 +342,7 @@ int ip_transmit(int len, const void *buf)
 	ip = (struct iphdr *)buf;
 	destip = ip->dest.s_addr;
 	if (destip == IP_BROADCAST) {
-		eth_transmit(broadcast, IP, len, buf);
+		eth_transmit(broadcast, ETH_P_IP, len, buf);
 #ifdef MULTICAST_LEVEL1 
 	} else if ((destip & htonl(MULTICAST_MASK)) == htonl(MULTICAST_NETWORK)) {
 		unsigned char multicast[6];
@@ -354,7 +354,7 @@ int ip_transmit(int len, const void *buf)
 		multicast[3] = (hdestip >> 16) & 0x7;
 		multicast[4] = (hdestip >> 8) & 0xff;
 		multicast[5] = hdestip & 0xff;
-		eth_transmit(multicast, IP, len, buf);
+		eth_transmit(multicast, ETH_P_IP, len, buf);
 #endif
 	} else {
 		if (((destip & netmask) !=
@@ -382,7 +382,7 @@ int ip_transmit(int len, const void *buf)
 			memcpy(arpreq.tipaddr, &destip, sizeof(in_addr));
 			for (retry = 1; retry <= MAX_ARP_RETRIES; retry++) {
 				long timeout;
-				eth_transmit(broadcast, ARP, sizeof(arpreq),
+				eth_transmit(broadcast, ETH_P_ARP, sizeof(arpreq),
 					&arpreq);
 				timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 				if (await_reply(await_arp, arpentry,
@@ -391,7 +391,7 @@ int ip_transmit(int len, const void *buf)
 			return(0);
 		}
 xmit:
-		eth_transmit(arptable[arpentry].node, IP, len, buf);
+		eth_transmit(arptable[arpentry].node, ETH_P_IP, len, buf);
 	}
 	return 1;
 }
@@ -686,7 +686,7 @@ static int await_rarp(int ival, void *ptr,
 	struct tcphdr *tcp __unused)
 {
 	struct arprequest *arpreply;
-	if (ptype != RARP)
+	if (ptype != ETH_P_RARP)
 		return 0;
 	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
 		return 0;
@@ -724,7 +724,7 @@ static int rarp(void)
 
 	for (retry = 0; retry < MAX_ARP_RETRIES; ++retry) {
 		long timeout;
-		eth_transmit(broadcast, RARP, sizeof(rarpreq), &rarpreq);
+		eth_transmit(broadcast, ETH_P_RARP, sizeof(rarpreq), &rarpreq);
 
 		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 		if (await_reply(await_rarp, 0, rarpreq.shwaddr, timeout))
@@ -1044,9 +1044,11 @@ void join_group(int slot, unsigned long group)
 	}
 }
 #else
-#define send_igmp_reports(now);
-#define process_igmp(ip, now)
+#define send_igmp_reports(now) do {} while(0)
+#define process_igmp(ip, now)  do {} while(0)
 #endif
+
+#include "proto_eth_slow.c"
 
 /**************************************************************************
 TCP - Simple-minded TCP stack. Can only send data once and then
@@ -1302,6 +1304,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 	 */
 	for (;;) {
 		now = currticks();
+		send_eth_slow_reports(now);
 		send_igmp_reports(now);
 		result = eth_poll(1);
 		if (result == 0) {
@@ -1328,7 +1331,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 		} else continue; /* what else could we do with it? */
 		/* Verify an IP header */
 		ip = 0;
-		if ((ptype == IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
+		if ((ptype == ETH_P_IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
 			unsigned ipoptlen;
 			ip = (struct iphdr *)&nic.packet[ETH_HLEN];
 			if ((ip->verhdrlen < 0x45) || (ip->verhdrlen > 0x4F)) 
@@ -1397,9 +1400,9 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 		}
 		
 		/* If it isn't a packet the upper layer wants see if there is a default
-		 * action.  This allows us reply to arp and igmp queryies.
+		 * action.  This allows us reply to arp, igmp, and lacp queries.
 		 */
-		if ((ptype == ARP) &&
+		if ((ptype == ETH_P_ARP) &&
 			(nic.packetlen >= ETH_HLEN + sizeof(struct arprequest))) {
 			struct	arprequest *arpreply;
 			unsigned long tmp;
@@ -1413,7 +1416,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 				memcpy(arpreply->thwaddr, arpreply->shwaddr, ETH_ALEN);
 				memcpy(arpreply->sipaddr, &arptable[ARP_CLIENT].ipaddr, sizeof(in_addr));
 				memcpy(arpreply->shwaddr, arptable[ARP_CLIENT].node, ETH_ALEN);
-				eth_transmit(arpreply->thwaddr, ARP,
+				eth_transmit(arpreply->thwaddr, ETH_P_ARP,
 					sizeof(struct  arprequest),
 					arpreply);
 #ifdef	MDEBUG
@@ -1422,6 +1425,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 #endif	/* MDEBUG */
 			}
 		}
+		process_eth_slow(ptype, now);
 		process_igmp(ip, now);
 	}
 	return(0);
@@ -1464,7 +1468,7 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 	}
 	else if (block == 0) {
 #ifdef	REQUIRE_VCI_ETHERBOOT
-	vci_etherboot = 0;
+		vci_etherboot = 0;
 #endif
 		end_of_rfc1533 = NULL;
 #ifdef	IMAGE_FREEBSD

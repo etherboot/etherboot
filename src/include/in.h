@@ -1,9 +1,10 @@
 #ifndef	_IN_H
 #define	_IN_H
 
-#define IP		0x0800
-#define ARP		0x0806
-#define	RARP		0x8035
+#include <if_ether.h>
+#define IP		ETH_P_IP
+#define ARP		ETH_P_ARP
+#define	RARP		ETH_P_RARP
 
 #define IP_ICMP		1
 #define IP_IGMP		2

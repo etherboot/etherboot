@@ -161,6 +161,7 @@ SRCS+=	core/serial.c core/rsa.c
 SRCS+=	core/main.c core/pci.c core/osloader.c core/nfs.c
 SRCS+=	core/misc.c core/config.c core/relocate.c core/heap.c
 SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/timer.c
+SRCS+=	core/proto_eth_slow.c
 SRCS+=	core/proto_slam.c core/proto_tftm.c core/proto_http.c
 SRCS+=	core/isapnp.c core/md5.c
 SRCS+=	core/pcmcia.c core/i82365.c
