@@ -35,6 +35,8 @@ static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 		       IRQ_NONE };
 
 /* Function prototypes */
+int allocate_base_mem_data ( void );
+int free_base_mem_data ( void );
 int eb_pxenv_undi_shutdown ( void );
 int eb_pxenv_stop_undi ( void );
 int undi_unload_base_code ( void );
@@ -68,6 +70,95 @@ void pxe_dump ( void ) {
 		 undi.pxe->UNDICode.Seg_Addr, undi.pxe->UNDICode.Seg_Size,
 		 undi.pxe->BC_Data.Seg_Addr, undi.pxe->BC_Data.Seg_Size,
 		 undi.pxe->BC_Code.Seg_Addr, undi.pxe->BC_Code.Seg_Size );
+}
+
+/* Allocate/free space for structures that must reside in base memory
+ */
+
+int allocate_base_mem_data ( void ) {
+	/* Allocate space in base memory.
+	 * Initialise pointers to base memory structures.
+	 */
+	if ( undi.base_mem_data == NULL ) {
+		undi.base_mem_data =
+			allot_base_memory ( sizeof(undi_base_mem_data_t) );
+		if ( undi.base_mem_data == NULL ) {
+			printf ( "Failed to allocate base memory\n" );
+			free_base_mem_data();
+			return 0;
+		}
+		memset ( undi.base_mem_data, 0, sizeof(undi_base_mem_data_t) );
+		undi.undi_call_info = &undi.base_mem_data->undi_call_info;
+		undi.pxs = &undi.base_mem_data->pxs;
+		undi.xmit_data = &undi.base_mem_data->xmit;
+	}
+#ifdef RELOCATE
+	if ( undi.xmit_buffer == NULL ) {
+		undi.xmit_buffer = allot_base_memory ( ETH_FRAME_LEN );
+		if ( undi.xmit_buffer == NULL ) {
+			printf ( "Could not allocate transmit buffer!\n" );
+			free_base_mem_data();
+			return 0;
+		}
+	}
+#endif
+	return 1;
+}
+
+int free_base_mem_data ( void ) {
+	if ( undi.base_mem_data != NULL ) {
+		forget_base_memory ( undi.base_mem_data,
+				     sizeof(undi_base_mem_data_t) );
+		undi.base_mem_data = NULL;
+		undi.undi_call_info = NULL;
+		undi.pxs = NULL;
+		undi.xmit_data = NULL;
+	}
+#ifdef RELOCATE
+	if ( undi.xmit_buffer != NULL ) {
+		forget_base_memory ( undi.xmit_buffer, ETH_FRAME_LEN );
+		undi.xmit_buffer = NULL;
+	}
+#endif
+	return 1;
+}
+
+void assemble_firing_squad ( firing_squad_lineup_t *lineup,
+			     void *start, size_t size,
+			     firing_squad_shoot_t shoot ) {
+	int target;
+	int index;
+	int bit;
+	int start_kb = virt_to_phys(start) >> 10;
+	int end_kb = ( virt_to_phys(start+size) + (1<<10) - 1 ) >> 10;
+	
+	for ( target = start_kb; target <= end_kb; target++ ) {
+		index = FIRING_SQUAD_TARGET_INDEX ( target );
+		bit = FIRING_SQUAD_TARGET_BIT ( target );
+		lineup->targets[index] = ( shoot << bit ) |
+			( lineup->targets[index] & ~( 1 << bit ) );
+	}
+}
+
+void shoot_targets ( firing_squad_lineup_t *lineup ) {
+	int shoot_this_target = 0;
+	int shoot_last_target = 0;
+	int start_target = 0;
+	int target;
+
+	for ( target = 0; target <= 640; target++ ) {
+		shoot_this_target = ( target == 640 ? 0 : 
+		      ( 1 << FIRING_SQUAD_TARGET_BIT(target) ) &
+		      lineup->targets[FIRING_SQUAD_TARGET_INDEX(target)] );
+		if ( shoot_this_target && !shoot_last_target ) {
+			start_target = target;
+		} else if ( shoot_last_target && !shoot_this_target ) {
+			size_t range_size = ( target - start_target ) << 10;
+			forget_base_memory ( phys_to_virt( start_target<<10 ),
+					     range_size );
+		}
+		shoot_last_target = shoot_this_target;
+	}
 }
 
 /* Debug macros
@@ -659,8 +750,9 @@ int undi_unload_base_code ( void ) {
 	size_t bc_code_size = undi.pxe->BC_Code.Seg_Size;
 	void *bc_data = VIRTUAL( undi.pxe->BC_Data.Seg_Addr, 0 );
 	size_t bc_data_size = undi.pxe->BC_Data.Seg_Size;
-	void *bc_stack = VIRTUAL( undi.pxe->Stack.Seg_Addr, 0 );
-	size_t bc_stack_size = undi.pxe->Stack.Seg_Size;
+	void *bc_stck = VIRTUAL( undi.pxe->Stack.Seg_Addr, 0 );
+	size_t bc_stck_size = undi.pxe->Stack.Seg_Size;
+	firing_squad_lineup_t lineup;
 
 	/* Don't unload if there is no base code present */
 	if ( undi.pxe->BC_Code.Seg_Addr == 0 ) return 1;
@@ -685,16 +777,41 @@ int undi_unload_base_code ( void ) {
 	 * basemem.c takes care of all that for us.  Note that we also
 	 * have to free the stack (even though PXE spec doesn't say
 	 * anything about it) because nothing else is going to do so.
+	 *
+	 * Structures will almost certainly not be kB-aligned and
+	 * there's a reasonable chance that the UNDI code or data
+	 * portions will lie in the same kB as the base code.  Since
+	 * forget_base_memory works only in 1kB increments, this means
+	 * we have to do some arcane trickery.
 	 */
+	memset ( &lineup, 0, sizeof(lineup) );
 	if ( SEGMENT(bc_code) != 0 )
-		forget_base_memory ( bc_code, bc_code_size );
-	undi.pxe->BC_Code.Seg_Addr = 0;
+		assemble_firing_squad( &lineup, bc_code, bc_code_size, SHOOT );
 	if ( SEGMENT(bc_data) != 0 )
-		forget_base_memory ( bc_data, bc_data_size );
+		assemble_firing_squad( &lineup, bc_data, bc_data_size, SHOOT );
+	if ( SEGMENT(bc_stck) != 0 )
+		assemble_firing_squad( &lineup, bc_stck, bc_stck_size, SHOOT );
+	/* Don't shoot any bits of the UNDI driver code or data */
+	assemble_firing_squad ( &lineup,
+				VIRTUAL(undi.pxe->UNDICode.Seg_Addr, 0),
+				undi.pxe->UNDICode.Seg_Size, DONTSHOOT );
+	assemble_firing_squad ( &lineup,
+				VIRTUAL(undi.pxe->UNDIData.Seg_Addr, 0),
+				undi.pxe->UNDIData.Seg_Size, DONTSHOOT );
+	shoot_targets ( &lineup );
+	undi.pxe->BC_Code.Seg_Addr = 0;
 	undi.pxe->BC_Data.Seg_Addr = 0;
-	if ( SEGMENT(bc_stack) != 0 )
-		forget_base_memory ( bc_stack, bc_stack_size );
 	undi.pxe->Stack.Seg_Addr = 0;
+
+	/* Free and reallocate our own base memory data structures, to
+	 * allow the freed base-code blocks to be fully released.
+	 */
+	free_base_mem_data();
+	if ( ! allocate_base_mem_data() ) {
+		printf ( "FATAL: memory unaccountably lost\n" );
+		while ( 1 ) {};
+	}
+
 	return 1;
 }
 
@@ -919,13 +1036,8 @@ static void undi_transmit(
 		undi.xmit_data->tbd.Xmit.segment = SEGMENT( p );
 		undi.xmit_data->tbd.Xmit.offset = OFFSET( p );
 	} else {
-		/* Allocate xmit buffer only once.  We cannot allocate
-		 * once the download has started.
-		 */
-		if ( undi.xmit_buffer == NULL )
-			undi.xmit_buffer = allot_base_memory ( ETH_FRAME_LEN );
 		if ( undi.xmit_buffer == NULL ) {
-			printf ( "Could not allocate transmit buffer!\n" );
+			printf ( "No transmit buffer\n" );
 			return;
 		}
 		memcpy ( undi.xmit_buffer, p, s );
@@ -944,10 +1056,7 @@ static void undi_disable(struct dev *dev)
 	/* Inhibit compiler warning about unused parameter dev */
 	if ( dev == NULL ) {};
 	undi_full_shutdown();
-	forget_base_memory ( undi.base_mem_data,
-			     sizeof(undi_base_mem_data_t) );
-	if ( undi.xmit_buffer != NULL )
-		forget_base_memory ( undi.xmit_buffer, ETH_FRAME_LEN );
+	free_base_mem_data();
 }
 
 /**************************************************************************
@@ -984,7 +1093,6 @@ int hunt_pixies_and_undi_roms ( void ) {
 static int undi_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *)dev;
-	undi_base_mem_data_t *base_mem_data = NULL;
 
 	/* Zero out global undi structure */
 	memset ( &undi, 0, sizeof(undi) );
@@ -1000,19 +1108,8 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 		return 0;
 	}
 
-	/* Allocate space in base memory.
-	 * Initialise pointers to base memory structures.
-	 */
-	base_mem_data = allot_base_memory ( sizeof(undi_base_mem_data_t) );
-	if ( base_mem_data == NULL ) {
-		printf ( "Failed to allocate base memory\n" );
-		return 0;
-	}
-	memset ( base_mem_data, 0, sizeof(undi_base_mem_data_t) );
-	undi.base_mem_data = base_mem_data;
-	undi.undi_call_info = &base_mem_data->undi_call_info;
-	undi.pxs = &base_mem_data->pxs;
-	undi.xmit_data = &base_mem_data->xmit;
+	/* Allocate base memory data structures */
+	if ( ! allocate_base_mem_data() ) return 0;
 
 	/* Search thoroughly for UNDI drivers */
 	for ( ; hunt_pixies_and_undi_roms(); undi_full_shutdown() ) {

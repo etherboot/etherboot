@@ -172,6 +172,21 @@ typedef struct undi_base_mem_data {
 	undi_base_mem_xmit_data_t xmit;
 } undi_base_mem_data_t;
 
+/* Macros and data structures used when freeing bits of base memory
+ * used by the UNDI driver.
+ */
+
+#define FIRING_SQUAD_TARGET_SIZE 8
+#define FIRING_SQUAD_TARGET_INDEX(x) ( (x) / FIRING_SQUAD_TARGET_SIZE )
+#define FIRING_SQUAD_TARGET_BIT(x) ( (x) % FIRING_SQUAD_TARGET_SIZE )
+typedef struct firing_squad_lineup {
+	uint8_t targets[ 640 / FIRING_SQUAD_TARGET_SIZE ];
+} firing_squad_lineup_t;
+typedef enum firing_squad_shoot {
+	DONTSHOOT = 0,
+	SHOOT = 1
+} firing_squad_shoot_t;
+
 /* Driver private data structure.
  */
 
@@ -185,12 +200,12 @@ typedef struct undi {
 	pxenv_structure_t	*pxs;
 	undi_base_mem_xmit_data_t *xmit_data;
 	/* Pointers and sizes to keep track of allocated base memory */
-	void	*base_mem_data;
-	void	*driver_code;
-	size_t	driver_code_size;
-	void	*driver_data;
-	size_t	driver_data_size;
-	char	*xmit_buffer;
+	undi_base_mem_data_t	*base_mem_data;
+	void			*driver_code;
+	size_t			driver_code_size;
+	void			*driver_data;
+	size_t			driver_data_size;
+	char			*xmit_buffer;
 	/* Flags.  We keep our own instead of trusting the UNDI driver
 	 * to have implemented PXENV_UNDI_GET_STATE correctly.  Plus
 	 * there's the small issue of PXENV_UNDI_GET_STATE being the
