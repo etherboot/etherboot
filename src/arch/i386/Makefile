@@ -245,7 +245,7 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 
 # rules to generate a .com executable
 # Give the directory name, e.g. use $(BIN)/rtl8139.com as the target.
-%.com:	%.zimg $(COMPREFIX)
+%.com:	%.zimg $(COMPREFIX) $(START16)
 	cat $(COMPREFIX) $(START16) $< > $@
 
 # rules to make a LILO-bootable image
