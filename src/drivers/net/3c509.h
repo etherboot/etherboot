@@ -49,7 +49,9 @@
 #define MAX_EEPROMBUSY	1000
 #define EP_LAST_TAG	0xd7
 #define EP_MAX_BOARDS	16
+#ifndef	EP_ID_PORT
 #define EP_ID_PORT	0x100
+#endif
 
 /*
  * some macros to acces long named fields
