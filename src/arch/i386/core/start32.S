@@ -929,6 +929,23 @@ virt_offset:
 _stack:
 	.space 4096
 _estack:
+#ifdef CODE16
+	/* Small stack used by start16.S */
+	.globl _start16_stack
+	.globl _estart16_stack
+	.balign 4, 0
+_start16_stack:
+	.space 128
+_estart16_stack:
+	/* Copy of the 16-bit prefix code that we may want to return to */
+	.section ".prefix"
+	.globl _prefix_copy
+	.globl _eprefix_copy
+	.balign 16, 0
+_prefix_copy:
+	.space 512
+_eprefix_copy:	
+#endif
 #ifdef CONFIG_X86_64
 	.section ".bss"
 	.p2align 12
