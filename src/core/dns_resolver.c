@@ -32,6 +32,7 @@
 *    2004-05-19 First release to CVS
 *    2004-05-22 CNAME support first stage finished
 *    2004-05-24 First "stable" release to CVS
+*    2004-08-28 Improve readability, set recursion flag
 ***************************************************************************/
 
 #ifdef DNS_RESOLVER
@@ -47,33 +48,44 @@ int	donameresolution ( char * hostname, int hnlength, char * deststring );
 
 /*
  *	dns_resolver
- *	Param:	string filename
+ *	Function: Main function for name resolution - will be called by other
+ *		parts of etherboot
+ *	Param:	string filename (not containing proto prefix like "tftp://")
  *	Return:	string filename, with hostname replaced by IP in dotted quad
  *		or NULL for resolver error
- *	In case there is no substitution necessary, return will be = param
+ *		In case no substitution is necessary, return will be = param
+ *		The returned string, if not == input, will be temporary and
+ *		probably be overwritten during the next call to dns_resolver
+ *		The returned string may (or may not) only contain an IP
+ *		address, or an IP followed by a ":" or "/", or be NULL(=error)
  */
 char *	dns_resolver ( char * filename ) {
 	int	i = 0, j, k;
 	static char ipaddr[16] = { 0 };
-	// Hostname found, search for end of hostname
+	// Search for "end of hostname" (which might be either ":" or "/")
 	for ( j = i; (filename[j] != ':') && (filename[j] != '/'); ++j ) {
+		// If no hostname delimiter was found, assume no name present
 		if ( filename[j] == 0 )	return	filename;
 	}
-	// Check if the filename is an IP, in which case, do nothing on it
+	// Check if the filename is an IP, in which case, leave unchanged
 	k = j - i - 1;
 	while ( ( '.' == filename[i+k] ) ||
 		( ( '0' <= filename[i+k] ) && ( '9' >= filename[i+k] ) ) ) {
 		--k;
 		if ( k < 0 ) return filename; // Only had nums and dots->IP
 	}
+	// Now that we know it's a full hostname, attempt to resolve
 	if ( donameresolution ( filename + i, j - i, ipaddr ) ) {
 		return	NULL;	// Error in resolving - Fatal.
 	}
+	// Return the dotted-quad IP which resulted
 	return	ipaddr;
 }
 
 /*
  *	await_dns
+ *	Shall be called on any incoming packet during the resolution process
+ *	(as is the case with all the other await_ functions in etherboot)
  *	Param:	as any await functions
  *	Return:	see dns_resolver.h for constant return values + descriptions
  */
@@ -82,40 +94,51 @@ static int await_dns (int ival, void *ptr,
 	struct udphdr *udp, struct tcphdr *tcp __unused) {
 	int	i, j, k;
 	unsigned char *p = (unsigned char *)udp + sizeof(struct udphdr);
+	// p is set to the beginning of the payload
 	unsigned char *q;
 	unsigned int querytype = QUERYTYPE_A;
-	if (  0 == udp  )
+	if (  0 == udp  )	// Parser couldn't find UDP header
 		return RET_PACK_GARBAG;	// Not a UDP packet
 	if (( UDP_PORT_DNS != ntohs (udp->src )) ||
 	    ( UDP_PORT_DNS != ntohs (udp->dest)) )
+		// Neither source nor destination port is "53"
 		return RET_PACK_GARBAG;	// UDP port wrong
 	if (( p[QINDEX_ID  ] != 0) ||
 	    ( p[QINDEX_ID+1] != (ival & 0xff)))
+		// Checking if this packet has set (inside payload)
+		// the sequence identifier that we expect
 		return RET_PACK_GARBAG;	// Not matching our request ID
 	if (( p[QINDEX_FLAGS  ] & QUERYFLAGS_MASK ) != QUERYFLAGS_WANT )
-		return	RET_PACK_GARBAG;	// Must be response, opcode <0>
+		// We only accept responses to the query(ies) we sent
+		return	RET_PACK_GARBAG;	// Is not response=opcode <0>
 	querytype = (ival & 0xff00) >> 8;
 	if (((p[QINDEX_NUMANSW+1] + (p[QINDEX_NUMANSW+1]<<8)) == 0 ) ||
 	     ( ERR_NOSUCHNAME == (p[QINDEX_FLAGS+1] & 0x0f) ) ) {
 		// Answer section has 0 entries, or "no such name" returned
-		if ( QUERYTYPE_A == querytype) { // Was an A query
+		if ( QUERYTYPE_A == querytype) {
+			// It was an A type query, so we should try if there's
+			// an alternative "CNAME" record available
 			return	RET_RUN_CNAME_Q; // So try CNAME query next
 		} else if ( QUERYTYPE_CNAME == querytype) {
-			return	RET_NOSUCHNAME;	// Was CNAME, unsuccesful->err
+			// There's no CNAME either, so give up
+			return	RET_NOSUCHNAME;
 		} else {
-			// Anything else? Error in calling await_dns, so...
+			// Anything else? No idea what. Should not happen.
 			return	RET_NOSUCHNAME; // Bail out with error
 		}
 	}
 	if ( 0 != ( p[QINDEX_FLAGS+1] & 0x0f ) )
-		return	RET_NOSUCHNAME;		// Another error occured
-	// Now we have an answer, but we must hunt it first, as there is a question
-	// section first usually that needs to be skipped
-	// If question section was not repeated, that saves a lot of work :-)
+		// The response packet's flag section tells us:
+		return	RET_NOSUCHNAME;	// Another (unspecific) error occured
+	// Now we have an answer packet in response to our query. Next thing
+	// to do is to search the payload for the "answer section", as there is
+	// a question section first usually that needs to be skipped
+	// If question section was not repeated, that saves a lot of work :
 	if ( 0 >= (i = ((p[QINDEX_NUMQUEST] << 8) + p[QINDEX_NUMQUEST+1]))) {
 		q = p+ QINDEX_QUESTION;	// No question section, just continue;
 	} else if ( i >= 2 ) {		// More than one query section? Error!
-		return	RET_NOSUCHNAME;	// That's invalid for us anyway
+		return	RET_NOSUCHNAME;	// That's invalid for us anyway - 
+					// We only place one query at a time
 	} else {
 		// We have to skip through the question section first to
 		// find the beginning of the answer section
@@ -125,6 +148,8 @@ static int await_dns (int ival, void *ptr,
 		q += 5; // Skip over end-\0 and query type section
 	}
 	// Now our pointer shows the beginning of the answer section
+	// So now move it past the (repeated) query string, we only
+	// want the answer
 	while ( 0 != q[0] ) {
 		if ( 0xc0 == ( q[0] & 0xc0 ) ) { // Pointer
 			++q;
@@ -133,7 +158,6 @@ static int await_dns (int ival, void *ptr,
 		q += q[0] + 1;
 	}
 	++q;
-	// We moved the pointer past the (repeated) query string
 	// Now check wether it's an INET host address (resp. CNAME)?
 	// There seem to be nameservers out there (Bind 9, for example),
 	// that return CNAMEs when no As are there, e.g. in
@@ -150,18 +174,23 @@ static int await_dns (int ival, void *ptr,
 		// packet deeper but rely on a separate CNAME query
 		querytype = QUERYTYPE_CNAME;
 	}
+	// Now check wether the answer packet is of the expected type
+	// (remember, we just tweaked CNAME answers to A queries already)
 	if ( (q[0] != 0) ||
 	     (q[1] !=   querytype) ||   // query type matches?
 	     (q[2] != ((QUERYCLASS_INET & 0xff00) >> 8)) ||
 	     (q[3] !=  (QUERYCLASS_INET & 0x00ff))) { // class IN response?
 		return	RET_DNSERROR;	// Should not happen. DNS server bad?
 	}
-	q += 8;	// skip querytype/-class/ttl
+	q += 8;	// skip querytype/-class/ttl which are uninteresting now
 	if ( querytype == QUERYTYPE_A ) {
+		// So what we sent was an A query - expect an IPv4 address
 		// Check if datalength looks satisfactory
 		if ( ( 0 != q[0] ) || ( 4 != q[1] ) ) {
+			// Data length is not 4 bytes
 			return	RET_DNSERROR;
 		}
+		// Go to the IP address and copy it to the response buffer
 		p = ptr + QINDEX_STORE_A;
 		for ( i = 0; i < 4; ++i ) {
 			p[i] = q[i+2];
@@ -173,6 +202,20 @@ static int await_dns (int ival, void *ptr,
 		// name is referenced in a following response, which would save
 		// us further queries, or if it is standalone, which calls for
 		// making a separate query
+		// This statement above probably needs clarification. To help
+		// the reader understand what's going on, imagine the DNS
+		// answer to be 4-section: query(repeating what we sent to the
+		// DNS server), answer(like the CNAME record we wanted),
+		// additional (which might hold the A for the CNAME - esp.
+		// Bind9 seems to provide us with this info when we didn't
+		// query for it yet) and authoritative (the DNS server's info
+		// on who is responsible for that data). For compression's
+		// sake, instead of specifying the full hostname string all
+		// the time, one can instead specify something like "same as on
+		// payload offset 0x123" - if this happens here, we can check
+		// if that payload offset given here by coincidence is that of
+		// an additional "A" record which saves us sending a separate
+		// query.
 		// We will look if there's  a/ two or more answer sections
 		// AND  b/ the next is a reference to us.
 		p = (unsigned char *)udp + sizeof(struct udphdr);
@@ -197,13 +240,22 @@ static int await_dns (int ival, void *ptr,
 				return	RET_GOT_ADDR;
 			}
 		}
-		// Reference not found, next query needed
+		// Reference not found, next query (A) needed (because CNAME
+		// queries usually return another hostname, not an IP address
+		// as we need it - that's the point in CNAME, anyway :-)
 		p = (unsigned char *)udp + sizeof(struct udphdr);
 #ifdef DNSDEBUG
 		printf ( " ->[");
 #endif
 		k = QINDEX_QUESTION;
 		i = (q-p) + 2;
+		// Compose the hostname that needs to be queried for
+		// This looks complicated (and is a little bit) because
+		// we might not be able to copy verbatim, but need to
+		// check wether the CNAME looks like
+		// "servername" "plus what offset 0x123 of the payload says"
+		// (this saves transfer bandwidth, which is why DNS allows
+		// this, but it makes programmers' lives more difficult)
 		while (p[i] != 0) {
 			if ( (((unsigned char *)p)[i] & 0xc0) != 0 ) {
 				i = ((p[i] & 0x3f) * 0x100) + p[i+1];
@@ -226,17 +278,21 @@ static int await_dns (int ival, void *ptr,
 #ifdef DNSDEBUG
 		printf ( "].." );
 #endif
+		// So we need to run another query, this time try to
+		// get an "A" record for the hostname that the last CNAME
+		// query pointed to
 		return	RET_RUN_NEXT_A;
-	} else {
-		// Must be an invalid packet that the nameserver sent
-		return	RET_DNSERROR;
 	}
+	// We only accept CNAME or A replies from the nameserver, every-
+	// thing else is of no use for us.
+	// Must be an invalid packet that the nameserver sent.
 	return	RET_DNSERROR;
 }
 
 int	chars_to_next_dot ( char * countfrom, int maxnum ) {
+	// Count the number of characters of this part of a hostname
 	int i;
-	for ( i = 1; i < maxnum; ++i ) { // On purpose, omit current
+	for ( i = 1; i < maxnum; ++i ) {
 		if ( countfrom[i] == '.' ) return i;
 	}
 	return	maxnum;
@@ -244,17 +300,23 @@ int	chars_to_next_dot ( char * countfrom, int maxnum ) {
 
 /*
  *	donameresolution
+ *	Function: Compose the initial query packet, handle answers until
+ *		a/ an IP address is retrieved
+ *		b/ too many CNAME references occured (max. MAX_DNS_RETRIES)
+ *		c/ No matching record for A or CNAME can be found
  *	Param:	string hostname, length (hostname needs no \0-end-marker),
  *		string to which dotted-quad-IP shall be written
  *	Return:	0 for success, >0 for failure
  */
 int	donameresolution ( char * hostname, int hnlength, char * deststring ) {
 	unsigned char	querybuf[260+sizeof(struct iphdr)+sizeof(struct udphdr)];
-		// 256 for the DNS query packet, +4 for the result temporary
+		// 256 for the DNS query payload, +4 for the result temporary
 	unsigned char	*query = &querybuf[sizeof(struct iphdr)+sizeof(struct udphdr)];
+		// Pointer to the payload
 	int	i, h = hnlength;
 	long	timeout;
 	int	retry, recursion;
+	// Setup the query data
 	query[QINDEX_ID  ]	= (QUERYIDENTIFIER & 0xff00) >> 8;
 	query[QINDEX_ID+1]	=  QUERYIDENTIFIER & 0xff;
 	query[QINDEX_FLAGS  ]	= (QUERYFLAGS & 0xff00) >> 8;
@@ -272,6 +334,9 @@ int	donameresolution ( char * hostname, int hnlength, char * deststring ) {
 					// This is an arbitrary decision, SHOULD check
 					// what the RFCs say about that
 	for ( i = 0; i < h; ++i ) {
+		// Compose the query section's hostname - replacing dots (and
+		// preceding the string) with one-byte substring-length values
+		// (for the immediately following substring) - \0 terminated
 		query[QINDEX_QUESTION+i+1] = hostname[i];
 		if ( hostname[i] == '.' )
 			query[QINDEX_QUESTION+i+1] = chars_to_next_dot(hostname + i + 1, h - i - 1);
@@ -297,7 +362,7 @@ int	donameresolution ( char * hostname, int hnlength, char * deststring ) {
 				UDP_PORT_DNS, UDP_PORT_DNS,
 				hnlength + 18 + sizeof(struct iphdr) +
 				sizeof(struct udphdr), querybuf );
-		
+		// If no answer comes in in a certain period of time, retry
 		for (retry = 1; retry <= MAX_DNS_RETRIES; retry++) {
 			timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 			i = await_reply ( await_dns,
@@ -327,6 +392,7 @@ int	donameresolution ( char * hostname, int hnlength, char * deststring ) {
 			query[QINDEX_QTYPE+h+1]= QUERYTYPE_CNAME & 0xff;
 			break;
 		  case	RET_RUN_NEXT_A:
+			// Found a CNAME, now try A for the name it pointed to
 			for ( i = 0; query[QINDEX_QUESTION+i] != 0;
 					i += query[QINDEX_QUESTION+i] + 1 ) {;}
 			h = i - 1;
@@ -334,6 +400,7 @@ int	donameresolution ( char * hostname, int hnlength, char * deststring ) {
 			query[QINDEX_QTYPE+h+1]= QUERYTYPE_A & 0xff;
 			break;
 		  case	RET_CNAME_FAIL:
+			// Neither A nor CNAME gave a usable result
 			printf ("Host name cannot be resolved\n");
 			return	RET_DNS_FAIL;
 		  case	RET_NOSUCHNAME:
