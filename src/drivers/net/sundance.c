@@ -28,11 +28,16 @@
 *               By Marty Conner
 *               Copyright (C) 2001 Entity Cyber, Inc.
 *
-*
+*    $Revision$
+*    $Author$
+*    $Date 2003/04/13 $
 *
 *    REVISION HISTORY:
 *    ================
-*    v0.10	01-01-2003	TJL	Initial implementation Beta.
+*    v1.1	01-01-2003	timlegge	Initial implementation
+*    v1.7	04-10-2003	timlegge	Transfers Linux Kernel (30 sec)
+*    v1.8	04-13-2003	timlegge	Fix multiple transmission bug
+*    
 ***************************************************************************/
 
 /* to get some global routines like printf */
