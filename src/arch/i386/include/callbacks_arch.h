@@ -225,22 +225,15 @@ typedef struct {
 	uint32_t orig_opcode;
 } PACKED i386_rm_in_call_data_t;
 
-struct i386_exit_intercept;
 typedef struct {
 	i386_pm_in_call_data_t *pm;
 	i386_rm_in_call_data_t *rm;
-	struct i386_exit_intercept *intercept;
 } i386_in_call_data_t;
 #define in_call_data_t i386_in_call_data_t
-
-typedef struct i386_exit_intercept {
-	void	(*fnc)(in_call_data_t *data);
-} i386_exit_intercept_t;
 
 /* Function prototypes
  */
 extern int install_rm_callback_interface ( void *address, size_t available );
-extern void exit_via_prefix ( in_call_data_t *data );
 
 #endif /* ASSEMBLY */
 
