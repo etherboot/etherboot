@@ -28,6 +28,8 @@ $Id$
 #include "pic8259.h"
 /* Real-mode calls */
 #include "realmode.h"
+/* E820 map mangler */
+#include "hidemem.h"
 
 /* NIC specific static variables go here */
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL,
@@ -65,6 +67,10 @@ int copy_nontrivial_irq_handler ( void *target, size_t target_size );
 #define UNDI_IRQ_HANDLER_SIZE TRIVIAL_IRQ_HANDLER_SIZE
 #define copy_undi_irq_handler(dest,size) copy_trivial_irq_handler(dest,size)
 #endif /* UNDI_NONTRIVIAL_IRQ */
+
+/* Size of variable-length data in base_mem_data */
+#define BASE_MEM_VARDATA_SIZE ( UNDI_IRQ_HANDLER_SIZE > e820mangler_size ? \
+				UNDI_IRQ_HANDLER_SIZE : e820mangler_size )
 
 /**************************************************************************
  * Utility functions
@@ -106,7 +112,7 @@ int allocate_base_mem_data ( void ) {
 	if ( undi.base_mem_data == NULL ) {
 		undi.base_mem_data =
 			allot_base_memory ( sizeof(undi_base_mem_data_t) +
-					    UNDI_IRQ_HANDLER_SIZE );
+					    BASE_MEM_VARDATA_SIZE );
 		if ( undi.base_mem_data == NULL ) {
 			printf ( "Failed to allocate base memory\n" );
 			free_base_mem_data();
@@ -116,8 +122,6 @@ int allocate_base_mem_data ( void ) {
 		undi.pxs = &undi.base_mem_data->pxs;
 		undi.xmit_data = &undi.base_mem_data->xmit_data;
 		undi.xmit_buffer = undi.base_mem_data->xmit_buffer;
-		copy_undi_irq_handler ( undi.base_mem_data->irq_handler,
-					UNDI_IRQ_HANDLER_SIZE );
 	}
 	return 1;
 }
@@ -126,7 +130,7 @@ int free_base_mem_data ( void ) {
 	if ( undi.base_mem_data != NULL ) {
 		forget_base_memory ( undi.base_mem_data,
 				     sizeof(undi_base_mem_data_t) +
-				     UNDI_IRQ_HANDLER_SIZE );
+				     BASE_MEM_VARDATA_SIZE );
 		undi.base_mem_data = NULL;
 		undi.pxs = NULL;
 		undi.xmit_data = NULL;
@@ -413,11 +417,18 @@ PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
 int undi_call_loader ( void ) {
 	PXENV_EXIT_t pxenv_exit = PXENV_EXIT_FAILURE;
 	
+	/* Hide Etherboot around the loader, so that the PXE stack
+	 * doesn't trash our memory areas
+	 */
+	install_e820mangler ( undi.base_mem_data->e820mangler );
+	hide_etherboot();
 	pxenv_exit = _undi_call ( SEGMENT( undi.rom ),
 				  undi.undi_rom_id->undi_loader_off,
 				  OFFSET( undi.pxs ),
 				  SEGMENT( undi.pxs ),
 				  0 /* Unused for UNDI loader API */ );
+	unhide_etherboot();
+
 	/* Return 1 for success, to be consistent with other routines */
 	if ( pxenv_exit == PXENV_EXIT_SUCCESS ) return 1;
 	printf ( "UNDI loader call failed with status %#hx\n",
@@ -994,6 +1005,8 @@ int undi_full_startup ( void ) {
 	if ( ! eb_pxenv_undi_initialize() ) return 0;
 	if ( ! eb_pxenv_undi_get_information() ) return 0;
 	undi.irq = undi.pxs->undi_get_information.IntNumber;
+	copy_undi_irq_handler ( undi.base_mem_data->irq_handler,
+				UNDI_IRQ_HANDLER_SIZE );
 	if ( ! install_undi_irq_handler ( undi.irq ) ) {
 		undi.irq = IRQ_NONE;
 		return 0;

@@ -114,6 +114,7 @@ typedef struct undi_base_mem_data {
 	char			xmit_buffer[ETH_FRAME_LEN];
 	/* Must be last in structure and paragraph-aligned */
 	union {
+		char			e820mangler[0];
 		char			irq_handler[0];
 		undi_irq_handler_t	nontrivial_irq_handler;
 	}  __attribute__ ((aligned(16)));
