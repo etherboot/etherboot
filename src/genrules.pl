@@ -131,11 +131,11 @@ foreach my $family (sort keys %pcient) {
 	my $aref = $pcient{$family};
 	foreach my $entry (@$aref) {
 		my $rom = $entry->[0];
-		print "ROMS\t+= \$(BIN)/$rom.rom \$(BIN)/$rom.lzrom \$(BIN)/$rom.nrv2brom\n";
+		print "ROMS\t+= \$(BIN)/$rom.rom \$(BIN)/$rom.nrv2brom\n";
 	}
 }
 foreach my $isa (sort keys %isaent) {
-	print "ROMS\t+= \$(BIN)/$isa.rom \$(BIN)/$isa.lzrom \$(BIN)/$isa.nrv2brom\n";
+	print "ROMS\t+= \$(BIN)/$isa.rom \$(BIN)/$isa.nrv2brom\n";
 }
 
 # Generate the *.o rules
@@ -189,15 +189,6 @@ foreach my $family (sort keys %pcient) {
 	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom.lzrom:	\$(BIN)/$img.lzimg \$(PRLOADER) \$(START16)
-	cat \$(PRLOADER) \$(START16) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
-
-\$(BIN)/$rom--%.lzrom:	\$(BIN)/$img--%.huf \$(PRLOADER) \$(START16)
-	cat \$(PRLOADER) \$(START16) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
-
-
 \$(BIN)/$rom.nrv2brom:	\$(BIN)/$img.nrv2bimg \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
@@ -221,7 +212,7 @@ foreach my $isa (sort keys %isaent) {
 	print <<EOF;
 \$(BIN)/$isa.rom:		\$(BIN)/$isa.img \$(RLOADER)
 
-\$(BIN)/$isa.lzrom:	\$(BIN)/$isa.lzimg \$(RLOADER)
+\$(BIN)/$isa.nrv2brom:	\$(BIN)/$isa.nrv2bimg \$(RLOADER)
 
 EOF
 }

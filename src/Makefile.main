@@ -110,7 +110,7 @@ MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	4
-EXTRAVERSION=   pre5
+EXTRAVERSION=   rc1
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -193,7 +193,8 @@ CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 $(BIN)/gcccheck:	Makefile Config
 	@if $(CC) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
 	then \
-		echo 'gcc 2.96 is unsuitable for compiling Etherboot, please use gcc 2.95 or gcc 3.x instead'; \
+		echo 'gcc 2.96 is unsuitable for compiling Etherboot'; \
+		echo 'Use gcc 2.95 or gcc 3.x instead'; \
 		exit 1; \
 	else \
 		touch $(BIN)/gcccheck; \

@@ -120,7 +120,7 @@ err_not386:
 	.ascii	"Etherboot/32 requires 386+"
 	.byte	0x0d, 0x0a
 err_not386_end:
-#endif VERIFY_386
+#endif /* VERIFY_386 */
 
 start32:
 	.long code32_start - _start

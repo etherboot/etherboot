@@ -7,6 +7,7 @@
 #define ROM_LENGTH	0x1fc
 
 #define PXENV_UNDI_SHUTDOWN	0x05
+#define	PXENV_STOP_UNDI		0x15
 #define PXENV_UNLOAD_STACK	0x70
 	.text
 	.code16
