@@ -303,7 +303,6 @@ ec_return:
 	 * about the segment registers etc. until we've reloaded our
 	 * GDT.  We can only rely on %cs and %ss.
 	 */
-	cld			/* Just in case */
 
 	/* Basic strategy is to set up a structure similar to the one
 	 * we had before the call, only with the returned values
@@ -322,6 +321,9 @@ ec_return:
 	/* Record general-purpose registers */
 	pushal
 
+	/* Record flags */
+	pushfl
+	
 	/* Point ds and es to the stack, for ease of signature
 	 * scanning and re-aligning.
 	 */
@@ -329,6 +331,8 @@ ec_return:
 	popw	%ds
 	pushw	%ss
 	popw	%es
+	cld			/* Just in case */
+
 	
 	/* Locate signature.  It is guaranteed to be on a dword
 	 * boundary, but %esp may not be.
