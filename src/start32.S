@@ -297,12 +297,15 @@ xstart32:
 
 	/* Save the target stack pointer */
 	movl	%esp, os_regs + 12(%ebp)
-	movl	%ebp, %esp
+	leal	os_regs(%ebp), %esp
+
+	/* Store the pointer to os_regs */
+	movl	%esp, os_regs_ptr(%ebp)
 
 	/* Load my new registers */
 	popal
-	movl	(-32 + os_regs + 12)(%esp), %esp
-	
+	movl	(-32 + 12)(%esp), %esp
+
 	/* Jump to the new kernel
 	 * The lret switches to a flat code segment
 	 */
@@ -316,25 +319,21 @@ xend32:
 	cli
 	cld
 	
-	/* Load %esp with virt_offset */
+	/* Load %esp with &os_regs + virt_offset */
 	.byte	0xbc /* movl $0, %esp */
-
-	/* The virtual address offset,
-	 * Stored in the xend32 code so that I don't need to
-	 * dynamically fix it up.
-	 */	
-	.globl virt_offset
-virt_offset:
-	.long  	0
+os_regs_ptr:
+	.long	0
 
 	/* Save the result registers */
+	addl	$32, %esp
 	pushal
 
-	/* Save virt_offset */
-	leal	32(%esp), %ebp
+	/* Compute virt_offset */
+	movl	%esp, %ebp
+	subl	$os_regs, %ebp
 	
 	/* Load the stack pointer */
-	movl	os_regs +52(%ebp), %esp
+	movl	52(%esp), %esp
 
 	/* Enable the virtual addresses */
 	leal	_phys_to_virt(%ebp), %eax
@@ -704,6 +703,11 @@ _gdt_end:
 	.balign 4
 initial_regs:
 	.fill 8, 4, 0
+
+	/* The virtual address offset  */	
+	.globl virt_offset
+virt_offset:
+	.long  	0
 
 	/* The 16bit code base address */
 	.globl	real_base
