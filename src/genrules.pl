@@ -13,7 +13,7 @@ use bytes;
 
 use File::Basename;
 
-use vars qw($nic $config @families $curfam %drivers %pcient %isaent %isalist %buildent $arch @srcs);
+use vars qw($familyfile $nic @families $curfam %drivers %pcient %isaent %isalist %buildent $arch @srcs);
 
 sub __gendep ($$$)
 {
@@ -154,146 +154,15 @@ sub isaonly ($) {
 	return ($#$aref < 0);
 }
 
-$#ARGV >= 1 or die "Usage: $0 bin/NIC arch sources...\n";
+$#ARGV >= 1 or die "Usage: $0 Families bin/NIC arch sources...\n";
+$familyfile = shift(@ARGV);
 $nic  = shift(@ARGV);
 $arch = shift(@ARGV);
 @srcs = @ARGV;
-$config = <<'EOF';
-# This is the config file for creating Makefile rules for Etherboot ROMs
-#
-# To make a ROM for a supported NIC locate the appropriate family
-# and add a line of the form
-#
-# ROM		PCI-IDs		Comment
-#
-# ROM is the desired output name for both .rom and .lzrom images.
-# PCI IDs are the PCI vendor and device IDs of the PCI NIC
-# For ISA NICs put -
-#
-# All PCI ROMs that share a single driver are only built once (because they
-# only have different PCI-IDs, but identical code).  ISA ROMS are built for
-# each ROM type, because different vendors used a different logic around the
-# basic chip.  The most popular example is the NS8390, which some cards use
-# in PIO mode, some in DMA mode.  Two chips currently don't fit into this nice
-# black-and-white scheme (the Lance and the NS8390).  Their driver deals
-# with both PCI and ISA cards.  These drivers will be treated similarly to
-# ISA only drivers by genrules.pl and are compiled for each ROM type that is
-# ISA, and additionally compiled for the PCI card type.
-#
-# Then do: make clean, make Roms and make
-#
-# Please send additions to this file to <kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net>
-
-# Start of configuration
-
-family		drivers/net/skel
-
-family		arch/ia64/drivers/net/undi_nii
-undi_nii	-
-
-# 3c59x cards (Vortex) and 3c900 cards
-# If your 3c900 NIC detects but fails to work, e.g. no link light, with
-# the 3c90x driver, try using the 3c595 driver. I have one report that the
-# 3c595 driver handles these NICs properly. (The 595 driver uses the
-# programmed I/O mode of operation, whereas the 90x driver uses the bus
-# mastering mode. These NICs are capable of either mode.) When it comes to
-# making a ROM, as usual, you must choose the correct image, the one that
-# contains the same PCI IDs as your NIC.
-family		drivers/net/3c595
-
-# 3Com 3c90x cards
-family		drivers/net/3c90x
-
-# Intel Etherexpress Pro/100
-family		drivers/net/eepro100
-
-#Intel Etherexpress Pro/1000
-family		drivers/net/e1000
-
-#Broadcom Tigon 3
-family		drivers/net/tg3
-
-family		drivers/net/pcnet32
-
-# National Semiconductor ns83820 (Gigabit) family
-family		drivers/net/ns83820
-
-#family		drivers/net/lance
-#ne2100		-		Novell NE2100, NE1500
-#ni6510		-		Racal-Interlan NI6510
-
-family		drivers/net/tulip
-
-family		drivers/net/davicom
-
-family		drivers/net/rtl8139
-
-family		drivers/net/r8169
-
-family		drivers/net/via-rhine
-
-family		drivers/net/w89c840
-
-family		drivers/net/sis900
-
-family		drivers/net/natsemi
-
-family		drivers/net/prism2_plx
-
-family		drivers/net/prism2_pci
-# Various Prism2.5 (PCI) devices that manifest themselves as Harris Semiconductor devices
-# (with the actual vendor appearing as the vendor of the first subsystem)
-hwp01170	0x1260,0x3873	ActionTec HWP01170
-dwl520		0x1260,0x3873	DLink DWL-520
-
-family		drivers/net/ns8390
-wd		-		WD8003/8013, SMC8216/8416, SMC 83c790 (EtherEZ)
-ne		-		NE1000/2000 and clones
-3c503		-		3Com503, Etherlink II[/16]
-
-family		drivers/net/epic100
-
-family		drivers/net/3c509
-3c509		-		3c509, ISA/EISA
-3c529		-		3c529 == MCA 3c509
-
-family		drivers/net/3c515
-3c515		-		3c515, Fast EtherLink ISA
-
-family		drivers/net/eepro
-eepro		-		Intel Etherexpress Pro/10
-
-family		drivers/net/cs89x0
-cs89x0		-		Crystal Semiconductor CS89x0
-
-family		drivers/net/depca
-depca		-		Digital DE100 and DE200
-
-family          drivers/net/forcedeth
-
-family		drivers/net/sk_g16
-sk_g16		-		Schneider and Koch G16
-
-family		drivers/net/smc9000
-smc9000		-		SMC9000
-
-family		drivers/net/sundance
-
-family		drivers/net/tlan
-
-family		drivers/disk/ide_disk
-ide_disk	0x0000,0x0000	Generic IDE disk support
-
-family		drivers/disk/pc_floppy
-
-family		arch/i386/drivers/net/undi
-undi		0x0000,0x0000	UNDI driver support
-
-family		drivers/net/pnic
-EOF
+open FAM, "<$familyfile" or die "Could not open $familyfile: $!\n";
 
 $curfam = '';
-for $_ (split(/\n/, $config)) {
+while ( <FAM> ) {
 	chomp($_);
 	next if (/^\s*(#.*)?$/);
 	my ($keyword) = split(' ', $_ , 2);
@@ -315,6 +184,7 @@ for $_ (split(/\n/, $config)) {
 		&addrom($_);
 	}
 }
+close FAM;
 
 open(N,">$nic") or die "$nic: $!\n";
 print N <<EOF;
@@ -431,27 +301,15 @@ foreach my $family (sort keys %pcient) {
 		my $img = basename($family);
 		next if ($ids eq '-');
 		print <<EOF;
-\$(BIN)/$rom.rom:	\$(BIN)/$img.bin \$(PCIPREFIX)
-	cat \$(PCIPREFIX) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
-
-\$(BIN)/$rom--%.rom:	\$(BIN)/$img--%.bin \$(PCIPREFIX)
-	cat \$(PCIPREFIX) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
-
-\$(BIN)/$rom.zrom:	\$(BIN)/$img.zbin \$(PCIPREFIX)
-	cat \$(PCIPREFIX) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
-
-\$(BIN)/$rom--%.zrom:	\$(BIN)/$img--%.zbin \$(PCIPREFIX)
-	cat \$(PCIPREFIX) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
+ROMTYPE_$rom = PCI
+MAKEROM_ID_$rom = -p $ids
 
 EOF
 		next if($rom eq $img);
 		print <<EOF;
-\$(BIN)/$rom.img:	\$(BIN)/$img.img
+\$(BIN)/$rom\%rom: \$(BIN)/$img\%rom
 	cat \$< > \$@
+	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$(ROMCARD)) \$(MAKEROM_ID_\$(ROMCARD)) -i\$(IDENT) \$@
 
 EOF
 	}
@@ -460,10 +318,7 @@ EOF
 # ISA ROMs are prepared from the matching code images
 foreach my $isa (sort keys %isalist) {
 	print <<EOF;
-\$(BIN)/$isa.rom:		\$(ISAPREFIX) \$(BIN)/$isa.bin
-
-\$(BIN)/$isa.zrom:	\$(ISAPREFIX) \$(BIN)/$isa.zbin
-
+# Think this can probably be removed, but not sure
 EOF
 }
 

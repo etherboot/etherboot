@@ -31,12 +31,17 @@ uint32_t get_free_base_memory ( void ) {
 	return FREE_BASE_MEMORY;
 }
 
+/* Start of our image in base memory.
+ */
+uint32_t image_basemem __attribute__ ((section (".text16.nocompress"))) = 0;
+
 /* Allot/free the real-mode stack
  */
 
 void allot_real_mode_stack ( void ) {
 	void *new_real_mode_stack;
 
+	if ( lock_real_mode_stack ) return;
 	new_real_mode_stack = _allot_base_memory ( real_mode_stack_size );
 	if ( ! new_real_mode_stack ) {
 		printf ( "FATAL: No real-mode stack\n" );
@@ -46,6 +51,7 @@ void allot_real_mode_stack ( void ) {
 }
 
 void forget_real_mode_stack ( void ) {
+	if ( lock_real_mode_stack ) return;
 	if ( real_mode_stack) {
 		_forget_base_memory ( phys_to_virt(real_mode_stack),
 				      real_mode_stack_size );
@@ -222,27 +228,27 @@ void free_unused_base_memory ( void ) {
 	}
 }
 
-/* Free base memory used by the decompressor.  Called once at start of
+/* Free base memory used by the prefix.  Called once at start of
  * Etherboot by arch_main().
  */
-void forget_decompressor_base_memory ( void ) {
+void forget_prefix_base_memory ( void ) {
 	/* text_start_kb is _text rounded down to a physical KB boundary */
-	uint32_t text_start_kb = virt_to_phys(_text) & ~0x3ff;
-	
+	uint32_t runtime_start_kb = virt_to_phys(_text) & ~0x3ff;
+
 	/* If the decompressor is in allocated base memory (which it
 	 * might not be; it could be in non-allocated base memory if
 	 * -DRELOCATE is not used) *and* the Etherboot text is in base
 	 * memory, then free the decompressor.
 	 */
 	if ( ( image_basemem >= FREE_BASE_MEMORY ) &&
-	     ( text_start_kb >= FREE_BASE_MEMORY ) &&
-	     ( text_start_kb <= ( BASE_MEMORY_MAX << 10 ) ) ) {
+	     ( runtime_start_kb >= FREE_BASE_MEMORY ) &&
+	     ( runtime_start_kb <= ( BASE_MEMORY_MAX << 10 ) ) ) {
 		forget_base_memory ( phys_to_virt ( image_basemem ),
-				     text_start_kb - image_basemem );
+				     runtime_start_kb - image_basemem );
 		/* Update image_basemem to indicate that our
 		 * allocation now starts with _text
 		 */
-		image_basemem = text_start_kb;
+		image_basemem = runtime_start_kb;
 	}
 }
 

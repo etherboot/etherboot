@@ -32,6 +32,8 @@
 #include "nic.h"
 #include "pci.h"
 #include "dev.h"
+#include "cpu.h"
+#include "timer.h"
 
 #if TRACE_PXE
 #define DBG(...) printf ( __VA_ARGS__ )
@@ -114,23 +116,6 @@ pxe_stack_t *pxe_stack = NULL;
  * pxe_callbacks.c
  */
 
-/* Dummy PCI driver.  This is used in order to hack the probe
- * mechanism; we need to be able to set dev.driver != NULL to fool it
- * into not starting from the beginning, so we need somewhere to point
- * dev.driver.
- *
- * __pci_driver is deliberately omitted so that this *doesn't* show up
- * in the normal drivers list.
- */
-static struct pci_driver dummy_driver = {
-        .type     = NIC_DRIVER,
-        .name     = "DUMMY",
-        .probe    = NULL,
-        .ids      = NULL,
-        .id_count = 0,
-        .class    = 0,
-};
-
 int pxe_initialise_nic ( void ) {
 	if ( pxe_stack->state >= READY ) return 1;
 
@@ -150,16 +135,20 @@ int pxe_initialise_nic ( void ) {
 	 * PROBE_AWAKE.  If one was specifed via PXENV_START_UNDI, try
 	 * that one first.  Otherwise, set PROBE_FIRST.
 	 */
-	if ( nic.dev.state.pci.dev.driver == &dummy_driver ) {
+	if ( nic.dev.state.pci.dev.use_specified == 1 ) {
 		nic.dev.how_probe = PROBE_NEXT;
+		DBG ( " initialising NIC specified via START_UNDI" );
 	} else if ( nic.dev.state.pci.dev.driver ) {
+		DBG ( " reinitialising NIC" );
 		nic.dev.how_probe = PROBE_AWAKE;
 	} else {
+		DBG ( " probing for any NIC" );
 		nic.dev.how_probe = PROBE_FIRST;
 	}
 	
 	/* Call probe routine to bring up the NIC */
 	if ( eth_probe ( &nic.dev ) != PROBE_WORKED ) {
+		DBG ( " failed" );
 		return 0;
 	}
 	pxe_stack->state = READY;
@@ -214,6 +203,7 @@ int ensure_pxe_state ( pxe_stack_state_t wanted ) {
 PXENV_EXIT_t pxenv_start_undi ( t_PXENV_START_UNDI *start_undi ) {
 	unsigned char bus, devfn;
 	struct pci_probe_state *pci = &nic.dev.state.pci;
+	struct dev *dev = &nic.dev;
 
 	DBG ( "PXENV_START_UNDI" );
 	ENSURE_MIDWAY(start_undi);
@@ -236,8 +226,11 @@ PXENV_EXIT_t pxenv_start_undi ( t_PXENV_START_UNDI *start_undi ) {
 		 */
 		DBG ( " set PCI %hhx:%hhx.%hhx",
 		      bus, PCI_SLOT(devfn), PCI_FUNC(devfn) );
+		dev->type = BOOT_NIC;
+		dev->to_probe = PROBE_PCI;
+		memset ( &dev->state, 0, sizeof(dev->state) );
 		pci->advance = 1;
-		pci->dev.driver = &dummy_driver;
+		pci->dev.use_specified = 1;
 		pci->dev.bus = bus;
 		pci->dev.devfn = devfn;
 	}
@@ -724,7 +717,11 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
  */
 PXENV_EXIT_t pxenv_stop_undi ( t_PXENV_STOP_UNDI *stop_undi ) {
 	DBG ( "PXENV_STOP_UNDI" );
-	ENSURE_CAN_UNLOAD ( stop_undi );
+
+	if ( ! ensure_pxe_state(CAN_UNLOAD) ) {
+		stop_undi->Status = PXENV_STATUS_KEEP_UNDI;
+		return PXENV_EXIT_FAILURE;
+	}
 
 	stop_undi->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
@@ -732,35 +729,89 @@ PXENV_EXIT_t pxenv_stop_undi ( t_PXENV_STOP_UNDI *stop_undi ) {
 
 /* PXENV_TFTP_OPEN
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
+	struct tftpreq_info_t request;
+	struct tftpblk_info_t block;
+
 	DBG ( "PXENV_TFTP_OPEN" );
-	/* ENSURE_READY ( tftp_open ); */
-	tftp_open->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( tftp_open );
+
+	/* Change server address if different */
+	if ( tftp_open->ServerIPAddress!=arptable[ARP_SERVER].ipaddr.s_addr ) {
+		memset(arptable[ARP_SERVER].node, 0, ETH_ALEN ); /* kill arp */
+		arptable[ARP_SERVER].ipaddr.s_addr=tftp_open->ServerIPAddress;
+	}
+	/* Ignore gateway address; we can route properly */
+	/* Fill in request structure */
+	request.name = tftp_open->FileName;
+	request.port = ntohs(tftp_open->TFTPPort);
+	request.blksize = tftp_open->PacketSize;
+	DBG ( " %@:%d/%s (%d)", tftp_open->ServerIPAddress,
+	      request.port, request.name, request.blksize );
+	if ( !request.blksize ) request.blksize = TFTP_DEFAULTSIZE_PACKET;
+	/* Make request and get first packet */
+	if ( !tftp_block ( &request, &block ) ) {
+		tftp_open->Status = PXENV_STATUS_TFTP_FILE_NOT_FOUND;
+		return PXENV_EXIT_FAILURE;
+	}
+	/* Fill in PacketSize */
+	tftp_open->PacketSize = request.blksize;
+	/* Store first block for later retrieval by TFTP_READ */
+	pxe_stack->tftpdata.magic_cookie = PXE_TFTP_MAGIC_COOKIE;
+	pxe_stack->tftpdata.len = block.len;
+	pxe_stack->tftpdata.eof = block.eof;
+	memcpy ( pxe_stack->tftpdata.data, block.data, block.len );
+
+	tftp_open->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_TFTP_CLOSE
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_tftp_close ( t_PXENV_TFTP_CLOSE *tftp_close ) {
 	DBG ( "PXENV_TFTP_CLOSE" );
-	/* ENSURE_READY ( tftp_close ); */
-	tftp_close->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( tftp_close );
+	tftp_close->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_TFTP_READ
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
+	struct tftpblk_info_t block;
+
 	DBG ( "PXENV_TFTP_READ" );
-	/* ENSURE_READY ( tftp_read ); */
-	tftp_read->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( tftp_read );
+
+	/* Do we have a block pending */
+	if ( pxe_stack->tftpdata.magic_cookie == PXE_TFTP_MAGIC_COOKIE ) {
+		block.data = pxe_stack->tftpdata.data;
+		block.len = pxe_stack->tftpdata.len;
+		block.eof = pxe_stack->tftpdata.eof;
+		block.block = 1; /* Will be the first block */
+		pxe_stack->tftpdata.magic_cookie = 0;
+	} else {
+		if ( !tftp_block ( NULL, &block ) ) {
+			tftp_read->Status = PXENV_STATUS_TFTP_FILE_NOT_FOUND;
+			return PXENV_EXIT_FAILURE;
+		}
+	}
+
+	/* Return data */
+	tftp_read->PacketNumber = block.block;
+	tftp_read->BufferSize = block.len;
+	memcpy ( SEGOFF16_TO_PTR(tftp_read->Buffer), block.data, block.len );
+	DBG ( " %d to %hx:%hx", block.len, tftp_read->Buffer.segment,
+	      tftp_read->Buffer.offset );
+ 
+	tftp_read->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_TFTP_READ_FILE
@@ -926,8 +977,10 @@ PXENV_EXIT_t pxenv_udp_write ( t_PXENV_UDP_WRITE *udp_write ) {
  * Status: working
  */
 PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
+	int success;
+
 	DBG ( "PXENV_UNLOAD_STACK" );
-	ENSURE_CAN_UNLOAD ( unload_stack );
+	success = ensure_pxe_state ( CAN_UNLOAD );
 
 	/* We need to call cleanup() at some point.  The network card
 	 * has already been disabled by ENSURE_CAN_UNLOAD(), but for
@@ -941,6 +994,11 @@ PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
 	 * here.
 	 */
 	cleanup();
+
+	if ( ! success ) {
+		unload_stack->Status = PXENV_STATUS_KEEP_ALL;
+		return PXENV_EXIT_FAILURE;
+	}
 
 	unload_stack->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
@@ -1045,8 +1103,67 @@ PXENV_EXIT_t pxenv_start_base ( t_PXENV_START_BASE *start_base ) {
 PXENV_EXIT_t pxenv_stop_base ( t_PXENV_STOP_BASE *stop_base ) {
 	DBG ( "PXENV_STOP_BASE" );
 	/* ENSURE_READY ( stop_base ); */
-	stop_base->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	stop_base->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
+}
+
+/* PXENV_UNDI_LOADER
+ *
+ * Status: stub
+ *
+ * NOTE: This is not a genuine PXE API call; the loader has a separate
+ * entry point.  However, to simplify the mapping of the PXE API to
+ * the internal Etherboot API, both are directed through the same
+ * interface.
+ */
+PXENV_EXIT_t pxenv_undi_loader ( undi_loader_t *loader ) {
+	uint32_t loader_phys = virt_to_phys ( loader );
+
+	DBG ( "PXENV_UNDI_LOADER" );
+	
+	/* Set UNDI DS as our real-mode stack */
+	use_undi_ds_for_rm_stack ( loader->undi_ds );
+
+	/* FIXME: These lines are borrowed from main.c.  There should
+	 * probably be a single initialise() function that does all
+	 * this, but it's currently split interestingly between main()
+	 * and main_loop()...
+	 */
+	console_init();
+	cpu_setup();
+	setup_timers();
+	gateA20_set();
+	print_config();
+	get_memsizes();
+	cleanup();
+	relocate();
+	cleanup();
+	console_init();
+	init_heap();
+
+	/* We have relocated; the loader pointer is now invalid */
+	loader = phys_to_virt ( loader_phys );
+
+	/* Install PXE stack to area specified by NBP */
+	install_pxe_stack ( VIRTUAL ( loader->undi_cs, 0 ) );
+	
+	/* Call pxenv_start_undi to set parameters.  Why the hell PXE
+	 * requires these parameters to be provided twice is beyond
+	 * the wit of any sane man.  Don't worry if it fails; the NBP
+	 * should call PXENV_START_UNDI separately anyway.
+	 */
+	pxenv_start_undi ( &loader->start_undi );
+	/* Unhook stack; the loader is not meant to hook int 1a etc,
+	 * but the call the pxenv_start_undi will cause it to happen.
+	 */
+	ENSURE_CAN_UNLOAD ( loader );
+
+	/* Fill in addresses of !PXE and PXENV+ structures */
+	PTR_TO_SEGOFF16 ( &pxe_stack->pxe, loader->pxe_ptr );
+	PTR_TO_SEGOFF16 ( &pxe_stack->pxenv, loader->pxenv_ptr );
+	
+	loader->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* API call dispatcher
@@ -1180,6 +1297,9 @@ PXENV_EXIT_t pxe_api_call ( int opcode, t_PXENV_ANY *params ) {
 		break;
 	case PXENV_STOP_BASE:
 		ret = pxenv_stop_base ( &params->stop_base );
+		break;
+	case PXENV_UNDI_LOADER:
+		ret = pxenv_undi_loader ( &params->loader );
 		break;
 		
 	default:

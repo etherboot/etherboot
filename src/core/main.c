@@ -158,7 +158,7 @@ static inline void try_floppy_first(void)
 #endif /* TRY_FLOPPY_FIRST */	
 }
 
-static void console_init(void)
+void console_init(void)
 {
 #ifdef	CONSOLE_SERIAL
 	(void)serial_init();
@@ -206,6 +206,11 @@ int main(in_call_data_t *data, va_list params)
 
 	console_init();
 	arch_main(data,params);
+
+	if ( rom.rom_segment ) {
+		printf ( "ROM segment %#hx length %#hx reloc %#x\n",
+			 rom.rom_segment, rom.rom_length, _text );
+	}
 
 	cpu_setup();
 	setup_timers();

@@ -12,6 +12,15 @@
 #include "segoff.h"
 #include <stdarg.h>
 
+/* Maximum amount of stack data that prefix may request to be passed
+ * to its exit routine
+ */
+#define MAX_PREFIX_STACK_DATA 16
+
+/* Prefix exit routine is defined in prefix object */
+extern void prefix_exit ( void );
+extern void prefix_exit_end ( void );
+
 /*****************************************************************************
  *
  * IN_CALL INTERFACE
@@ -28,87 +37,45 @@ uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
 			uint32_t opcode ) {
 	uint32_t ret;
 	i386_rm_in_call_data_t rm_data;
-	i386_exit_intercept_t intercept = { NULL };
-	in_call_data_t in_call_data = { &pm_data, NULL, &intercept };
-
-	/* If we were invoked via _start, there will be a return
-	 * address immediately after the opcode on the stack.  We're
-	 * not interested in this, and it gets in the way of
-	 * extracting the i386_rm_in_call_data_t structure, so discard
-	 * it.
-	 */
-	if ( EB_OPCODE(opcode) == EB_OPCODE_MAIN ) {
-		int discard __unused = va_arg ( ap, int );
-	}
+	in_call_data_t in_call_data = { &pm_data, NULL };
+	struct {
+		int data[MAX_PREFIX_STACK_DATA/4];
+	} in_stack;
 
 	/* Fill out rm_data if we were called from real mode */
 	if ( opcode & EB_CALL_FROM_REAL_MODE ) {
 		in_call_data.rm = &rm_data;
 		rm_data = va_arg ( ap, typeof(rm_data) );
+		/* Null return address indicates to use the special
+		 * prefix exit mechanism, and that there are
+		 * parameters on the stack that the prefix wants
+		 * handed to its exit routine.
+		 */
+		if ( rm_data.ret_addr.offset == 0 ) {
+			int n = va_arg ( ap, int ) / 4;
+			int i;
+			for ( i = 0; i < n; i++ ) {
+				in_stack.data[i] = va_arg ( ap, int );
+			}
+		}
 	}
 	
 	/* Hand off to main in_call() routine */
 	ret = in_call ( &in_call_data, opcode, ap );
 
-	/* For some real-mode call types (e.g. MAIN), we can't be sure
-	 * that the real-mode routine still exists to return to.  We
-	 * therefore provide a method for these calls to intercept the
-	 * exit path.
+	/* If real-mode return address is null, it means that we
+	 * should exit via the prefix's exit path, which is part of
+	 * our image.  (This arrangement is necessary since the prefix
+	 * code itself may have been vapourised by the time we want to
+	 * return.)
 	 */
-	if ( intercept.fnc != NULL ) {
-		(*(intercept.fnc))( &in_call_data );
-		/* Will not reach this point */
+	if ( ( opcode & EB_CALL_FROM_REAL_MODE ) &&
+	     ( rm_data.ret_addr.offset == 0 ) ) {
+		real_call ( prefix_exit, &in_stack, NULL );
+		/* Should never return */
 	}
-
+		
 	return ret;
-}
-
-/* exit_via_prefix(): an exit interceptor that will copy the stored
- * real-mode prefix code back down to base memory and jump to it.
- * This is used as the exit path when we were entered via start16.S
- */
-void exit_via_prefix ( in_call_data_t *data ) {
-	/* Prefix may have been vapourised.  For example, we may have
-	 * been loaded via PXE and then attempted to load an image at
-	 * 0x7c00 which failed to boot.  We need to return to our
-	 * prefix, but we've overwritten it.
-	 *
-	 * Strategy is: ensure original prefix code is intact, then
-	 * return to it in real mode.
-	 */
-	struct {
-		reg16_t flags;
-		segoff_t return_stack;
-	} PACKED in_stack;
-	void *prefix_code;
-
-	/* Ensure prefix is intact.  Prefix may be in ROM, which is
-	 * why we don't just automatically copy it back.
-	 */
-	prefix_code = VIRTUAL ( data->rm->ret_addr.segment, 0 );
-	if ( memcmp ( prefix_code, _prefix_copy, sizeof(_prefix_copy) ) ) {
-		memcpy ( prefix_code, _prefix_copy, sizeof(_prefix_copy) );
-	}
-
-	/* Return to prefix */
-	BEGIN_RM_FRAGMENT(rm_ret_to_prefix);
-	__asm__ ( "call 1f\n1:\tpopw %bp" );
-	__asm__ ( "popfw" );
-	__asm__ ( "popw %bx" );
-	__asm__ ( "popw %ss" );
-	__asm__ ( "movw %bx,%sp" );
-	__asm__ ( "ljmp %cs:*(return_point-1b)(%bp)" );
-	extern segoff_t return_point;
-	__asm__ ( "\nreturn_point:\t.word 0,0" );
-	END_RM_FRAGMENT(rm_ret_to_prefix);
-
-	return_point.segment = data->rm->ret_addr.segment;
-	return_point.offset = data->rm->ret_addr.offset;
-	in_stack.return_stack.segment = data->rm->seg_regs.ss;
-	in_stack.return_stack.offset = data->rm->prefix_sp;
-	in_stack.flags.word = data->rm->flags;
-	real_call ( rm_ret_to_prefix, &in_stack, NULL );
-	/* Will never return */
 }
 
 /* install_rm_callback_interface(): install real-mode callback

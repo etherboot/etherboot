@@ -11,27 +11,46 @@
 #include "pxe.h"
 #include "pxe_callbacks.h"
 #include "pxe_export.h"
+#include "hidemem.h"
 #include <stdarg.h>
 
 #define INSTALLED(x) ( (typeof(&x)) ( (void*)(&x) \
 				      - &pxe_callback_interface \
 				      + (void*)&pxe_stack->arch_data ) )
-#define pxe_intercept_int15	INSTALLED(_pxe_intercept_int15)
-#define pxe_intercepted_int15	INSTALLED(_pxe_intercepted_int15)
-#define pxe_hide_memory		INSTALLED(_pxe_hide_memory)
-#define INT15_VECTOR ( (segoff_t*) ( phys_to_virt( 4 * 0x15 ) ) )
 #define pxe_intercept_int1a	INSTALLED(_pxe_intercept_int1a)
 #define pxe_intercepted_int1a	INSTALLED(_pxe_intercepted_int1a)
 #define pxe_pxenv_location	INSTALLED(_pxe_pxenv_location)
 #define INT1A_VECTOR ( (segoff_t*) ( phys_to_virt( 4 * 0x1a ) ) )
 
-/* Overall PXE stack size
+/* The overall size of the PXE stack is ( sizeof(pxe_stack_t) +
+ * pxe_callback_interface_size + rm_callback_interface_size ).
+ * Unfortunately, this isn't a compile-time constant, since
+ * {pxe,rm}_callback_interface_size depend on the length of the
+ * assembly code in these interfaces.
+ *
+ * We used to have a function pxe_stack_size() which returned this
+ * value.  However, it actually needs to be a link-time constant, so
+ * that it can appear in the UNDIROMID structure in romprefix.S.  We
+ * therefore export the three component sizes as absolute linker
+ * symbols, get the linker to add them together and generate a new
+ * absolute symbol _pxe_stack_size.  We then import this value into a
+ * C variable pxe_stack_size, for access from C code.
  */
-static inline int pxe_stack_size ( void ) {
-	return sizeof(pxe_stack_t)
-		+ pxe_callback_interface_size
-		+ rm_callback_interface_size;
+
+/* gcc won't let us use extended asm outside a function (compiler
+ * bug), ao we have to put these asm statements inside a dummy
+ * function.
+ */
+static void work_around_gcc_bug ( void ) __unused;
+static void work_around_gcc_bug ( void ) {
+	/* Export sizeof(pxe_stack_t) as absolute linker symbol */
+	__asm__ ( ".globl _pxe_stack_t_size" );
+	__asm__ ( ".equ _pxe_stack_t_size, %c0"
+		  : : "i" (sizeof(pxe_stack_t)) );
 }
+/* Import _pxe_stack_size absolute linker symbol into C variable */
+extern int pxe_stack_size;
+__asm__ ( "pxe_stack_size: .long _pxe_stack_size" );
 
 /* Utility routine: byte checksum
  */
@@ -59,6 +78,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	void (*pxe_in_call_far)(void);
 	void (*pxenv_in_call_far)(void);
 	void *rm_callback_code;
+	void *e820mangler_code;
 	void *end;
 
 	/* If already installed, just return */
@@ -67,7 +87,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	/* Allocate base memory if requested to do so
 	 */
 	if ( base == NULL ) {
-		base = allot_base_memory ( pxe_stack_size() );
+		base = allot_base_memory ( pxe_stack_size );
 		if ( base == NULL ) return NULL;
 	}
 
@@ -86,7 +106,10 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxenv_in_call_far = _pxenv_in_call_far +
 		( pxe_callback_code - &pxe_callback_interface );
 	rm_callback_code = pxe_callback_code + pxe_callback_interface_size;
-	end = rm_callback_code + rm_callback_interface_size;
+	
+	e820mangler_code = (void*)(((int)rm_callback_code +
+				    rm_callback_interface_size + 0xf ) & ~0xf);
+	end = e820mangler_code + e820mangler_size;
 
 	/* Initialise !PXE data structures */
 	memcpy ( pxe->Signature, "!PXE", 4 );
@@ -156,12 +179,22 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	/* Mark stack as inactive */
 	pxe_stack->state = CAN_UNLOAD;
 
-	/* Install PXE and RM callback code */
+	/* Install PXE and RM callback code and E820 mangler */
 	memcpy ( pxe_callback_code, &pxe_callback_interface,
 		 pxe_callback_interface_size );
 	install_rm_callback_interface ( rm_callback_code, 0 );
+	install_e820mangler ( e820mangler_code );
 
 	return pxe_stack;
+}
+
+/* Use the UNDI data segment as our real-mode stack.  This is for when
+ * we have been loaded via the UNDI loader
+ */
+void use_undi_ds_for_rm_stack ( uint16_t ds ) {
+	forget_real_mode_stack();
+	real_mode_stack = virt_to_phys ( VIRTUAL ( ds, 0 ) );
+	lock_real_mode_stack = 1;
 }
 
 /* Activate PXE stack (i.e. hook interrupt vectors).  The PXE stack
@@ -172,23 +205,7 @@ int hook_pxe_stack ( void ) {
 	if ( pxe_stack->state >= MIDWAY ) return 1;
 
 	/* Hook INT15 handler */
-	*pxe_intercepted_int15 = *INT15_VECTOR;
-	(*pxe_hide_memory)[0].start = virt_to_phys(_text);
-	(*pxe_hide_memory)[0].length = _end - _text;
-	/* IMPORTANT, possibly even FIXME:
-	 *
-	 * Etherboot has a tendency to claim a very large area of
-	 * memory as possible heap; enough to make it impossible to
-	 * load an OS if we hide all of it.  We hide only the portion
-	 * that's currently in use.  This means that we MUST NOT
-	 * perform further allocations from the heap while the PXE
-	 * stack is active.
-	 */
-	(*pxe_hide_memory)[1].start = heap_ptr;
-	(*pxe_hide_memory)[1].length = heap_bot - heap_ptr;
-	INT15_VECTOR->segment = SEGMENT(&pxe_stack->arch_data);
-	INT15_VECTOR->offset = (void*)pxe_intercept_int15
-		- (void*)&pxe_stack->arch_data;
+	hide_etherboot();
 
 	/* Hook INT1A handler */
 	*pxe_intercepted_int1a = *INT1A_VECTOR;
@@ -210,14 +227,19 @@ int unhook_pxe_stack ( void ) {
 	if ( pxe_stack == NULL ) return 0;
 	if ( pxe_stack->state <= CAN_UNLOAD ) return 1;
 
-	/* Restore original INT15 and INT1A handlers
-	 *
-	 * FIXME: should probably check that is safe to do so
-	 * (i.e. that no-one else has hooked it), but what do we do if
-	 * it isn't?  We can't leave our handler hooked in.
-	 */
-	*INT15_VECTOR = *pxe_intercepted_int15;
+	/* Restore original INT15 and INT1A handlers */
 	*INT1A_VECTOR = *pxe_intercepted_int1a;
+	if ( !unhide_etherboot() ) {
+		/* Cannot unhook INT15.  We're up the creek without
+		 * even a suitable log out of which to fashion a
+		 * paddle.  There are some very badly behaved NBPs
+		 * that will ignore plaintive pleas such as
+		 * PXENV_KEEP_UNDI and just zero out our code anyway.
+		 * This means they end up vapourising an active INT15
+		 * handler, which is generally not a good thing to do.
+		 */
+		return 0;
+	}
 
 	/* Mark stack as inactive */
 	pxe_stack->state = CAN_UNLOAD;
@@ -229,7 +251,7 @@ int unhook_pxe_stack ( void ) {
 void remove_pxe_stack ( void ) {
 	/* Ensure stack is deactivated, then free up the memory */
 	if ( ensure_pxe_state ( CAN_UNLOAD ) ) {
-		forget_base_memory ( pxe_stack, pxe_stack_size() );
+		forget_base_memory ( pxe_stack, pxe_stack_size );
 		pxe_stack = NULL;
 	} else {
 		printf ( "Cannot remove PXE stack!\n" );
@@ -334,5 +356,11 @@ void test_exclude ( void ) {
 	_test_exclude ( 0x8000, 0x1000, 0x8000, 0x1000 ); /* exact overlap */
 }
 #endif /* TEST_EXCLUDE_ALGORITHM */
+
+#else /* EXPORT_PXE */
+
+/* Define symbols used by the linker scripts, to prevent link errors */
+__asm__ ( ".globl _pxe_stack_t_size" );
+__asm__ ( ".equ _pxe_stack_t_size, 0" );
 
 #endif /* EXPORT_PXE */

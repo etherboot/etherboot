@@ -20,6 +20,7 @@
 #define EB_OPCODE_PXENV		(0x7650)	/* 'Pv' */
 #define EB_USE_INTERNAL_STACK	( 1 << 16 )
 #define EB_CALL_FROM_REAL_MODE	( 1 << 17 )	/* i386 only */
+#define EB_SKIP_OPCODE		( 1 << 18 )
 
 /* Standard return codes
  */

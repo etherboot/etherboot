@@ -2,7 +2,7 @@
  * defined so we provide them here.
  */
 
-decompressor_uncompressed = 0 ;
-decompressor__start = 0 ;
+__decompressor_uncompressed = 0 ;
+__decompressor__start = 0 ;
 
 INCLUDE arch/i386/core/start16z.lds

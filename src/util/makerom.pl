@@ -15,6 +15,10 @@ use constant PCI_VEND_ID_OFF => 0x4;	# bytes from beginning of PCI header
 use constant PCI_DEV_ID_OFF => 0x6;	# bytes from beginning of PCI header
 use constant PCI_SIZE_OFF => 0x10;	# bytes from beginning of PCI header
 
+use constant UNDI_PTR_LOC => 0x16;	# from beginning of ROM
+use constant UNDI_HDR_SIZE => 0x16;
+use constant UNDI_CHKSUM_OFF => 0x05;
+
 use strict;
 
 use vars qw(%opts);
@@ -95,6 +99,27 @@ sub pcipnpheaders ($$) {
 	}
 }
 
+sub undiheaders ($) {
+	my ($romref) = @_;
+	my ($undi_hdr_offset);
+
+	$undi_hdr_offset = unpack('v', substr($$romref, UNDI_PTR_LOC, 2));
+	# Sanity checks
+	if ($undi_hdr_offset < UNDI_PTR_LOC + 2
+		or $undi_hdr_offset > length($$romref) - UNDI_HDR_SIZE
+		or substr($$romref, $undi_hdr_offset, 4) ne 'UNDI') {
+		$undi_hdr_offset = 0;
+	} else {
+		printf "UNDI header at %#x\n", $undi_hdr_offset;
+	}
+	if ($undi_hdr_offset > 0) {
+		substr($$romref, $undi_hdr_offset+UNDI_CHKSUM_OFF, 1) = "\x00";
+		my $sum = unpack('%8C*', substr($$romref, $undi_hdr_offset,
+			UNDI_HDR_SIZE));
+		substr($$romref, $undi_hdr_offset+UNDI_CHKSUM_OFF, 1) = chr(256 - $sum);
+	}
+}
+
 sub writerom ($$) {
 	my ($filename, $romref) = @_;
 
@@ -167,6 +192,7 @@ sub makerom () {
 	print "ROM size is $romsize\n" if $opts{'v'};
 	my $identoffset = &addident(\$rom);
 	&pcipnpheaders(\$rom, $identoffset);
+	&undiheaders(\$rom);
 	# 3c503 requires last two bytes to be 0x80
 	substr($rom, MINROMSIZE-2, 2) = "\x80\x80"
 		if ($opts{'3'} and $romsize == MINROMSIZE);
@@ -186,6 +212,7 @@ sub modrom () {
 	defined($filesize) and $filesize >= 3 or die "Cannot get first 3 bytes of file\n";
 	print "$filesize bytes read\n" if $opts{'v'};
 	&pcipnpheaders(\$rom);
+	&undiheaders(\$rom);
 	&checksum(\$rom);
 	&writerom($ARGV[0], \$rom);
 }

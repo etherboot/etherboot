@@ -111,7 +111,11 @@
 /* total retransmission timeout in ticks */
 #define TFTP_TIMEOUT		(30*TICKS_PER_SEC)
 /* packet retransmission timeout in ticks */
+#ifdef CONGESTED
 #define TFTP_REXMT		(3*TICKS_PER_SEC)
+#else
+#define TFTP_REXMT		TIMEOUT
+#endif
 
 #ifndef	NULL
 #define NULL	((void *)0)
@@ -189,12 +193,14 @@ External prototypes
 /* main.c */
 struct Elf_Bhdr;
 extern int in_call(in_call_data_t *data, uint32_t opcode, va_list params);
+extern void console_init(void); 
 extern int main(in_call_data_t *data, va_list params);
 extern int loadkernel P((const char *fname));
 extern char as_main_program;
 /* nic.c */
 extern void rx_qdrain P((void));
 extern int tftp P((const char *name, int (*)(unsigned char *, unsigned int, unsigned int, int)));
+extern int tftp_block P((struct tftpreq_info_t *, struct tftpblk_info_t *));
 extern int ip_transmit P((int len, const void *buf));
 extern void build_ip_hdr P((unsigned long destip, int ttl, int protocol, 
 	int option_len, int len, const void *buf));
@@ -294,7 +300,7 @@ extern void forget_real_mode_stack ( void );
 extern void * allot_base_memory ( size_t );
 extern void forget_base_memory ( void*, size_t );
 extern void free_unused_base_memory ( void );
-extern void forget_decompressor_base_memory ( void );
+extern void forget_prefix_base_memory ( void );
 extern void forget_runtime_base_memory ( uint32_t old_addr );
 
 struct e820entry {
@@ -371,7 +377,7 @@ extern unsigned long currticks P((void));
 extern void exit P((int status));
 extern void _stack;
 extern char _prefix_copy[512];
-extern unsigned long image_basemem;
+extern uint32_t image_basemem;
 
 /* serial.c */
 extern int serial_getc P((void));

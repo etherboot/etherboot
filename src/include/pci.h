@@ -276,6 +276,7 @@ struct pci_device {
 	unsigned char		irq;
 	unsigned char		devfn;
 	unsigned char		bus;
+	unsigned char		use_specified;
 	const struct pci_driver	*driver;
 };
 

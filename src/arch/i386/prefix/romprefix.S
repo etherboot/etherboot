@@ -31,12 +31,20 @@
 #define BOOT_INT_VEC	BOOT_INT*4
 #define SCRATCHVEC	0x300
 
+/* Prefix exit codes.  We store these on the stack so that we will
+ * know how to return control to the BIOS when Etherboot exits.
+ */
+#define EXIT_VIA_LRET  		0x0
+#define EXIT_VIA_INT_18		0x1
+#define EXIT_VIA_BOOT_INT	0x2
+
 	.text
 	.code16
 	.arch i386
 	.org 0
-	.globl _start
-_start: 
+	.section ".prefix", "ax", @progbits
+	.globl _prefix
+_prefix: 
 	.word 0xAA55			/* BIOS extension signature */
 size:	.byte 0				/* number of 512 byte blocks */
 					/* = number of 256 word blocks */
@@ -49,9 +57,15 @@ size:	.byte 0				/* number of 512 byte blocks */
 #ifdef	PCI_PNP_HEADER
 mfgstr:
 	.asciz	"Etherboot"
+	
+#ifdef	PXE_EXPORT
+	.org	0x16
+	.word	UNDIROMID - _prefix
+#endif	/* PXE_EXPORT */
+	
 	.org	0x18
-	.word	PCI - _start
-	.word	PnP - _start
+	.word	PCI - _prefix
+	.word	PnP - _prefix
 
 PCI: 
 	.ascii	"PCIR"
@@ -77,7 +91,7 @@ PnP:
 	.byte 0x00			/* Reserved */
 	.byte 0x00			/* checksum filled by makerom */
 	.long 0x00000000		/* Device identifier */
-	.word mfgstr - _start
+	.word mfgstr - _prefix
 	.word 0x0			/* pointer to product name */
 					/* filled by makerom */
 	.byte 0x02			/* Device Base Type code */
@@ -86,9 +100,40 @@ PnP:
 	.byte 0x14			/* device indicator */
 	.word 0x0000			/* boot connection vector */
 	.word 0x0000			/* disconnect vector */
-	.word pnpentry - _start
+	.word pnpentry - _prefix
 	.word 0x0000			/* reserved */
 	.word 0x0000			/* static resource information vector */
+#ifdef	PXE_EXPORT
+UNDIROMID:
+	.ascii	"UNDI"
+	.byte	UNDIROMID_end - UNDIROMID /* length of structure */
+	.byte	0			/* Checksum */
+	.byte	0			/* Structure revision */
+	.byte	0,1,2			/* PXE version 2.1.0 */
+	.word	UNDILoader - _prefix	/* Offset to loader routine */
+	.word	UNDIStackSize		/* Stack segment size */
+	.word	UNDIDataSize		/* Data segment size */
+	.word	UNDICodeSize		/* Code segment size */
+	.ascii	"PCIR"
+
+	/* The code segment contains our pxe_stack_t plus the PXE and
+	 * RM callback interfaces.  We don't actually use a data
+	 * segment, but we put a nonzero value here to avoid confusing
+	 * things.  16k of stack space should be enough.
+	 *
+	 * When we claim our own memory, we fill out the data segment
+	 * with the address and size of the real-mode stack, so that
+	 * NBPs will free that area of memory for us.  When the UNDI
+	 * loader is used to initialise us, we will never need a
+	 * real-mode stack because we will only ever be called via the
+	 * PXE API, hence our stack is already in base memory.
+	 */
+	.equ	UNDICodeSize, _pxe_stack_size
+	.equ	UNDIDataSize, _real_mode_stack_size
+	.equ	UNDIStackSize, _real_mode_stack_size
+UNDIROMID_end:	
+#endif	/* PXE_EXPORT */
+	
 #endif	/* PCI_PNP_HEADER */
 
 /*
@@ -123,7 +168,7 @@ notpnp:
 	movw	%ax, SCRATCHVEC
 	movw	BOOT_INT_VEC+2, %ax
 	movw	%ax, SCRATCHVEC+2
-	movw	$start_int - _start, %ax
+	movw	$start_int - _prefix, %ax
 	movw	%ax, BOOT_INT_VEC
 	movw	%cs,%ax
 	movw	%ax, BOOT_INT_VEC+2
@@ -143,50 +188,125 @@ start_int:				/* clobber magic id, so that we will */
 	movw	%ax, BOOT_INT_VEC+2
 	movw	SCRATCHVEC, %ax
 	movw	%ax, BOOT_INT_VEC
-	call	start16			/* call start16.S */
-	int	$BOOT_INT		/* Try original vector */
+	pushl	%eax			/* padding */
+	pushw	$EXIT_VIA_BOOT_INT
+	jmp	invoke
 #endif	/* DELAYED_INT */
 
 
 
 	
 legacyentry:
-	call	start16			/* call start16.S */
-	lret				/* Hope that stack is ok.... */
-
+	pushw	$EXIT_VIA_LRET
+	jmp	invoke
 
 	
 	
 #ifdef PCI_PNP_HEADER
 pnpentry:
-	call	start16			/* call start16.S */
-	int	$0x18			/* As per BIOS Boot Spec, next dev */
+	pushl	%eax			/* padding */
+	pushw	$EXIT_VIA_INT_18
+	jmp	invoke
 #endif /* PCI_PNP_HEADER */
 
 
+invoke:
+	/* Store ROM segment and size on stack */
+	pushw	%ax
+	pushw	%cs
+	movzbw	%cs:(size-_prefix), %ax
+	shlw	$9, %ax			/* 512-byte blocks */
+	pushw	%ax
+	/* Relocate to free base memory, switch stacks */
+	pushw	$12			/* Preserve exit code & far ret addr */
+	call	prelocate
+	/* We are now running in RAM */
+	popw	%ax			/* padding */
+	popw	%cs:(rom+2)		/* ROM size */
+	popw	%cs:(rom+0)		/* ROM segment */
+	popw	%ax			/* Original %ax */
+	pushw	%ax			/* 4-byte alignment */
+	pushl	$8			/* Preserve exit code & far ret addr */
+	pushw	$0			/* Set null return address */
+	jmp	_start
 	
-	/*
-	 * Call start16.  We fake the return address so that the
-	 * return goes straight back to whoever called us, since our
-	 * stack may have been destroyed by the time we regain
-	 * control.
-	 */
-start16:
-	/* Convert return offset to return segment:offset */
-	pop	%ax
-	push	%cs
-	push	%ax
-	/* Calculate segment:offset address of payload and do an lret,
-	 * since there's no "calculated ljmp" instruction
-	 */
-	push	%cs
-	pop	%ax
-	add	$((payload-_start)/16), %ax
-	push	%ax
-	pushw	$0
-	lret				/* Jump to start16.S */
+
+	.section ".text16", "ax", @progbits
+	.globl	prefix_exit
+prefix_exit:
+	popw	%ax			/* padding */
+	popw	%ax			/* %ax = exit code */
+	cmpw	$EXIT_VIA_LRET, %ax
+	jne	1f
+	/* Exit via LRET */
+	lret
+1:	addw	$4, %sp			/* Strip padding */
+	cmpw	$EXIT_VIA_BOOT_INT, %ax
+	jne	2f
+	/* Exit via int BOOT_INT */
+	int	$BOOT_INT		/* Try original vector */
+2:	/* Exit via int $0x18 */
+	int	$0x18			/* As per BIOS Boot Spec, next dev */
+	.globl	prefix_exit_end
+prefix_exit_end:
+	.previous
+
 	
-/* Force 16 byte alignment */
-	.balign 16, 0
-payload: 
-/* start16 will be attached here */
+	
+#ifdef 	PXE_EXPORT
+
+#include "callbacks.h"
+#define PXENV_UNDI_LOADER		0x104d
+
+	.section ".prefix"
+UNDILoader:
+	/* Loader API is different to the usual PXE API; there is no
+	 * opcode on the stack.  We arrange the stack to look like a
+	 * normal PXE API call; this makes the Etherboot internals
+	 * cleaner and avoids adding an extra API type just for the
+	 * PXE loader.
+	 */
+	pushw	%bx
+	movw	%sp, %ax		/* Store original %ss:sp */
+	pushw	%ss
+	pushw	%ax
+	pushl	%eax			/* Space for loader structure ptr */
+	pushw	%bp
+	movw	%sp, %bp
+	movw	16(%bp), %ax		/* Copy loader structure ptr */
+	movw	%ax, 2(%bp)
+	movw	18(%bp), %ax
+	movw	%ax, 4(%bp)
+	popw	%bp
+	pushw	$PXENV_UNDI_LOADER	/* PXE 'opcode' */
+	pushl	%eax			/* dummy return address */
+	/* Stack now looks like a normal PXE API call */
+	/* Store ROM segment and size on stack */
+	pushw	%ax
+	pushw	%cs
+	movzbw	%cs:(size-_prefix), %ax
+	shlw	$9, %ax			/* 512-byte blocks */
+	pushw	%ax
+	/* Unpack Etherboot into temporarily claimed base memory */
+	pushw	$20			/* Dummy ret, PXE params, orig ss:sp */
+	call	prelocate
+	popw	%ax			/* discard */
+	popw	%cs:(rom+2)		/* ROM size */
+	popw	%cs:(rom+0)		/* ROM segment */
+	popw	%ax			/* Original %ax */
+	/* Inhibit automatic deallocation of base memory */
+	movl	$0, %cs:image_basemem
+	/* Make PXE API call to Etherboot */
+	pushl	$0x201			/* PXE API version */
+	/* Need to USE_INTERNAL_STACK, since we will call relocate() */
+	pushl	$(EB_OPCODE_PXE|EB_USE_INTERNAL_STACK) /* PXE API call type */
+	call	_entry
+	addw	$18, %sp		/* discard */
+	popw	%bx			/* Restore original %ss:sp */
+	popw	%ss
+	movw	%bx, %sp
+	popw	%bx
+	call	deprelocate
+	lret	$2			/* Skip our PXE 'opcode' */
+#endif	/* PXE_EXPORT */
+		

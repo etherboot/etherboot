@@ -23,8 +23,8 @@ struct arptable_t	arptable[MAX_ARP];
 unsigned long last_igmpv1 = 0;
 struct igmptable_t	igmptable[MAX_IGMP];
 #endif
-/* Currently no other module uses rom, but it is available */
-struct rom_info		rom;
+/* Put rom_info in .nocompress section so romprefix.S can write to it */
+struct rom_info	rom __attribute__ ((section (".text16.nocompress"))) = {0,0};
 static unsigned long	netmask;
 /* Used by nfs.c */
 char *hostname = "";
@@ -527,149 +527,143 @@ static int await_tftp(int ival, void *ptr __unused,
 	return 1;
 }
 
-int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int))
+int tftp ( const char *name,
+	   int (*fnc)(unsigned char *, unsigned int, unsigned int, int) )
 {
-	int		retry = 0;
-	static unsigned short iport = 2000;
-	unsigned short	oport = 0;
-	unsigned short	len, block = 0, prevblock = 0;
-	int		bcounter = 0;
-	struct tftp_t  *tr;
-	struct tftpreq_t tp;
-	int		rc;
-	int		packetsize = TFTP_DEFAULTSIZE_PACKET;
+	struct tftpreq_info_t request_data =
+		{ name, TFTP_PORT, TFTP_DEFAULTSIZE_PACKET };
+	struct tftpreq_info_t *request = &request_data;
+	struct tftpblk_info_t block;
+	int rc;
 
-	rx_qdrain();
-
-	tp.opcode = htons(TFTP_RRQ);
-	/* Warning: the following assumes the layout of bootp_t.
-	   But that's fixed by the IP, UDP and BOOTP specs. */
-	len = sizeof(tp.ip) + sizeof(tp.udp) + sizeof(tp.opcode) +
-		sprintf((char *)tp.u.rrq, "%s%coctet%cblksize%c%d",
-		name, 0, 0, 0, TFTP_MAX_PACKET) + 1;
-	if (!udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, ++iport,
-		TFTP_PORT, len, &tp))
-		return (0);
-	for (;;)
-	{
-		long timeout;
-#ifdef	CONGESTED
-		timeout = rfc2131_sleep_interval(block?TFTP_REXMT: TIMEOUT, retry);
-#else
-		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
-#endif
-		if (!await_reply(await_tftp, iport, NULL, timeout))
-		{
-			if (!block && retry++ < MAX_TFTP_RETRIES)
-			{	/* maybe initial request was lost */
-				if (!udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
-					++iport, TFTP_PORT, len, &tp))
-					return (0);
-				continue;
-			}
-#ifdef	CONGESTED
-			if (block && ((retry += TFTP_REXMT) < TFTP_TIMEOUT))
-			{	/* we resend our last ack */
-#ifdef	MDEBUG
-				printf("<REXMT>\n");
-#endif
-				udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
-					iport, oport,
-					TFTP_MIN_PACKET, &tp);
-				continue;
-			}
-#endif
-			break;	/* timeout */
-		}
-		tr = (struct tftp_t *)&nic.packet[ETH_HLEN];
-		if (tr->opcode == ntohs(TFTP_ERROR))
-		{
-			printf("TFTP error %d (%s)\n",
-			       ntohs(tr->u.err.errcode),
-			       tr->u.err.errmsg);
-			break;
-		}
-
-		if (tr->opcode == ntohs(TFTP_OACK)) {
-			const char *p = tr->u.oack.data, *e;
-
-			if (prevblock)		/* shouldn't happen */
-				continue;	/* ignore it */
-			len = ntohs(tr->udp.len) - sizeof(struct udphdr) - 2;
-			if (len > TFTP_MAX_PACKET)
-				goto noak;
-			e = p + len;
-			while (*p != '\0' && p < e) {
-				if (!strcasecmp("blksize", p)) {
-					p += 8;
-					if ((packetsize = strtoul(p, &p, 10)) <
-					    TFTP_DEFAULTSIZE_PACKET)
-						goto noak;
-					while (p < e && *p) p++;
-					if (p < e)
-						p++;
-				}
-				else {
-				noak:
-					tp.opcode = htons(TFTP_ERROR);
-					tp.u.err.errcode = 8;
-/*
- *	Warning: the following assumes the layout of bootp_t.
- *	But that's fixed by the IP, UDP and BOOTP specs.
- */
-					len = sizeof(tp.ip) + sizeof(tp.udp) + sizeof(tp.opcode) + sizeof(tp.u.err.errcode) +
-/*
- *	Normally bad form to omit the format string, but in this case
- *	the string we are copying from is fixed. sprintf is just being
- *	used as a strcpy and strlen.
- */
-						sprintf((char *)tp.u.err.errmsg,
-						"RFC1782 error") + 1;
-					udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
-						     iport, ntohs(tr->udp.src),
-						     len, &tp);
-					return (0);
-				}
-			}
-			if (p > e)
-				goto noak;
-			block = tp.u.ack.block = 0; /* this ensures, that */
-						/* the packet does not get */
-						/* processed as data! */
-		}
-		else if (tr->opcode == htons(TFTP_DATA)) {
-			len = ntohs(tr->udp.len) - sizeof(struct udphdr) - 4;
-			if (len > packetsize)	/* shouldn't happen */
-				continue;	/* ignore it */
-			block = ntohs(tp.u.ack.block = tr->u.data.block); }
-		else {/* neither TFTP_OACK nor TFTP_DATA */
-			break;
-		}
-
-		if ((block || bcounter) && (block != (unsigned short)(prevblock+1))) {
-			/* Block order should be continuous */
-			tp.u.ack.block = htons(block = prevblock);
-		}
-		tp.opcode = htons(TFTP_ACK);
-		oport = ntohs(tr->udp.src);
-		udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, iport,
-			oport, TFTP_MIN_PACKET, &tp);	/* ack */
-		if ((unsigned short)(block-prevblock) != 1) {
-			/* Retransmission or OACK, don't process via callback
-			 * and don't change the value of prevblock.  */
-			continue;
-		}
-		prevblock = block;
-		retry = 0;	/* It's the right place to zero the timer? */
-		if ((rc = fnc(tr->u.data.download,
-			      ++bcounter, len, len < packetsize)) <= 0)
-			return(rc);
-		if (len < packetsize) {	/* End of data --- fnc should not have returned */
-			printf("tftp download complete, but\n");
-			return (1);
+	while ( tftp_block ( request, &block ) ) {
+		request = NULL; /* Send request only once */
+		rc = fnc ( block.data, block.block, block.len, block.eof );
+		if ( rc <= 0 ) return (rc);
+		if ( block.eof ) {
+			/* fnc should not have returned */
+			printf ( "TFTP download complete, but\n" );
+			return (0);
 		}
 	}
 	return (0);
+}
+
+int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
+{
+	static unsigned short lport = 2000; /* local port */
+	static unsigned short rport = TFTP_PORT; /* remote port */
+	struct tftp_t *rcvd = NULL;
+	static struct tftpreq_t xmit;
+	static unsigned short xmitlen = 0;
+	static unsigned short blockidx = 0; /* Last block received */
+	static unsigned short retry = 0; /* Retry attempts on last block */
+	static int blksize = 0;
+	unsigned short recvlen = 0;
+
+	/* If this is a new request (i.e. if name is set), fill in
+	 * transmit block with RRQ and send it.
+	 */
+	if ( request ) {
+		rx_qdrain(); /* Flush receive queue */
+		xmit.opcode = htons(TFTP_RRQ);
+		xmitlen = (void*)&xmit.u.rrq - (void*)&xmit +
+			sprintf((char*)xmit.u.rrq, "%s%coctet%cblksize%c%d",
+				request->name, 0, 0, 0, request->blksize)
+			+ 1; /* null terminator */
+		blockidx = 0; /* Reset counters */
+		retry = 0;
+		blksize = request->blksize;
+		lport++; /* Use new local port */
+		rport = request->port;
+		if ( !udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, lport,
+				   rport, xmitlen, &xmit) )
+			return (0);
+	}
+	/* Exit if no transfer in progress */
+	if ( !blksize ) return (0);
+	/* Loop to wait until we get a packet we're interested in */
+	block->data = NULL; /* Used as flag */
+	while ( block->data == NULL ) {
+		long timeout = rfc2131_sleep_interval ( blockidx ? TFTP_REXMT :
+							TIMEOUT, retry );
+		if ( !await_reply(await_tftp, lport, NULL, timeout) ) {
+			/* No packet received */
+			if ( retry++ > MAX_TFTP_RETRIES ) break;
+			/* Retransmit last packet */
+			if ( !blockidx ) lport++; /* New lport if new RRQ */
+			if ( !udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
+					   lport, rport, xmitlen, &xmit) )
+				return (0);
+			continue; /* Back to waiting for packet */
+		}
+		/* Packet has been received */
+		rcvd = (struct tftp_t *)&nic.packet[ETH_HLEN];
+		recvlen = ntohs(rcvd->udp.len) - sizeof(struct udphdr)
+			- sizeof(rcvd->opcode);
+		rport = ntohs(rcvd->udp.src);
+		retry = 0; /* Reset retry counter */
+		switch ( htons(rcvd->opcode) ) {
+		case TFTP_ERROR : {
+			printf ( "TFTP error %d (%s)\n",
+				 ntohs(rcvd->u.err.errcode),
+				 rcvd->u.err.errmsg );
+			return (0); /* abort */
+		}
+		case TFTP_OACK : {
+			const char *p = rcvd->u.oack.data;
+			const char *e = p + recvlen - 10; /* "blksize\0\d\0" */
+
+			*((char*)(p+recvlen-1)) = '\0'; /* Force final 0 */
+			if ( blockidx || !request ) break; /* Too late */
+			if ( recvlen <= TFTP_MAX_PACKET ) /* sanity */ {
+				/* Check for blksize option honoured */
+				while ( p < e ) {
+					if ( strcasecmp("blksize",p) == 0 &&
+					     p[7] == '\0' ) {
+						blksize = strtoul(p+8,&p,10);
+						p++; /* skip null */
+					}
+					while ( *(p++) ) {};
+				}
+			}
+			if ( blksize != request->blksize ) {
+				/* Incorrect blksize - error and abort */
+				xmit.opcode = htons(TFTP_ERROR);
+				xmit.u.err.errcode = 8;
+				xmitlen = (void*)&xmit.u.err.errmsg
+					- (void*)&xmit
+					+ sprintf((char*)xmit.u.err.errmsg,
+						  "RFC1782 error")
+					+ 1;
+				udp_transmit(
+				    arptable[ARP_SERVER].ipaddr.s_addr,
+				    lport, rport, xmitlen, &xmit);
+				return (0);
+			}
+		} break;
+		case TFTP_DATA :
+			if ( ntohs(rcvd->u.data.block) != ( blockidx + 1 ) )
+				break; /* Re-ACK last block sent */
+			if ( recvlen > ( blksize+sizeof(rcvd->u.data.block) ) )
+				break; /* Too large; ignore */
+			block->data = rcvd->u.data.download;
+			block->block = ++blockidx;
+			block->len = recvlen - sizeof(rcvd->u.data.block);
+			block->eof = ( (unsigned short)block->len < blksize );
+			/* If EOF, zero blksize to indicate transfer done */
+			if ( block->eof ) blksize = 0;
+			break;
+	        default: break;	/* Do nothing */
+		}
+		/* Send ACK */
+		xmit.opcode = htons(TFTP_ACK);
+		xmit.u.ack.block = htons(blockidx);
+		xmitlen = TFTP_MIN_PACKET;
+		udp_transmit ( arptable[ARP_SERVER].ipaddr.s_addr,
+			       lport, rport, xmitlen, &xmit );
+	}
+	return ( block->data ? 1 : 0 );
 }
 #endif	/* DOWNLOAD_PROTO_TFTP */
 

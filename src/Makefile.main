@@ -186,7 +186,8 @@ ELF_DEPS=	$(ELF_START) $(BLIB)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
 # If you are confident that gcc 2.96 works for you, you can remove the lines
 # that check gcc in the toolcheck rule
-MAKEDEPS+=	Makefile Makefile.main Config genrules.pl $(BIN)/toolcheck
+MAKEDEPS+=	Makefile Makefile.main Config genrules.pl Families
+MAKEDEPS+=	$(BIN)/toolcheck
 MAKEDEPS+=	arch/$(ARCH)/Makefile arch/$(ARCH)/Config
 
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
@@ -241,10 +242,10 @@ $(BIN)/lzhuf:	util/lzhuf.c
 # Builds almost silently because this rule is triggered for just about
 # every modification to sources.
 
-$(BIN)/Roms $(BIN)/NIC:	genrules.pl $(SRCS)
+$(BIN)/Roms $(BIN)/NIC:	genrules.pl Families $(SRCS)
 	@mkdir -p $(@D)
 	@echo Scanning for ROMs and dependencies...
-	@$(PERL) ./genrules.pl $(BIN)/NIC $(ARCH) $(SRCS) > $(BIN)/Roms
+	@$(PERL) ./genrules.pl Families $(BIN)/NIC $(ARCH) $(SRCS) > $(BIN)/Roms
 
 # Pattern Rules
 
@@ -271,23 +272,30 @@ $(BIN)/etherboot.o: $(DOBJS)
 $(BIN)/etherboot-pci.o: $(PCIOBJS)
 	$(LD) -r $(PCIOBJS) -o $@
 
-# general ruls for generating .img files
-$(BIN)/%.tmp: $(BIN)/%.o $(START) $(BIN)/config.o arch/$(ARCH)/core/etherboot.lds $(LIBS) $(STDDEPS) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T arch/$(ARCH)/core/etherboot.lds -o $@ $(START) $(BIN)/config.o $< $(LIBS)
+# General rules for generating runtime (rt) files
+$(BIN)/%.rt.o:  $(BIN)/%.o $(START) $(BIN)/config.o $(LIBS) $(STDDEPS) $(MAKEDEPS)
+	$(LD) -r $(START) $(BIN)/config.o $< $(LIBS) -o $@
 	@$(SIZE) $@ | $(CHECKSIZE)
 
-$(BIN)/%.img: $(BIN)/%.tmp $(MAKEDEPS)
-	$(OBJCOPY) -O binary $< $@
+#   Rule for $(BIN)/%.FORMAT.rt is architecture and target-format specific
 
-# Rules for generating symbol files (for use in conjunction with .img and .zimg files)
-$(BIN)/%.allsym: $(BIN)/%.tmp $(MAKEDEPS)
-	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=runtime_ $< $@
+$(BIN)/%.rt.bin: $(BIN)/%.rt $(MAKEDEPS)
+	$(OBJCOPY) -O binary -R .prefix $< $@
 
-$(BIN)/%.sym: $(BIN)/%.allsym $(MAKEDEPS)
-	$(OBJCOPY) -O symbolsrec -j '*ABS*' $< $@
+$(BIN)/%.rt1.bin: $(BIN)/%.rt $(MAKEDEPS)
+	$(OBJCOPY) -O binary -j .text.nocompress $< $@
+
+$(BIN)/%.rt2.bin: $(BIN)/%.rt $(MAKEDEPS)
+	$(OBJCOPY) -O binary -R .prefix -R .text.nocompress $< $@
+
+# Rules for generating prefix binary files
+
+#   Rule for $(BIN)/%.FORMAT.prf is architecture and target-format specific
+$(BIN)/%.prf.bin: $(BIN)/%.prf $(MAKEDEPS)
+	$(OBJCOPY) -j .prefix -O binary $< $@
 
 # general rule for .z (compressed binary code), may be overridden
-$(BIN)/%.z:	$(BIN)/%.img $(BIN)/nrv2b $(MAKEDEPS)
+$(BIN)/%.zbin: $(BIN)/%.bin $(BIN)/nrv2b $(MAKEDEPS)
 	$(BIN)/nrv2b e $< $@
 
 # Housekeeping

@@ -16,13 +16,14 @@
 	.text
 	.code16
 	.org 0
-	.globl _start
+	.section ".prefix", "ax", @progbits
+	.globl _prefix
 /*****************************************************************************
  * Entry point:	set cs, ds, bp, print welcome message
  *****************************************************************************
  */	
-_start:
-	jmp	$FLOPPY_SEGMENT, $code_start-_start
+_prefix:
+	jmp	$FLOPPY_SEGMENT, $code_start-_prefix
 10:	.asciz	"PXE->EB "
 code_start:
 	pusha				/* Preserve all registers */
@@ -35,7 +36,7 @@ code_start:
 	pop	%ds
 	mov	$0x40, %cx		/* Set up %fs for access to 40:13 */
 	mov	%cx, %fs
-	movw	$10b-_start, %si	/* Print welcome message */
+	movw	$10b-_prefix, %si	/* Print welcome message */
 	call	print_message
 
 /*****************************************************************************
@@ -56,7 +57,7 @@ detect_pxe:
 	je	detected_pxenv
 
 detected_nothing:
-	movw	$10f-_start, %si
+	movw	$10f-_prefix, %si
 	call	print_message
 	jmp	finished_with_error
 10:	.asciz	"No PXE "
@@ -69,7 +70,7 @@ detected_pxenv: /* es:bx points to PXENV+ structure */
 	push	%es:0x20(%bx)		/* UNDI data segment */
 	push	%es:0x22(%bx)		/* UNDI data size */
 	les	%es:0x0a(%bx), %di	/* Entry point to %es:%di */
-	movw	$10f-_start, %si
+	movw	$10f-_prefix, %si
 	jmp	pxe_setup_done
 10:	.asciz	"PXENV+ "
 
@@ -81,21 +82,21 @@ detected_pxe:	/* es:di points to !PXE structure */
 	push	%es:0x28(%di)		/* UNDI data segment */
 	push	%es:0x2e(%di)		/* UNDI data size */
 	les	%es:0x10(%di), %di	/* Entry point to %es:%di */
-	movw	$10f-_start, %si
+	movw	$10f-_prefix, %si
 	jmp	pxe_setup_done
 10:	.asciz	"!PXE "
 
 pxe_setup_done:
-	mov	%es, pxe_entry_segment - _start
-	mov	%di, pxe_entry_offset - _start
+	mov	%es, pxe_entry_segment - _prefix
+	mov	%di, pxe_entry_offset - _prefix
 	pop	%ax
-	mov	%ax, undi_data_size - _start
+	mov	%ax, undi_data_size - _prefix
 	pop	%ax
-	mov	%ax, undi_data_segment - _start
+	mov	%ax, undi_data_segment - _prefix
 	pop	%ax
-	mov	%ax, undi_code_size - _start
+	mov	%ax, undi_code_size - _prefix
 	pop	%ax
-	mov	%ax, undi_code_segment - _start
+	mov	%ax, undi_code_segment - _prefix
 	call	print_message
 	pop	%di
 	pop	%es	/* Exit with %es:%di containing structure address */
@@ -106,11 +107,11 @@ pxe_setup_done:
  */
 print_structure_information:
 	call	print_segoff	/* %es:%di contains address of structure */
-	les	%ds:(pxe_entry_segoff - _start), %di
+	les	%ds:(pxe_entry_segoff - _prefix), %di
 	call	print_segoff
-	les	%ds:(undi_code_segoff - _start), %di
+	les	%ds:(undi_code_segoff - _prefix), %di
 	call	print_segoff
-	les	%ds:(undi_data_segoff - _start), %di
+	les	%ds:(undi_data_segoff - _prefix), %di
 	call	print_segoff
 
 /*****************************************************************************
@@ -140,13 +141,13 @@ unload_pxe:
 free_base_mem:
 	jnz	do_not_free_base_mem	/* Using zero flag from unload_pxe */
 
-	mov	undi_code_segment - _start, %bx
-	mov	undi_data_segment - _start, %cx
-	mov	undi_code_size - _start, %ax
+	mov	undi_code_segment - _prefix, %bx
+	mov	undi_data_segment - _prefix, %cx
+	mov	undi_code_size - _prefix, %ax
 	cmp	%bx, %cx
 	jb	1f
 	mov	%cx, %bx
-	mov	undi_data_size - _start, %ax
+	mov	undi_data_size - _prefix, %ax
 1:	add	$0x0f, %ax		/* Round up to next segment */
 	shr	$4, %ax
 	add	%bx, %ax		/* Highest segment address into %ax */
@@ -187,10 +188,10 @@ do_not_free_base_mem:
  *****************************************************************************
  */	
 finished:
-	movw	$10f-_start, %si
+	movw	$10f-_prefix, %si
 	jz	1f
 finished_with_error:
-	movw	$20f-_start, %si
+	movw	$20f-_prefix, %si
 1:
 	call	print_message
 	jmp	99f
@@ -213,33 +214,36 @@ _estack:
  *****************************************************************************
  */	
 run_etherboot:
-	push	%ss			/* PXE stack pointer to ES:DI */
-	pop	%es
-	mov	%sp, %di
-	push	%ds			/* Set up stack in "safe" area */
-	pop	%ss
-	mov	$_estack-_start, %sp
-	push	%es			/* Record PXE stack pointer */
-	push	%di
-	/* Calculated lcall to payload */
-	push	%cs			/* Our return address */
-	pushw	$(return-_start)
-	push	%cs			/* Calculate payload address */
-	pop	%ax
-	add	$((payload-_start)/16), %ax
-	push	%ax
-	pushw	$0
-	lret				/* "lcall payload" */
-return:	
-	mov	%cs, %ax		/* Restore SS (prefix may have been */
-	mov	%ax, %ss		/* relocated, stack is in prefix)   */
-	push	%cs			/* Restore DS */
-	pop	%ds
-	call	print_hex_word		/* Print CS for diagnostics */
-	mov	$0x20, %al		/* ' ' */
-	call	print_character
-	pop	%di			/* PXE stack pointer to ES:DI */
-	pop	%es
+	/* Very temporarily switch stacks to one internal to the
+	 * prefix.  Do this because the stack provided by the PXE ROM
+	 * could be absolutely anywhere, including in an area of
+	 * memory that the call to prelocate will vapourise...
+	 */
+	pushw	%ss			/* PXE stack pointer to ES:DI */
+	popw	%es
+	movw	%sp, %di
+	pushw	%ds			/* Set up stack in "safe" area */
+	popw	%ss
+	movw	$_estack-_prefix, %sp
+	pushw	%es			/* Record PXE stack pointer */
+	pushw	%di
+	/* Relocate payload and stack to claimed base memory */
+	pushw	$4			/* Preserve old PXE stack pointer */
+	call	prelocate
+	popw	%ax			/* Remove parameter */
+	pushl	$4			/* Preserve old PXE stack pointer */
+	pushw	$0			/* Indicate prefix exit mechanism */
+	jmp	_start			/* Run Etherboot */
+
+	.section ".text16", "ax", @progbits
+	.globl	prefix_exit
+prefix_exit:
+	pushw	%cs			/* Set %ds, %bp for access to text */
+	popw	%ds
+	call	1f
+1:	popw	%bp
+	popw	%di			/* Old PXE stack to %es:di */
+	popw	%es
 	cmpw	$PXE_STACK_MAGIC, %es:0(%di)  /* See if PXE stack intact */
 	jne	exit_via_int18
 exit_via_pxe:				/* Stack OK, return to PXE */
@@ -247,18 +251,30 @@ exit_via_pxe:				/* Stack OK, return to PXE */
 	pop	%ss
 	mov	%di, %sp
 	pop	%ax			/* Discard PXE_STACK_MAGIC marker */
-	movw	$10f-_start, %si
-	call	print_message
+	leaw	(10f-1b)(%bp), %si
+	call	print_exit_message
 	pop	%ds			/* Restore PXE's DS */
 	popa				/* Restore PXE's other registers */
 	movw	$0, %ax			/* Return PXENV_STATUS_SUCCESS */
 	lret				/* Return control to PXE ROM */
-10:	.asciz	"EB->PXE\n"
+10:	.asciz	"EB->PXE\r\n"
 exit_via_int18:				/* Stack damaged, do int 18 */
-	movw	$10f-_start, %si
-	call	print_message
+	leaw	(10f-1b)(%bp), %si
+	call	print_exit_message
 	int	$0x18
-10:	.asciz	"EB->BIOS\n"
+10:	.asciz	"EB->BIOS\r\n"
+print_exit_message:	
+	movw	$0x0007, %bx		/* page 0, attribute 7 (normal) */
+	movb	$0x0e, %ah		/* write char, tty mode */
+1: 	lodsb
+	testb	%al, %al
+	je	2f
+	int	$0x10
+	jmp	1b
+2:	ret
+	.globl	prefix_exit_end
+prefix_exit_end:
+	.previous
 
 /*****************************************************************************
  * Subroutine: print character in %al (with LF -> LF,CR translation)
@@ -334,22 +350,22 @@ pxe_call:
 	/* Set up registers for PXENV+ API.  %bx already set up */
 	push	%ds
 	pop	%es
-	mov	$pxe_parameter_structure - _start, %di
+	mov	$pxe_parameter_structure - _prefix, %di
 	/* Set up stack for !PXE API */
 	pushw   %cs
 	pushw	%di
 	pushw	%bx
 	/* Make the API call */
-	lcall	*(pxe_entry_segoff - _start)
+	lcall	*(pxe_entry_segoff - _prefix)
 	/* Reset the stack */
 	add	$6, %sp
-	mov	pxe_parameter_structure - _start, %ax
+	mov	pxe_parameter_structure - _prefix, %ax
 	push	%ax
 	call	print_hex_word
 	mov	$0x20, %ax		/* ' ' */
 	call	print_character
 	pop	%bx
-	or	%bx, pxe_overall_status - _start
+	or	%bx, pxe_overall_status - _prefix
 	ret
 
 /*****************************************************************************

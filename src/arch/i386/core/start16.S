@@ -1,3 +1,12 @@
+/*****************************************************************************
+ *
+ * THIS FILE IS NOW OBSOLETE.
+ *
+ * The functions of this file are now placed in init.S.
+ *
+ *****************************************************************************
+ */
+	
 #ifndef PCBIOS
 #error	"16bit code is only supported with the PCBIOS"
 #endif
@@ -69,8 +78,8 @@
 	.code16
 	.arch i386
 	.org 0
-	.globl _start
-_start:
+	.globl _start16
+_start16:
 
 /*****************************************************************************
  * Work out where we are going to place our image (image = optional
@@ -90,7 +99,7 @@ exec_in_situ:
 	 * work out where to put our stack.
 	 */
 	movw	%cs, %ax
-	addw	$((payload-_start)/16), %ax
+	addw	$((payload-_start16)/16), %ax
 	jmp	99f
 exec_moved:
 #ifdef RELOCATE
@@ -102,15 +111,15 @@ exec_moved:
 	movw	%ax, %es
 	movw	%es:(0x13), %ax		/* FBMS in kb to %ax */
 	shlw	$6, %ax			/* ... in paragraphs */
-	subw	$image__size_pgh, %ax	/* Subtract space for image */
+	subw	$__image_size_pgh, %ax	/* Subtract space for image */
 	shrw	$6, %ax			/* Round down to nearest kb */
 	movw	%ax, %es:(0x13)		/* ...and claim memory from BIOS */
 	shlw	$6, %ax
 #else
 	/* Place image so that runtime starts at RELOC:0.
 	 */
-	movw	$runtime__start_pgh, %ax /* runtime__start_pgh = RELOC */
-	subw	$decompressor__size_pgh, %ax
+	movw	$__start_pgh, %ax /* __start_pgh = RELOC */
+	subw	$__decompressor_size_pgh, %ax
 #endif
 99:
 	/* At this point %ax contains the segment address for the
@@ -127,10 +136,10 @@ exec_moved:
 	mov	%ss, %bx		/* %es:di = prefix stack address   */
 	mov	%bx, %es		/* (*after* pop of return address) */
 	movw	%sp, %di
-	movw	$offset__stack_pgh, %bx	/* Set up Etherboot stack */
+	movw	$__offset_stack_pgh, %bx	/* Set up Etherboot stack */
 	addw	%ax, %bx
 	movw	%bx, %ss
-	movw	$runtime__stack_size, %sp
+	movw	$__stack_size, %sp
 	subw	$(_gdt_end - _gdt), %sp	/* Reserve space for GDT */
 	movw	%sp, %bp		/* Record GDT location */	
 	/* Set up i386_rm_in_call_data_t structure on stack.  This is
@@ -171,7 +180,7 @@ exec_moved:
 	 */
 	push	%cs			/* GDT source location -> %ds:%si */
 	pop	%ds
-	mov	$(_gdt - _start), %si
+	mov	$(_gdt - _start16), %si
 	push	%ss			/* GDT target location -> %es:%di */
 	pop	%es
 	mov	%bp, %di
@@ -211,7 +220,7 @@ exec_moved:
 	 * may not be writable/
 	 */
 	pushl	$CODE_SEG
-	ADDR32 leal (code32_start-_start)(%ebx), %eax
+	ADDR32 leal (code32_start-_start16)(%ebx), %eax
 	pushl	%eax	
 	DATA32 lret /* DATA32 needed, because we're still in 16-bit mode */
 
@@ -241,8 +250,8 @@ code32_start:
  */
 	popl	%edi		/* Image target physical address */
 	pushl	%edi
-	leal	(payload-_start)(%ebx), %esi /* Image source physical addr */
-	movl	$payload__size, %ecx /* Payload size (not image size) */
+	leal	(payload-_start16)(%ebx), %esi /* Image source physical addr */
+	movl	$__payload_size, %ecx /* Payload size (not image size) */
 	addl	%ecx, %edi	/* Start at last byte (length - 1) */
 	decl	%edi
 	addl	%ecx, %esi
@@ -251,8 +260,8 @@ code32_start:
 	rep movsb
 	cld
 	popl	%edi		/* Restore image target physical address */
-	leal	decompressor_uncompressed(%edi), %ebx
-	subl	$runtime__text, %ebx /* %ebx = offset for runtime symbols */
+	leal	__decompressor_uncompressed(%edi), %ebx
+	subl	$_text, %ebx /* %ebx = offset for runtime symbols */
 
 /*****************************************************************************
  * Copy prefix to storage area within Etherboot image.
@@ -260,8 +269,8 @@ code32_start:
  */
 	popl	%esi		/* Prefix source physical address */
 	pushl	%edi
-	leal	runtime__prefix_copy(%ebx), %edi /* Prefix copy phys. addr. */
-	leal	runtime__eprefix_copy(%ebx), %ecx
+	leal	_prefix_copy(%ebx), %edi /* Prefix copy phys. addr. */
+	leal	_eprefix_copy(%ebx), %ecx
 	subl	%edi, %ecx	/* Prefix copy size */
 	rep movsb		/* Forward copy of prefix */
 	popl	%edi		/* Restore image target physical address */
@@ -270,7 +279,7 @@ code32_start:
  * Record base memory used by Etherboot image
  *****************************************************************************
  */
-	movl	%edi, runtime_image_basemem(%ebx)
+	movl	%edi, image_basemem(%ebx)
 
 /*****************************************************************************
  * Jump to start of the image (i.e. the decompressor, or start32 if

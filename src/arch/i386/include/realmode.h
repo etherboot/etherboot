@@ -82,24 +82,17 @@ extern void _rm_in_call_far ( void );
 
 extern void _prot_to_real_prefix ( void );
 extern void _prot_to_real_prefix_end ( void );
-extern uint16_t _prot_to_real_prefix_size;
+extern uint16_t prot_to_real_prefix_size;
 
 extern void _real_to_prot_suffix ( void );
 extern void _real_to_prot_suffix_end ( void );
-extern uint16_t _real_to_prot_suffix_size;
+extern uint16_t real_to_prot_suffix_size;
 
 /* PXE assembler bits */
 extern void pxe_callback_interface;
 extern uint16_t pxe_callback_interface_size;
 extern void _pxe_in_call_far ( void );
 extern void _pxenv_in_call_far ( void );
-extern void _pxe_intercept_int15 ( void );
-extern segoff_t _pxe_intercepted_int15;
-typedef struct {
-	uint32_t start;
-	uint32_t length;
-} pxe_exclude_range_t;
-extern pxe_exclude_range_t _pxe_hide_memory[2];
 extern void _pxe_intercept_int1a ( void );
 extern segoff_t _pxe_intercepted_int1a;
 extern segoff_t _pxe_pxenv_location;
@@ -108,5 +101,6 @@ extern segoff_t _pxe_pxenv_location;
  */
 extern uint32_t real_mode_stack;
 extern size_t real_mode_stack_size;
+extern int lock_real_mode_stack;
 
 #endif /* ASSEMBLY */

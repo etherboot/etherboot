@@ -19,31 +19,9 @@ $Id$
 #include "pxe.h"
 #include "pic8259.h"
 
-/* The UNDI loader parameter structure is not defined in pxe.h
- */
-
-typedef struct undi_loader {
-	PXENV_STATUS_t	status;
-	uint16_t	ax;
-	uint16_t	bx;
-	uint16_t	dx;
-	uint16_t	di;
-	uint16_t	es;
-	uint16_t	undi_ds;
-	uint16_t	undi_cs;
-	uint16_t	pxe_off;
-	uint16_t	pxenv_off;
-} undi_loader_t;
-
 /* A union that can function as the parameter block for any UNDI API call.
  */
-
-typedef union pxenv_structure {
-	PXENV_STATUS_t			Status; /* Make it easy to read status
-						   for any operation */
-	undi_loader_t			loader;
-	t_PXENV_ANY;
-} pxenv_structure_t;
+typedef t_PXENV_ANY pxenv_structure_t;
 
 /* BIOS PnP parameter block.  We scan for this so that we can pass it
  * to the UNDI driver.
@@ -136,6 +114,7 @@ typedef struct undi_base_mem_data {
 	char			xmit_buffer[ETH_FRAME_LEN];
 	/* Must be last in structure and paragraph-aligned */
 	union {
+		char			e820mangler[0];
 		char			irq_handler[0];
 		undi_irq_handler_t	nontrivial_irq_handler;
 	}  __attribute__ ((aligned(16)));

@@ -821,6 +821,29 @@ typedef struct {
  *****************************************************************************
  */
 
+/* Dummy PXE opcode for the loader routine.  We do this to make the
+ * API simpler
+ */
+#define PXENV_UNDI_LOADER		0x104d	/* 'load' */
+
+typedef struct undi_loader {
+	union {
+		struct {
+			PXENV_STATUS_t	Status;
+			uint16_t	ax;
+			uint16_t	bx;
+			uint16_t	dx;
+			uint16_t	di;
+			uint16_t	es;
+		};
+		t_PXENV_START_UNDI start_undi;
+	};
+	uint16_t	undi_ds;
+	uint16_t	undi_cs;
+	SEGOFF16_t	pxe_ptr;
+	SEGOFF16_t	pxenv_ptr;
+} PACKED undi_loader_t;
+
 /* Union used for PXE API calls; we don't know the type of the
  * structure until we interpret the opcode.  Also, Status is available
  * in the same location for any opcode, and it's convenient to have
@@ -865,6 +888,7 @@ typedef union {
 	t_PXENV_RESTART_TFTP		restart_tftp;
 	t_PXENV_START_BASE		start_base;
 	t_PXENV_STOP_BASE		stop_base;
+	undi_loader_t			loader;
 } t_PXENV_ANY;
 
 /* PXE stack status indicator.  See pxe_export.c for further
@@ -879,6 +903,7 @@ typedef enum {
 /* Data structures installed as part of a PXE stack.  Architectures
  * will have extra information to append to the end of this.
  */
+#define PXE_TFTP_MAGIC_COOKIE ( ( 'P'<<24 ) | ( 'x'<<16 ) | ( 'T'<<8 ) | 'f' )
 typedef struct {
 	pxe_t		pxe	__attribute__ ((aligned(16)));
 	pxenv_t		pxenv	__attribute__ ((aligned(16)));
@@ -886,6 +911,12 @@ typedef struct {
 	union {
 		BOOTPLAYER	cached_info;
 		char		packet[ETH_FRAME_LEN];
+		struct {
+			uint32_t magic_cookie;
+			unsigned int len;
+			int eof;
+			char data[TFTP_MAX_PACKET];
+		} tftpdata;
 	};
 	struct {}	arch_data __attribute__ ((aligned(16)));
 } pxe_stack_t;
