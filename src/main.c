@@ -1164,7 +1164,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 	static unsigned char *extdata = NULL, *extend = NULL;
 	unsigned char        *extpath = NULL;
 	unsigned char        *endp;
-	unsigned char        in_encapsulated_options = 0;
+	static unsigned char in_encapsulated_options = 0;
 
 #ifdef	REQUIRE_VCI_ETHERBOOT
 	vci_etherboot = 0;
@@ -1202,9 +1202,8 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 		p += 4;
 		endp = p + len;
 	} else if (block == -1) {
-		/* Encapsulated options */
+		/* Encapsulated option block */
 		endp = p + len;
-		in_encapsulated_options = 1;
 	} else {
 		if (block == 1) {
 			if (memcmp(p, rfc1533_cookie, 4))
@@ -1242,7 +1241,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			if (TAG_LEN(p) >= sizeof(in_addr))
 				memcpy(&arptable[ARP_GATEWAY].ipaddr, p+2, sizeof(in_addr));
 		}
-		else if (NON_ENCAP_OPT c == RFC1533_EXTENSIONPATH)
+		else if (c == RFC1533_EXTENSIONPATH)
 			extpath = p;
 #ifndef	NO_DHCP_SUPPORT
 #ifdef	REQUIRE_VCI_ETHERBOOT
@@ -1268,8 +1267,11 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			  p[6] == RFC1533_VENDOR_MAJOR
 			)
 			vendorext_isvalid++;
-		else if (NON_ENCAP_OPT c == RFC1533_VENDOR_ETHERBOOT_ENCAP)
+		else if (NON_ENCAP_OPT c == RFC1533_VENDOR_ETHERBOOT_ENCAP) {
+			in_encapsulated_options = 1;
 			decode_rfc1533(p+2, -1, TAG_LEN(p), 1);
+			in_encapsulated_options = 0;
+		}
 #ifdef	IMAGE_FREEBSD
 		else if (ENCAP_OPT c == RFC1533_VENDOR_HOWTO)
 			freebsd_howto = ((p[2]*256+p[3])*256+p[4])*256+p[5];
@@ -1308,7 +1310,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 		p += TAG_LEN(p) + 2;
 	}
 	extdata = extend = endp;
-	if (block == 0 && extpath != NULL) {
+	if (block <= 0 && extpath != NULL) {
 		char fname[64];
 		memcpy(fname, extpath+2, TAG_LEN(extpath));
 		fname[(int)TAG_LEN(extpath)] = '\0';
