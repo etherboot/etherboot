@@ -1,9 +1,12 @@
-Etherboot 5.1.8
+Etherboot 5.1.9
 
-Lots of changes by Eric Biederman. May have breakage. Please test,
-especially for the PCBIOS targets.
+There is a bug in the Perl supplied with RH9 (and possibly RH8). It
+assumes UTF-8 even with the use bytes pragma. Either get an updated Perl
+package or set LANG to en_US (without the .UTF-8 suffix).
 
-Support for Itaniums now.
+Lots of changes from 5.0.
+
+Support for Itaniums and Opterons now.
 
 Major rework by Eric Biederman to include multicast support.
 

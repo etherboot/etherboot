@@ -2471,3 +2471,14 @@ Released as Etherboot 5.1.8 (development)
 + Patch from Axel Dittrich to allow timeout to be changed to a fixed
 value for peer-to-peer setups where the exponential backoff is not
 suitable.
+
++ Tlan driver contributed by Timothy Legge.
+
++ Support for symlinks on NFS mounts by Anselm Martin Hoffmeister.
+
++ Experimental safe booting code by Anselm Martin Hoffmeister.
+
++ Run Etherboot in an even megabyte so that unsetting A20 won't kill it.
+Experimental UNDI driver by Michael Brown.
+
+Released as Etherboot 5.1.9 (5.2 release candidate 1)

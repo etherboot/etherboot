@@ -14,7 +14,7 @@
 
 void mdelay(unsigned int msecs)
 {
-	int i;
+	unsigned int i;
 	for(i = 0; i < msecs; i++) {
 		udelay(1000);
 		poll_interruptions();

@@ -31,6 +31,7 @@ The index.html file is the same as the one on the Etherboot home page at
 the time the distribution was made. Therefore some of the local file:/
 links from the Distribution section may not work.
 
-Etherboot was built using gcc 3.2 and binutils 2.12.90 from SuSE 8.1.
-The version of as used must recognise the code16 and code32 directives.
-gas 2.9.5 or later is required.
+Etherboot was built using gcc 3.3 and binutils 2.13.90 from SuSE 8.2 but
+earlier versions will generally work.  The version of as used must
+recognise the code16 and code32 directives.  gas 2.9.5 or later is
+required.
