@@ -521,7 +521,7 @@ int eth_probe(int last_adapter)
 		pci_ioaddrs[0] = dev.ioaddr;
 		pci_ioaddrs[1] = 0;
 		sprintf(nic.devid, "PCI:%hx:%hx", dev.vendor, dev.dev_id);
-		if ((*t->eth_probe)(&nic, &pci_ioaddrs, &dev))
+		if ((*t->eth_probe)(&nic, pci_ioaddrs, &dev))
 			return (0);
 #else
 		sprintf(nic.devid, "ISA:%s", t->nic_name); /* What numbers might we use for ISA NICs? */
