@@ -140,391 +140,284 @@ BINS32	+= bin32/smc9000.rom bin32/smc9000.lzrom
 BINS32	+= bin32/tiara.rom bin32/tiara.lzrom
 BINS32	+= bin32/wd.rom bin32/wd.lzrom
 
+# Helper macros for multi-driver ROM builds
+# $* will be set to the driver list (e.g. rtl8139--prism2_pci)
+#
+# Examples:
+# With $* = rtl8139:
+# MDROM_ALL_DRIVERS will expand to "rtl8139"
+# MDROM_ALL_INCLUDES will expand to "-DINCLUDE_RTL8139"
+# MDROM_ALL_OBJS will expand to "bin32/rtl8139.o"
+# MDROM_TRY_ALL_DEVICES will expand to ""
+#
+# With $* = rtl8139--prism2_pci:
+# MDROM_ALL_DRIVERS will expand to "rtl8139 prism2_pci"
+# MDROM_ALL_INCLUDES will expand to "-DINCLUDE_RTL8139 -DINCLUDE_PRISM2_PCI"
+# MDROM_ALL_OBJS will expand to "bin32/rtl8139.o bin32/prism2_pci.o"
+# MDROM_TRY_ALL_DEVICES will expand to "-DTRY_ALL_DEVICES"
+
+MDROM_ALL_DRIVERS=$(subst --, ,$*)
+MDROM_ALL_INCLUDES=$(foreach include,$(MDROM_ALL_DRIVERS),$(INCLUDE_$(include)))
+MDROM_ALL_OBJS=$(patsubst %,bin32/%.o,$(MDROM_ALL_DRIVERS))
+MDROM_TRY_ALL_DEVICES=$(if $(findstring --,$*),-DTRY_ALL_DEVICES)
+
+# List of all possible *.o dependencies for multi-driver ROMs
+# Required since there doesn't seem to be any easy way to specify dependencies
+# based on a function of the target name (because any functions get evaluated
+# *before* the contents of % are substituted in)
+MDROM_ALL_DEPS :=
+
+# Rule to build the config-*.o files
+
+bin32/config-%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	$(CC32) $(CFLAGS32) $(MDROM_ALL_INCLUDES) $(MDROM_TRY_ALL_DEVICES) -o $@ -c $<
+
+
 # Rules to build the driver object files
 INCLUDE_3c595 = -DINCLUDE_3C595
+
+MDROM_ALL_DEPS += bin32/3c595.o
 
 bin32/3c595.o:	3c595.c $(MAKEDEPS) pci.h 3c595.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(3C595FLAGS) -o $@ -c $<
 
-bin32/config-3c595.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c595) -o $@ -c $<
-
-bin32/config-3c595--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c595) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_3c90x = -DINCLUDE_3C90X
+
+MDROM_ALL_DEPS += bin32/3c90x.o
 
 bin32/3c90x.o:	3c90x.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(3C90XFLAGS) -o $@ -c $<
 
-bin32/config-3c90x.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c90x) -o $@ -c $<
-
-bin32/config-3c90x--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c90x) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_davicom = -DINCLUDE_DAVICOM
+
+MDROM_ALL_DEPS += bin32/davicom.o
 
 bin32/davicom.o:	davicom.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(DAVICOMFLAGS) -o $@ -c $<
 
-bin32/config-davicom.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_davicom) -o $@ -c $<
-
-bin32/config-davicom--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_davicom) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_e1000 = -DINCLUDE_E1000
+
+MDROM_ALL_DEPS += bin32/e1000.o
 
 bin32/e1000.o:	e1000.c $(MAKEDEPS) pci.h cards.h e1000.h e1000_fxhw.c e1000_fxhw.h e1000_phy.c e1000_phy.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(E1000FLAGS) -o $@ -c $<
 
-bin32/config-e1000.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_e1000) -o $@ -c $<
-
-bin32/config-e1000--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_e1000) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_eepro100 = -DINCLUDE_EEPRO100
+
+MDROM_ALL_DEPS += bin32/eepro100.o
 
 bin32/eepro100.o:	eepro100.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(EEPRO100FLAGS) -o $@ -c $<
 
-bin32/config-eepro100.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_eepro100) -o $@ -c $<
-
-bin32/config-eepro100--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_eepro100) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_epic100 = -DINCLUDE_EPIC100
+
+MDROM_ALL_DEPS += bin32/epic100.o
 
 bin32/epic100.o:	epic100.c $(MAKEDEPS) pci.h cards.h epic100.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(EPIC100FLAGS) -o $@ -c $<
 
-bin32/config-epic100.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_epic100) -o $@ -c $<
-
-bin32/config-epic100--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_epic100) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_fa311 = -DINCLUDE_FA311
+
+MDROM_ALL_DEPS += bin32/fa311.o
 
 bin32/fa311.o:	fa311.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(FA311FLAGS) -o $@ -c $<
 
-bin32/config-fa311.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_fa311) -o $@ -c $<
-
-bin32/config-fa311--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_fa311) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_lance = -DINCLUDE_LANCE
+
+MDROM_ALL_DEPS += bin32/lance.o
 
 bin32/lance.o:	lance.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(LANCEFLAGS) -o $@ -c $<
 
-bin32/config-lance.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_lance) -o $@ -c $<
-
-bin32/config-lance--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_lance) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_natsemi = -DINCLUDE_NATSEMI
+
+MDROM_ALL_DEPS += bin32/natsemi.o
 
 bin32/natsemi.o:	natsemi.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(NATSEMIFLAGS) -o $@ -c $<
 
-bin32/config-natsemi.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_natsemi) -o $@ -c $<
-
-bin32/config-natsemi--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_natsemi) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_ns8390 = -DINCLUDE_NS8390
+
+MDROM_ALL_DEPS += bin32/ns8390.o
 
 bin32/ns8390.o:	ns8390.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h
 	$(CC32) $(CFLAGS32) $(NS8390FLAGS) -o $@ -c $<
 
-bin32/config-ns8390.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ns8390) -o $@ -c $<
-
-bin32/config-ns8390--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ns8390) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_prism2_pci = -DINCLUDE_PRISM2_PCI
+
+MDROM_ALL_DEPS += bin32/prism2_pci.o
 
 bin32/prism2_pci.o:	prism2_pci.c $(MAKEDEPS) pci.h cards.h etherboot.h hfa384x.h linux-asm-io.h linux-asm-string.h nic.h osdep.h p80211hdr.h prism2.c timer.h wlan_compat.h
 	$(CC32) $(CFLAGS32) $(PRISM2_PCIFLAGS) -o $@ -c $<
 
-bin32/config-prism2_pci.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_prism2_pci) -o $@ -c $<
-
-bin32/config-prism2_pci--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_prism2_pci) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_prism2_plx = -DINCLUDE_PRISM2_PLX
+
+MDROM_ALL_DEPS += bin32/prism2_plx.o
 
 bin32/prism2_plx.o:	prism2_plx.c $(MAKEDEPS) pci.h cards.h etherboot.h hfa384x.h linux-asm-io.h linux-asm-string.h nic.h osdep.h p80211hdr.h prism2.c timer.h wlan_compat.h
 	$(CC32) $(CFLAGS32) $(PRISM2_PLXFLAGS) -o $@ -c $<
 
-bin32/config-prism2_plx.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_prism2_plx) -o $@ -c $<
-
-bin32/config-prism2_plx--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_prism2_plx) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_rtl8139 = -DINCLUDE_RTL8139
+
+MDROM_ALL_DEPS += bin32/rtl8139.o
 
 bin32/rtl8139.o:	rtl8139.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(RTL8139FLAGS) -o $@ -c $<
 
-bin32/config-rtl8139.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_rtl8139) -o $@ -c $<
-
-bin32/config-rtl8139--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_rtl8139) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_sis900 = -DINCLUDE_SIS900
+
+MDROM_ALL_DEPS += bin32/sis900.o
 
 bin32/sis900.o:	sis900.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h sis900.h
 	$(CC32) $(CFLAGS32) $(SIS900FLAGS) -o $@ -c $<
 
-bin32/config-sis900.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_sis900) -o $@ -c $<
-
-bin32/config-sis900--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_sis900) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_tulip = -DINCLUDE_TULIP
+
+MDROM_ALL_DEPS += bin32/tulip.o
 
 bin32/tulip.o:	tulip.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(TULIPFLAGS) -o $@ -c $<
 
-bin32/config-tulip.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_tulip) -o $@ -c $<
-
-bin32/config-tulip--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_tulip) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_via-rhine = -DINCLUDE_VIA_RHINE
+
+MDROM_ALL_DEPS += bin32/via-rhine.o
 
 bin32/via-rhine.o:	via-rhine.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(VIA_RHINEFLAGS) -o $@ -c $<
 
-bin32/config-via-rhine.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_via-rhine) -o $@ -c $<
-
-bin32/config-via-rhine--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_via-rhine) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_w89c840 = -DINCLUDE_W89C840
+
+MDROM_ALL_DEPS += bin32/w89c840.o
 
 bin32/w89c840.o:	w89c840.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(W89C840FLAGS) -o $@ -c $<
 
-bin32/config-w89c840.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_w89c840) -o $@ -c $<
-
-bin32/config-w89c840--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_w89c840) $(INCLUDE_$*) -DTRY_ALL_DEVICES -o $@ -c $<
-
 INCLUDE_3c503 = -DINCLUDE_3C503
+
+MDROM_ALL_DEPS += bin32/3c503.o
 
 bin32/3c503.o:	ns8390.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h
 	$(CC32) $(CFLAGS32) $(3C503FLAGS) -o $@ -c $<
 
-bin32/config-3c503.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c503) -o $@ -c $<
-
-bin32/config-3c503--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c503) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_3c507 = -DINCLUDE_3C507
+
+MDROM_ALL_DEPS += bin32/3c507.o
 
 bin32/3c507.o:	i82586.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(3C507FLAGS) -o $@ -c $<
 
-bin32/config-3c507.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c507) -o $@ -c $<
-
-bin32/config-3c507--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c507) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_3c509 = -DINCLUDE_3C509
+
+MDROM_ALL_DEPS += bin32/3c509.o
 
 bin32/3c509.o:	3c509.c $(MAKEDEPS) 3c509.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(3C509FLAGS) -o $@ -c $<
 
-bin32/config-3c509.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c509) -o $@ -c $<
-
-bin32/config-3c509--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c509) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_3c515 = -DINCLUDE_3C515
+
+MDROM_ALL_DEPS += bin32/3c515.o
 
 bin32/3c515.o:	3c515.c $(MAKEDEPS) 3c515_isapnp.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(3C515FLAGS) -o $@ -c $<
 
-bin32/config-3c515.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c515) -o $@ -c $<
-
-bin32/config-3c515--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c515) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_3c529 = -DINCLUDE_3C529
+
+MDROM_ALL_DEPS += bin32/3c529.o
 
 bin32/3c529.o:	3c509.c $(MAKEDEPS) 3c509.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(3C529FLAGS) -o $@ -c $<
 
-bin32/config-3c529.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c529) -o $@ -c $<
-
-bin32/config-3c529--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_3c529) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_cs89x0 = -DINCLUDE_CS89X0
+
+MDROM_ALL_DEPS += bin32/cs89x0.o
 
 bin32/cs89x0.o:	cs89x0.c $(MAKEDEPS) cards.h cs89x0.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(CS89X0FLAGS) -o $@ -c $<
 
-bin32/config-cs89x0.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_cs89x0) -o $@ -c $<
-
-bin32/config-cs89x0--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_cs89x0) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_depca = -DINCLUDE_DEPCA
+
+MDROM_ALL_DEPS += bin32/depca.o
 
 bin32/depca.o:	depca.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(DEPCAFLAGS) -o $@ -c $<
 
-bin32/config-depca.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_depca) -o $@ -c $<
-
-bin32/config-depca--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_depca) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_eepro = -DINCLUDE_EEPRO
+
+MDROM_ALL_DEPS += bin32/eepro.o
 
 bin32/eepro.o:	eepro.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(EEPROFLAGS) -o $@ -c $<
 
-bin32/config-eepro.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_eepro) -o $@ -c $<
-
-bin32/config-eepro--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_eepro) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_exos205 = -DINCLUDE_EXOS205
+
+MDROM_ALL_DEPS += bin32/exos205.o
 
 bin32/exos205.o:	i82586.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(EXOS205FLAGS) -o $@ -c $<
 
-bin32/config-exos205.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_exos205) -o $@ -c $<
-
-bin32/config-exos205--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_exos205) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_ne = -DINCLUDE_NE
+
+MDROM_ALL_DEPS += bin32/ne.o
 
 bin32/ne.o:	ns8390.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h
 	$(CC32) $(CFLAGS32) $(NEFLAGS) -o $@ -c $<
 
-bin32/config-ne.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ne) -o $@ -c $<
-
-bin32/config-ne--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ne) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_ne2100 = -DINCLUDE_NE2100
+
+MDROM_ALL_DEPS += bin32/ne2100.o
 
 bin32/ne2100.o:	lance.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(NE2100FLAGS) -o $@ -c $<
 
-bin32/config-ne2100.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ne2100) -o $@ -c $<
-
-bin32/config-ne2100--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ne2100) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_ni5010 = -DINCLUDE_NI5010
+
+MDROM_ALL_DEPS += bin32/ni5010.o
 
 bin32/ni5010.o:	ni5010.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(NI5010FLAGS) -o $@ -c $<
 
-bin32/config-ni5010.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ni5010) -o $@ -c $<
-
-bin32/config-ni5010--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ni5010) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_ni5210 = -DINCLUDE_NI5210
+
+MDROM_ALL_DEPS += bin32/ni5210.o
 
 bin32/ni5210.o:	i82586.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(NI5210FLAGS) -o $@ -c $<
 
-bin32/config-ni5210.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ni5210) -o $@ -c $<
-
-bin32/config-ni5210--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ni5210) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_ni6510 = -DINCLUDE_NI6510
+
+MDROM_ALL_DEPS += bin32/ni6510.o
 
 bin32/ni6510.o:	lance.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(NI6510FLAGS) -o $@ -c $<
 
-bin32/config-ni6510.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ni6510) -o $@ -c $<
-
-bin32/config-ni6510--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_ni6510) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_sk_g16 = -DINCLUDE_SK_G16
+
+MDROM_ALL_DEPS += bin32/sk_g16.o
 
 bin32/sk_g16.o:	sk_g16.c $(MAKEDEPS) etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h sk_g16.h
 	$(CC32) $(CFLAGS32) $(SK_G16FLAGS) -o $@ -c $<
 
-bin32/config-sk_g16.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_sk_g16) -o $@ -c $<
-
-bin32/config-sk_g16--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_sk_g16) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_smc9000 = -DINCLUDE_SMC9000
+
+MDROM_ALL_DEPS += bin32/smc9000.o
 
 bin32/smc9000.o:	smc9000.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h smc9000.h
 	$(CC32) $(CFLAGS32) $(SMC9000FLAGS) -o $@ -c $<
 
-bin32/config-smc9000.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_smc9000) -o $@ -c $<
-
-bin32/config-smc9000--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_smc9000) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_tiara = -DINCLUDE_TIARA
+
+MDROM_ALL_DEPS += bin32/tiara.o
 
 bin32/tiara.o:	tiara.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(TIARAFLAGS) -o $@ -c $<
 
-bin32/config-tiara.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_tiara) -o $@ -c $<
-
-bin32/config-tiara--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_tiara) $(INCLUDE_$*) -o $@ -c $<
-
 INCLUDE_wd = -DINCLUDE_WD
+
+MDROM_ALL_DEPS += bin32/wd.o
 
 bin32/wd.o:	ns8390.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h
 	$(CC32) $(CFLAGS32) $(WDFLAGS) -o $@ -c $<
-
-bin32/config-wd.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_wd) -o $@ -c $<
-
-bin32/config-wd--%.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) $(INCLUDE_wd) $(INCLUDE_$*) -o $@ -c $<
 
 # Rules to build the ROM files
 bin32/3c590.rom:	bin32/3c595.img $(PRLOADER)
@@ -4060,375 +3953,375 @@ bin32/3c595.tmp:	bin32/3c595.o bin32/config-3c595.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c595.o bin32/3c595.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/3c595--%.tmp:	bin32/3c595.o bin32/%.o bin32/config-3c595--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c595--$*.o bin32/3c595.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/3c595--%.tmp:	bin32/3c595.o $(MDROM_ALL_DEPS) bin32/config-3c595--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c595--$*.o bin32/3c595.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/3c595.elf:	bin32/3c595.o bin32/config-3c595.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-3c595.o bin32/3c595.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/3c595--%.elf:	bin32/3c595.o bin32/%.o bin32/config-3c595--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-3c595--$*.o bin32/3c595.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/3c595--%.elf:	bin32/3c595.o $(MDROM_ALL_DEPS) bin32/config-3c595--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-3c595--$*.o bin32/3c595.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/3c595.img:	bin32/3c595.o bin32/3c595.tmp bin32/config-3c595.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-3c595.o bin32/3c595.o bin32/pci.o $(LIBS32)
 
-bin32/3c595--%.img:	bin32/3c595.o bin32/%.o bin32/3c595.tmp bin32/config-3c595--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-3c595--$*.o bin32/3c595.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/3c595--%.img:	bin32/3c595.o $(MDROM_ALL_DEPS) bin32/3c595.tmp bin32/config-3c595--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-3c595--$*.o bin32/3c595.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/3c90x.tmp:	bin32/3c90x.o bin32/config-3c90x.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c90x.o bin32/3c90x.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/3c90x--%.tmp:	bin32/3c90x.o bin32/%.o bin32/config-3c90x--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c90x--$*.o bin32/3c90x.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/3c90x--%.tmp:	bin32/3c90x.o $(MDROM_ALL_DEPS) bin32/config-3c90x--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c90x--$*.o bin32/3c90x.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/3c90x.elf:	bin32/3c90x.o bin32/config-3c90x.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-3c90x.o bin32/3c90x.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/3c90x--%.elf:	bin32/3c90x.o bin32/%.o bin32/config-3c90x--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-3c90x--$*.o bin32/3c90x.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/3c90x--%.elf:	bin32/3c90x.o $(MDROM_ALL_DEPS) bin32/config-3c90x--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-3c90x--$*.o bin32/3c90x.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/3c90x.img:	bin32/3c90x.o bin32/3c90x.tmp bin32/config-3c90x.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-3c90x.o bin32/3c90x.o bin32/pci.o $(LIBS32)
 
-bin32/3c90x--%.img:	bin32/3c90x.o bin32/%.o bin32/3c90x.tmp bin32/config-3c90x--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-3c90x--$*.o bin32/3c90x.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/3c90x--%.img:	bin32/3c90x.o $(MDROM_ALL_DEPS) bin32/3c90x.tmp bin32/config-3c90x--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-3c90x--$*.o bin32/3c90x.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/davicom.tmp:	bin32/davicom.o bin32/config-davicom.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-davicom.o bin32/davicom.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/davicom--%.tmp:	bin32/davicom.o bin32/%.o bin32/config-davicom--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-davicom--$*.o bin32/davicom.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/davicom--%.tmp:	bin32/davicom.o $(MDROM_ALL_DEPS) bin32/config-davicom--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-davicom--$*.o bin32/davicom.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/davicom.elf:	bin32/davicom.o bin32/config-davicom.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-davicom.o bin32/davicom.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/davicom--%.elf:	bin32/davicom.o bin32/%.o bin32/config-davicom--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-davicom--$*.o bin32/davicom.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/davicom--%.elf:	bin32/davicom.o $(MDROM_ALL_DEPS) bin32/config-davicom--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-davicom--$*.o bin32/davicom.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/davicom.img:	bin32/davicom.o bin32/davicom.tmp bin32/config-davicom.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-davicom.o bin32/davicom.o bin32/pci.o $(LIBS32)
 
-bin32/davicom--%.img:	bin32/davicom.o bin32/%.o bin32/davicom.tmp bin32/config-davicom--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-davicom--$*.o bin32/davicom.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/davicom--%.img:	bin32/davicom.o $(MDROM_ALL_DEPS) bin32/davicom.tmp bin32/config-davicom--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-davicom--$*.o bin32/davicom.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/e1000.tmp:	bin32/e1000.o bin32/config-e1000.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-e1000.o bin32/e1000.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/e1000--%.tmp:	bin32/e1000.o bin32/%.o bin32/config-e1000--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-e1000--$*.o bin32/e1000.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/e1000--%.tmp:	bin32/e1000.o $(MDROM_ALL_DEPS) bin32/config-e1000--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-e1000--$*.o bin32/e1000.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/e1000.elf:	bin32/e1000.o bin32/config-e1000.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-e1000.o bin32/e1000.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/e1000--%.elf:	bin32/e1000.o bin32/%.o bin32/config-e1000--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-e1000--$*.o bin32/e1000.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/e1000--%.elf:	bin32/e1000.o $(MDROM_ALL_DEPS) bin32/config-e1000--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-e1000--$*.o bin32/e1000.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/e1000.img:	bin32/e1000.o bin32/e1000.tmp bin32/config-e1000.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-e1000.o bin32/e1000.o bin32/pci.o $(LIBS32)
 
-bin32/e1000--%.img:	bin32/e1000.o bin32/%.o bin32/e1000.tmp bin32/config-e1000--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-e1000--$*.o bin32/e1000.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/e1000--%.img:	bin32/e1000.o $(MDROM_ALL_DEPS) bin32/e1000.tmp bin32/config-e1000--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-e1000--$*.o bin32/e1000.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/eepro100.tmp:	bin32/eepro100.o bin32/config-eepro100.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-eepro100.o bin32/eepro100.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/eepro100--%.tmp:	bin32/eepro100.o bin32/%.o bin32/config-eepro100--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-eepro100--$*.o bin32/eepro100.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/eepro100--%.tmp:	bin32/eepro100.o $(MDROM_ALL_DEPS) bin32/config-eepro100--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-eepro100--$*.o bin32/eepro100.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/eepro100.elf:	bin32/eepro100.o bin32/config-eepro100.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-eepro100.o bin32/eepro100.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/eepro100--%.elf:	bin32/eepro100.o bin32/%.o bin32/config-eepro100--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-eepro100--$*.o bin32/eepro100.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/eepro100--%.elf:	bin32/eepro100.o $(MDROM_ALL_DEPS) bin32/config-eepro100--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-eepro100--$*.o bin32/eepro100.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/eepro100.img:	bin32/eepro100.o bin32/eepro100.tmp bin32/config-eepro100.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-eepro100.o bin32/eepro100.o bin32/pci.o $(LIBS32)
 
-bin32/eepro100--%.img:	bin32/eepro100.o bin32/%.o bin32/eepro100.tmp bin32/config-eepro100--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-eepro100--$*.o bin32/eepro100.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/eepro100--%.img:	bin32/eepro100.o $(MDROM_ALL_DEPS) bin32/eepro100.tmp bin32/config-eepro100--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-eepro100--$*.o bin32/eepro100.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/epic100.tmp:	bin32/epic100.o bin32/config-epic100.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-epic100.o bin32/epic100.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/epic100--%.tmp:	bin32/epic100.o bin32/%.o bin32/config-epic100--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-epic100--$*.o bin32/epic100.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/epic100--%.tmp:	bin32/epic100.o $(MDROM_ALL_DEPS) bin32/config-epic100--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-epic100--$*.o bin32/epic100.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/epic100.elf:	bin32/epic100.o bin32/config-epic100.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-epic100.o bin32/epic100.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/epic100--%.elf:	bin32/epic100.o bin32/%.o bin32/config-epic100--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-epic100--$*.o bin32/epic100.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/epic100--%.elf:	bin32/epic100.o $(MDROM_ALL_DEPS) bin32/config-epic100--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-epic100--$*.o bin32/epic100.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/epic100.img:	bin32/epic100.o bin32/epic100.tmp bin32/config-epic100.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-epic100.o bin32/epic100.o bin32/pci.o $(LIBS32)
 
-bin32/epic100--%.img:	bin32/epic100.o bin32/%.o bin32/epic100.tmp bin32/config-epic100--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-epic100--$*.o bin32/epic100.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/epic100--%.img:	bin32/epic100.o $(MDROM_ALL_DEPS) bin32/epic100.tmp bin32/config-epic100--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-epic100--$*.o bin32/epic100.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/fa311.tmp:	bin32/fa311.o bin32/config-fa311.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-fa311.o bin32/fa311.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/fa311--%.tmp:	bin32/fa311.o bin32/%.o bin32/config-fa311--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-fa311--$*.o bin32/fa311.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/fa311--%.tmp:	bin32/fa311.o $(MDROM_ALL_DEPS) bin32/config-fa311--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-fa311--$*.o bin32/fa311.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/fa311.elf:	bin32/fa311.o bin32/config-fa311.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-fa311.o bin32/fa311.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/fa311--%.elf:	bin32/fa311.o bin32/%.o bin32/config-fa311--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-fa311--$*.o bin32/fa311.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/fa311--%.elf:	bin32/fa311.o $(MDROM_ALL_DEPS) bin32/config-fa311--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-fa311--$*.o bin32/fa311.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/fa311.img:	bin32/fa311.o bin32/fa311.tmp bin32/config-fa311.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-fa311.o bin32/fa311.o bin32/pci.o $(LIBS32)
 
-bin32/fa311--%.img:	bin32/fa311.o bin32/%.o bin32/fa311.tmp bin32/config-fa311--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-fa311--$*.o bin32/fa311.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/fa311--%.img:	bin32/fa311.o $(MDROM_ALL_DEPS) bin32/fa311.tmp bin32/config-fa311--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-fa311--$*.o bin32/fa311.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/lance.tmp:	bin32/lance.o bin32/config-lance.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-lance.o bin32/lance.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/lance--%.tmp:	bin32/lance.o bin32/%.o bin32/config-lance--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-lance--$*.o bin32/lance.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/lance--%.tmp:	bin32/lance.o $(MDROM_ALL_DEPS) bin32/config-lance--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-lance--$*.o bin32/lance.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/lance.elf:	bin32/lance.o bin32/config-lance.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-lance.o bin32/lance.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/lance--%.elf:	bin32/lance.o bin32/%.o bin32/config-lance--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-lance--$*.o bin32/lance.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/lance--%.elf:	bin32/lance.o $(MDROM_ALL_DEPS) bin32/config-lance--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-lance--$*.o bin32/lance.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/lance.img:	bin32/lance.o bin32/lance.tmp bin32/config-lance.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-lance.o bin32/lance.o bin32/pci.o $(LIBS32)
 
-bin32/lance--%.img:	bin32/lance.o bin32/%.o bin32/lance.tmp bin32/config-lance--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-lance--$*.o bin32/lance.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/lance--%.img:	bin32/lance.o $(MDROM_ALL_DEPS) bin32/lance.tmp bin32/config-lance--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-lance--$*.o bin32/lance.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/natsemi.tmp:	bin32/natsemi.o bin32/config-natsemi.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-natsemi.o bin32/natsemi.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/natsemi--%.tmp:	bin32/natsemi.o bin32/%.o bin32/config-natsemi--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-natsemi--$*.o bin32/natsemi.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/natsemi--%.tmp:	bin32/natsemi.o $(MDROM_ALL_DEPS) bin32/config-natsemi--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-natsemi--$*.o bin32/natsemi.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/natsemi.elf:	bin32/natsemi.o bin32/config-natsemi.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-natsemi.o bin32/natsemi.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/natsemi--%.elf:	bin32/natsemi.o bin32/%.o bin32/config-natsemi--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-natsemi--$*.o bin32/natsemi.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/natsemi--%.elf:	bin32/natsemi.o $(MDROM_ALL_DEPS) bin32/config-natsemi--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-natsemi--$*.o bin32/natsemi.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/natsemi.img:	bin32/natsemi.o bin32/natsemi.tmp bin32/config-natsemi.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-natsemi.o bin32/natsemi.o bin32/pci.o $(LIBS32)
 
-bin32/natsemi--%.img:	bin32/natsemi.o bin32/%.o bin32/natsemi.tmp bin32/config-natsemi--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-natsemi--$*.o bin32/natsemi.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/natsemi--%.img:	bin32/natsemi.o $(MDROM_ALL_DEPS) bin32/natsemi.tmp bin32/config-natsemi--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-natsemi--$*.o bin32/natsemi.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/ns8390.tmp:	bin32/ns8390.o bin32/config-ns8390.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-ns8390.o bin32/ns8390.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/ns8390--%.tmp:	bin32/ns8390.o bin32/%.o bin32/config-ns8390--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-ns8390--$*.o bin32/ns8390.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/ns8390--%.tmp:	bin32/ns8390.o $(MDROM_ALL_DEPS) bin32/config-ns8390--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-ns8390--$*.o bin32/ns8390.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/ns8390.elf:	bin32/ns8390.o bin32/config-ns8390.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-ns8390.o bin32/ns8390.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/ns8390--%.elf:	bin32/ns8390.o bin32/%.o bin32/config-ns8390--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-ns8390--$*.o bin32/ns8390.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/ns8390--%.elf:	bin32/ns8390.o $(MDROM_ALL_DEPS) bin32/config-ns8390--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-ns8390--$*.o bin32/ns8390.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/ns8390.img:	bin32/ns8390.o bin32/ns8390.tmp bin32/config-ns8390.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-ns8390.o bin32/ns8390.o bin32/pci.o $(LIBS32)
 
-bin32/ns8390--%.img:	bin32/ns8390.o bin32/%.o bin32/ns8390.tmp bin32/config-ns8390--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-ns8390--$*.o bin32/ns8390.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/ns8390--%.img:	bin32/ns8390.o $(MDROM_ALL_DEPS) bin32/ns8390.tmp bin32/config-ns8390--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-ns8390--$*.o bin32/ns8390.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/prism2_pci.tmp:	bin32/prism2_pci.o bin32/config-prism2_pci.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-prism2_pci.o bin32/prism2_pci.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/prism2_pci--%.tmp:	bin32/prism2_pci.o bin32/%.o bin32/config-prism2_pci--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-prism2_pci--$*.o bin32/prism2_pci.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/prism2_pci--%.tmp:	bin32/prism2_pci.o $(MDROM_ALL_DEPS) bin32/config-prism2_pci--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-prism2_pci--$*.o bin32/prism2_pci.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/prism2_pci.elf:	bin32/prism2_pci.o bin32/config-prism2_pci.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-prism2_pci.o bin32/prism2_pci.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/prism2_pci--%.elf:	bin32/prism2_pci.o bin32/%.o bin32/config-prism2_pci--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-prism2_pci--$*.o bin32/prism2_pci.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/prism2_pci--%.elf:	bin32/prism2_pci.o $(MDROM_ALL_DEPS) bin32/config-prism2_pci--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-prism2_pci--$*.o bin32/prism2_pci.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/prism2_pci.img:	bin32/prism2_pci.o bin32/prism2_pci.tmp bin32/config-prism2_pci.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-prism2_pci.o bin32/prism2_pci.o bin32/pci.o $(LIBS32)
 
-bin32/prism2_pci--%.img:	bin32/prism2_pci.o bin32/%.o bin32/prism2_pci.tmp bin32/config-prism2_pci--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-prism2_pci--$*.o bin32/prism2_pci.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/prism2_pci--%.img:	bin32/prism2_pci.o $(MDROM_ALL_DEPS) bin32/prism2_pci.tmp bin32/config-prism2_pci--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-prism2_pci--$*.o bin32/prism2_pci.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/prism2_plx.tmp:	bin32/prism2_plx.o bin32/config-prism2_plx.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-prism2_plx.o bin32/prism2_plx.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/prism2_plx--%.tmp:	bin32/prism2_plx.o bin32/%.o bin32/config-prism2_plx--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-prism2_plx--$*.o bin32/prism2_plx.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/prism2_plx--%.tmp:	bin32/prism2_plx.o $(MDROM_ALL_DEPS) bin32/config-prism2_plx--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-prism2_plx--$*.o bin32/prism2_plx.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/prism2_plx.elf:	bin32/prism2_plx.o bin32/config-prism2_plx.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-prism2_plx.o bin32/prism2_plx.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/prism2_plx--%.elf:	bin32/prism2_plx.o bin32/%.o bin32/config-prism2_plx--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-prism2_plx--$*.o bin32/prism2_plx.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/prism2_plx--%.elf:	bin32/prism2_plx.o $(MDROM_ALL_DEPS) bin32/config-prism2_plx--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-prism2_plx--$*.o bin32/prism2_plx.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/prism2_plx.img:	bin32/prism2_plx.o bin32/prism2_plx.tmp bin32/config-prism2_plx.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-prism2_plx.o bin32/prism2_plx.o bin32/pci.o $(LIBS32)
 
-bin32/prism2_plx--%.img:	bin32/prism2_plx.o bin32/%.o bin32/prism2_plx.tmp bin32/config-prism2_plx--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-prism2_plx--$*.o bin32/prism2_plx.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/prism2_plx--%.img:	bin32/prism2_plx.o $(MDROM_ALL_DEPS) bin32/prism2_plx.tmp bin32/config-prism2_plx--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-prism2_plx--$*.o bin32/prism2_plx.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/rtl8139.tmp:	bin32/rtl8139.o bin32/config-rtl8139.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-rtl8139.o bin32/rtl8139.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/rtl8139--%.tmp:	bin32/rtl8139.o bin32/%.o bin32/config-rtl8139--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-rtl8139--$*.o bin32/rtl8139.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/rtl8139--%.tmp:	bin32/rtl8139.o $(MDROM_ALL_DEPS) bin32/config-rtl8139--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-rtl8139--$*.o bin32/rtl8139.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/rtl8139.elf:	bin32/rtl8139.o bin32/config-rtl8139.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-rtl8139.o bin32/rtl8139.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/rtl8139--%.elf:	bin32/rtl8139.o bin32/%.o bin32/config-rtl8139--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-rtl8139--$*.o bin32/rtl8139.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/rtl8139--%.elf:	bin32/rtl8139.o $(MDROM_ALL_DEPS) bin32/config-rtl8139--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-rtl8139--$*.o bin32/rtl8139.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/rtl8139.img:	bin32/rtl8139.o bin32/rtl8139.tmp bin32/config-rtl8139.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-rtl8139.o bin32/rtl8139.o bin32/pci.o $(LIBS32)
 
-bin32/rtl8139--%.img:	bin32/rtl8139.o bin32/%.o bin32/rtl8139.tmp bin32/config-rtl8139--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-rtl8139--$*.o bin32/rtl8139.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/rtl8139--%.img:	bin32/rtl8139.o $(MDROM_ALL_DEPS) bin32/rtl8139.tmp bin32/config-rtl8139--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-rtl8139--$*.o bin32/rtl8139.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/sis900.tmp:	bin32/sis900.o bin32/config-sis900.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-sis900.o bin32/sis900.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/sis900--%.tmp:	bin32/sis900.o bin32/%.o bin32/config-sis900--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-sis900--$*.o bin32/sis900.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/sis900--%.tmp:	bin32/sis900.o $(MDROM_ALL_DEPS) bin32/config-sis900--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-sis900--$*.o bin32/sis900.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/sis900.elf:	bin32/sis900.o bin32/config-sis900.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-sis900.o bin32/sis900.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/sis900--%.elf:	bin32/sis900.o bin32/%.o bin32/config-sis900--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-sis900--$*.o bin32/sis900.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/sis900--%.elf:	bin32/sis900.o $(MDROM_ALL_DEPS) bin32/config-sis900--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-sis900--$*.o bin32/sis900.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/sis900.img:	bin32/sis900.o bin32/sis900.tmp bin32/config-sis900.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-sis900.o bin32/sis900.o bin32/pci.o $(LIBS32)
 
-bin32/sis900--%.img:	bin32/sis900.o bin32/%.o bin32/sis900.tmp bin32/config-sis900--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-sis900--$*.o bin32/sis900.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/sis900--%.img:	bin32/sis900.o $(MDROM_ALL_DEPS) bin32/sis900.tmp bin32/config-sis900--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-sis900--$*.o bin32/sis900.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/tulip.tmp:	bin32/tulip.o bin32/config-tulip.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-tulip.o bin32/tulip.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/tulip--%.tmp:	bin32/tulip.o bin32/%.o bin32/config-tulip--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-tulip--$*.o bin32/tulip.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/tulip--%.tmp:	bin32/tulip.o $(MDROM_ALL_DEPS) bin32/config-tulip--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-tulip--$*.o bin32/tulip.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/tulip.elf:	bin32/tulip.o bin32/config-tulip.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-tulip.o bin32/tulip.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/tulip--%.elf:	bin32/tulip.o bin32/%.o bin32/config-tulip--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-tulip--$*.o bin32/tulip.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/tulip--%.elf:	bin32/tulip.o $(MDROM_ALL_DEPS) bin32/config-tulip--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-tulip--$*.o bin32/tulip.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/tulip.img:	bin32/tulip.o bin32/tulip.tmp bin32/config-tulip.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-tulip.o bin32/tulip.o bin32/pci.o $(LIBS32)
 
-bin32/tulip--%.img:	bin32/tulip.o bin32/%.o bin32/tulip.tmp bin32/config-tulip--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-tulip--$*.o bin32/tulip.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/tulip--%.img:	bin32/tulip.o $(MDROM_ALL_DEPS) bin32/tulip.tmp bin32/config-tulip--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-tulip--$*.o bin32/tulip.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/via-rhine.tmp:	bin32/via-rhine.o bin32/config-via-rhine.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-via-rhine.o bin32/via-rhine.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/via-rhine--%.tmp:	bin32/via-rhine.o bin32/%.o bin32/config-via-rhine--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-via-rhine--$*.o bin32/via-rhine.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/via-rhine--%.tmp:	bin32/via-rhine.o $(MDROM_ALL_DEPS) bin32/config-via-rhine--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-via-rhine--$*.o bin32/via-rhine.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/via-rhine.elf:	bin32/via-rhine.o bin32/config-via-rhine.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-via-rhine.o bin32/via-rhine.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/via-rhine--%.elf:	bin32/via-rhine.o bin32/%.o bin32/config-via-rhine--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-via-rhine--$*.o bin32/via-rhine.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/via-rhine--%.elf:	bin32/via-rhine.o $(MDROM_ALL_DEPS) bin32/config-via-rhine--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-via-rhine--$*.o bin32/via-rhine.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/via-rhine.img:	bin32/via-rhine.o bin32/via-rhine.tmp bin32/config-via-rhine.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-via-rhine.o bin32/via-rhine.o bin32/pci.o $(LIBS32)
 
-bin32/via-rhine--%.img:	bin32/via-rhine.o bin32/%.o bin32/via-rhine.tmp bin32/config-via-rhine--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-via-rhine--$*.o bin32/via-rhine.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/via-rhine--%.img:	bin32/via-rhine.o $(MDROM_ALL_DEPS) bin32/via-rhine.tmp bin32/config-via-rhine--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-via-rhine--$*.o bin32/via-rhine.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/w89c840.tmp:	bin32/w89c840.o bin32/config-w89c840.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-w89c840.o bin32/w89c840.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/w89c840--%.tmp:	bin32/w89c840.o bin32/%.o bin32/config-w89c840--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-w89c840--$*.o bin32/w89c840.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/w89c840--%.tmp:	bin32/w89c840.o $(MDROM_ALL_DEPS) bin32/config-w89c840--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-w89c840--$*.o bin32/w89c840.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/w89c840.elf:	bin32/w89c840.o bin32/config-w89c840.o bin32/pci.o $(ELF_DEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-w89c840.o bin32/w89c840.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/w89c840--%.elf:	bin32/w89c840.o bin32/%.o bin32/config-w89c840--%.o bin32/pci.o $(ELF_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-w89c840--$*.o bin32/w89c840.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/w89c840--%.elf:	bin32/w89c840.o $(MDROM_ALL_DEPS) bin32/config-w89c840--%.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-w89c840--$*.o bin32/w89c840.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/w89c840.img:	bin32/w89c840.o bin32/w89c840.tmp bin32/config-w89c840.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-w89c840.o bin32/w89c840.o bin32/pci.o $(LIBS32)
 
-bin32/w89c840--%.img:	bin32/w89c840.o bin32/%.o bin32/w89c840.tmp bin32/config-w89c840--%.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-w89c840--$*.o bin32/w89c840.o bin32/$*.o bin32/pci.o $(LIBS32)
+bin32/w89c840--%.img:	bin32/w89c840.o $(MDROM_ALL_DEPS) bin32/w89c840.tmp bin32/config-w89c840--%.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-w89c840--$*.o bin32/w89c840.o $(MDROM_ALL_OBJS) bin32/pci.o $(LIBS32)
 
 bin32/3c503.tmp:	bin32/3c503.o bin32/config-3c503.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c503.o bin32/3c503.o $(LIBS32)
