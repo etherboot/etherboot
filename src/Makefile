@@ -92,7 +92,8 @@ OBJCOPY=	objcopy
 VERSION_MAJOR=	5
 VERSION_MINOR=	0
 VERSION_PATCH=	5
-VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
+EXTRAVERSION=
+VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
 		-DVERSION=\"$(VERSION)\" -DRELOC=$(RELOCADDR) $(OLDGAS)
@@ -143,7 +144,7 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S serial.S
+SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
 SRCS+=	main.c pci.c osloader.c nfs.c misc.c ansiesc.c bootmenu.c config.c
 SRCS+=	md5.c floppy.c
 
@@ -158,7 +159,7 @@ DISKLOADER=	bin/boot1a.bin
 COMPREFIX=	bin/comprefix.bin
 LILOPREFIX=	bin/liloprefix.bin
 
-START32=	bin32/start32.o
+START32=	bin32/start32.o bin32/memsizes.o
 UBE_START32=	bin32/ube_start32.o bin32/ube.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/misc.o

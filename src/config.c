@@ -27,6 +27,8 @@ static struct pci_device	pci_nic_list[] = {
 		"KTI ET32P2", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_NETVIN,		PCI_DEVICE_ID_NETVIN_NV5000SC,
 		"NetVin NV5000SC", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_HOLTEK,		PCI_DEVICE_ID_HOLTEK_HT80232,
+		"Holtek HT80232", 0, 0, 0, 0},
 #endif
 #ifdef	INCLUDE_3C90X
 	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900TPO,

@@ -1964,6 +1964,7 @@ static int tulip_check_duplex(struct nic *nic)
         tp->full_duplex = lpa & 0x140;
 
         new_csr6 = tp->csr6;
+        negotiated = lpa & tp->advertising[0];
 
         if(negotiated & 0x380) new_csr6 &= ~0x400000; 
         else                   new_csr6 |= 0x400000;

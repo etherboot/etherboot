@@ -858,9 +858,6 @@ struct nic *
 rhine_probe (struct nic *nic, unsigned short *probeaddrs,
 	       struct pci_device *pci)
 {
-    unsigned char pci_latency;
-    unsigned short pci_command;
-
     if (!pci->ioaddr)
 	return NULL;
     nic = rhine_probe1 (nic, pci->ioaddr, 0, -1);

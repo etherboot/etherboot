@@ -113,7 +113,9 @@ Author: Martin Renters
 /*#define ETH_MIN_PACKET		64*/
 #define	ETH_FRAME_LEN		1514	/* Maximum packet */
 /*#define ETH_MAX_PACKET		1518*/
+#ifndef	ETH_MAX_MTU
 #define	ETH_MAX_MTU		(ETH_FRAME_LEN-ETH_HLEN)
+#endif
 
 #define ARP_CLIENT	0
 #define ARP_SERVER	1
@@ -526,8 +528,25 @@ extern int getshift P((void));
 #ifdef	POWERSAVE
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */
-extern unsigned int memsize P((void));
-extern unsigned short basememsize P((void));
+struct e820entry {
+	unsigned long long addr;
+	unsigned long long size;
+	unsigned long type;
+#define E820_RAM	1
+#define E820_RESERVED	2
+#define E820_ACPI	3 /* usable as RAM once ACPI tables have been read */
+#define E820_NVS	4
+};
+#define E820MAX 32
+struct meminfo {
+	unsigned short basememsize;
+	unsigned int memsize;
+	int map_count;
+	struct e820entry map[E820MAX];
+};
+extern struct meminfo meminfo;
+extern void get_memsizes(void);
+
 extern void disk_init P((void));
 extern unsigned int disk_read P((int drv,int c,int h,int s,char *buf));
 extern void xstart P((unsigned long, unsigned long, char *));

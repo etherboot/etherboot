@@ -132,6 +132,9 @@
 #			-DAOUT_IMAGE and/or -DELF_IMAGE).
 #	-DFREEBSD_KERNEL_ENV
 #			Pass in FreeBSD kernel environment
+#	-DAOUT_LYNX_KDI
+#			Add Lynx a.out KDI support
+#
 #	-DDOWNLOAD_PROTO_TFTP
 #			If defined, boots by TFTP (recommended).
 #	-DDOWNLOAD_PROTO_NFS
@@ -188,6 +191,8 @@
 #			the BIOS time counter.  This allows Etherboot to work
 #			even without a BIOS.  This only works on late model
 #			486s and above.
+#	-DPXELOADER_KEEP_UNDI
+#			For implementation later with UNDI.
 #
 #	Obscure options you probably don't need to touch:
 #
@@ -229,7 +234,7 @@ CFLAGS32+=	-DMOTD -DIMAGE_MENU
 
 # Limit the delay on packet loss/congestion to a more bearable value. See
 # description above.  If unset, do not limit the delay between resend.
-CFLAGS32+=	-DBACKOFF_LIMIT=7
+CFLAGS32+=	-DBACKOFF_LIMIT=7 -DCONGESTED
 
 # More optional features
 # CFLAGS32+=	-DANSIESC -DGFX

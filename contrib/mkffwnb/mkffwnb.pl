@@ -156,7 +156,7 @@ print "Copying files off floppy, please be patient...\n";
 &gunzip('initrd.gz') == 0 or die "Gunzip of initrd.gz failed\n";
 mkdir($tempmount, 0755);
 &loopbackmount('initrd', $tempmount) == 0 or die "Loopback mount failed\n";
-&dostounix("$libdir/linuxrc", "linuxrc");
+&dostounix("$libdir/linuxrc", "linuxrc") if (-r "$libdir/linuxrc");
 &dostounix("$libdir/floppyfw.ini", "floppyfw.ini");
 &dostounix("config", "etc/config");
 for my $i (glob('floppyfw/add.bz2 modules/*.bz2 packages/*.bz2')) {

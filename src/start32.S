@@ -305,6 +305,64 @@ cpu_nap:
 	ret
 #endif	/* POWERSAVE */
 
+
+/**************************************************************************
+E820_MEMSIZE - Get a listing of memory regions
+**************************************************************************/
+	.globl meme820
+#define SMAP	0x534d4150
+meme820:
+	pushl	%ebp
+	movl	%esp, %ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	8(%ebp), %edi	/* Address to return e820 structures at */
+	subl	$RELOC, %edi
+	movl	12(%ebp), %esi	/* Maximum number of e820 structurs to return */
+	pushl	%esi
+	call	_prot_to_real
+	.code16
+	xorl	%ebx, %ebx
+jmpe820:	
+	movl	$0xe820, %eax
+	movl	$SMAP, %edx
+	movl	$20, %ecx
+	/* %di was setup earlier */
+	int	$0x15
+	jc	bail820
+
+	cmpl	$SMAP, %eax
+	jne	bail820
+
+good820:	
+	/* If this is useable memory, we save it by simply advancing %di by
+	 * sizeof(e820rec)
+	 */
+	decl	%esi
+	testl	%esi,%esi
+	jz	bail820
+
+	addw	$20, %di
+again820:
+	cmpl	$0, %ebx	/* check to see if %ebx is set to EOF */
+	jne	jmpe820
+
+bail820:
+	DATA32 call	_real_to_prot
+	.code32
+	popl	%eax
+	subl	%esi, %eax	/* Compute how many structure we read */
+
+	/* Restore everything else */	
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	movl	%ebp, %esp
+	popl	%ebp
+	ret
+
+	
 /**************************************************************************
 MEMSIZE - Determine size of extended memory
 **************************************************************************/

@@ -111,6 +111,8 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_KTI_ET32P2        0x3000
 #define PCI_VENDOR_ID_NETVIN            0x4a14
 #define PCI_DEVICE_ID_NETVIN_NV5000SC   0x5000
+#define	PCI_VENDOR_ID_HOLTEK		0x12c3
+#define	PCI_DEVICE_ID_HOLTEK_HT80232	0x0058
 #define PCI_VENDOR_ID_3COM		0x10b7
 #define PCI_DEVICE_ID_3COM_3C590	0x5900
 #define PCI_DEVICE_ID_3COM_3C595	0x5950

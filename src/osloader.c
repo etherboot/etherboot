@@ -206,13 +206,40 @@ typedef struct {
 
 #endif	/* IMAGE_FREEBSD */
 
+struct multiboot_mods {
+	unsigned mod_start;
+	unsigned mod_end;
+	unsigned char *string;
+	unsigned reserved;
+};
+
 /* The structure of a Multiboot 0.6 parameter block.  */
 struct multiboot_info {
 	unsigned int flags;
+#define MULTIBOOT_MEM_VALID       0x01
+#define MULTIBOOT_BOOT_DEV_VALID  0x02
+#define MULTIBOOT_CMDLINE_VALID   0x04
+#define MULTIBOOT_MODS_VALID      0x08
+#define MULTIBOOT_AOUT_SYMS_VALID 0x10
+#define MULTIBOOT_ELF_SYMS_VALID  0x20
+#define MULTIBOOT_MMAP_VALID      0x40
 	unsigned int memlower;
 	unsigned int memupper;
 	unsigned int bootdev;
 	void *cmdline;
+	unsigned mods_count;
+	struct multiboot_mods *mods_addr;
+	unsigned syms_num;
+	unsigned syms_size;
+	unsigned syms_addr;
+	unsigned syms_shndx;
+	unsigned mmap_length;
+	struct e820entry *mmap_addr;
+	/* The structure actually ends here, so I might as well put
+	 * the ugly e820 parameters here...
+	 */
+	unsigned e820entry_size;
+	struct e820entry mmap[E820MAX];
 };
 
 /* Define some structures used by tftp loader */
@@ -352,7 +379,7 @@ static int tagged_download(unsigned char *data, unsigned int len)
 			else if (tctx.segflags == 0x01)
 				curaddr = tctx.last1 + sh.loadaddr;
 			else if (tctx.segflags == 0x02)
-				curaddr = (Address)(memsize() * 1024L
+				curaddr = (Address)(meminfo.memsize * 1024L
 						    + 0x100000L)
 					- sh.loadaddr;
 			else
@@ -394,8 +421,8 @@ aout_startkernel:
 #ifdef	IMAGE_FREEBSD
 		if (image_type == Aout_FreeBSD) {
 			memset(&info.bsdinfo, 0, sizeof(info.bsdinfo));
-			info.bsdinfo.bi_basemem = basememsize();
-			info.bsdinfo.bi_extmem = memsize();
+			info.bsdinfo.bi_basemem = meminfo.basememsize;
+			info.bsdinfo.bi_extmem = meminfo.memsize;
 			info.bsdinfo.bi_memsizes_valid = 1;
 			info.bsdinfo.bi_version = BOOTINFO_VERSION;
 			info.bsdinfo.bi_kernelname = KERNEL_BUF;
@@ -510,8 +537,8 @@ elf_startkernel:
 		if (image_type == Elf_FreeBSD) {
 			cleanup();
 			memset(&info.bsdinfo, 0, sizeof(info.bsdinfo));
-			info.bsdinfo.bi_basemem = basememsize();
-			info.bsdinfo.bi_extmem = memsize();
+			info.bsdinfo.bi_basemem = meminfo.basememsize;
+			info.bsdinfo.bi_extmem = meminfo.memsize;
 			info.bsdinfo.bi_memsizes_valid = 1;
 			info.bsdinfo.bi_version = BOOTINFO_VERSION;
 			info.bsdinfo.bi_kernelname = KERNEL_BUF;
@@ -655,11 +682,16 @@ elf_startkernel:
 #endif
 		(void)sprintf(c, " -retaddr %#X", (unsigned long)xend);
 
-		info.mbinfo.flags = 5;
-		info.mbinfo.memlower = basememsize();
-		info.mbinfo.memupper = memsize();
+		info.mbinfo.flags = MULTIBOOT_MMAP_VALID | MULTIBOOT_MEM_VALID |MULTIBOOT_CMDLINE_VALID;
+		info.mbinfo.memlower = meminfo.basememsize;
+		info.mbinfo.memupper = meminfo.memsize;
 		info.mbinfo.bootdev = 0;	/* not booted from disk */
 		info.mbinfo.cmdline = cmdline;
+		info.mbinfo.e820entry_size = sizeof(struct e820entry);
+		info.mbinfo.mmap_length = 
+			info.mbinfo.e820entry_size * meminfo.map_count;
+		info.mbinfo.mmap_addr = info.mbinfo.mmap;
+		memcpy(info.mbinfo.mmap, meminfo.map, info.mbinfo.mmap_length);
 
 		/* The Multiboot 0.6 spec requires all segment registers to be
 		 * loaded with an unrestricted, writeable segment.  All but two
@@ -941,6 +973,8 @@ elf_startkernel:
 }
 #endif
 
+
+
 int os_download(unsigned int block, unsigned char *data, unsigned int len)
 {
 	if (block == 1)
@@ -999,30 +1033,40 @@ int os_download(unsigned int block, unsigned char *data, unsigned int len)
 					+ (unsigned int)(info.elf32.e_phoff));
 			/* Check for Etherboot related limitations.  Memory
 			 * below 0x10000 and between RELOC and 0xfffff is not
-			 * allowed.  Reasons: the RTL8139 hack, the Etherboot
-			 * code/data area and the ROM/IO area.  */
+			 * allowed.  Reasons: the Etherboot code/data area
+			 * and the ROM/IO area.  */
 			for (segment = 0; segment < info.elf32.e_phnum;
 			     segment++) {
-				unsigned int e;
+				unsigned int start, end;
+				int fit, i;
 				if (phdr[segment].p_type != PT_LOAD)
 					continue;
-				if (phdr[segment].p_paddr < 0x10000) {
-					printf("segment below 0x10000\n");
-					return 0;
-				}
 #ifdef	IMAGE_FREEBSD
 				if (image_type == Elf_FreeBSD) {
 					phdr[segment].p_paddr += off;
 				}
 #endif
-				e = phdr[segment].p_paddr+phdr[segment].p_memsz;
+				start = phdr[segment].p_paddr;
+				end = phdr[segment].p_paddr+phdr[segment].p_memsz;
 				if ((phdr[segment].p_paddr < 0x100000) &&
-				    (e > RELOC)) {
+				    (end > RELOC)) {
 					printf("segment in reserved area\n");
 					return 0;
 				}
-				if (e > memsize() * 1024 + 0x100000) {
-					printf("segment exceeding memory\n");
+				fit = 0;
+				for(i = 0; i < meminfo.map_count; i++) {
+					unsigned long long r_start, r_end;
+					if (meminfo.map[i].type != E820_RAM)
+						continue;
+					r_start = meminfo.map[i].addr;
+					r_end = r_start + meminfo.map[i].size;
+					if ((start >= r_start) && (end <= r_end)) {
+						fit = 1;
+						break;
+					}
+				}
+				if (!fit) {
+					printf("segment does not fit in any memory region\n");
 					return 0;
 				}
 			}

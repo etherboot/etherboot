@@ -15,7 +15,7 @@ and root privileges to execute. Hope you have them.
 This script only works for any of the 1.0.x, 1.1.x, and 1.9.x releases
 for which a subdirectory of that name is provided, but it should not be
 too hard to make it work for other releases, all that is done here is to
-substitute some scripts for the provided ones.
+substitute some scripts for the distributed ones.
 
 First of all you should make the floppy work the way you want before
 converting it to a tagged image. This involves editing the various
@@ -59,14 +59,11 @@ If you use the option -nonet, it leaves the intermediate files in
 $tempdir, /tmp/mkffwnb by default. This is useful if you want the
 vmlinuz and initrd.gz files for use with LILO or isolinux to boot from
 HD or CDROM. Actually you can also use these with a floppy, it loads
-faster if you combine all the scripts and modules into the initrd ahead
+faster if you fold all the scripts and modules into the initrd ahead
 of time.
 
 mkffwnb has to be run as root because it uses loopback mounts and also
 because the files inside the initrd are owned by root.
 
-2001-04-22: Bug fix: Previously didn't use the arguments from
-syslinux.cfg and thus missed configuring eth1. It now does.
-
 Ken Yap
-2001-05-22
+2001-11-15

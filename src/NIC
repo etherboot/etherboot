@@ -133,8 +133,6 @@ otulip		otulip		0x1011,0x0002
 rtl8139		rtl8139		0x10ec,0x8139
 # SMC1211 (uses Realtek 8139 but with different IDs)
 smc1211		rtl8139		0x1112,0x1211
-# D-Link DFE530TX+ (from mailing list posting)
-dfe530tx+	rtl8139		0x1186,0x1300
 # D-Link DFE538TX (from Linux 8139too driver)
 dfe538		rtl8139		0x1186,0x1300
 # Rhine-I, e.g. D-Link DFE-530TX
@@ -161,6 +159,8 @@ compexrl2000	ns8390		0x11f6,0x1401
 ktiet32p2	ns8390		0x8e2e,0x3000
 # NetVin 5000SC
 nv5000sc	ns8390		0x4a14,0x5000
+# Holtek 80232
+holtek80232	ns8390		0x12c3,0x0058
 # WD8003/8013, SMC8216/8416
 wd		ns8390
 # NE1000/2000 and clones (ISA)
@@ -201,4 +201,4 @@ dp83815		natsemi		0x100B,0x0020
 # Alternate DP83815 driver
 fa311too	fa311		0x100B,0x0020
 # TI Thunderlan
-olicom2326	tlan		0x108d,0x0014
+#olicom2326	tlan		0x108d,0x0014

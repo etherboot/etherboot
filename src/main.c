@@ -218,6 +218,7 @@ int main(void)
 
 	gateA20_set();
 	print_config();
+	get_memsizes();
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
 	   0:	retry booting bootp and tftp
