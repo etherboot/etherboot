@@ -52,8 +52,16 @@ SECTIONS {
 	 * Currently I reserve 2048 bytes of just slack to be safe :)
 	 * 2048 bytes easily falls within the BSS (the defualt stack is 4096 bytes)
 	 * so we really are decompressing in place.
+	 * 
+	 * Hmm. I missed a trick.  In the very worst case (no compression)
+	 * the encoded data is 9/8 the size as it started out so to be completely
+	 * safe I need to be 1/8 of the uncompressed code size past the end.
+	 * This will still fit compfortably into our bss in any conceivable scenario.
 	 */
-	_compressed_copy = _edata + _prefix_size + 2048 - _compressed_size;
+	_compressed_copy = _edata + _prefix_size  - _compressed_size +
+		/* The amount to overflow _edata */
+		MAX( ((_edata - _text + 7) / 8) , 2016 ) + 32; 
+	ASSERT( ( _compressed_copy - _prefix_size ) < _end , "Cannot decompress in place" )
 
 	decompress = DEFINED(decompress) ? decompress : 0;
 	/DISCARD/ : {

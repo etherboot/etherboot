@@ -123,7 +123,16 @@ static const unsigned char magic[8] =
 #ifdef ENCODE
 /********** NRV2B_99 compression **********/
 
-#define N       (1024*1024ul)       /* size of ring buffer */
+/* Note by limiting the ring buffer I have limited the maximum
+ * offset to 64K.  Since etherboot rarely gets that big it
+ * is not a problem and it gives me a firm guarantee
+ * that I will never get a 3 byte string match that is encodes
+ * to more than 9/8 it's original size.
+ * That guaranteee is important to for the inplace decompressor.
+ * There are better ways to do this if a larger offset and buffer
+ * would give better compression.
+ */
+#define N       (65536ul)           /* size of ring buffer */
 #define THRESHOLD       1           /* lower limit for match length */
 #define F            2048           /* upper limit for match length */
 #define M2_MAX_OFFSET                 0xd00
@@ -200,6 +209,7 @@ struct ucl_compress
 
 #define SWD_HSIZE	16384
 #define SWD_MAX_CHAIN	2048
+#define SWD_BEST_OFF    1
 
 #define HEAD3(b,p) \
     (((0x9f5f*(((((uint32_t)b[p]<<5)^b[p+1])<<5)^b[p+2]))>>5) & (SWD_HSIZE-1))
