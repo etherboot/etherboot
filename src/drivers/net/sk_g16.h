@@ -16,8 +16,8 @@
  *                  network device driver which uses this chip
  *
  * $Log$
- * Revision 1.1  2003/08/03 12:41:55  ken_yap
- * Initial revision
+ * Revision 1.1.1.1  2003/08/03 12:41:55  ken_yap
+ * New stable series 5.2.
  *
  * Revision 1.1  2002/12/12 02:18:20  ebiederm
  * Moved network drivers into drivers/net
