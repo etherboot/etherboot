@@ -142,7 +142,7 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 #endif
 			
 			/* Start reading at the curaddr and make that the shdr */
-			shdr = (Elf32_Shdr *)estate.curaddr;
+			shdr = (Elf32_Shdr *)phys_to_virt(estate.curaddr);
 			
 			/* Start to read... */
 			return 1;
