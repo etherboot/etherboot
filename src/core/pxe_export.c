@@ -821,13 +821,34 @@ PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
 
 /* PXENV_TFTP_READ_FILE
  *
- * Status: stub
+ * Status: working
  */
+
+int pxe_tftp_read_block ( unsigned char *data, unsigned int block __unused, unsigned int len, int eof ) {
+	if ( pxe_stack->readfile.offset + len >= pxe_stack->readfile.bufferlen ) return -1;
+	memcpy ( pxe_stack->readfile.buffer + pxe_stack->readfile.offset, data, len );
+	pxe_stack->readfile.offset += len;
+	return eof ? 0 : 1;
+}
+
 PXENV_EXIT_t pxenv_tftp_read_file ( t_PXENV_TFTP_READ_FILE *tftp_read_file ) {
-	DBG ( "PXENV_TFTP_READ_FILE" );
-	/* ENSURE_READY ( tftp_read_file ); */
-	tftp_read_file->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	int rc;
+
+	DBG ( "PXENV_TFTP_READ_FILE %s to [%x,%x)", tftp_read_file->FileName,
+	      tftp_read_file->Buffer, tftp_read_file->Buffer + tftp_read_file->BufferSize );
+	ENSURE_READY ( tftp_read_file );
+
+	pxe_stack->readfile.buffer = phys_to_virt ( tftp_read_file->Buffer );
+	pxe_stack->readfile.bufferlen = tftp_read_file->BufferSize;
+	pxe_stack->readfile.offset = 0;
+
+	rc = tftp ( tftp_read_file->FileName, pxe_tftp_read_block );
+	if ( rc ) {
+		tftp_read_file->Status = PXENV_STATUS_FAILURE;
+		return PXENV_EXIT_FAILURE;
+	}
+	tftp_read_file->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_TFTP_GET_FSIZE

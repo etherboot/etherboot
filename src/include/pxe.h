@@ -917,6 +917,11 @@ typedef struct {
 			int eof;
 			char data[TFTP_MAX_PACKET];
 		} tftpdata;
+		struct {
+			char *buffer;
+			uint32_t offset;
+			uint32_t bufferlen;
+		} readfile;
 	};
 	struct {}	arch_data __attribute__ ((aligned(16)));
 } pxe_stack_t;
