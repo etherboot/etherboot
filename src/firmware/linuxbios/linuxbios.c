@@ -272,8 +272,9 @@ static unsigned long count_lb_records(void *start, unsigned long length)
 static int find_lb_table(void *start, void *end, struct lb_header **result)
 {
 	unsigned char *ptr;
+
 	/* For now be stupid.... */
-	for(ptr = start; (void *)ptr < end; ptr += 16) {
+	for(ptr = start; virt_to_phys(ptr) < virt_to_phys(end); ptr += 16) {
 		struct lb_header *head = (struct lb_header *)ptr;
 		if (	(head->signature[0] != 'L') || 
 			(head->signature[1] != 'B') ||
@@ -284,7 +285,7 @@ static int find_lb_table(void *start, void *end, struct lb_header **result)
 		if (head->header_bytes != sizeof(*head))
 			continue;
 #if defined(DEBUG_LINUXBIOS)
-		printf("Found canidate at: %X\n", (unsigned long)head);
+		printf("Found canidate at: %X\n", virt_to_phys(head));
 #endif
 		if (ipchksum((uint16_t *)head, sizeof(*head)) != 0) 
 			continue;
@@ -334,7 +335,7 @@ void get_memsizes(void)
 	}
 	if (found) {
 #if defined (DEBUG_LINUXBIOS)
-		printf("Found LinuxBIOS table at: %X\n", (unsigned long)lb_table);
+		printf("Found LinuxBIOS table at: %X\n", virt_to_phys(lb_table));
 #endif
 		read_linuxbios_values(&meminfo, lb_table);
 	}

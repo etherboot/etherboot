@@ -30,6 +30,7 @@ decompress:
 
 	/*
 	 * See where I am running, and compute %ebp
+	 * %ebp holds delta between physical and virtual addresses.
 	 */
 	call	1f
 1:	popl	%ebp

@@ -73,7 +73,7 @@ pmode:
 1:
 	/* Run decompressor if necessary */
 	pushl	%eax
-	movl	$compressed, %eax
+	movl	$decompress, %eax
 	testl	%eax, %eax
 	jz	1f
 	call	decompress

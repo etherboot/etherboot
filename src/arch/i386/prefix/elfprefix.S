@@ -83,6 +83,8 @@ elf_note:
 	.balign 4
 elf_note_end:
 
+#if 1
 	.text
 	.globl _start
 _start:
+#endif	

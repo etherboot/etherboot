@@ -3,7 +3,7 @@ ARCH_FORMAT=	elf32-i386
 # For debugging, don't delete intermediates
 #.SECONDARY:
 
-LCONFIG+=	-DRELOC=$(RELOCADDR) -Ui386
+LCONFIG+=	-Ui386
 
 START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
 	$(BIN)/bios.o $(BIN)/console.o $(BIN)/memsizes.o $(BIN)/basemem.o \
@@ -82,32 +82,8 @@ NULLEXIT=	$(BIN)/nullprefix.exit.o
 ELFPREFIX=	$(BIN)/elfprefix.o
 
 
-# Make sure that the relocation address is acceptable for all ROM sizes.  
-# The old setting was 0x9400 which left about 45kB of space for Etherboot.
-# Now we default to 0x20000. Without relocation enabled this means
-# Etherboot cannot load images that resize in the low 640KB.
-# (We should see if we can lower this to allow larger images in the low
-# 640kB but this is not urgent.)
-# With relocation enabled we Etherboot should be able to load any image.
-# The size is limited to 320KB to catch really flagrant
-# abuses, and to ensure there is enough room for etherboot to decompress itself.
-# This check may need to be updated to ensure the single driver etherboot will
-# fit in a bootrom.  The check is done based running 'size' on the binary, not
-# ROM size.  With previous incarnations this meant a ROM of 16kB or a partially
-# used ROM of 32kB, remembering to take compressed ROM images into account.
-#
-ifndef RELOCADDR
-RELOCADDR:=0x20000
-endif
-
-# Evaluate ROMLIMIT only once - it is constant during the make run.
-# Under normal situations, 2K of stack are rarely needed.  If you
-# experience strange behaviour in functions that use many local
-# variables or that call functions that do, check for stack overrun! 
-# Make sure that the normal case needs no Perl interpreter - if someone uses a
-# different RELOCADDR, then he has Perl installed anyways (the shell cannot
-# deal with hex numbers, as test/eval don't support non-decimal integers).
-ROMLIMIT:=$(shell perl -e 'printf("%d\n", (640*1024 - $(RELOCADDR)));')
+# Silly value for apply_elf_prefix...
+VIRTLOADADDR:=0x20000
 
 include		$(BIN)/Roms
 
@@ -196,7 +172,7 @@ $(BIN)/%.zo:	$(BIN)/%.zbin arch/i386/core/prefixdata.lds $(MAKEDEPS)
 SUFFIXES +=	rom zrom
 
 $(BIN)/%.rom.rt: $(BIN)/%.rt.o $(ISAEXIT) $(PCIEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ \
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
 		$< $(ROMEXIT)
 
 $(BIN)/%.rom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
@@ -225,11 +201,11 @@ $(BIN)/elfprefix:	$(BIN)/elfprefix.tmp $(MAKEDEPS)
 
 $(BIN)/%.elf:	$(BIN)/%.raw $(BIN)/%.raw.prf $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
 	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)` > $@
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(VIRTLOADADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)` > $@
 
 $(BIN)/%.zelf:	$(BIN)/%.zraw $(BIN)/%.raw.prf $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
 	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(VIRTLOADADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
 
 # general rules for Long Mode ELF images
 SUFFIXES +=	lmelf zlmelf
@@ -241,16 +217,16 @@ $(BIN)/lmelf_prefix:	$(BIN)/lmelf_prefix.tmp $(MAKEDEPS)
 
 $(BIN)/%.lmelf:	$(BIN)/%.raw $(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
 	@$(SIZE) $(BIN)/$*.raw.ptf | (read l1; read d1 d2 bss rest; echo $$bss)
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)` > $@
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(VIRTLOADADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)` > $@
 
 $(BIN)/%.zlmelf:	$(BIN)/%.zraw $(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
 	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(VIRTLOADADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
 
 # rules to generate a DOS loadable .com executable
 SUFFIXES +=	com
 $(BIN)/%.com.rt: $(BIN)/%.rt.o $(COMEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(COMEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(COMEXIT)
 
 $(BIN)/%.com.prf: $(BIN)/%.rt.o $(COMENTRY) $(COMEXIT) $(ZPREFIXOBJS) $(BIN)/%.com.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.com.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
@@ -262,7 +238,7 @@ $(BIN)/%.com: $(BIN)/%.com.prf.bin $(BIN)/%.com.rt1.bin $(BIN)/%.com.rt2.zbin
 # rules to generate a DOS loadable .exe executable
 SUFFIXES +=	exe
 $(BIN)/%.exe.rt: $(BIN)/%.rt.o $(EXEEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(EXEEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(EXEEXIT)
 
 $(BIN)/%.exe.prf: $(BIN)/%.rt.o $(EXEENTRY) $(EXEEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(EXEENTRY) $(PREFIXOBJS) $< $(EXEEXIT)
@@ -274,7 +250,7 @@ $(BIN)/%.exe: $(BIN)/%.exe.prf.bin $(BIN)/%.exe.rt.bin
 SUFFIXES +=	lilo zlilo
 
 $(BIN)/%.lilo.rt: $(BIN)/%.rt.o $(LILOEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(LILOEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(LILOEXIT)
 
 $(BIN)/%.lilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LILOENTRY) $(PREFIXOBJS) $< $(LILOEXIT)
@@ -293,7 +269,7 @@ $(BIN)/%.zlilo: $(BIN)/%.zlilo.prf.bin $(BIN)/%.lilo.rt1.bin $(BIN)/%.lilo.rt2.z
 SUFFIXES +=	pxe zpxe
 
 $(BIN)/%.pxe.rt: $(BIN)/%.rt.o $(PXEEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(PXEEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(PXEEXIT)
 
 $(BIN)/%.pxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(PXEENTRY) $(PREFIXOBJS) $< $(PXEEXIT)
@@ -312,7 +288,7 @@ $(BIN)/%.zpxe: $(BIN)/%.zpxe.prf.bin $(BIN)/%.pxe.rt1.bin $(BIN)/%.pxe.rt2.zbin
 SUFFIXES +=	dsk zdsk
 
 $(BIN)/%.dsk.rt: $(BIN)/%.rt.o $(DSKEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(DSKEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(DSKEXIT)
 
 $(BIN)/%.dsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(DSKENTRY) $(PREFIXOBJS) $< $(DSKEXIT)
@@ -338,7 +314,7 @@ SUFFIXES +=	fd0 zfd0
 # rules to create raw executable images
 SUFFIXES +=	raw zraw
 $(BIN)/%.raw.rt: $(BIN)/%.rt.o $(NULLEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(NULLEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(NULLEXIT)
 
 $(BIN)/%.raw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(PREFIXOBJS) $< $(NULLEXIT)
