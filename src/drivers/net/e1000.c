@@ -2739,8 +2739,8 @@ PCI_ROM(0x8086, 0x1011, "e1000-82545em-fiber",  "Intel EtherExpressPro1000 82545
 PCI_ROM(0x8086, 0x1012, "e1000-82546eb-fiber", 	"Intel EtherExpressPro1000 82546EB Copper"),
 PCI_ROM(0x8086, 0x1015, "e1000-82540em-lom",  	"Intel EtherExpressPro1000 82540EM LOM"),
 PCI_ROM(0x8086, 0x1016, "e1000-82540ep-lom",	"Intel EtherExpressPro1000 82540EP LOM"),
-PCI_ROM(0x8086, 0x1017, "e1000-82540ep-lp",	"Intel EtherExpressPro1000 82540EP LP"),
-PCI_ROM(0x8086, 0x101e, "e1000-82540ep",	"Intel EtherExpressPro1000 82540EP"),
+PCI_ROM(0x8086, 0x1017, "e1000-82540ep",	"Intel EtherExpressPro1000 82540EP"),
+PCI_ROM(0x8086, 0x101e, "e1000-82540ep-lp",	"Intel EtherExpressPro1000 82540EP LP"),
 };
 
 static struct pci_driver e1000_driver __pci_driver = {
