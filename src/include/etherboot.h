@@ -294,7 +294,6 @@ extern int int15 P((int));
 #ifdef	POWERSAVE
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */
-extern void irq_handler ( void );
 extern void fake_irq ( uint8_t irq );
 
 /* basemem.c */
@@ -422,9 +421,6 @@ extern char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 /* bootmenu.c */
 
 /* osloader.c */
-
-/* pcbios.S */
-extern volatile uint16_t irq_triggered;
 
 /* created by linker */
 extern char _virt_start[], _text[], _etext[], _text16[], _etext16[];
