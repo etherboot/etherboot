@@ -62,8 +62,6 @@ Drivers are port from Intel's Linux driver e1000-3.1.23
 #include "nic.h"
 /* to get the PCI support functions, if this is a PCI NIC */
 #include "pci.h"
-/* to get our own prototype */
-#include "cards.h"
 #include "timer.h"
 
 typedef unsigned char *dma_addr_t;
@@ -216,16 +214,6 @@ init_descriptor (void)
 /* NIC specific static variables go here */
 
 /**************************************************************************
-RESET - Reset adapter
-***************************************************************************/
-static void
-e1000_reset (struct nic *nic)
-{
-	/* put the card in its initial state */
-	E1000_WRITE_REG (Ctrl, E1000_CTRL_RST);
-}
-
-/**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
 static int
@@ -296,22 +284,23 @@ e1000_transmit (struct nic *nic, const char *d,	/* Destination */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void
-e1000_disable (struct nic *nic)
+static void e1000_disable (struct dev *dev)
 {
+	/* put the card in its initial state */
+	E1000_WRITE_REG (Ctrl, E1000_CTRL_RST);
+	/* Turn off the ethernet interface */
 	E1000_WRITE_REG (Rctl, 0);
 	E1000_WRITE_REG (Tctl, 0);
 	mdelay (10);
-
 }
 
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 You should omit the last argument struct pci_device * for a non-PCI NIC
 ***************************************************************************/
-struct nic *
-e1000_probe (struct nic *nic, unsigned short *probe_addrs, struct pci_device *p)
+static int e1000_probe(struct dev *dev, struct pci_device *p)
 {
+	struct nic *nic = (struct nic *)dev;
 	unsigned short pci_command;
 	unsigned short new_command;
 	unsigned char pci_latency;
@@ -416,12 +405,32 @@ e1000_probe (struct nic *nic, unsigned short *probe_addrs, struct pci_device *p)
 	/* if board found */
 	{
 		/* point to NIC specific routines */
-		nic->reset = e1000_reset;
-		nic->poll = e1000_poll;
+		dev->disable  = e1000_disable;
+		nic->poll     = e1000_poll;
 		nic->transmit = e1000_transmit;
-		nic->disable = e1000_disable;
 		return nic;
 	}
 	/* else */
 	return 0;
 }
+
+static struct pci_id e1000_nics[] = {
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82542,
+               "Intel EtherExpressPro1000" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82543GC_FIBER,
+               "Intel EtherExpressPro1000 82543GC Fiber" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82543GC_COPPER,
+               "Intel EtherExpressPro1000 82543GC Copper" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82544EI_COPPER,
+               "Intel EtherExpressPro1000 82544EI Copper" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82544GC_CREB,
+               "Intel EtherExpressPro1000 82544GC Creb" },
+};
+
+static struct pci_driver e1000_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "E1000",
+	.probe    = e1000_probe,
+	.ids      = e1000_nics,
+	.id_count = sizeof(e1000_nics)/sizeof(e1000_nics[0]),
+};

@@ -31,8 +31,9 @@ SMC8416 PIO support added by Andrew Bettison (andrewb@zip.com.au) on 4/3/02
 #include "ns8390.h"
 #ifdef	INCLUDE_NS8390
 #include "pci.h"
+#else
+#include "isa.h"
 #endif
-#include "cards.h"
 
 static unsigned char	eth_vendor, eth_flags, eth_laar;
 static unsigned short	eth_nic_base, eth_asic_base;
@@ -551,24 +552,31 @@ static int ns8390_poll(struct nic *nic)
 /**************************************************************************
 NS8390_DISABLE - Turn off adapter
 **************************************************************************/
-static void ns8390_disable(struct nic *nic)
+static void ns8390_disable(struct dev *dev)
 {
+	struct nic *nic = (struct nic *)dev;
+	/* reset and disable merge */
+	ns8390_reset(nic);
 }
 
 /**************************************************************************
 ETH_PROBE - Look for an adapter
 **************************************************************************/
 #ifdef	INCLUDE_NS8390
-struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs,
-		      struct pci_device *pci)
+static int eth_probe (struct dev *dev, struct pci_device *pci)
 #else
-struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
+static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 #endif
 {
+	struct nic *nic = (struct nic *)dev;
 	int i;
 	struct wd_board *brd;
 	unsigned short chksum;
 	unsigned char c;
+#ifdef INCLUDE_NS8390
+	unsigned short pci_probe_addrs[] = { pci->ioaddr, 0 };
+	unsigned short *probe_addrs = pci_probe_addrs;
+#endif
 	eth_vendor = VENDOR_NONE;
 	eth_drain_receiver = 0;
 
@@ -666,6 +674,11 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 	}
 #endif
 #ifdef	INCLUDE_3C503
+#ifdef	T503_AUI
+	nic->flags = 1;		/* aui */
+#else
+	nic->flags = 0;		/* no aui */
+#endif
         /******************************************************************
         Search for 3Com 3c503 if no WD/SMC cards
         ******************************************************************/
@@ -860,25 +873,81 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
         if (eth_vendor != VENDOR_3COM)
 		eth_rmem = eth_bmem;
 	ns8390_reset(nic);
-	nic->reset = ns8390_reset;
-	nic->poll = ns8390_poll;
+
+	dev->disable  = ns8390_disable; 
+	nic->poll     = ns8390_poll;
 	nic->transmit = ns8390_transmit;
-	nic->disable = ns8390_disable;
+
         /* Based on PnP ISA map */
 #ifdef	INCLUDE_WD
-        nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-        nic->devid.device_id = htons(0x812a);
+        dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+        dev->devid.device_id = htons(0x812a);
 #endif
 #ifdef	INCLUDE_3C503
-        nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-        nic->devid.device_id = htons(0x80f3);
+        dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+        dev->devid.device_id = htons(0x80f3);
 #endif
 #ifdef	INCLUDE_NE
-        nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-        nic->devid.device_id = htons(0x80d6);
+        dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+        dev->devid.device_id = htons(0x80d6);
 #endif
-	return(nic);
+	return 1;
 }
+
+#ifdef	INCLUDE_WD
+static struct isa_driver wd_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "WD",
+	.probe   = wd_probe,
+	.ioaddrs = 0, 
+};
+#endif
+
+#ifdef	INCLUDE_3c503
+static struct isa_driver t503_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "3C503",
+	.probe   = t503_probe,
+	.ioaddrs = 0, 
+};
+#endif
+
+#ifdef	INCLUDE_NE
+static struct isa_driver ne_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "NE*000",
+	.probe   = ne_probe,
+	.ioaddrs = 0, 
+};
+#endif
+
+#ifdef	INCLUDE_NS8390
+static struct pci_id nepci_nics[] = {
+	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8029,
+		"Realtek 8029" },
+	{ PCI_VENDOR_ID_DLINK,		0x0300,
+		"DE-528" },
+	{ PCI_VENDOR_ID_WINBOND2,	PCI_DEVICE_ID_WINBOND2_89C940,
+		"Winbond NE2000-PCI" },
+	{ PCI_VENDOR_ID_COMPEX,		PCI_DEVICE_ID_COMPEX_RL2000,
+		"Compex ReadyLink 2000" },
+	{ PCI_VENDOR_ID_KTI,		PCI_DEVICE_ID_KTI_ET32P2,
+		"KTI ET32P2" },
+	{ PCI_VENDOR_ID_NETVIN,		PCI_DEVICE_ID_NETVIN_NV5000SC,
+		"NetVin NV5000SC" },
+	{ PCI_VENDOR_ID_HOLTEK,		PCI_DEVICE_ID_HOLTEK_HT80232,
+		"Holtek HT80232" },
+};
+
+static struct pci_driver nepci_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "NE2000/PCI",
+	.probe    = nepci_probe,
+	.ids      = nepci_nics,
+	.id_count = sizeof(nepci_nics)/sizeof(nepci_nics[0]),
+};
+
+#endif /* INCLUDE_NS8390 */
 
 /*
  * Local variables:

@@ -32,7 +32,7 @@
 
 #include "etherboot.h"
 #include "nic.h"
-#include "cards.h"
+#include "isa.h"
 #include "smc9000.h"
 
 # define _outb outb
@@ -167,15 +167,6 @@ static int smc_probe( int ioaddr )
    return 0;
 }
 
-
-/**************************************************************************
- * ETH_RESET - Reset adapter
- ***************************************************************************/
-
-static void smc9000_reset(struct nic *nic)
-{
-   smc_reset(smc9000_base);
-}
 
 /**************************************************************************
  * ETH_TRANSMIT - Transmit a frame
@@ -366,10 +357,12 @@ static int smc9000_poll(struct nic *nic)
    return 0;
 }
 
-static void smc9000_disable(struct nic *nic)
+static void smc9000_disable(struct dev *dev __unused)
 {
    if(!smc9000_base)
      return;
+
+   smc_reset(smc9000_base);
 
    /* no more interrupts for me */
    SMC_SELECT_BANK(smc9000_base, 2);
@@ -385,8 +378,9 @@ static void smc9000_disable(struct nic *nic)
  * ETH_PROBE - Look for an adapter
  ***************************************************************************/
 
-struct nic *smc9000_probe(struct nic *nic, unsigned short *probe_addrs)
+static int smc9000_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+   struct nic *nic = (struct nic *)dev;
    unsigned short   revision;
    int	            memory;
    int              media;
@@ -504,15 +498,15 @@ struct nic *smc9000_probe(struct nic *nic, unsigned short *probe_addrs)
 	   smc9000_base + CONFIG );
    }
 
-   nic->reset = smc9000_reset;
-   nic->poll = smc9000_poll;
+   dev->disable  = smc9000_disable;
+   nic->poll     = smc9000_poll;
    nic->transmit = smc9000_transmit;
-   nic->disable = smc9000_disable;
-   /* Based on PnP ISA map */
-   nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-   nic->devid.device_id = htons(0x8228);
 
-   return nic;
+   /* Based on PnP ISA map */
+   dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+   dev->devid.device_id = htons(0x8228);
+
+   return 1;
 
 out:
 #ifdef	SMC9000_VERBOSE
@@ -523,5 +517,9 @@ out:
    return (0);
 }
 
-
-
+static struct isa_driver smc9000_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "SMC9000",
+	.probe   = smc9000_probe,
+	.ioaddrs = 0,
+};

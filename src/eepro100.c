@@ -97,7 +97,6 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 #include "timer.h"
 
 static int ioaddr;
@@ -345,19 +344,6 @@ static inline void whereami (const char *str)
 #define whereami(s)
 #endif
 
-/* function: eepro100_reset
- * resets the card. This is used to allow Etherboot to probe the card again
- * from a "virginal" state....
- * Arguments: none
- *
- * returns:   void.
- */
-
-static void eepro100_reset(struct nic *nic __unused)
-{
-	outl(0, ioaddr + SCBPort);
-}
-
 /* function: eepro100_transmit
  * This transmits a packet.
  *
@@ -459,11 +445,21 @@ static int eepro100_poll(struct nic *nic)
 	return 1;
 }
 
-static void eepro100_disable(struct nic *nic __unused)
+/* function: eepro100_disable
+ * resets the card. This is used to allow Etherboot or Linux
+ * to probe the card again from a "virginal" state....
+ * Arguments: none
+ *
+ * returns:   void.
+ */
+static void eepro100_disable(struct dev *dev __unused)
 {
-    /* See if this PartialReset solves the problem with interfering with
-       kernel operation after Etherboot hands over. - Ken 20001102 */
-    outl(2, ioaddr + SCBPort);
+/* from eepro100_reset */
+	outl(0, ioaddr + SCBPort);
+/* from eepro100_disable */
+	/* See if this PartialReset solves the problem with interfering with
+	   kernel operation after Etherboot hands over. - Ken 20001102 */
+	outl(2, ioaddr + SCBPort);
 }
 
 /* exported function: eepro100_probe / eth_probe
@@ -474,8 +470,9 @@ static void eepro100_disable(struct nic *nic __unused)
  *            leaves the 82557 initialized, and ready to recieve packets.
  */
 
-struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *p)
+static int eepro100_probe(struct dev *dev, struct pci_device *p)
 {
+	struct nic *nic = (struct nic *)dev;
 	unsigned short sum = 0;
 	int i;
 	int read_cmd, ee_size;
@@ -486,9 +483,9 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 	   be careful not to access beyond this array */
 	unsigned short eeprom[16];
 
-	if (probeaddrs == 0 || probeaddrs[0] == 0)
+	if (p->ioaddr == 0)
 		return 0;
-	ioaddr = probeaddrs[0] & ~3; /* Mask the bit that says "this is an io addr" */
+	ioaddr = p->ioaddr & ~3; /* Mask the bit that says "this is an io addr" */
 
 	adjust_pci_device(p);
 
@@ -637,11 +634,10 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 		return 0;
 	}
 
-	nic->reset = eepro100_reset;
-	nic->poll = eepro100_poll;
+	dev->disable  = eepro100_disable;
+	nic->poll     = eepro100_poll;
 	nic->transmit = eepro100_transmit;
-	nic->disable = eepro100_disable;
-	return nic;
+	return 1;
 }
 
 /*********************************************************************/
@@ -664,3 +660,27 @@ void hd (void *where, int n)
 }
 #endif
 
+static struct pci_id eepro100_nics[] = {
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82557,
+		"Intel EtherExpressPro100" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82559ER,
+		"Intel EtherExpressPro100 82559ER" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1029,
+		"Intel EtherExpressPro100 ID1029" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1030,
+		"Intel Corporation 82559 InBusiness 10/100" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82562,
+		"Intel EtherExpressPro100 82562EM" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1038,
+		"Intel(R) PRO/100 VM Network Connection" },
+	{ PCI_VENDOR_ID_INTEL,		0x1039,
+		"Intel PRO100 VE 82562ET" },
+};
+
+static struct pci_driver eepro100_driver __pci_driver = {
+	.type      = NIC_DRIVER,
+	.name      = "EEPRO100",
+	.probe     = eepro100_probe,
+	.ids       = eepro100_nics,
+	.id_count  = sizeof(eepro100_nics)/sizeof(eepro100_nics[0]),
+};

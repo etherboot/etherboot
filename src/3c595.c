@@ -439,24 +439,28 @@ vxsetlink(void)
     GO_WINDOW(1); 
 }
 
-static void t595_disable(struct nic *nic)
+static void t595_disable(struct dev *dev)
 {
-    outw(STOP_TRANSCEIVER, BASE + VX_COMMAND);
-    udelay(8000);
-    GO_WINDOW(4);
-    outw(0, BASE + VX_W4_MEDIA_TYPE);
-    GO_WINDOW(1);
+	struct nic *nic = (struct nic *)dev;
+	t595_reset(nic);
+
+	outw(STOP_TRANSCEIVER, BASE + VX_COMMAND);
+	udelay(8000);
+	GO_WINDOW(4);
+	outw(0, BASE + VX_W4_MEDIA_TYPE);
+	GO_WINDOW(1);
 }
 
 /**************************************************************************
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
-struct nic *t595_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci)
+static int t595_probe(struct dev *dev, struct pci_device *pci)
 {
+	struct nic *nic = (struct nic *)dev;
 	int i;
 	unsigned short *p;
 
-	if (probeaddrs == 0 || probeaddrs[0] == 0)
+	if (pci->ioaddr == 0)
 		return 0;
 /*	eth_nic_base = probeaddrs[0] & ~3; */
 	eth_nic_base = pci->ioaddr;
@@ -488,13 +492,49 @@ struct nic *t595_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_d
 	printf("Ethernet address: %!\n", nic->node_addr);
 
 	t595_reset(nic);
-	nic->reset = t595_reset;
-	nic->poll = t595_poll;
+	dev->disable  = t595_disable;
+	nic->poll     = t595_poll;
 	nic->transmit = t595_transmit;
-	nic->disable = t595_disable;
 	return nic;
 
 }
+
+static struct pci_id t595_nics[] = {
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C590,
+		"3Com590" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595,
+		"3Com595" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595_1,
+		"3Com595" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595_2,
+		"3Com595" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900TPO,
+		"3Com900-TPO" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900COMBO,
+		"3Com900-Combo" },
+	{ PCI_VENDOR_ID_3COM,		0x9004,
+		"3Com900B-TPO" },
+	{ PCI_VENDOR_ID_3COM,		0x9005,
+		"3Com900B-Combo" },
+	{ PCI_VENDOR_ID_3COM,		0x9006,
+		"3Com900B-2/T" },
+	{ PCI_VENDOR_ID_3COM,		0x900A,
+		"3Com900B-FL" },
+	{ PCI_VENDOR_ID_3COM,		0x9800,
+		"3Com980-Cyclone" },
+	{ PCI_VENDOR_ID_3COM,		0x9805,
+		"3Com9805" },
+	{ PCI_VENDOR_ID_3COM,		0x7646,
+		"3CSOHO100-TX" },
+};
+
+static struct pci_driver t595_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "3C595",
+	.probe    = t595_probe,
+	.ids      = t595_nics,
+	.id_count = sizeof(t595_nics)/sizeof(t595_nics[0]),
+};
 
 /*
  * Local variables:

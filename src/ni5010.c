@@ -19,8 +19,7 @@ Linux NI5010 driver.
 #include "etherboot.h"
 /* to get the interface to the body of the program */
 #include "nic.h"
-/* to get our own prototype */
-#include "cards.h"
+#include "isa.h"
 
 /* ni5010.h file included verbatim */
 /*
@@ -280,8 +279,12 @@ static void ni5010_transmit(struct nic *nic,
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void ni5010_disable(struct nic *nic)
+static void ni5010_disable(struct dev *dev)
 {
+	struct nic *nic = (struct nic *)dev;
+	/* reset and disable merge */
+	ni5010_reset(nic);
+
 	outb(0, IE_MMODE);
 	outb(RS_RESET, EDLC_RESET);
 }
@@ -349,8 +352,9 @@ static int ni5010_probe1(struct nic *nic)
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
-struct nic *ni5010_probe(struct nic *nic, unsigned short *probe_addrs)
+static int ni5010_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	static unsigned short	io_addrs[] = {
 		0x300, 0x320, 0x340, 0x360, 0x380, 0x3a0, 0 };
 	unsigned short		*p;
@@ -366,9 +370,16 @@ struct nic *ni5010_probe(struct nic *nic, unsigned short *probe_addrs)
 		return (0);
 	ni5010_reset(nic);
 	/* point to NIC specific routines */
-	nic->reset = ni5010_reset;
-	nic->poll = ni5010_poll;
+	dev->disable  = ni5010_disable;
+	nic->poll     = ni5010_poll;
 	nic->transmit = ni5010_transmit;
-	nic->disable = ni5010_disable;
-	return (nic);
+	return 1;
 }
+
+static struct isa_driver ni5010_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "NI5010",
+	.probe   = ni5010_probe,
+	.ioaddrs = 0,
+};
+

@@ -9,7 +9,7 @@
 
 use strict;
 
-use vars qw($curfam %drivers %pcient %isaent);
+use vars qw($curfam %drivers %pcient %isaent %buildent);
 
 sub gendep ($) {
 	my ($driver) = @_;
@@ -67,9 +67,11 @@ sub addrom ($) {
 	if ($ids eq '-') {
 		# We store the base driver file for each ISA target
 		$isaent{$rom} = $curfam;
+		$buildent{$rom} = 1;
 	} else {
 		# We store a list of PCI IDs and comments for each PCI target
 		push(@{$pcient{$curfam}}, [$rom, $ids, $comment]);
+		$buildent{$curfam} = 1;
 	}
 }
 
@@ -106,58 +108,22 @@ close(STDIN);
 
 # Generate the assignments to DOBJS and BINS
 print "# Driver object files and ROM image files\n";
-print "DOBJS32\t+= bin32/pci.o\n";
-foreach my $key (sort keys %drivers) {
-	# PCI drivers are compiled only once for all ROMs
-	print "DOBJS32\t+= bin32/$key.o\n";
+print "IMG3S2\t:=\n";
+foreach my $img (sort keys %buildent) {
+	print "IMGS32\t+= bin32/$img.img bin32/$img.lzimg\n"
 }
+
+print "ROMS32\t:=\n";
 foreach my $family (sort keys %pcient) {
 	my $aref = $pcient{$family};
 	foreach my $entry (@$aref) {
 		my $rom = $entry->[0];
-		print "BINS32\t+= bin32/$rom.rom bin32/$rom.lzrom\n";
+		print "ROMS32\t+= bin32/$rom.rom bin32/$rom.lzrom\n";
 	}
 }
 foreach my $isa (sort keys %isaent) {
-	print "BINS32\t+= bin32/$isa.rom bin32/$isa.lzrom\n";
+	print "ROMS32\t+= bin32/$isa.rom bin32/$isa.lzrom\n";
 }
-
-# Helper macros for multi-driver ROMs
-print <<EOF;
-
-# Helper macros for multi-driver ROM builds
-# \$* will be set to the driver list (e.g. rtl8139--prism2_pci)
-#
-# Examples:
-# With \$* = rtl8139:
-# MDROM_ALL_DRIVERS will expand to "rtl8139"
-# MDROM_ALL_INCLUDES will expand to "-DINCLUDE_RTL8139"
-# MDROM_ALL_OBJS will expand to "bin32/rtl8139.o"
-# MDROM_TRY_ALL_DEVICES will expand to ""
-#
-# With \$* = rtl8139--prism2_pci:
-# MDROM_ALL_DRIVERS will expand to "rtl8139 prism2_pci"
-# MDROM_ALL_INCLUDES will expand to "-DINCLUDE_RTL8139 -DINCLUDE_PRISM2_PCI"
-# MDROM_ALL_OBJS will expand to "bin32/rtl8139.o bin32/prism2_pci.o"
-# MDROM_TRY_ALL_DEVICES will expand to "-DTRY_ALL_DEVICES"
-
-MDROM_ALL_DRIVERS=\$(subst --, ,\$*)
-MDROM_ALL_INCLUDES=\$(foreach include,\$(MDROM_ALL_DRIVERS),\$(INCLUDE_\$(include)))
-MDROM_ALL_OBJS=\$(patsubst %,bin32/%.o,\$(MDROM_ALL_DRIVERS))
-MDROM_TRY_ALL_DEVICES=\$(if \$(findstring --,\$*),-DTRY_ALL_DEVICES)
-
-# List of all possible *.o dependencies for multi-driver ROMs
-# Required since there doesn't seem to be any easy way to specify dependencies
-# based on a function of the target name (because any functions get evaluated
-# *before* the contents of % are substituted in)
-MDROM_ALL_DEPS :=
-
-# Rule to build the config-*.o files
-
-bin32/config-%.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	\$(CC32) \$(CFLAGS32) \$(MDROM_ALL_INCLUDES) \$(MDROM_TRY_ALL_DEVICES) -o \$@ -c \$<
-
-EOF
 
 # Generate the *.o rules
 print "\n# Rules to build the driver object files\n";
@@ -168,12 +134,12 @@ foreach my $pci (sort keys %drivers) {
 	(my $macro = $pci) =~ tr/\-/_/;
 	my $deps = $drivers{$pci};
 	print <<EOF;
-INCLUDE_$pci = -DINCLUDE_\U$macro\E
-
-MDROM_ALL_DEPS += bin32/$pci.o
 
 bin32/$pci.o:	$pci.c \$(MAKEDEPS) pci.h $deps
 	\$(CC32) \$(CFLAGS32) \$(\U$macro\EFLAGS) -o \$@ -c \$<
+
+bin32/$pci--%.o:	bin32/%.o bin32/$pci.o \$(MAKEDEPS)
+	\$(LD32) -r bin32/$pci.o \$< -o \$@
 
 EOF
 }
@@ -183,13 +149,11 @@ foreach my $isa (sort keys %isaent) {
 	my $base = $isaent{$isa};
 	my $deps = $drivers{$base};
 	print <<EOF;
-INCLUDE_$isa = -DINCLUDE_\U$macro\E
-
-MDROM_ALL_DEPS += bin32/$isa.o
-
 bin32/$isa.o:	$base.c \$(MAKEDEPS) $deps
 	\$(CC32) \$(CFLAGS32) \$(\U$macro\EFLAGS) -o \$@ -c \$<
 
+bin32/$isa--%.o:	bin32/%.o bin32/$isa.o \$(MAKEDEPS)
+	\$(LD32) -r bin32/$isa.o \$< -o \$@ 
 EOF
 }
 
@@ -220,43 +184,14 @@ bin32/$rom--%.lzrom:	bin32/$family--%.huf \$(PRLOADER) \$(START16)
 EOF
 	}
 }
+
 # ISA ROMs are prepared from the matching code images
 foreach my $isa (sort keys %isaent) {
 	print <<EOF;
-bin32/$isa.rom:	bin32/$isa.img \$(RLOADER)
+bin32/$isa.rom:		bin32/$isa.img \$(RLOADER)
 
-bin32/$isa.lzrom:	bin32/$isa.huf \$(RZLOADER)
-
-bin32/$isa.pxe:	bin32/$isa.img \$(PXELOADER)
-
-bin32/$isa.lzpxe:	bin32/$isa.huf \$(PXEZLOADER)
+bin32/$isa.lzrom:	bin32/$isa.lzimg \$(RLOADER)
 
 EOF
 }
 
-# and generate the .img image rules
-print "# Rules to build the image files\n";
-foreach my $pci (sort keys %drivers) {
-	# If there are no PCI ID entries, it's an ISA only family
-	next if &isaonly($pci);
-	# PCI images are prepared once per driver
-	print <<EOF;
-bin32/$pci.tmp:	bin32/$pci.o bin32/config-$pci.o bin32/pci.o \$(STDDEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
-	@\$(SIZE32) \$@ | \$(CHECKSIZE)
-
-bin32/$pci--%.tmp:	bin32/$pci.o \$(MDROM_ALL_DEPS) bin32/config-$pci--%.o bin32/pci.o \$(STDDEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o \$(MDROM_ALL_OBJS) bin32/pci.o \$(LIBS32)
-	@\$(SIZE32) \$@ | \$(CHECKSIZE)
-
-EOF
-}
-foreach my $isa (sort keys %isaent) {
-	# ISA images are built one per entry
-	print <<EOF;
-bin32/$isa.tmp:	bin32/$isa.o bin32/config-$isa.o \$(STDDEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$isa.o bin32/$isa.o \$(LIBS32)
-	@\$(SIZE32) \$@ | \$(CHECKSIZE)
-
-EOF
-}

@@ -24,7 +24,7 @@ Fujitsu MB86960 spec sheet (different chip but same family)
 #include "etherboot.h"
 /* to get the interface to the body of the program */
 #include "nic.h"
-#include "cards.h"
+#include "isa.h"
 
 /*
 	EtherStar I/O Register offsets
@@ -196,8 +196,12 @@ const char *p)			/* Packet */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void tiara_disable(struct nic *nic)
+static void tiara_disable(struct dev *dev)
 {
+	struct nic *nic = (struct nic *)dev;
+	/* reset and disable merge */
+	tiara_reset(nic);
+
 	/* Apparently only a power down can do this properly */
 	outb(CARD_DISABLE, ioaddr + DLCR_ENABLE);
 }
@@ -222,8 +226,9 @@ static int tiara_probe1(struct nic *nic)
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
-struct nic *tiara_probe(struct nic *nic, unsigned short *probe_addrs)
+static int tiara_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	/* missing entries are addresses usually already used */
 	static unsigned short	io_addrs[] = {
 		0x100, 0x120, 0x140, 0x160,
@@ -246,13 +251,22 @@ struct nic *tiara_probe(struct nic *nic, unsigned short *probe_addrs)
 	if (ioaddr != 0)
 	{
 		tiara_reset(nic);
+
 		/* point to NIC specific routines */
-		nic->reset = tiara_reset;
-		nic->poll = tiara_poll;
+		dev->disable  = tiara_disable;
+		nic->poll     = tiara_poll;
 		nic->transmit = tiara_transmit;
-		nic->disable = tiara_disable;
-		return nic;
+
+		/* FIXME set dev->devid */
+		return 1;
 	}
 	else
 		return (0);
 }
+
+static struct isa_driver tiara_driver __isa_driver = {
+	.type  = NIC_DRIVER,
+	.name  = "TIARA",
+	.probe = tiara_probe,
+	.ioaddrs = 0,
+};

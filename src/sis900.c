@@ -47,7 +47,6 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 
 #include "sis900.h"
 
@@ -124,7 +123,7 @@ static struct pci_id   pci_isa_bridge_list[] = {
 
 /* Function Prototypes */
 
-struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci);
+static int sis900_probe(struct dev *dev, struct pci_device *pci);
 
 static u16  sis900_read_eeprom(int location);
 static void sis900_mdio_reset(long mdio_addr);
@@ -146,7 +145,7 @@ static void sis900_transmit(struct nic *nic, const char *d,
                             unsigned int t, unsigned int s, const char *p);
 static int  sis900_poll(struct nic *nic);
 
-static void sis900_disable(struct nic *nic);
+static void sis900_disable(struct dev *dev);
 
 /**
  *	sis900_get_mac_addr: - Get MAC address for stand alone SiS900 model
@@ -261,8 +260,9 @@ static int sis635_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
  * Returns:   struct nic *:          pointer to NIC data structure
  */
 
-struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
+static int sis900_probe(struct dev *dev, struct pci_device *pci)
 {
+    struct nic *nic = (struct nic *)dev;
     int i;
     int found=0;
     int phy_addr;
@@ -270,10 +270,10 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
     u8 revision;
     int ret;
 
-    if (io_addrs == 0 || *io_addrs == 0)
-        return NULL;
+    if (pci->ioaddr == 0)
+        return 0;
 
-    ioaddr  = *io_addrs & ~3;
+    ioaddr  = pci->ioaddr & ~3;
     vendor  = pci->vendor;
     dev_id  = pci->dev_id;
 
@@ -299,7 +299,7 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
     if (ret == 0)
     {
         printf ("sis900_probe: Error MAC address not found\n");
-        return NULL;
+        return 0;
     }
 
     /* 630ET : set the mii access mode as software-mode */
@@ -347,7 +347,7 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
         
     if (found == 0) {
         printf("sis900_probe: No MII transceivers found!\n");
-        return NULL;
+        return 0;
     }
 
     /* Arbitrarily select the last PHY found as current PHY */
@@ -357,12 +357,11 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
     /* initialize device */
     sis900_init(nic);
 
-    nic->reset    = sis900_init;
+    dev->disable  = sis900_disable;
     nic->poll     = sis900_poll;
     nic->transmit = sis900_transmit;
-    nic->disable  = sis900_disable;
 
-    return nic;
+    return 1;
 }
 
 
@@ -1142,8 +1141,12 @@ sis900_poll(struct nic *nic)
  */
 
 static void
-sis900_disable(struct nic *nic)
+sis900_disable(struct dev *dev)
 {
+    struct nic *nic = (struct nic *)dev;
+    /* merge reset and disable */
+    sis900_init(nic);
+
     /* Disable interrupts by clearing the interrupt mask. */
     outl(0, ioaddr + imr);
     outl(0, ioaddr + ier);
@@ -1151,3 +1154,18 @@ sis900_disable(struct nic *nic)
     /* Stop the chip's Tx and Rx Status Machine */
     outl(RxDIS | TxDIS | inl(ioaddr + cr), ioaddr + cr);
 }
+
+static struct pci_id sis900_nics[] = {
+       { PCI_VENDOR_ID_SIS,     	PCI_DEVICE_ID_SIS900,
+         "SIS900" },
+       { PCI_VENDOR_ID_SIS,     	PCI_DEVICE_ID_SIS7016,
+	 "SIS7016" },
+};
+
+static struct pci_driver sis900_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "SIS900",
+	.probe    = sis900_probe,
+	.ids      = sis900_nics,
+	.id_count = sizeof(sis900_nics)/sizeof(sis900_nics[0]),
+};

@@ -30,4 +30,4 @@ void get_memsizes(void)
 	real_mode_stack = (meminfo.basememsize << 10);
 }
 
-#endif
+#endif /* PCBIOS */

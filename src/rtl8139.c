@@ -66,7 +66,6 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 #include "timer.h"
 
 #define RTL_TIMEOUT (1*TICKS_PER_SEC)
@@ -174,19 +173,18 @@ static unsigned char tx_buffer[TX_BUF_SIZE] __attribute__((aligned(4)));
 static unsigned char rx_ring[RX_BUF_LEN+16] __attribute__((aligned(4)));
 #endif
 
-struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
-	struct pci_device *pci);
+static int rtl8139_probe(struct dev *dev, struct pci_device *pci);
 static int read_eeprom(int location, int addr_len);
 static void rtl_reset(struct nic *nic);
 static void rtl_transmit(struct nic *nic, const char *destaddr,
 	unsigned int type, unsigned int len, const char *data);
 static int rtl_poll(struct nic *nic);
-static void rtl_disable(struct nic*);
+static void rtl_disable(struct dev *);
 
 
-struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
-	struct pci_device *pci)
+static int rtl8139_probe(struct dev *dev, struct pci_device *pci)
 {
+	struct nic *nic = (struct nic *)dev;
 	int i;
 	int speed10, fullduplex;
 	int addr_len;
@@ -197,7 +195,7 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 	printf(" - ");
 
 	/* Mask the bit that says "this is an io addr" */
-	ioaddr = probeaddrs[0] & ~3;
+	ioaddr = pci->ioaddr & ~3;
 
 	adjust_pci_device(pci);
 
@@ -221,12 +219,11 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 		return(0);
 	}
 
-	nic->reset = rtl_reset;
-	nic->poll = rtl_poll;
+	dev->disable  = rtl_disable;
+	nic->poll     = rtl_poll;
 	nic->transmit = rtl_transmit;
-	nic->disable = rtl_disable;
 
-	return nic;
+	return 1;
 }
 
 /* Serial EEPROM section. */
@@ -453,8 +450,12 @@ static int rtl_poll(struct nic *nic)
 	return 1;
 }
 
-static void rtl_disable(struct nic *nic)
+static void rtl_disable(struct dev *dev)
 {
+	struct nic *nic = (struct nic *)dev;
+	/* merge reset and disable */
+	rtl_reset(nic);
+
 	/* reset the chip */
 	outb(CmdReset, ioaddr + ChipCmd);
 
@@ -463,3 +464,22 @@ static void rtl_disable(struct nic *nic)
 	while ((inb(ioaddr + ChipCmd) & CmdReset) != 0 && timer2_running())
 		/* wait */;
 }
+
+static struct pci_id rtl8139_nics[] = {
+	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8129,
+		"Realtek 8129" },
+	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8139,
+		"Realtek 8139" },
+	{ PCI_VENDOR_ID_DLINK,		PCI_DEVICE_ID_DFE530TXP,
+                "DFE530TX+/DFE538TX" },
+        { PCI_VENDOR_ID_SMC_1211,       PCI_DEVICE_ID_SMC_1211,
+                "SMC EZ10/100" },
+};
+
+static struct pci_driver rtl8139_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "RTL8139",
+	.probe    = rtl8139_probe,
+	.ids      = rtl8139_nics,
+	.id_count = sizeof(rtl8139_nics)/sizeof(rtl8139_nics[0]),
+};

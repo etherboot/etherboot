@@ -49,7 +49,6 @@ static const char *version = "rhine.c v1.0.0 2000-01-07\n";
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 
 /* define all ioaddr */
 
@@ -655,14 +654,14 @@ static struct rhine_private
 }
 rhine;
 
-static struct nic *rhine_probe1 (struct nic *dev, int ioaddr,
+static void rhine_probe1 (struct nic *nic, int ioaddr,
 				 int chip_id, int options);
 static int QueryAuto (int);
 static int ReadMII (int byMIIIndex, int);
 static void WriteMII (char, char, char, int);
 static void MIIDelay (void);
 static void rhine_init_ring (struct nic *dev);
-static void rhine_disable (struct nic *nic);
+static void rhine_disable (struct dev *dev);
 static void rhine_reset (struct nic *nic);
 static int rhine_poll (struct nic *nic);
 static void rhine_transmit (struct nic *nic, const char *d, unsigned int t,
@@ -853,26 +852,25 @@ MIIDelay (void)
     }
 }
 
-struct nic *
-rhine_probe (struct nic *nic, unsigned short *probeaddrs,
-	       struct pci_device *pci)
+static int
+rhine_probe (struct dev *dev, struct pci_device *pci)
 {
+    struct nic *nic = (struct nic *)dev;
     if (!pci->ioaddr)
-	return NULL;
-    nic = rhine_probe1 (nic, pci->ioaddr, 0, -1);
+	return 0;
+    rhine_probe1 (nic, pci->ioaddr, 0, -1);
 
-    if (nic)
-	adjust_pci_device(pci);
-    nic->poll = rhine_poll;
-    nic->transmit = rhine_transmit;
-    nic->reset = rhine_reset;
-    nic->disable = rhine_disable;
+    adjust_pci_device(pci);
     rhine_reset (nic);
 
-    return nic;
+    dev->disable  = rhine_disable;
+    nic->poll     = rhine_poll;
+    nic->transmit = rhine_transmit;
+
+    return 1;
 }
 
-static struct nic *
+static void
 rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 {
     struct rhine_private *tp;
@@ -970,14 +968,18 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 	if (tp->default_port)
 	    tp->medialock = 1;
     }
-    return nic;
+    return;
 }
 
-static void
-rhine_disable (struct nic *nic)
+static void 
+rhine_disable (struct dev *dev)
 {
+    struct nic *nic = (struct nic *)dev;
     struct rhine_private *tp = (struct rhine_private *) nic->priv_data;
     int ioaddr = tp->ioaddr;
+
+    /* merge reset and disable */
+    rhine_reset(nic);
 
     printf ("rhine disable\n");
     /* Switch to loopback mode to avoid hardware races. */
@@ -1178,5 +1180,22 @@ rhine_transmit (struct nic *nic,
     /*dev_kfree_skb(tp->tx_skbuff[entry], FREE_WRITE); */
     /*tp->tx_skbuff[entry] = 0; */
 }
+
+static struct pci_id rhine_nics[] = {
+	{ PCI_VENDOR_ID_VIATEC, PCI_DEVICE_ID_VIA_VT6102,
+		"VIA 6102" },
+	{ PCI_VENDOR_ID_VIATEC,	PCI_DEVICE_ID_VIA_RHINE_I,
+		"VIA 3043" },
+	{ PCI_VENDOR_ID_VIATEC,	PCI_DEVICE_ID_VIA_86C100A,
+		"VIA 86C100A" },
+};
+
+static struct pci_driver rhine_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "VIA 86C100",
+	.probe    = rhine_probe,
+	.ids      = rhine_nics,
+	.id_count = sizeof(rhine_nics)/sizeof(rhine_nics[0]),
+};
 
 /* EOF via-rhine.c */

@@ -233,7 +233,7 @@
 
 #include "etherboot.h"
 #include "nic.h"
-#include "cards.h"
+#include "isa.h"
 
 /*
 ** I/O addresses. Note that the 2k buffer option is not supported in
@@ -644,8 +644,12 @@ static void depca_transmit(
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void depca_disable(struct nic *nic)
+static void depca_disable(struct dev *dev)
 {
+	struct nic *nic = (struct nic *)dev;
+	/* reset and disable merge */
+	depca_reset(nic);
+
 	STOP_DEPCA;
 }
 
@@ -732,8 +736,9 @@ static int depca_probe1(struct nic *nic)
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
-struct nic *depca_probe(struct nic *nic, unsigned short *probe_addrs)
+static int depca_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	static unsigned short	base[] = DEPCA_IO_PORTS;
 	int			i;
 
@@ -747,12 +752,19 @@ struct nic *depca_probe(struct nic *nic, unsigned short *probe_addrs)
 		return (0);
 	depca_reset(nic);
 	/* point to NIC specific routines */
-	nic->reset = depca_reset;
-	nic->poll = depca_poll;
+	dev->disable  = depca_disable;
+	nic->poll     = depca_poll;
 	nic->transmit = depca_transmit;
-	nic->disable = depca_disable;
+
 	/* Based on PnP ISA map */
-	nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-	nic->devid.device_id = htons(0x80f7);
-	return (nic);
+	dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+	dev->devid.device_id = htons(0x80f7);
+	return 1;
 }
+
+static struct isa_driver depca_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "DEPCA",
+	.probe   = depca_probe,
+	.ioaddrs = 0,
+};

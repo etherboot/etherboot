@@ -16,7 +16,7 @@ Ken Yap, January 1998
 
 #include "etherboot.h"
 #include "nic.h"
-#include "cards.h"
+#include "isa.h"
 #include "timer.h"
 
 /* Sources of information:
@@ -479,9 +479,13 @@ static void i82586_transmit(
 /**************************************************************************
   DISABLE - Turn off ethernet interface
  ***************************************************************************/
-static void i82586_disable(struct nic *nic)
+static void i82586_disable(struct dev *dev)
 {
+	struct nic *nic = (struct nic *)dev;
 	unsigned short	*shmem = (short *)mem_start;
+
+	/* reset and disable merge */
+	i82586_reset(nic);
 
 #if	0
 	/* Flush the Tx and disable Rx. */
@@ -536,8 +540,9 @@ static int t507_probe1(struct nic *nic, unsigned short ioaddr)
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 
-struct nic *t507_probe(struct nic *nic, unsigned short *probe_addrs)
+static int t507_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	static unsigned char	init_ID_done = 0;
 	unsigned short		lrs_state = 0xff;
 	static unsigned short	io_addrs[] = { 0x300, 0x320, 0x340, 0x280, 0 };
@@ -568,14 +573,14 @@ struct nic *t507_probe(struct nic *nic, unsigned short *probe_addrs)
 	{
 		/* point to NIC specific routines */
 		i82586_reset(nic);
-		nic->reset = i82586_reset;
-		nic->poll = i82586_poll;
+		dev->disable  = i82586_disable; 
+		nic->poll     = i82586_poll;
 		nic->transmit = i82586_transmit;
-		nic->disable = i82586_disable;
+
 		/* Based on PnP ISA map */
-		nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-		nic->devid.device_id = htons(0x80f6);
-		return nic;
+		dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+		dev->devid.device_id = htons(0x80f6);
+		return 1;
 	}
 	/* else */
 	{
@@ -651,8 +656,9 @@ static int ni5210_probe1(struct nic *nic)
 	return (1);
 }
 
-struct nic *ni5210_probe(struct nic *nic, unsigned short *probe_addrs)
+static int ni5210_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	/* missing entries are addresses usually already used */
 	static unsigned short	io_addrs[] = {
 		0x200, 0x208, 0x210, 0x218, 0x220, 0x228, 0x230, 0x238,
@@ -678,10 +684,12 @@ struct nic *ni5210_probe(struct nic *nic, unsigned short *probe_addrs)
 	{
 		/* point to NIC specific routines */
 		i82586_reset(nic);
-		nic->reset = i82586_reset;
-		nic->poll = i82586_poll;
+		
+		dev->disable  = i82586_disable; 
+		nic->poll     = i82586_poll;
 		nic->transmit = i82586_transmit;
-		nic->disable = i82586_disable;
+
+		/* FIXME fill in dev->devid */
 		return nic;
 	}
 	/* else */
@@ -795,8 +803,9 @@ static int exos205_probe1(struct nic *nic)
 	return (1);
 }
 
-struct nic *exos205_probe(struct nic *nic, unsigned short *probe_addrs)
+static int exos205_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	/* If you know the other addresses, please let me know */
 	static unsigned short	io_addrs[] = {
 		0x310, 0x0
@@ -814,11 +823,11 @@ struct nic *exos205_probe(struct nic *nic, unsigned short *probe_addrs)
 	{
 		/* point to NIC specific routines */
 		i82586_reset(nic);
-		nic->reset = i82586_reset;
-		nic->poll = i82586_poll;
+		dev->disable  = i82586_disable; 
+		nic->poll     = i82586_poll;
 		nic->transmit = i82586_transmit;
-		nic->disable = i82586_disable;
-		return nic;
+		/* FIXME fill in dev->devid */
+		return 1;
 	}
 	/* else */
 	{
@@ -826,4 +835,30 @@ struct nic *exos205_probe(struct nic *nic, unsigned short *probe_addrs)
 	}
 }
 
+#endif
+
+#ifdef INCLUDE_3C507
+static struct isa_driver t507_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "3C507",
+	.probe   = t507_probe,
+	.ioaddrs = 0,
+};
+#endif
+
+#ifdef INCLUDE_NI5210
+static struct isa_driver ni5210_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "NI5210",
+	.probe   = ni5210_probe,
+	.ioaddrs = 0,
+};
+#endif
+#ifdef	INCLUDE_EXOS205
+static struct isa_driver exos205_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "EX0S205",
+	.probe   = exos205_probe,
+	.ioaddrs = 0,
+};
 #endif

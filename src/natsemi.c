@@ -58,7 +58,6 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 
 /* defines */
 
@@ -219,7 +218,7 @@ static unsigned char rxb[NUM_RX_DESC * RX_BUF_SIZE] __attribute__ ((aligned(4)))
 
 /* Function Prototypes */
 
-struct nic *natsemi_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci);
+static int natsemi_probe(struct dev *dev, struct pci_device *pci);
 static int eeprom_read(long addr, int location);
 static int mdio_read(int phy_id, int location);
 static void natsemi_init(struct nic *nic);
@@ -231,7 +230,7 @@ static void natsemi_set_rx_mode(struct nic *nic);
 static void natsemi_check_duplex(struct nic *nic);
 static void natsemi_transmit(struct nic *nic, const char *d, unsigned int t, unsigned int s, const char *p);
 static int  natsemi_poll(struct nic *nic);
-static void natsemi_disable(struct nic *nic);
+static void natsemi_disable(struct dev *dev);
 
 /* 
  * Function: natsemi_probe
@@ -247,19 +246,20 @@ static void natsemi_disable(struct nic *nic);
  * Returns:   struct nic *:          pointer to NIC data structure
  */
 
-struct nic *
-natsemi_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
+static int
+natsemi_probe(struct dev *dev, struct pci_device *pci)
 {
+    struct nic *nic = (struct nic *)dev;
     int i;
     int prev_eedata;
     u32 tmp;
 
-    if (io_addrs == 0 || *io_addrs == 0)
-        return NULL;
+    if (pci->ioaddr == 0)
+        return 0;
 
     /* initialize some commonly used globals */
 	
-    ioaddr     = *io_addrs & ~3;
+    ioaddr     = pci->ioaddr & ~3;
     vendor     = pci->vendor;
     dev_id     = pci->dev_id;
     nic_name   = pci->name;
@@ -319,12 +319,11 @@ natsemi_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
     /* initialize device */
     natsemi_init(nic);
 
-    nic->reset    = natsemi_init;
+    dev->disable  = natsemi_disable;
     nic->poll     = natsemi_poll;
     nic->transmit = natsemi_transmit;
-    nic->disable  = natsemi_disable;
 
-    return nic;
+    return 1;
 }
 
 /* Read the EEPROM and MII Management Data I/O (MDIO) interfaces.
@@ -727,8 +726,12 @@ natsemi_poll(struct nic *nic)
  */
 
 static void
-natsemi_disable(struct nic *nic)
+natsemi_disable(struct dev *dev)
 {
+    struct nic *nic = (struct nic *)dev;
+    /* merge reset and disable */
+    natsemi_init(nic);
+
     /* Disable interrupts using the mask. */
     outl(0, ioaddr + IntrMask);
     outl(0, ioaddr + IntrEnable);
@@ -739,3 +742,16 @@ natsemi_disable(struct nic *nic)
     /* Restore PME enable bit */
     outl(SavedClkRun, ioaddr + ClkRun);
 }
+
+static struct pci_id natsemi_nics[] = {
+       { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
+         "DP83815" },
+};
+
+static struct pci_driver natsemi_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "NATSEMI",
+	.probe    = natsemi_probe,
+	.ids      = natsemi_nics,
+	.id_count = sizeof(natsemi_nics)/sizeof(natsemi_nics[0]),
+};

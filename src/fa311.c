@@ -115,13 +115,14 @@ static void init_ring(struct FA311_DEV *dev);
 static void fa311_reset(struct nic *nic);
 static int  fa311_poll(struct nic *nic);
 static void fa311_transmit(struct nic *nic, const char *d, unsigned int t, unsigned int s, const char *p);
-static void fa311_disable(struct nic *nic);
+static void fa311_disable(struct dev *dev);
 
 static char rx_packet[PKT_BUF_SZ * RX_RING_SIZE] __attribute__ ((aligned (4)));
 static char tx_packet[PKT_BUF_SZ * TX_RING_SIZE] __attribute__ ((aligned (4)));
 
-struct nic * fa311_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
+static int fa311_probe(struct dev *ndev, struct pci_device *pci)
 {
+struct nic *nic = (struct nic *)ndev;
 int            prev_eedata;
 int            i;
 int            duplex;
@@ -133,8 +134,6 @@ unsigned char  mactest;
 unsigned char  pci_bus = 0;
 struct FA311_DEV* dev = &fa311_dev;
 	
-    if (io_addrs == 0 || *io_addrs == 0)
-        return (0);
     memset(dev, 0, sizeof(*dev));
     dev->vendor = pci->vendor;
     dev->device = pci->dev_id;
@@ -162,9 +161,8 @@ struct FA311_DEV* dev = &fa311_dev;
 
     fa311_reset(nic);
 
-    nic->reset = fa311_reset;
-    nic->disable = fa311_disable;
-    nic->poll = fa311_poll;
+    ndev->disable = fa311_disable;
+    nic->poll     = fa311_poll;
     nic->transmit = fa311_transmit;
 
     init_ring(dev);
@@ -210,7 +208,7 @@ struct FA311_DEV* dev = &fa311_dev;
 
     writel(RxOn | TxOn, dev->ioaddr + ChipCmd);
     writel(4, dev->ioaddr + StatsCtrl);              /* Clear Stats */
-    return nic;	
+    return 1;	
 
 }
 
@@ -320,9 +318,13 @@ struct FA311_DEV* dev = &fa311_dev;
     return;
 }
 
-static void fa311_disable(struct nic *nic)
+static void fa311_disable(struct dev *ndev)
 {
+struct nic *nic = (struct nic *)ndev;
 struct FA311_DEV* dev = &fa311_dev;
+
+    /* merge reset and disable */
+    fa311_reset(nic); 
 
     /* Stop the chip's Tx and Rx processes. */
     writel(RxOff | TxOff, dev->ioaddr + ChipCmd);
@@ -422,3 +424,15 @@ static void init_ring(struct FA311_DEV *dev)
 	return;
 }
 
+static struct pci_id fa311_nics[] = {
+       { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
+         "DP83815" },
+};
+
+static struct pci_driver fa311_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "FA311",
+	.probe    = fa311_probe,
+	.ids      = fa311_nics,
+	.id_count = sizeof(fa311_nics)/sizeof(fa311_nics[0]),
+};

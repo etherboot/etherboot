@@ -40,7 +40,6 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 #include "timer.h"
 
 #define	XCVR_MAGIC	(0x5A00)
@@ -393,8 +392,7 @@ a3c90x_internal_WriteEeprom(int ioaddr, int address, unsigned short value)
  *** not alter the selected transceiver that we used to download the boot
  *** image.
  ***/
-static void
-a3c90x_reset(struct nic *nic)
+static void a3c90x_reset(void)
     {
     int cfg;
 
@@ -553,7 +551,7 @@ a3c90x_transmit(struct nic *nic, const char *d, unsigned int t,
 	if (status & 0x02)
 	    {
 	    printf("3C90X: Tx Reclaim Error (%hhX)\n", status);
-	    a3c90x_reset(NULL);
+	    a3c90x_reset();
 	    }
 	else if (status & 0x04)
 	    {
@@ -572,18 +570,18 @@ a3c90x_transmit(struct nic *nic, const char *d, unsigned int t,
 	else if (status & 0x10)
 	    {
 	    printf("3C90X: Tx Underrun (%hhX)\n", status);
-	    a3c90x_reset(NULL);
+	    a3c90x_reset();
 	    }
 	else if (status & 0x20)
 	    {
 	    printf("3C90X: Tx Jabber (%hhX)\n", status);
-	    a3c90x_reset(NULL);
+	    a3c90x_reset();
 	    }
 	else if ((status & 0x80) != 0x80)
 	    {
 	    printf("3C90X: Internal Error - Incomplete Transmission (%hhX)\n",
 	           status);
-	    a3c90x_reset(NULL);
+	    a3c90x_reset();
 	    }
 	}
 
@@ -663,12 +661,14 @@ a3c90x_poll(struct nic *nic)
  *** [Ken]
  ***/
 static void
-a3c90x_disable(struct nic *nic)
-    {
+a3c90x_disable(struct dev *dev)
+{
+	/* reset and disable merge */
+	a3c90x_reset();
 	/* Disable the receiver and transmitter. */
 	outw(cmdRxDisable, INF_3C90X.IOAddr + regCommandIntStatus_w);
 	outw(cmdTxDisable, INF_3C90X.IOAddr + regCommandIntStatus_w);
-    }
+}
 
 
 
@@ -676,9 +676,9 @@ a3c90x_disable(struct nic *nic)
  *** initialization.  If this routine is called, the pci functions did find the
  *** card.  We just have to init it here.
  ***/
-struct nic*
-a3c90x_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci)
-    {
+static int a3c90x_probe(struct dev *dev, struct pci_device *pci)
+{
+    struct nic *nic = (struct nic *)dev;
     int i, c;
     unsigned short eeprom[0x21];
     unsigned int cfg;
@@ -686,12 +686,12 @@ a3c90x_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci
     unsigned short linktype;
 #define	HWADDR_OFFSET	10
 
-    if (probeaddrs == 0 || probeaddrs[0] == 0)
+    if (pci->ioaddr == 0)
           return 0;
 
     adjust_pci_device(pci);
 
-    INF_3C90X.IOAddr = probeaddrs[0] & ~3;
+    INF_3C90X.IOAddr = pci->ioaddr & ~3;
     INF_3C90X.CurrentWindow = 255;
     switch (a3c90x_internal_ReadEeprom(INF_3C90X.IOAddr, 0x03))
 	{
@@ -926,12 +926,54 @@ a3c90x_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci
                                  cmdAcknowledgeInterrupt, 0x661);
 
     /** Set our exported functions **/
-    nic->reset    = a3c90x_reset;
+    dev->disable  = a3c90x_disable;
     nic->poll     = a3c90x_poll;
     nic->transmit = a3c90x_transmit;
-    nic->disable  = a3c90x_disable;
 
-    return nic;
-    }
+    return 1;
+}
 
 
+static struct pci_id a3c90x_nics[] = {
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900TPO,
+		"3Com900-TPO" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900COMBO,
+		"3Com900-Combo" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905TX,
+		"3Com905-TX" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905T4,
+		"3Com905-T4" },
+
+	{ PCI_VENDOR_ID_3COM,		0x9004,
+		"3Com900B-TPO" },
+	{ PCI_VENDOR_ID_3COM,		0x9005,
+		"3Com900B-Combo" },
+	{ PCI_VENDOR_ID_3COM,		0x9006,
+		"3Com900B-2/T" },
+	{ PCI_VENDOR_ID_3COM,		0x900A,
+		"3Com900B-FL" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905B_TX,
+		"3Com905B-TX" },
+	{ PCI_VENDOR_ID_3COM,		0x9056,
+		"3Com905B-T4"},
+	{ PCI_VENDOR_ID_3COM,		0x9058,
+		"3Com905B-9058"},
+	{ PCI_VENDOR_ID_3COM,		0x905A,
+		"3Com905B-FL" },
+	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905C_TXM,
+		"3Com905C-TXM" },
+	{ PCI_VENDOR_ID_3COM,		0x9800,
+		"3Com980-Cyclone" },
+	{ PCI_VENDOR_ID_3COM,		0x9805,
+		"3Com9805" },
+	{ PCI_VENDOR_ID_3COM,		0x7646,
+		"3CSOHO100-TX" },
+};
+
+static struct pci_driver a3c90x_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "3C90X",
+	.probe    = a3c90x_probe,
+	.ids      = a3c90x_nics,
+	.id_count = sizeof(a3c90x_nics)/sizeof(a3c90x_nics[0]),
+};

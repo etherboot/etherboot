@@ -124,7 +124,12 @@ IDENT32=	'$(@F) $(VERSION) Etherboot (GPL)'
 OLDGAS:=	$(shell $(AS32) --version | grep -q '2\.9\.1' && echo -DGAS291)
 
 BUILD_LIBS=	$(BLIB32)
-BUILD_BINS=	$(BINS32)
+BUILD_IMGS=	$(IMGS32)
+BUILD_ROMS=	$(ROMS32)
+BUILD_ELFS=	$(patsubst %.img, %.elf, $(IMGS32)) $(patsubst %.img, %.lzelf, $(IMGS32))
+BUILD_PXES=	$(patsubst %.img, %.pxe, $(IMGS32)) $(patsubst %.img, %.lzpxe, $(IMGS32))
+BUILD_COMS=	$(patsubst %.img, %.com, $(IMGS32))
+BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS32)) $(patsubst %.img, %.lzlilo, $(IMGS32))
 
 3C503FLAGS=	-DINCLUDE_3C503 # -DT503_SHMEM
 # Note that the suffix to MAKEROM_ is the (mixed case) basename of the ROM file
@@ -232,7 +237,7 @@ ROMLIMIT:=327680
 
 # Start of targets
 
-all:	$(UTILS) $(BUILD_LIBS) allbins
+all:	$(UTILS) $(BUILD_LIBS) allimgs
 
 gcccheck:	Makefile Config
 	@if $(CC32) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
@@ -248,7 +253,12 @@ include Roms
 # We need allbins because $(BINS32) is not defined until
 # the Makefile fragment "Roms" is read.
 
-allbins:	$(BUILD_BINS)
+allimgs:	$(BUILD_IMGS)
+allroms:	$(BUILD_ROMS)
+allelfs:	$(BUILD_ELFS)
+allpxes:	$(BUILD_PXES)
+allcoms:	$(BUILD_COMS)
+alllilos:	$(BUILD_LILOS)
 
 # Common files
 
@@ -281,6 +291,8 @@ bin32/pc_floppy.o:	pc_floppy.c etherboot.h osdep.h timer.h
 bin32/ide_disk.o:	ide_disk.c etherboot.h osdep.h timer.h
 
 bin32/timer.o:		timer.c timer.h etherboot.h osdep.h
+
+bin32/config.o:		etherboot.h nic.h pci.h
 
 # PCI support code (common to all PCI drivers)
 
@@ -361,6 +373,10 @@ bin/%.bin:	bin/%.o
 	$(LD32) -Ttext 0x10000 $(LDBINARY32) -o $@ $<
 
 # general ruls for generating .img files
+bin32/%.tmp: bin32/%.o bin32/config-pci.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-pci.o $< bin32/pci.o $(LIBS32)
+	@$(SIZE32) $@ | $(CHECKSIZE)
+
 bin32/%.img: bin32/%.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 

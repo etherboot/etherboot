@@ -156,9 +156,6 @@ dp83815		0x100B,0x0020	DP83815
 family		fa311
 fa311too	0x100B,0x0020	DP83815 also
 
-family		tlan
-#olicom2326	0x108d,0x0014	TI Thunderlan
-
 family		prism2_plx
 ma301		0x1385,0x4100	Netgear MA301
 

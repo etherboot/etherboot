@@ -18,8 +18,9 @@ Ken Yap, July 1997
 #include "nic.h"
 #ifdef	INCLUDE_LANCE
 #include "pci.h"
+#else
+#include "isa.h"
 #endif
-#include "cards.h"
 
 /* Offsets from base I/O address */
 #if	defined(INCLUDE_NE2100) || defined(INCLUDE_LANCE)
@@ -386,8 +387,10 @@ static void lance_transmit(
 #endif
 }
 
-static void lance_disable(struct nic *nic)
+static void lance_disable(struct dev *dev)
 {
+	struct nic *nic = (struct nic *)dev;
+	lance_reset(nic);
 	(void)inw(ioaddr+LANCE_RESET);
 	if (chip_table[lance_version].flags & LANCE_MUST_UNRESET)
 		outw(0, ioaddr+LANCE_RESET);
@@ -508,25 +511,26 @@ PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 
 #ifdef	INCLUDE_LANCE
-struct nic *lancepci_probe(struct nic *nic, unsigned short *probe_addrs, struct pci_device *pci)
+static int lancepci_probe(struct dev *dev, struct pci_device *pci)
 #endif
 #ifdef	INCLUDE_NE2100
-struct nic *ne2100_probe(struct nic *nic, unsigned short *probe_addrs)
+static int ne2100_probe(struct dev *dev, unsigned short *probe_addrs)
 #endif
 #ifdef	INCLUDE_NI6510
-struct nic *ni6510_probe(struct nic *nic, unsigned short *probe_addrs)
+static int i6510_probe(struct dev *dev, unsigned short *probe_addrs)
 #endif
 {
+	struct nic *nic = (struct nic *)dev;
 	unsigned short		*p;
-#ifndef	INCLUDE_LANCE
+#ifdef	INCLUDE_LANCE
+	unsigned short probe_addrs[2] = { pci->ioaddr, 0 };
+#else
 	static unsigned short	io_addrs[] = { 0x300, 0x320, 0x340, 0x360, 0 };
 #endif
 
 	/* if probe_addrs is 0, then routine can use a hardwired default */
 	if (probe_addrs == 0) {
-#ifdef	INCLUDE_LANCE
-		return 0;
-#else
+#ifndef INCLUDE_LANCE
 		probe_addrs = io_addrs;
 #endif
 	}
@@ -558,21 +562,55 @@ struct nic *ni6510_probe(struct nic *nic, unsigned short *probe_addrs)
 	{
 		/* point to NIC specific routines */
 		lance_reset(nic);
-		nic->reset = lance_reset;
-		nic->poll = lance_poll;
+		dev->disable  = lance_disable;
+		nic->poll     = lance_poll;
 		nic->transmit = lance_transmit;
-		nic->disable = lance_disable;
 		/* Based on PnP ISA map */
-		nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
 #ifdef	INCLUDE_NE2100
-		nic->devid.device_id = htons(0x80d8);
+		dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+		dev->devid.device_id = htons(0x80d8);
 #endif
 #ifdef	INCLUDE_NI6510
-		nic->devid.device_id = htons(0x8113);
+		dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+		dev->devid.device_id = htons(0x8113);
 #endif
-		return nic;
+		return 1;
 	}
 
 	/* no board found */
 	return 0;
 }
+
+#ifdef INCLUDE_NE2100
+static struct isa_driver ne2100_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "NE2100",
+	.probe   = ne2100_probe,
+	.ioaddrs = 0,
+};
+#endif
+
+#ifdef INCLUDE_NI6510
+static struct isa_driver ni6510_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "NI6510",
+	.probe   = i6510_probe,
+	.ioaddrs = 0,
+};
+#endif
+
+#ifdef INCLUDE_LANCE
+static struct pci_id lance_nics[] = {
+	{ PCI_VENDOR_ID_AMD,		PCI_DEVICE_ID_AMD_LANCE,
+		"AMD Lance/PCI" },
+	{ PCI_VENDOR_ID_AMD_HOMEPNA,	PCI_DEVICE_ID_AMD_HOMEPNA,
+		"AMD Lance/HomePNA" },
+};
+static struct pci_driver lancepci_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "LANCE/PCI",
+	.probe    = lancepci_probe,
+	.ids      = lance_nics,
+	.id_count = sizeof(lance_nics)/sizeof(lance_nics[0]),
+};
+#endif /* INCLUDE_LANCE */

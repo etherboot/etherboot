@@ -25,7 +25,6 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 #include "otulip.h"
 
 static unsigned short vendor, dev_id;
@@ -339,7 +338,8 @@ static void tulip_disable(struct nic *nic)
 /**************************************************************************
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
-struct nic *otulip_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
+static struct nic *
+otulip_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
 {
         int i;
 
@@ -373,3 +373,22 @@ struct nic *otulip_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
 	nic->disable = tulip_disable;
         return nic;
 }
+
+static struct pci_id otulip_nics[] = {
+	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP,
+		"Digital Tulip" },
+	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP_FAST,
+		"Digital Tulip Fast" },
+	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP_PLUS,
+		"Digital Tulip+" },
+	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_21142,
+		"Digital Tulip 21142" },
+};
+
+static struct pci_driver otulip_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "OTulip",
+	.probe    = otulip_probe,
+	.ids      = otulip_nics,
+	.id_count = sizeof(otulip_nics)/sizeof(otulip_nics[0]),
+};

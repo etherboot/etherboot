@@ -6,8 +6,8 @@
 #define LINUX_OUT_MACROS
 
 #include "etherboot.h"
+#include "pci.h"
 #include "nic.h"
-#include "cards.h"
 #include "timer.h"
 #include "epic100.h"
 
@@ -51,11 +51,13 @@ struct epic_tx_desc {
 
 static void	epic100_open(void);
 static void	epic100_init_ring(void);
-static void	epic100_disable(struct nic *nic);
+static void	epic100_disable(struct dev *dev);
 static int	epic100_poll(struct nic *nic);
 static void	epic100_transmit(struct nic *nic, const char *destaddr,
 				 unsigned int type, unsigned int len, const char *data);
+#ifdef	DEBUG_EEPROM
 static int	read_eeprom(int location);
+#endif
 static int	mii_read(int phy_id, int location);
 
 static int	ioaddr;
@@ -94,23 +96,18 @@ static char		tx_packet[PKT_BUF_SZ * TX_RING_SIZE];
 /*                    Externally visible functions                     */
 /***********************************************************************/
 
-    static void
-epic100_reset(struct nic *nic)
-{
-    /* Soft reset the chip. */
-    outl(GC_SOFT_RESET, genctl);
-}
 
-    struct nic*
-epic100_probe(struct nic *nic, unsigned short *probeaddrs)
+    static int
+epic100_probe(struct dev *dev, struct pci_device *pci)
 {
+    struct nic *nic = (struct nic *)dev;
     unsigned short sum = 0;
     unsigned short value;
     int i;
     unsigned short* ap;
     unsigned int phy, phy_idx;
 
-    if (probeaddrs == 0 || probeaddrs[0] == 0)
+    if (pci->ioaddr == 0)
 	return 0;
 
     /* Ideally we would detect all network cards in slot order.  That would
@@ -118,7 +115,7 @@ epic100_probe(struct nic *nic, unsigned short *probeaddrs)
        well with the current structure.  So instead we detect just the
        Epic cards in slot order. */
 
-    ioaddr = probeaddrs[0] & ~3; /* Mask the bit that says "this is an io addr" */
+    ioaddr = pci->ioaddr;
 
     /* compute all used static epic100 registers address */
     command = ioaddr + COMMAND;		/* Control Register */
@@ -202,12 +199,11 @@ epic100_probe(struct nic *nic, unsigned short *probeaddrs)
 
     epic100_open();
 
-    nic->reset    = epic100_reset;
+    dev->disable  = epic100_disable;
     nic->poll     = epic100_poll;
     nic->transmit = epic100_transmit;
-    nic->disable  = epic100_disable;
 
-    return nic;
+    return 1;
 }
 
     static void
@@ -402,8 +398,10 @@ epic100_poll(struct nic *nic)
 
 
     static void
-epic100_disable(struct nic *nic)
+epic100_disable(struct dev *dev)
 {
+	/* Soft reset the chip. */
+	outl(GC_SOFT_RESET, genctl);
 }
 
 
@@ -479,3 +477,17 @@ mii_read(int phy_id, int location)
 	    break;
     return inw(mmdata);
 }
+
+
+static struct pci_id epic100_nics[] = {
+	{ PCI_VENDOR_ID_SMC,		PCI_DEVICE_ID_SMC_EPIC100,
+		"SMC EtherPowerII" },
+};
+
+static struct pci_driver epic100_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "EPIC100",
+	.probe    = epic100_probe,
+	.ids      = epic100_nics,
+	.id_count = sizeof(epic100_nics)/sizeof(epic100_nics[0]),
+};

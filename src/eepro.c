@@ -29,8 +29,7 @@ has 34 pins, the top row of 2 are not used.
 #include "etherboot.h"
 /* to get the interface to the body of the program */
 #include "nic.h"
-/* to get our own prototype */
-#include "cards.h"
+#include "isa.h"
 /* we use timer2 for microsecond waits */
 #include "timer.h"
 
@@ -448,7 +447,7 @@ static void eepro_transmit(
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void eepro_disable(struct nic *nic)
+static void eepro_disable(struct dev *dev)
 {
 	eepro_sw2bank0(ioaddr);	/* Switch to bank 0 */
 	/* Flush the Tx and disable Rx */
@@ -562,8 +561,9 @@ static int eepro_probe1(struct nic *nic)
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
-struct nic *eepro_probe(struct nic *nic, unsigned short *probe_addrs)
+static int eepro_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	unsigned short		*p;
 	/* same probe list as the Linux driver */
 	static unsigned short	ioaddrs[] = {
@@ -579,12 +579,18 @@ struct nic *eepro_probe(struct nic *nic, unsigned short *probe_addrs)
 		return (0);
 	eepro_reset(nic);
 	/* point to NIC specific routines */
-	nic->reset = eepro_reset;
-	nic->poll = eepro_poll;
+	dev->disable  = eepro_disable;
+	nic->poll     = eepro_poll;
 	nic->transmit = eepro_transmit;
-	nic->disable = eepro_disable;
 	/* Based on PnP ISA map */
-	nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-	nic->devid.device_id = htons(0x828a);
-	return (nic);
+	dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+	dev->devid.device_id = htons(0x828a);
+	return 1;
 }
+
+static struct isa_driver eepro_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "EEPRO",
+	.probe   = eepro_probe,
+	.ioaddrs = 0,
+};

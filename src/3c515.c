@@ -49,8 +49,7 @@
 #include "etherboot.h"
 /* to get the interface to the body of the program */
 #include "nic.h"
-/* to get our own prototype */
-#include "cards.h"
+#include "isa.h"
 #ifdef ISA_PNP
 #include "3c515_isapnp.h"
 #endif
@@ -588,8 +587,13 @@ static void t515_transmit(struct nic *nic, const char *d,	/* Destination */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void t515_disable(struct nic *nic)
+static void t515_disable(struct dev *dev)
 {
+    struct nic *nic = (struct nic *)dev;
+
+    /* merge reset an disable */
+    t515_reset(nic);
+
     /* This is a hack.  Since ltsp worked on my
        system without any disable functionality I
        have no way to determine if this works */
@@ -618,8 +622,9 @@ You should omit the last argument struct pci_device * for a non-PCI NIC
 ***************************************************************************/
 void config_pnp_device(void);
 
-struct nic *t515_probe(struct nic *nic, unsigned short *probe_addrs)
+static int t515_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+    struct nic * nic = (struct nic *)dev;
     /* Direct copy from Beckers 3c515.c removing any ISAPNP sections */
     int cards_found = 0;
     static int ioaddr;
@@ -660,14 +665,15 @@ struct nic *t515_probe(struct nic *nic, unsigned short *probe_addrs)
 
     if (cards_found > 0) {
 	t515_reset(nic);
-	nic->reset = t515_reset;
-	nic->poll = t515_poll;
+	
+	dev->disable  = t515_disable;
+	nic->poll     = t515_poll;
 	nic->transmit = t515_transmit;
-	nic->disable = t515_disable;
+
 	/* Based on PnP ISA map */
-	nic->devid.vendor_id = htons(ISAPNP_VENDOR('T','C','M'));
-	nic->devid.device_id = htons(0x5051);
-	return nic;
+	dev->devid.vendor_id = htons(ISAPNP_VENDOR('T','C','M'));
+	dev->devid.device_id = htons(0x5051);
+	return 1;
     } else
 	return 0;
 
@@ -1113,3 +1119,10 @@ static int isapnp_isolate_rdp_select(void)
     return 0;
 }
 #endif
+
+static struct isa_driver t515_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "3C515",
+	.probe   = t515_probe,
+	.ioaddrs = 0,
+};

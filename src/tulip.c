@@ -109,7 +109,6 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 
 /* User settable parameters */
 
@@ -483,14 +482,13 @@ static int mdio_read(struct nic *nic, int phy_id, int location);
 static void mdio_write(struct nic *nic, int phy_id, int location, int value);
 static int read_eeprom(unsigned long ioaddr, int location, int addr_len);
 static void parse_eeprom(struct nic *nic);
-struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
-                        struct pci_device *pci);
+static int tulip_probe(struct dev *dev, struct pci_device *pci);
 static void tulip_init_ring(struct nic *nic);
 static void tulip_reset(struct nic *nic);
 static void tulip_transmit(struct nic *nic, const char *d, unsigned int t,
                            unsigned int s, const char *p);
 static int tulip_poll(struct nic *nic);
-static void tulip_disable(struct nic *nic);
+static void tulip_disable(struct dev *dev);
 static void nway_start(struct nic *nic);
 static void pnic_do_nway(struct nic *nic);
 static void select_media(struct nic *nic, int startup);
@@ -1159,12 +1157,15 @@ static int tulip_poll(struct nic *nic)
 /*********************************************************************/
 /* eth_disable - Disable the interface                               */
 /*********************************************************************/
-static void tulip_disable(struct nic *nic)
+static void tulip_disable(struct dev *dev)
 {
-
+    struct nic *nic = (struct nic *)dev;
 #ifdef TULIP_DEBUG_WHERE
     whereami("tulip_disable\n");
 #endif
+
+    /* merge reset and disable */
+    tulip_reset(nic);
 
     /* disable interrupts */
     outl(0x00000000, ioaddr + CSR7);
@@ -1179,9 +1180,9 @@ static void tulip_disable(struct nic *nic)
 /*********************************************************************/
 /* eth_probe - Look for an adapter                                   */
 /*********************************************************************/
-struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
-                        struct pci_device *pci)
+static int tulip_probe(struct dev *dev, struct pci_device *pci)
 {
+    struct nic *nic = (struct nic *)dev;
     u32 i, l1, l2;
     u8  chip_rev;
     u8 ee_data[EEPROM_SIZE];
@@ -1189,10 +1190,10 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
     int chip_idx;
     static unsigned char last_phys_addr[ETH_ALEN] = {0x00, 'L', 'i', 'n', 'u', 'x'};
 
-    if (io_addrs == 0 || *io_addrs == 0)
+    if (pci->ioaddr == 0)
         return 0;
 
-    ioaddr         = *io_addrs;
+    ioaddr         = pci->ioaddr;
 
     /* point to private storage */
     tp = &tpx;
@@ -1382,15 +1383,14 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
     /* reset the device and make ready for tx and rx of packets */
     tulip_reset(nic);
 
-    nic->reset    = tulip_reset;
+    dev->disable  = tulip_disable;
     nic->poll     = tulip_poll;
     nic->transmit = tulip_transmit;
-    nic->disable  = tulip_disable;
 
     /* give the board a chance to reset before returning */
     tulip_wait(4*TICKS_PER_SEC);
 
-    return nic;
+    return 1;
 }
 
 static void start_link(struct nic *nic)
@@ -1991,3 +1991,44 @@ static int tulip_check_duplex(struct nic *nic)
 
         return 0;
 }
+
+static struct pci_id tulip_nics[] = {
+	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP,
+		"Digital Tulip" },
+	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP_FAST,
+		"Digital Tulip Fast" },
+	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP_PLUS,
+		"Digital Tulip+" },
+	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_21142,
+		"Digital Tulip 21142" },
+	{ PCI_VENDOR_ID_MACRONIX,	PCI_DEVICE_ID_MX987x3,
+		"Macronix MX987x3" },
+	{ PCI_VENDOR_ID_MACRONIX,	PCI_DEVICE_ID_MX987x5,
+		"Macronix MX987x5" },
+	{ PCI_VENDOR_ID_LINKSYS,	PCI_DEVICE_ID_LC82C115,
+		"LinkSys LNE100TX" },
+	{ PCI_VENDOR_ID_LINKSYS,	PCI_DEVICE_ID_DEC_TULIP,
+		"Netgear FA310TX" },
+	{ PCI_VENDOR_ID_DAVICOM, PCI_DEVICE_ID_DM9102,
+		"Davicom 9102" },
+	{ PCI_VENDOR_ID_DAVICOM, PCI_DEVICE_ID_DM9009,
+		"Davicom 9009" },
+	{ PCI_VENDOR_ID_ADMTEK, PCI_DEVICE_ID_ADMTEK_0985,
+		"ADMtek Centaur-P" },
+	{ PCI_VENDOR_ID_ADMTEK, 0x0981,
+		"ADMtek AN981 Comet" },
+	{ PCI_VENDOR_ID_SMC_1211, 0x1216,
+		"ADMTek AN983 Comet" },
+        { 0x125B, 0x1400,
+		"ASIX AX88140"},
+        { 0x11F6, 0x9881,
+		"Compex RL100-TX"},
+};
+
+static struct pci_driver tulip_driver __pci_driver = {
+	.type      = NIC_DRIVER,
+	.name     = "Tulip",
+	.probe    = tulip_probe,
+	.ids      = tulip_nics,
+	.id_count = sizeof(tulip_nics)/sizeof(tulip_nics[0]),
+};

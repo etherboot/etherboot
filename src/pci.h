@@ -1,4 +1,4 @@
-#ifndef	PCI_H
+#if !defined(PCI_H) && defined(CONFIG_PCI)
 #define PCI_H
 
 /*
@@ -208,11 +208,26 @@ struct pci_device {
 
 extern void eth_find_pci(struct pci_id *idlist, int ids, struct pci_device *dev);
 
-extern int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned char *value);
-extern int pcibios_write_config_byte (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned char value);
-extern int pcibios_read_config_word(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned short *value);
-extern int pcibios_write_config_word (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned short value);
-extern int pcibios_read_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int *value);
-extern int pcibios_write_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int value);
+extern int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn, unsigned int where, uint8_t *value);
+extern int pcibios_write_config_byte (unsigned int bus, unsigned int device_fn, unsigned int where, uint8_t value);
+extern int pcibios_read_config_word(unsigned int bus, unsigned int device_fn, unsigned int where, uint16_t *value);
+extern int pcibios_write_config_word (unsigned int bus, unsigned int device_fn, unsigned int where, uint16_t value);
+extern int pcibios_read_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, uint32_t *value);
+extern int pcibios_write_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, uint32_t value);
 void adjust_pci_device(struct pci_device *p);
+
+struct dev;
+struct pci_driver {
+	int type;
+	const char *name;
+	int (*probe)(struct dev *, struct pci_device *);
+	struct pci_id *ids;
+	int id_count;
+};
+
+#define __pci_driver	__attribute__ ((unused,__section__(".rodata.pci_drivers")))
+/* Defined by the linker... */
+extern const struct pci_driver pci_drivers[];
+extern const struct pci_driver epci_drivers[];
+
 #endif	/* PCI_H */

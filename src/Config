@@ -240,6 +240,12 @@
 #			After starting etherboot relocate to the top
 #			of memory.  This allows loading fairly arbitrary
 #			rom images.  This doesn't work with all drivers yet.
+#	BUS options:
+#	
+#	-DCONFIG_PCI
+#			Include support for devices using the pci bus.
+#	-DCONFIG_ISA
+#			Include support for devices using isa bus.
 # </OptionDescription>
 
 # These default settings compile Etherboot with a small number of options.
@@ -247,6 +253,9 @@
 
 # BIOS select don't change unless you know what you are doing
 CFLAGS32+=	-DPCBIOS
+
+# Select which busses etherboot should support
+CFLAGS32+=	-DCONFIG_PCI -DCONFIG_ISA
 
 # For prompting and default on timeout
 CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK

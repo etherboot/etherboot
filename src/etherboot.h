@@ -535,9 +535,8 @@ extern int url_slam P((const char *name, int (*fnc)(unsigned char *, unsigned in
 
 /* config.c */
 extern void print_config(void);
-extern void eth_reset(void);
-extern int eth_probe(int adapter);
-extern int eth_poll(void);
+extern int  eth_probe(int adapter);
+extern int  eth_poll(void);
 extern void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p);
 extern void eth_disable(void);
 

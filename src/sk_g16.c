@@ -68,6 +68,7 @@ Changes to make it work with Etherboot by Georg Baum <Georg.Baum@gmx.de>
 #include "etherboot.h"
 /* to get the interface to the body of the program */
 #include "nic.h"
+#include "isa.h"
 
 /* From linux/if_ether.h: */
 #define ETH_ZLEN	60		/* Min. octets in frame sans FCS */
@@ -467,7 +468,6 @@ static struct priv	p_data;
 
 static int   SK_probe1(struct nic *nic, short ioaddr1);
 
-static void SK_reset(struct nic *nic);
 static int SK_poll(struct nic *nic);
 static void SK_transmit(
 struct nic *nic,
@@ -475,8 +475,8 @@ const char *d,			/* Destination */
 unsigned int t,			/* Type */
 unsigned int s,			/* size */
 const char *p);			/* Packet */
-static void SK_disable(struct nic *nic);
-struct nic *SK_probe(struct nic *nic, unsigned short *probe_addrs);
+static void SK_disable(struct dev *dev);
+static int  SK_probe(struct dev *dev, unsigned short *probe_addrs);
 
 /*
  * LANCE Functions
@@ -498,15 +498,6 @@ static void SK_write_reg(int reg_number, int value);
 static void SK_print_pos(struct nic *nic, char *text);
 static void SK_print_ram(struct nic *nic);
 
-
-/**************************************************************************
-RESET - Reset adapter
-***************************************************************************/
-static void SK_reset(struct nic *nic)
-{
-	/* put the card in its initial state */
-	SK_lance_init(nic, MODE_NORMAL);
-}
 
 /**************************************************************************
 POLL - Wait for a frame
@@ -731,21 +722,27 @@ const char *pack)		/* Packet */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void SK_disable(struct nic *nic)
+static void SK_disable(struct dev *dev)
 {
-    PRINTF(("## %s: At beginning of SK_disable(). CSR0: %#hX\n",
-           SK_NAME, SK_read_reg(CSR0)));
-    PRINTF(("%s: Shutting %s down CSR0 %#hX\n", SK_NAME, SK_NAME,
-           (int) SK_read_reg(CSR0)));
+	struct nic *nic = (struct nic *)dev;
 
-    SK_write_reg(CSR0, CSR0_STOP); /* STOP the LANCE */
+	/* put the card in its initial state */
+	SK_lance_init(nic, MODE_NORMAL);	/* reset and disable merge */
+	
+	PRINTF(("## %s: At beginning of SK_disable(). CSR0: %#hX\n",
+		SK_NAME, SK_read_reg(CSR0)));
+	PRINTF(("%s: Shutting %s down CSR0 %#hX\n", SK_NAME, SK_NAME,
+		(int) SK_read_reg(CSR0)));
+
+	SK_write_reg(CSR0, CSR0_STOP); /* STOP the LANCE */
 }
 
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
-struct nic *SK_probe(struct nic *nic, unsigned short *probe_addrs)
+static int SK_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	unsigned short		*p;
 	static unsigned short	io_addrs[] = SK_IO_PORTS;
 	/* if probe_addrs is 0, then routine can use a hardwired default */
@@ -765,11 +762,11 @@ struct nic *SK_probe(struct nic *nic, unsigned short *probe_addrs)
 	if (ioaddr != 0)
 	{
 		/* point to NIC specific routines */
-		nic->reset = SK_reset;
-		nic->poll = SK_poll;
+		dev->disable  = SK_disable;
+		nic->poll     = SK_poll;
 		nic->transmit = SK_transmit;
-		nic->disable = SK_disable;
-		return nic;
+		/* FIXME set dev->devid */
+		return 1;
 	}
 	/* else */
 	{
@@ -1161,3 +1158,10 @@ static void SK_print_ram(struct nic *nic)
 
 } /* End of SK_print_ram() */
 #endif
+
+static struct isa_driver SK_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "SK_G16",
+	.probe   = SK_probe,
+	.ioaddrs = 0,
+};

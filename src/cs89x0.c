@@ -68,7 +68,7 @@
 
 #include "etherboot.h"
 #include "nic.h"
-#include "cards.h"
+#include "isa.h"
 #include "cs89x0.h"
 
 static unsigned short	eth_nic_base;
@@ -432,8 +432,9 @@ static int cs89x0_poll(struct nic *nic)
 	return 1;
 }
 
-static void cs89x0_disable(struct nic *nic)
+static void cs89x0_disable(struct dev *dev)
 {
+	struct nic *nic = (struct nic *)dev;
 	cs89x0_reset(nic);
 }
 
@@ -441,8 +442,9 @@ static void cs89x0_disable(struct nic *nic)
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
 
-struct nic *cs89x0_probe(struct nic *nic, unsigned short *probe_addrs)
+static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs)
 {
+	struct nic *nic = (struct nic *)dev;
 	static const unsigned int netcard_portlist[] = {
 #ifdef	CS_SCAN
 		CS_SCAN,
@@ -647,15 +649,23 @@ struct nic *cs89x0_probe(struct nic *nic, unsigned short *probe_addrs)
 
 	if (ioaddr == 0)
 		return (0);
-	nic->reset = cs89x0_reset;
-	nic->poll = cs89x0_poll;
+
+	dev->disable  = cs89x0_disable;
+	nic->poll     = cs89x0_poll;
 	nic->transmit = cs89x0_transmit;
-	nic->disable = cs89x0_disable;
+
 	/* Based on PnP ISA map */
-	nic->devid.vendor_id = htons(ISAPNP_VENDOR('C','S','C'));
-	nic->devid.device_id = htons(0x0007);
-	return (nic);
+	dev->devid.vendor_id = htons(ISAPNP_VENDOR('C','S','C'));
+	dev->devid.device_id = htons(0x0007);
+	return 1;
 }
+
+static struct isa_driver cs89x0_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "CS89x0",
+	.probe   = cs89x0_probe,
+	.ioaddrs = 0,
+};
 
 /*
  * Local variables:

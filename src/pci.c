@@ -1,3 +1,4 @@
+#ifdef CONFIG_PCI
 /*
 ** Support for NE2000 PCI clones added David Monro June 1997
 ** Generalised to other NICs by Ken Yap July 1997
@@ -33,7 +34,7 @@
 #define CONFIG_CMD(bus, device_fn, where)   (0x80000000 | (bus << 16) | (device_fn << 8) | (where & ~3))
 
 int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn,
-			       unsigned int where, unsigned char *value)
+			       unsigned int where, uint8_t *value)
 {
     outl(CONFIG_CMD(bus,device_fn,where), 0xCF8);
     *value = inb(0xCFC + (where&3));
@@ -41,7 +42,7 @@ int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn,
 }
 
 int pcibios_read_config_word (unsigned int bus,
-    unsigned int device_fn, unsigned int where, unsigned short *value)
+    unsigned int device_fn, unsigned int where, uint16_t *value)
 {
     outl(CONFIG_CMD(bus,device_fn,where), 0xCF8);
     *value = inw(0xCFC + (where&2));
@@ -49,7 +50,7 @@ int pcibios_read_config_word (unsigned int bus,
 }
 
 int pcibios_read_config_dword (unsigned int bus, unsigned int device_fn,
-				 unsigned int where, unsigned int *value)
+				 unsigned int where, uint32_t *value)
 {
     outl(CONFIG_CMD(bus,device_fn,where), 0xCF8);
     *value = inl(0xCFC);
@@ -57,7 +58,7 @@ int pcibios_read_config_dword (unsigned int bus, unsigned int device_fn,
 }
 
 int pcibios_write_config_byte (unsigned int bus, unsigned int device_fn,
-				 unsigned int where, unsigned char value)
+				 unsigned int where, uint8_t value)
 {
     outl(CONFIG_CMD(bus,device_fn,where), 0xCF8);
     outb(value, 0xCFC + (where&3));
@@ -65,14 +66,14 @@ int pcibios_write_config_byte (unsigned int bus, unsigned int device_fn,
 }
 
 int pcibios_write_config_word (unsigned int bus, unsigned int device_fn,
-				 unsigned int where, unsigned short value)
+				 unsigned int where, uint16_t value)
 {
     outl(CONFIG_CMD(bus,device_fn,where), 0xCF8);
     outw(value, 0xCFC + (where&2));
     return PCIBIOS_SUCCESSFUL;
 }
 
-int pcibios_write_config_dword (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int value)
+int pcibios_write_config_dword (unsigned int bus, unsigned int device_fn, unsigned int where, uint32_t value)
 {
     outl(CONFIG_CMD(bus,device_fn,where), 0xCF8);
     outl(value, 0xCFC);
@@ -358,10 +359,10 @@ static void pcibios_init(void)
 static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 {
 	unsigned int first_bus, first_devfn, first_i;
-	unsigned int devfn, l, bus, buses;
+	unsigned int devfn, bus, buses;
 	unsigned char hdr_type = 0;
 	unsigned short vendor, device;
-	unsigned int membase, ioaddr, romaddr;
+	uint32_t l, membase, ioaddr, romaddr;
 	int i, reg;
 	unsigned int pci_ioaddr = 0;
 
@@ -501,3 +502,4 @@ void adjust_pci_device(struct pci_device *p)
 		pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
 	}
 }
+#endif /* CONFIG_PCI */

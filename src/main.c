@@ -950,8 +950,8 @@ static int bootp(void)
 			memcpy(&ip.bp.bp_vend[15], &dhcp_addr, sizeof(in_addr));
 			/* Append NIC IDs to end, in encapsulated option */
 			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest] = RFC1533_VENDOR_ETHERBOOT_ENCAP;
-			memcpy(&ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1], &nic.devid, NIC_ID_SIZE);
-			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1 + NIC_ID_SIZE] = RFC1533_END;
+			memcpy(&ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1], &nic.dev.devid, DEV_ID_SIZE);
+			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1 + DEV_ID_SIZE] = RFC1533_END;
 			for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
 				udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 					sizeof(struct bootpip_t), &ip);
@@ -1431,7 +1431,6 @@ void cleanup(void)
 	nfs_umountall(ARP_SERVER);
 #endif
 	/* Stop receiving packets */
-	eth_reset();
 	eth_disable();
 #ifdef DOWNLOAD_PROTO_DISK
 	disk_disable();

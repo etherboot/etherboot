@@ -80,7 +80,6 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
-#include "cards.h"
 #include "timer.h"
 
 static const char *w89c840_version = "diver Version 0.92 - August 27, 2000";
@@ -592,8 +591,12 @@ static void w89c840_transmit(
 /**************************************************************************
 w89c840_disable - Turn off ethernet interface
 ***************************************************************************/
-static void w89c840_disable(struct nic *nic)
+static void w89c840_disable(struct dev *dev)
 {
+    struct nic *nic = (struct nic *)dev;
+    /* merge reset and disable */
+    w89c840_reset(nic);
+
     /* Don't know what to do to disable the board. Is this needed at all? */
     /* Yes, a live NIC can corrupt the loaded memory later [Ken] */
     /* Stop the chip's Tx and Rx processes. */
@@ -603,26 +606,25 @@ static void w89c840_disable(struct nic *nic)
 /**************************************************************************
 w89c840_probe - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
-struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct pci_device *p)
+static int w89c840_probe(struct dev *dev, struct pci_device *p)
 {
+    struct nic *nic = (struct nic *)dev;
     u16 sum = 0;
     int i, j, to;
     unsigned short value;
     int options;
     int promisc;
 
-    if (probe_addrs == 0 || probe_addrs[0] == 0)
+    if (p->ioaddr == 0)
         return 0;
 
-    ioaddr = probe_addrs[0]; /* Mask the bit that says "this is an io addr" */
+    ioaddr = p->ioaddr;
 
 #if defined(W89C840_DEBUG)
     printf("winbond-840: PCI bus %hhX device function %hhX: I/O address: %hX\n", p->bus, p->devfn, ioaddr);
 #endif
 
     ioaddr = ioaddr & ~3; /* Mask the bit that says "this is an io addr" */
-
-    /* if probe_addrs is 0, then routine can use a hardwired default */
 
     /* From Matt Hortman <mbhortman@acpthinclient.com> */
     if (p->vendor == PCI_VENDOR_ID_WINBOND2
@@ -689,14 +691,13 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
     }
 
     /* point to NIC specific routines */
-    nic->reset = w89c840_reset;
-    nic->poll = w89c840_poll;
+    dev->disable  = w89c840_disable;
+    nic->poll     = w89c840_poll;
     nic->transmit = w89c840_transmit;
-    nic->disable = w89c840_disable;
 
     w89c840_reset(nic);
 
-    return nic;
+    return 1;
 }
 
 /* Read the EEPROM and MII Management Data I/O (MDIO) interfaces.  These are
@@ -932,3 +933,19 @@ static void init_ring(void)
     }
     return;
 }
+
+
+static struct pci_id w89c840_nics[] = {
+	{ PCI_VENDOR_ID_WINBOND2,	PCI_DEVICE_ID_WINBOND2_89C840,
+		"Winbond W89C840F" },
+	{ PCI_VENDOR_ID_COMPEX,	PCI_DEVICE_ID_COMPEX_RL100ATX,
+		"Compex RL100ATX" },
+};
+
+static struct pci_driver w89c840_driver __pci_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "W89C840F",
+	.probe    = w89c840_probe,
+	.ids      = w89c840_nics,
+	.id_count = sizeof(w89c840_nics)/sizeof(w89c840_nics[0]),
+};

@@ -29,7 +29,7 @@ $Id$
 
 #include "etherboot.h"
 #include "nic.h"
-#include "cards.h"
+#include "isa.h"
 #include "timer.h"
 #include "3c509.h"
 
@@ -372,20 +372,29 @@ get_eeprom_data(int id_port, int offset)
 	return (data);
 }
 
-static void t509_disable(struct nic *nic)
+static void __t509_disable(void)
 {
 	outb(0xc0, EP_ID_PORT);
+}
+
+static void t509_disable(struct dev *dev)
+{
+	struct nic *nic = (struct nic *)dev;
+	/* reset and disable merge */
+	t509_reset(nic);
+	__t509_disable();
 }
 
 /**************************************************************************
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
 #ifdef	INCLUDE_3C529
-struct nic *t529_probe(struct nic *nic, unsigned short *probe_addrs)
+static int t529_probe(struct dev *dev, unsigned short *probe_addrs)
 #else
-struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
+static int t509_probe(struct dev *dev, unsigned short *probe_addrs)
 #endif
 {
+	struct nic *nic = (struct nic *)dev;
 	/* common variables */
 	int i;
 	int failcount;
@@ -395,8 +404,8 @@ struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
 	int mca_pos4 = 0, mca_pos5 = 0, mca_irq = 0;
 #endif
 
-	t509_disable(nic);		/* in case board was active */
-					/* note that nic is not used */
+	__t509_disable();		/* in case board was active */
+
 	for (failcount = 0; failcount < 4000; failcount++) {
 		int data, j, io_base, id_port;
 		unsigned short k;
@@ -603,19 +612,38 @@ struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
 	}
 	printf("Ethernet address: %!\n", nic->node_addr);
 	t509_reset(nic);
-	nic->reset = t509_reset;
-	nic->poll = t509_poll;
+
+	dev->disable  = t509_disable; 
+	nic->poll     = t509_poll;
 	nic->transmit = t509_transmit;
-	nic->disable = t509_disable;
+
 	/* Based on PnP ISA map */
-	nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-	nic->devid.device_id = htons(0x80f7);
-	return nic;
+	dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
+	dev->devid.device_id = htons(0x80f7);
+	return 1;
 no3c509:
 	printf("(probe fail)");
 	}
 	return 0;
 }
+
+#ifdef INCLUDE_3C509
+static struct isa_driver t509_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "3C5x9",
+	.probe   = t509_probe,
+	.ioaddrs = 0,
+};
+#endif
+
+#ifdef INCLUDE_3C529
+static struct isa_driver t529_driver __isa_driver = {
+	.type    = NIC_DRIVER,
+	.name    = "3C5x9",
+	.probe   = t529_probe,
+	.ioaddrs = 0,
+};
+#endif
 
 /*
  * Local variables:
