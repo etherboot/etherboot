@@ -208,7 +208,7 @@ typedef struct undi {
  */
 #define DEBUG_SEGMENT 0
 #if DEBUG_SEGMENT
-uint16_t SEGMENT ( void *ptr ) {
+uint16_t SEGMENT ( const void *ptr ) {
 	uint32_t phys = virt_to_phys ( ptr );
 	if ( phys > 0xfffff ) {
 		printf ( "FATAL ERROR: segment address out of range\n" );
