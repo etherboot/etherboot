@@ -2736,3 +2736,7 @@ Technologies, Inc
 
 Released as Etherboot 5.2.6 (production) 2004/11/13
 
++ Dag Lem provided a new pci_id for the eepro100 Intel "82801EB/ER
+(ICH5/ICH5R)"
+
+
