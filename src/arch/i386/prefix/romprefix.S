@@ -314,7 +314,7 @@ UNDILoader:
 	call	prelocate
 	popw	%ax			/* discard */
 	popw	%cs:(_prefix_rom+2)	/* ROM size */
-	popw	%cs:(_prefixrom+0)	/* ROM segment */
+	popw	%cs:(_prefix_rom+0)	/* ROM segment */
 	popw	%ax			/* Original %ax */
 	/* Inhibit automatic deallocation of base memory */
 	movl	$0, %cs:_prefix_image_basemem
