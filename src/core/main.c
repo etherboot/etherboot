@@ -42,7 +42,7 @@ static inline unsigned long ask_boot(unsigned *index)
 #ifdef LINUXBIOS
 	order = get_boot_order(order, index);
 #endif
-#if defined(ASK_BOOT)
+#if defined(ASK_BOOT) && ASK_BOOT >= 0
 	while(1) {
 		int c;
 		unsigned long time;
