@@ -239,6 +239,7 @@ print "# Target formats\n";
 print "EB_ISOS\t:=\n";
 print "EB_LISOS\t:=\n";
 print "EB_COMS\t:=\n";
+print "EB_EXES\t:=\n";
 print "EB_LILOS\t:=\n";
 print "EB_ZLILOS\t:=\n";
 print "EB_PXES\t:=\n";
@@ -247,6 +248,8 @@ print "EB_DSKS\t:=\n";
 print "EB_ZDSK\t:=\n";
 print "EB_ELFS\t:=\n";
 print "EB_ZELFS\t:=\n";
+print "EB_LMELFS\t:=\n";
+print "EB_ZLMELFS\t:=\n";
 
 # Generate the PCI files in reverse so that 3c90x is in front of 3c595
 # as the latter misdetects many 3c90x NICs
@@ -259,12 +262,14 @@ foreach my $pci (reverse sort keys %pcient) {
 
 # Output targets
 	print "EB_LILOS\t+= \$(BIN)/$img.lilo\ \$(BIN)/$img.zlilo\n";
-	print "EB_PXES\t+= \$(BIN)/$img.pxe \$(BIN)/$img.zpxe\n";
-	print "EB_DSKS\t+= \$(BIN)/$img.dsk \$(BIN)/$img.zdsk\n";
-	print "EB_ELFS\t+= \$(BIN)/$img.elf \$(BIN)/$img.zelf\n";
+	print "EB_PXES\t+= \$(BIN)/$img.pxe   \nEB_ZPXES\t+= \$(BIN)/$img.zpxe\n";
+	print "EB_DSKS\t+= \$(BIN)/$img.dsk   \nEB_ZDSKS\t+= \$(BIN)/$img.zdsk\n";
+	print "EB_ELFS\t+= \$(BIN)/$img.elf   \nEB_ZELFS\t+= \$(BIN)/$img.zelf\n";
+	print "EB_LMELFS\t+= \$(BIN)/$img.elf \nEB_ZLMELFS\t+= \$(BIN)/$img.zelf\n";
 	print "EB_ISOS\t+= \$(BIN)/$img.iso\n";
 	print "EB_LISOS\t+= \$(BIN)/$img.liso\n";
 	print "EB_COMS\t+= \$(BIN)/$img.com\n";
+	print "EB_EXES\t+= \$(BIN)/$img.exe\n";
 }
 
 foreach my $img (sort keys %buildent) {

@@ -72,6 +72,38 @@ void print_config(void)
 		BOOTP_SERVER, BOOTP_CLIENT);
 #endif
 	putchar('\n');
+	printf( "Protocols: "
+#ifdef RARP_NOT_BOOTP
+		"RARP "
+#else
+# ifndef NO_DHCP_SUPPORT
+		"DHCP "
+# else
+		"BOOTP "
+# endif
+#endif
+#ifdef DOWNLOAD_PROTO_TFTP
+		"TFTP "
+#endif
+#ifdef  DOWNLOAD_PROTO_NFS
+		"NFS "
+#endif
+#ifdef  DOWNLOAD_PROTO_SLAM
+		"SLAM "
+#endif
+#ifdef  DOWNLOAD_PROTO_TFTM
+		"TFTM "
+#endif
+#ifdef  DOWNLOAD_PROTO_HTTP
+		"HTTP "
+#endif
+#ifdef  PROTO_LACP
+		"LACP "
+#endif
+#ifdef DNS_RESOLVER
+		"DNS "
+#endif
+		"\n");
 }
 
 static const char *driver_name[] = {

@@ -6,6 +6,7 @@
 
 	.text
 	.code16
+	.arch i386
 	.section	".prefix", "ax", @progbits
 	.globl	_prefix
 

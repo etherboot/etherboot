@@ -23,6 +23,7 @@
 .equ	SYSSEG, 0x1000			/* system loaded at SYSSEG<<4 */
 
 	.org	0
+	.arch i386
 	.text
 	.section ".prefix", "ax", @progbits
 	.code16

@@ -1,5 +1,6 @@
 	.org	0
 	.text
+	.arch i386
 
 	.section ".prefix", "ax", @progbits
 	.code16

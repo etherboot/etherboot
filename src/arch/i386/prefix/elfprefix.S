@@ -1,5 +1,6 @@
 #include "elf.h"
 
+	.arch i386
 	.section ".prefix", "a", @progbits
 
 #define LOAD_ADDR 0x10000

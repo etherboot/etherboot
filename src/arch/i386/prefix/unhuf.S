@@ -41,6 +41,7 @@
 #define ROOT		(TABLESZ-1)
 
 	.text
+	.arch i386
 	.globl _start
 _start:
 	cli
