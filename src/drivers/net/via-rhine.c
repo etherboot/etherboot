@@ -21,7 +21,7 @@
 
 */
 
-static const char *version = "rhine.c v1.0.0 2000-01-07\n";
+static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 
 /* A few user-configurable values. */
 
@@ -619,9 +619,6 @@ The chip does not pad to minimum transmit length.
 
 */
 
-#define PCI_VENDOR_ID_FET		0x1106
-#define PCI_DEVICE_ID_FET_3043		0x3043
-
 /* The rest of these values should never change. */
 #define NUM_TX_DESC	2	/* Number of Tx descriptor registers. */
 
@@ -1177,6 +1174,8 @@ rhine_transmit (struct nic *nic,
 static struct pci_id rhine_nics[] = {
 	{ PCI_VENDOR_ID_VIATEC, PCI_DEVICE_ID_VIA_VT6102,
 		"VIA 6102" },
+	{ PCI_VENDOR_ID_VIATEC, PCI_DEVICE_ID_VIA_VT6105,
+		"VIA 6105" },
 	{ PCI_VENDOR_ID_VIATEC,	PCI_DEVICE_ID_VIA_RHINE_I,
 		"VIA 3043" },
 	{ PCI_VENDOR_ID_VIATEC,	PCI_DEVICE_ID_VIA_86C100A,
