@@ -69,11 +69,11 @@ _ext_call:
 	 * registers		%esp + EC_OFFSET_REGISTERS
 	 * flags		%esp + EC_OFFSET_FLAGS ( = %esp + 0 )
 	 *
-	 * stack_ptr : used to record the address of the top of this
-	 * stack, i.e. %ebp + EC_SIGBLOCK_LENGTH.  This is recorded
-	 * for the case where the stack is copied to a new location
-	 * before the exteral call; it indicates where we should copy
-	 * the stack back to on return.
+	 * stack_ptr : used to record the address to which the stack
+	 * should be copied before jumping to the external routine.
+	 * (On return, used to record the original stack address to
+	 * which the stack should be copied back).  Address is the top
+	 * of the stack (i.e. %ebp + EC_SIGBLOCK_LENGTH).
 	 *
 	 * ext_params : Parameters to pass on stack to external call.
 	 * "length" indicates the length of this data, which may not
@@ -165,6 +165,8 @@ process_ec_params:
 	je	process_ec_params_stack
 	cmpl	$EXTCALL_RET_STACK, %eax
 	je	process_ec_params_ret_stack
+	cmpl	$EXTCALL_RELOC_STACK, %eax
+	je	process_ec_params_reloc_stack
 	/* fall through to error */
 process_ec_params_error: 
 	/* Lockup machine.  Drastic, but since we may have reloaded
@@ -264,10 +266,34 @@ process_ec_params_ret_stack:
 	/* Nothing to do */
 	addl	$12, %ebx
 	jmp	process_ec_params
+process_ec_params_reloc_stack:
+	/* Set stack relocation address */
+	movl	0(%ebx), %eax		/* %eax = &(new stack top) */
+	andl	$~0x3, %eax		/* ...round down to align */
+	movl	%eax, EC_SIG_STACK(%ebp) /* ...and store it */
+	addl	$4, %ebx
+	jmp	process_ec_params
 process_ec_params_done:
-	/* Stack is all set up as described above.  Set up the
-	 * register values and jump to the function.
+	/* Stack is all set up as described above.  Copy to new
+	 * location, set up the register values and jump to the
+	 * function.
 	 */
+
+	/* Copy stack to new location indicated by stack_ptr, reset
+	 * %ss:esp to point to it.
+	 */
+	movw	(EC_OFFSET_SEG_REGS+8)(%esp), %ax
+	movw	%ax, %es		/* %es = new %ss */
+	movl	%esp, %esi		/* %esi = &(original stack) */
+	leal	EC_SIGBLOCK_LENGTH(%ebp), %edi /* %edi = &(orig. stack top) */
+	movl	%edi, %ecx
+	subl	%esp, %ecx		/* %ecx = length */
+	xchgl	EC_SIG_STACK(%ebp), %edi /* %es:edi = &(new stack top),	   */
+					 /* stack_ptr = &(orig. stack top) */
+	subl	%ecx, %edi		/* %es:edi = &(new stack) */
+	movl	%edi, %esp		/* Set new %esp */
+	rep ss movsb			/* Copy stack */
+	mov	%ax, %ss		/* Set new %ss */
 
 	/* Restore flags.  (It is safe to do this; cs and ss are
 	 * already reloaded, and we don't use the other segment
@@ -302,9 +328,8 @@ ec_return:
 	/* This must be position-independent code assuming nothing
 	 * about the segment registers etc. until we've reloaded our
 	 * GDT.  We can only rely on %cs and %ss.
-	 */
-
-	/* Basic strategy is to set up a structure similar to the one
+	 *
+	 * Basic strategy is to set up a structure similar to the one
 	 * we had before the call, only with the returned values
 	 * instead of the outward values.  We omit the "addresses"
 	 * section.
@@ -332,7 +357,6 @@ ec_return:
 	pushw	%ss
 	popw	%es
 	cld			/* Just in case */
-
 	
 	/* Locate signature.  It is guaranteed to be on a dword
 	 * boundary, but %esp may not be.
@@ -413,6 +437,8 @@ process_ecr_params:
 	je	process_ecr_params_stack
 	cmpl	$EXTCALL_RET_STACK, %eax
 	je	process_ecr_params_ret_stack
+	cmpl	$EXTCALL_RELOC_STACK, %eax
+	je	process_ecr_params_reloc_stack
 	/* fall through to error */
 process_ecr_params_error:
 	/* Lockup machine.  Drastic, but since we may have the wrong
@@ -467,6 +493,10 @@ process_ecr_params_ret_stack:
 	movl	%eax, %ecx		/* ...and truncate if necessary */
 2:	rep movsb			/* Copy data */
 	addl	$12, %ebx
+	jmp	process_ecr_params
+process_ecr_params_reloc_stack:
+	/* Nothing to do */
+	addl	$4, %ebx
 	jmp	process_ecr_params
 process_ecr_params_done:
 
