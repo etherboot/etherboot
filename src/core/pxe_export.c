@@ -1049,6 +1049,21 @@ PXENV_EXIT_t pxenv_stop_base ( t_PXENV_STOP_BASE *stop_base ) {
 	return PXENV_EXIT_FAILURE;
 }
 
+/* PXENV_UNDI_LOADER
+ *
+ * Status: stub
+ *
+ * NOTE: This is not a genuine PXE API call; the loader has a separate
+ * entry point.  However, to simplify the mapping of the PXE API to
+ * the internal Etherboot API, both are directed through the same
+ * interface.
+ */
+PXENV_EXIT_t pxenv_undi_loader ( undi_loader_t *loader ) {
+	DBG ( "PXENV_UNDI_LOADER" );
+	loader->Status = PXENV_STATUS_UNSUPPORTED;
+	return PXENV_EXIT_FAILURE;
+}
+
 /* API call dispatcher
  *
  * Status: complete
@@ -1180,6 +1195,9 @@ PXENV_EXIT_t pxe_api_call ( int opcode, t_PXENV_ANY *params ) {
 		break;
 	case PXENV_STOP_BASE:
 		ret = pxenv_stop_base ( &params->stop_base );
+		break;
+	case PXENV_UNDI_LOADER:
+		ret = pxenv_undi_loader ( &params->loader );
 		break;
 		
 	default:
