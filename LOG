@@ -2548,7 +2548,10 @@ which can be activated by CONSOLE_DIRECT_VGA.
 + Improved tg3 driver by Eric Biederman. New define in etherboot.h:
 VALID_LINK_TIMEOUT.
 
-+ Fixed up various ISA drivers to be less noisy when probing, from
-information provided by Paolo Salvan.
++ Timothy Legge and I fixed up various ISA drivers to be less noisy
+when probing, from information provided by Paolo Salvan, so that the
+super etherboot image is more useful.
+
++ Proof of concept of a TFTP to HTTP proxy in contrib/t2hproxy/.
 
 Released as Etherboot 5.3.2 (development)
