@@ -122,7 +122,44 @@ foreach my $isa (sort keys %isaent) {
 	print "BINS32\t+= bin32/$isa.rom bin32/$isa.lzrom\n";
 }
 
-# Generate the *.o and config-*.o rules
+# Helper macros for multi-driver ROMs
+print <<EOF;
+
+# Helper macros for multi-driver ROM builds
+# \$* will be set to the driver list (e.g. rtl8139--prism2_pci)
+#
+# Examples:
+# With \$* = rtl8139:
+# MDROM_ALL_DRIVERS will expand to "rtl8139"
+# MDROM_ALL_INCLUDES will expand to "-DINCLUDE_RTL8139"
+# MDROM_ALL_OBJS will expand to "bin32/rtl8139.o"
+# MDROM_TRY_ALL_DEVICES will expand to ""
+#
+# With \$* = rtl8139--prism2_pci:
+# MDROM_ALL_DRIVERS will expand to "rtl8139 prism2_pci"
+# MDROM_ALL_INCLUDES will expand to "-DINCLUDE_RTL8139 -DINCLUDE_PRISM2_PCI"
+# MDROM_ALL_OBJS will expand to "bin32/rtl8139.o bin32/prism2_pci.o"
+# MDROM_TRY_ALL_DEVICES will expand to "-DTRY_ALL_DEVICES"
+
+MDROM_ALL_DRIVERS=\$(subst --, ,\$*)
+MDROM_ALL_INCLUDES=\$(foreach include,\$(MDROM_ALL_DRIVERS),\$(INCLUDE_\$(include)))
+MDROM_ALL_OBJS=\$(patsubst %,bin32/%.o,\$(MDROM_ALL_DRIVERS))
+MDROM_TRY_ALL_DEVICES=\$(if \$(findstring --,\$*),-DTRY_ALL_DEVICES)
+
+# List of all possible *.o dependencies for multi-driver ROMs
+# Required since there doesn't seem to be any easy way to specify dependencies
+# based on a function of the target name (because any functions get evaluated
+# *before* the contents of % are substituted in)
+MDROM_ALL_DEPS :=
+
+# Rule to build the config-*.o files
+
+bin32/config-%.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	\$(CC32) \$(CFLAGS32) \$(MDROM_ALL_INCLUDES) \$(MDROM_TRY_ALL_DEVICES) -o \$@ -c \$<
+
+EOF
+
+# Generate the *.o rules
 print "\n# Rules to build the driver object files\n";
 foreach my $pci (sort keys %drivers) {
 	# For ISA the rule for .o will generated later
@@ -133,14 +170,10 @@ foreach my $pci (sort keys %drivers) {
 	print <<EOF;
 INCLUDE_$pci = -DINCLUDE_\U$macro\E
 
+MDROM_ALL_DEPS += bin32/$pci.o
+
 bin32/$pci.o:	$pci.c \$(MAKEDEPS) pci.h $deps
 	\$(CC32) \$(CFLAGS32) \$(\U$macro\EFLAGS) -o \$@ -c \$<
-
-bin32/config-$pci.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	\$(CC32) \$(CFLAGS32) \$(INCLUDE_$pci) -o \$@ -c \$<
-
-bin32/config-$pci--%.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	\$(CC32) \$(CFLAGS32) \$(INCLUDE_$pci) \$(INCLUDE_\$*) -DTRY_ALL_DEVICES -o \$@ -c \$<
 
 EOF
 }
@@ -152,14 +185,10 @@ foreach my $isa (sort keys %isaent) {
 	print <<EOF;
 INCLUDE_$isa = -DINCLUDE_\U$macro\E
 
+MDROM_ALL_DEPS += bin32/$isa.o
+
 bin32/$isa.o:	$base.c \$(MAKEDEPS) $deps
 	\$(CC32) \$(CFLAGS32) \$(\U$macro\EFLAGS) -o \$@ -c \$<
-
-bin32/config-$isa.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	\$(CC32) \$(CFLAGS32) \$(INCLUDE_$isa) -o \$@ -c \$<
-
-bin32/config-$isa--%.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	\$(CC32) \$(CFLAGS32) \$(INCLUDE_$isa) \$(INCLUDE_\$*) -o \$@ -c \$<
 
 EOF
 }
@@ -236,23 +265,23 @@ bin32/$pci.tmp:	bin32/$pci.o bin32/config-$pci.o bin32/pci.o \$(STDDEPS32)
 	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
-bin32/$pci--%.tmp:	bin32/$pci.o bin32/%.o bin32/config-$pci--%.o bin32/pci.o \$(STDDEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o bin32/\$*.o bin32/pci.o \$(LIBS32)
+bin32/$pci--%.tmp:	bin32/$pci.o \$(MDROM_ALL_DEPS) bin32/config-$pci--%.o bin32/pci.o \$(STDDEPS32)
+	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o \$(MDROM_ALL_OBJS) bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
 bin32/$pci.elf:	bin32/$pci.o bin32/config-$pci.o bin32/pci.o \$(ELF_DEPS32)
 	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
-bin32/$pci--%.elf:	bin32/$pci.o bin32/%.o bin32/config-$pci--%.o bin32/pci.o \$(ELF_DEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$pci--\$*.o bin32/$pci.o bin32/\$*.o bin32/pci.o \$(LIBS32)
+bin32/$pci--%.elf:	bin32/$pci.o \$(MDROM_ALL_DEPS) bin32/config-$pci--%.o bin32/pci.o \$(ELF_DEPS32)
+	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$pci--\$*.o bin32/$pci.o \$(MDROM_ALL_OBJS) bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
 bin32/$pci.img:	bin32/$pci.o bin32/$pci.tmp bin32/config-$pci.o bin32/pci.o \$(STDDEPS32)
 	\$(LD32) \$(LDFLAGS32) \$(LDBINARY32) -o \$@ \$(START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
 
-bin32/$pci--%.img:	bin32/$pci.o bin32/%.o bin32/$pci.tmp bin32/config-$pci--%.o bin32/pci.o \$(STDDEPS32)
-	\$(LD32) \$(LDFLAGS32) \$(LDBINARY32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o bin32/\$*.o bin32/pci.o \$(LIBS32)
+bin32/$pci--%.img:	bin32/$pci.o \$(MDROM_ALL_DEPS) bin32/$pci.tmp bin32/config-$pci--%.o bin32/pci.o \$(STDDEPS32)
+	\$(LD32) \$(LDFLAGS32) \$(LDBINARY32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o \$(MDROM_ALL_OBJS) bin32/pci.o \$(LIBS32)
 
 EOF
 }
