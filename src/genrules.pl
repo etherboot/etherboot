@@ -338,11 +338,11 @@ foreach my $pci (sort keys %pcient) {
 	my $img = basename($pci);
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
 	print "PCIOBJS\t+= \$(BIN)/$img.o\n";
-	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym\n";
+	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym \$(BIN)/$img.zsym\n";
 }
 foreach my $img (sort keys %buildent) {
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
-	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym\n";
+	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym \$(BIN)/$img.zsym\n";
 }
 
 print "ROMS\t:=\n";
