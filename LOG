@@ -2459,3 +2459,5 @@ Baum that might help with booting DOS.
 + Sundance driver contributed by Timothy Legge.
 
 Released as Etherboot 5.0.10 (production)
+
++ Alignment bug fix for the 3c90x contributed by Neil Newell.

@@ -4,7 +4,7 @@
 /*
  * 3c90x.c -- This file implements the 3c90x driver for etherboot.  Written
  * by Greg Beeley, Greg.Beeley@LightSys.org.  Modified by Steve Smith,
- * Steve.Smith@Juno.Com
+ * Steve.Smith@Juno.Com. Alignment bug fix Neil Newell (nn@icenoir.net).
  *
  * This program Copyright (C) 1999 LightSys Technology Services, Inc.
  * Portions Copyright (C) 1999 Steve Smith
@@ -34,6 +34,9 @@
  *					Re-wrote poll and transmit for
  *					better error recovery and heavy
  *					network traffic operation
+ * v2.01    5-26-2993 NN Fixed driver alignment issue which
+ *                  caused system lockups if driver structures
+ *                  not 8-byte aligned.
  *
  */
 
@@ -228,7 +231,7 @@ typedef struct
     unsigned int	DataAddr;
     unsigned int	DataLength;
     }
-    TXD;
+    TXD __attribute__ ((aligned(8))); /* 64-bit aligned for bus mastering */
 
 /*** RX descriptor ***/
 typedef struct
@@ -238,7 +241,7 @@ typedef struct
     unsigned int	DataAddr;
     unsigned int	DataLength;
     }
-    RXD;
+    RXD __attribute__ ((aligned(8))); /* 64-bit aligned for bus mastering */
 
 /*** Global variables ***/
 static struct
