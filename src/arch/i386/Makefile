@@ -30,7 +30,6 @@ SRCS+=	arch/i386/prefix/romprefix.S
 
 SRCS+=	arch/i386/core/init.S
 SRCS+=	arch/i386/core/start32.S
-SRCS+=	arch/i386/core/pxe.c
 SRCS+=	arch/i386/core/pci_io.c
 SRCS+=	arch/i386/core/i386_timer.c
 SRCS+=	arch/i386/core/elf.c
@@ -101,7 +100,7 @@ allcoms:	$(EB_COMS)
 allisos:	$(EB_ISOS)
 alllisos:	$(EB_LISOS)
 
-BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
+BOBJS+=		$(BIN)/pci_io.o $(BIN)/i386_timer.o
 BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
 BOBJS+=		$(BIN)/pic8259.o $(BIN)/hooks.o
 

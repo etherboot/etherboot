@@ -224,6 +224,7 @@ MAKEDEPS+=	Makefile Makefile.main Config genrules.pl Families
 MAKEDEPS+=	$(BIN)/toolcheck
 MAKEDEPS+=	arch/$(ARCH)/Makefile arch/$(ARCH)/Config
 
+ROMLIMIT=	524288
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 	{ $(RM) $@; echo "ERROR: code size exceeds limit!"; exit 1; }; exit 0; }
 
