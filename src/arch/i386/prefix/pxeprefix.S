@@ -3,8 +3,6 @@
  * Offsets must match those in etherboot.h
  */
 #define FLOPPY_SEGMENT	0x7c0
-#define ROM_SEGMENT	0x1fa
-#define ROM_LENGTH	0x1fc
 
 #define PXENV_UNDI_CLEANUP	0x02
 #define PXENV_UNDI_SHUTDOWN	0x05
@@ -215,6 +213,8 @@ run_etherboot:
 	push	%es			/* Record PXE stack pointer */
 	push	%di	
 	lcall	$FLOPPY_SEGMENT + (512/16), $0 /* Call start16.S */
+	mov	%cs,%ax			/* Restore SS (since prefix may have been relocated */
+	mov	%ax,%ss			/* and we put our stack inside the prefix)	    */
 	push	%cs			/* Restore DS */
 	pop	%ds
 	pop	%di			/* PXE stack pointer to ES:DI */
@@ -353,16 +353,11 @@ pxe_parameter_structure:
 	.word	0
 	.word	0,0,0,0,0
 
+end_of_pxeloader:
+
+	.org 512
 _estack:	/* We place a stack here.  It doesn't get used until after
 		 * all the PXE API calls are finished, so we can happily
 		 * trash the PXE data structures above and even the pxe_call
 		 * routine if necessary.
 		 */
-
-end_of_pxeloader:
-
-	.org	ROM_SEGMENT
-	.word	0
-	.word	0
-	.word	0xaa55
-	.org 512
