@@ -32,6 +32,9 @@ static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL } };
 
 /* Function prototypes */
+int eb_pxenv_undi_shutdown ( void );
+int eb_pxenv_stop_undi ( void );
+int undi_unload_base_code ( void );
 int undi_full_shutdown ( void );
 
 /**************************************************************************
@@ -115,14 +118,24 @@ int hunt_pixie ( void ) {
 				printf ( "in free base memory!\n\n"
 					 "WARNING: a valid !PXE structure was "
 					 "found in an area of memory marked "
-					 "as free!\n"
-					 "Ignoring and continuing, but this "
+					 "as free!\n\n" );
+				undi.pxe = pxe;
+				pxe_dump();
+				undi.pxe = NULL;
+				printf ( "\nIgnoring and continuing, but this "
 					 "may cause problems later!\n\n" );
 				continue;
 			}
 			printf ( "ok\n" );
 			undi.pxe = pxe;
 			pxe_dump();
+#ifdef PXELOADER_KEEP_ALL
+			printf ( "Resetting pixie...\n" );
+			eb_pxenv_undi_shutdown();
+			eb_pxenv_stop_undi();
+			undi_unload_base_code();
+			pxe_dump();
+#endif
 			return 1;
 		}
 	}
