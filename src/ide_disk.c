@@ -176,7 +176,7 @@ struct ide_pio_command
 /* IDE_CMD_SET_FEATURE sub commands */
 #define IDE_FEATURE_CFA_ENABLE_8BIT_PIO                     0x01
 #define IDE_FEATURE_ENABLE_WRITE_CACHE                      0x02
-#define IDE_FEATURE_SET_TRANSFRE_MODE                       0x03
+#define IDE_FEATURE_SET_TRANSFER_MODE                       0x03
 #define IDE_FEATURE_ENABLE_POWER_MANAGEMENT                 0x05
 #define IDE_FEATURE_ENABLE_POWERUP_IN_STANDBY               0x06
 #define IDE_FEATURE_STANDBY_SPINUP_DRIVE                    0x07
