@@ -227,47 +227,6 @@ _in_call_far:
 	ret
 
 	
-#if defined(TAGGED_IMAGE)
-/**************************************************************************
-XSTART16 - Transfer control to the kernel just loaded
-**************************************************************************/
-	.globl	xstart16
-xstart16:
-	pushl	%ebp
-	movl	%esp,%ebp
-	pushl	%ebx
-	pushl	%esi
-	pushl	%edi
-	movl	8(%ebp),%edx
-	movl	12(%ebp),%ebx
-
-	/* FIXME handle the bootp record */
-	movl	16(%ebp),%ecx	/* bootp record (32bit pointer) */
-	shll	$12,%ecx	/* convert to segment:offset form */
-	shrw	$12,%cx
-
-	pushl	$ 10f
-	pushl	$ 20f - 10f
-	call	_old_real_call
-	.section ".text16"
-10:	.code16
-	popw	%ax		/* get the return ip addr */
-	pushl	%ecx		/* bootp record */
-	pushl	%ebx		/* file header */
-	pushw	%cs		/* Setup the far return address */
-	pushw	%ax		
-	pushl	%edx		/* Setup the far address to call */
-	lret			/* Back into the routine I'm calling */
-20:	.code32
-	.previous
-	
-	popl	%edi
-	popl	%esi
-	popl	%ebx
-	popl	%ebp
-	ret
-#endif /* TAGGED_IMAGE */
-
 #if defined(RELOCATE)
 /**************************************************************************
 RELOCATE_TO - relocate etherboot to the specified address

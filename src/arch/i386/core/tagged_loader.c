@@ -1,3 +1,6 @@
+#include "realmode.h"
+#include "segoff.h"
+
 struct segheader
 {
 	unsigned char length;
@@ -15,7 +18,7 @@ struct imgheader
 	unsigned long length;			/* and flags */
 	union
 	{
-		struct { unsigned short bx, ds; } segoff;
+		segoff_t segoff;
 		unsigned long location;
 	} u;
 	unsigned long execaddr;
@@ -36,8 +39,10 @@ static struct tagged_context
 #define	TAGGED_PROGRAM_RETURNS	(tctx.img.length & 0x00000100)	/* bit 8 */
 #define	LINEAR_EXEC_ADDR	(tctx.img.length & 0x80000000)	/* bit 31 */
 
-
 static sector_t tagged_download(unsigned char *data, unsigned int len, int eof);
+void xstart16 (unsigned long execaddr, segoff_t location,
+	       void *bootp);
+
 static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 {
 	struct segheader	*sh;
@@ -55,7 +60,7 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 	memcpy(&tctx.img, data, sizeof(tctx.img));
 	/* Memory location where we are supposed to save it */
 	tctx.segaddr = tctx.linlocation = 
-		((tctx.img.u.segoff.ds) << 4) + tctx.img.u.segoff.bx;
+		((tctx.img.u.segoff.segment) << 4) + tctx.img.u.segoff.offset;
 	if (!prep_segment(tctx.segaddr, tctx.segaddr + 512, tctx.segaddr + 512,
 			  0, 512)) {
 		return 0;
@@ -132,8 +137,8 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 				} else {
 					gateA20_unset();
 					xstart16(tctx.img.execaddr, 
-						tctx.img.u.location, 
-						virt_to_phys(BOOTP_DATA_ADDR));
+						 tctx.img.u.segoff,
+						 BOOTP_DATA_ADDR);
 					longjmp(restart_etherboot, -2);
 				}
 			}
@@ -166,4 +171,31 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 		data += i;
 	} 
 	return 0;
+}
+
+void xstart16 (unsigned long execaddr, segoff_t location,
+	       void *bootp) {
+	struct {
+		segoff_t execaddr;
+		segoff_t location;
+		segoff_t bootp;
+	} PACKED in_stack;
+
+	/* AFAICT, execaddr is actually already a segment:offset */
+	*((unsigned long *)&in_stack.execaddr) = execaddr;
+	in_stack.location = location;
+	in_stack.bootp.segment = SEGMENT(bootp);
+	in_stack.bootp.offset = OFFSET(bootp);
+
+	BEGIN_RM_FRAGMENT(rm_xstart16);
+	__asm__ ( "popl %eax" );	/* Calculated lcall */
+	__asm__ ( "pushw %cs" );
+	__asm__ ( "call 1f\n1:\tpopw %bp" );
+	__asm__ ( "leaw (2f-1b)(%bp), %bx" );
+	__asm__ ( "pushw %bx" );
+	__asm__ ( "pushl %eax" );
+	__asm__ ( "lret\n2:") ;
+	END_RM_FRAGMENT(rm_xstart16);
+       
+	real_call ( rm_xstart16, &in_stack, NULL );
 }
