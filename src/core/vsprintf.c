@@ -13,7 +13,7 @@ PRINTF and friends
 		%[#]x	- 4 bytes int (8 hex digits, lower case)
 		%[#]X	- 4 bytes int (8 hex digits, upper case)
 		%[#]lx  - 8 bytes long (16 hex digits, lower case)
-		%[#]lx  - 8 bytes long (16 hex digits, upper case)
+		%[#]lX  - 8 bytes long (16 hex digits, upper case)
 		%[#]hx	- 2 bytes int (4 hex digits, lower case)
 		%[#]hX	- 2 bytes int (4 hex digits, upper case)
 		%[#]hhx	- 1 byte int (2 hex digits, lower case)
