@@ -429,6 +429,9 @@ int loadkernel(const char *fname)
 	in_addr ip;
 	int len;
 	const char *name;
+#ifdef	DNS_RESOLVER
+	const char *resolvt;
+#endif
 
 #if 0 && defined(CAN_BOOT_DISK)
 	if (!memcmp(fname,"/dev/",5) && fname[6] == 'd') {
@@ -466,6 +469,16 @@ int loadkernel(const char *fname)
 	if ((proto < last_proto) && (memcmp(fname + len, "://", 3) == 0)) {
 		name += len + 3;
 		if (name[0] != '/') {
+#ifdef DNS_RESOLVER
+			resolvt = dns_resolver ( name );
+			if ( NULL != resolvt ) {
+				//printf ("Resolved host name [%s] to [%s]\n",
+				//	name, resolvt );
+				inet_aton(resolvt, &ip);
+				while ( ( '/' != name[0] ) && ( 0 != name[0]))
+					++name;
+			} else
+#endif	/* DNS_RESOLVER */
 			name += inet_aton(name, &ip);
 			if (name[0] == ':') {
 				name++;

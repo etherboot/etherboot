@@ -126,7 +126,12 @@
 #define ARP_CLIENT	0
 #define ARP_SERVER	1
 #define ARP_GATEWAY	2
+#ifdef	DNS_RESOLVER
+#define	ARP_NAMESERVER	3
+#define	MAX_ARP		ARP_NAMESERVER+1
+#else	/* NO DNS_RESOLVER */
 #define MAX_ARP		ARP_GATEWAY+1
+#endif	/* DNS_RESOLVER */
 
 #define IGMP_SERVER	0
 #define MAX_IGMP	IGMP_SERVER+1

@@ -68,6 +68,9 @@ static const unsigned char dhcpdiscover[] = {
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
 	RFC2132_PARAM_LIST,4,RFC1533_NETMASK,RFC1533_GATEWAY,
 	RFC1533_HOSTNAME,RFC1533_VENDOR
+#ifdef	DNS_RESOLVER
+	,RFC1533_DNS
+#endif
 };
 static const unsigned char dhcprequest [] = {
 	RFC2132_MSG_TYPE,1,DHCPREQUEST,
@@ -98,6 +101,9 @@ static const unsigned char dhcprequest [] = {
 #ifdef	IMAGE_FREEBSD
 	RFC1533_VENDOR_HOWTO,
 	RFC1533_VENDOR_KERNEL_ENV,
+#endif
+#ifdef	DNS_RESOLVER
+	RFC1533_DNS,
 #endif
 	RFC1533_VENDOR_MNUOPTS, RFC1533_VENDOR_SELECTION,
 	/* 8 MOTD entries */
@@ -263,6 +269,8 @@ int eth_load(struct dev *dev __unused)
 			BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr);
 	if (arptable[ARP_GATEWAY].ipaddr.s_addr)
 		printf(", Gateway %@", arptable[ARP_GATEWAY].ipaddr.s_addr);
+	if (arptable[ARP_NAMESERVER].ipaddr.s_addr)
+		printf(", Nameserver %@", arptable[ARP_NAMESERVER].ipaddr.s_addr);
 	putchar('\n');
 
 #ifdef	MDEBUG
@@ -1557,6 +1565,13 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 				printf("Only support %ld bytes in Kernel Env\n",
 					sizeof(freebsd_kernel_env));
 			}
+		}
+#endif
+#ifdef	DNS_RESOLVER
+		else if (NON_ENCAP_OPT c == RFC1533_DNS) {
+			// TODO: Copy the DNS IP somewhere reasonable
+			if (TAG_LEN(p) >= sizeof(in_addr))
+				memcpy(&arptable[ARP_NAMESERVER].ipaddr, p+2, sizeof(in_addr));
 		}
 #endif
 		else {

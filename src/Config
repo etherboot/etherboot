@@ -163,6 +163,8 @@
 #			Support for sending multicast packets
 #	-DMULTICAST_LEVEL2
 #			Support for receiving multicast packets
+#	-DDNS_RESOLVER
+#			Support for resolving hostnames in bootfile name (experimental)
 #	-DDOWNLOAD_PROTO_TFTP
 #			If defined, includes TFTP support (recommended).
 #	-DDOWNLOAD_PROTO_NFS
@@ -329,6 +331,8 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 # CFLAGS+=	-DDOWNLOAD_PROTO_NFS
 # Change download protocol to HTTP, default is TFTP
 # CFLAGS+=	-DDOWNLOAD_PROTO_HTTP
+# Support to resolve hostnames in boot filename
+#CFLAGS+=	-DDNS_RESOLVER
 
 # Multicast Support
 #CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
