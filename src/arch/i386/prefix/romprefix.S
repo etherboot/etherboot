@@ -231,6 +231,7 @@ pnpentry:
 invoke:
 	/* Store ROM segment and size on stack */
 	pushw	%ax
+	pushw   %ds
 	pushw	%cs
 	movzbw	%cs:(size-_prefix), %ax
 	shlw	$9, %ax			/* 512-byte blocks */
@@ -240,8 +241,11 @@ invoke:
 	call	prelocate
 	/* We are now running in RAM */
 	popw	%ax			/* padding */
-	popw	%cs:(rom+2)		/* ROM size */
-	popw	%cs:(rom+0)		/* ROM segment */
+	movw	%cs, %ax
+	movw	%ax, %ds
+	popw	%ds:(rom+2)		/* ROM size */
+	popw	%ds:(rom+0)		/* ROM segment */
+	popw	%ds			/* Original %ds */
 	popw	%ax			/* Original %ax */
 	pushw	%ax			/* 4-byte alignment */
 	pushl	$8			/* Preserve exit code & far ret addr */
