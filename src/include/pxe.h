@@ -1,4 +1,80 @@
 /*
+ * pxe.h for Etherboot.
+ * 
+ * PXE is technically specified only for i386, but there's no reason
+ * why we shouldn't make the API available for other architectures,
+ * provided that someone wants to write the shim that allows an
+ * external program to call pxe_api_call().
+ * 
+ * We stick with Intel's data structure definitions as far as possible
+ * on other architectures.  Generally the only i386-specific stuff is
+ * related to addressing: real-mode segment:offset addresses, segment
+ * selectors, segment descriptors etc.  We allow an architecture-
+ * specific header to define these types, then build the PXE
+ * structures.  Note that we retain the names from the PXE
+ * specification document (e.g. SEGOFF16_t) even if the architecture
+ * in question doesn't represent a SEGOFF16_t as anything resembling a
+ * 16-bit segment:offset address.  This is done in order to keep the
+ * structure definitions as close as possible to those in the spec, to
+ * minimise confusion.
+ *
+ * This file derives from several originals.  One is pxe.h from
+ * FreeBSD.  Another is general.h86 from netboot.  The original
+ * copyright notices are reproduced below.  This entire file is
+ * licensed under the GPL; the netboot code is GPL anyway and the
+ * FreeBSD code allows us to relicense under the GPL provided that we
+ * retain the FreeBSD copyright notice.  This is my understanding,
+ * anyway.  Other portions are my own and therefore Copyright (C) 2004
+ * Michael Brown <mbrown@fensystems.co.uk>.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of the
+ * License, or any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+#ifndef PXE_H
+#define PXE_H
+
+/* Include architecture-specific PXE data types May define SEGOFF16_t,
+ * SEGDESC_t and SEGSEL_t.  These should be #defines to underlying
+ * types.
+ */
+#ifndef PXE_ARCH_H
+#include <pxe_arch.h>
+#endif
+
+/* Defaults in case pxe_arch.h did not define a type.  These are
+ * placeholder structures just to make the code compile.
+ */
+#ifndef SEGOFF16_t
+#define SEGOFF16_t void
+#endif
+
+#ifndef SEGDESC_t
+#define SEGDESC_t void
+#endif
+
+#ifndef SEGSEL_t
+#define SEGSEL_t void
+#endif
+
+/*****************************************************************************
+ * The following portion of this file is derived from FreeBSD's pxe.h.
+ * Do not remove the copyright notice below.
+ *****************************************************************************
+ */
+
+/*
  * Copyright (c) 2000 Alfred Perlstein <alfred@freebsd.org>
  * All rights reserved.
  * Copyright (c) 2000 Paul Saab <ps@freebsd.org>
@@ -38,10 +114,6 @@
  * It's for your own good. :)
  */
 
-/* SEGOFF16_t defined in separate header for Etherboot
- */
-#include <segoff.h>
-
 /* It seems that intel didn't think about ABI,
  * either that or 16bit ABI != 32bit ABI (which seems reasonable)
  * I have to thank Intel for the hair loss I incurred trying to figure
@@ -67,14 +139,6 @@
 #define	MAC_ARGS(mac)					\
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] 
 
-typedef struct {
-	uint16_t		Seg_Addr;
-	uint32_t		Phy_Addr;
-	uint16_t		Seg_Size;
-} PACKED SEGDESC_t; /* PACKED is required, otherwise gcc pads this out to 12
-		       bytes - mbrown@fensystems.co.uk (mcb30) 17/5/03 */
-
-typedef	uint16_t		SEGSEL_t;
 typedef	uint16_t		PXENV_STATUS_t;
 typedef	uint32_t		IP4_t;
 typedef	uint32_t		ADDR32_t;
@@ -519,3 +583,219 @@ typedef struct {
 typedef struct {
 	PXENV_STATUS_t	Status;
 } PACKED t_PXENV_STOP_BASE;
+
+/*****************************************************************************
+ * The following portion of this file is derived from netboot's
+ * general.h86.  Do not remove the copyright notice below.
+ *****************************************************************************
+ */
+
+/*
+ * general.h86  -  Common PXE definitions
+ *
+ * Copyright (C) 2003 Gero Kuhlmann <gero@gkminix.han.de>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id$
+ */
+
+/*
+ **************************************************************************
+ *
+ * This file contains the Preboot API common definitions as
+ * per Intels PXE specification version 2.0.
+ *
+ * Updated to comply with PXE specification version 2.1 by Michael Brown.
+ *
+ **************************************************************************
+ *
+ * Result codes returned in AX by a PXENV API service:
+ */
+#define PXENV_EXIT_SUCCESS	0x0000
+#define PXENV_EXIT_FAILURE	0x0001
+
+
+
+/*
+ **************************************************************************
+ *
+ * CPU types (defined in WfM 1.1):
+ */
+#define PXENV_CPU_X86		0
+#define PXENV_CPU_ALPHA		1
+#define PXENV_CPU_PPC		2
+
+
+
+/*
+ **************************************************************************
+ *
+ * Bus types (defined in WfM 1.1):
+ */
+#define PXENV_BUS_ISA		0
+#define PXENV_BUS_EISA		1
+#define PXENV_BUS_MCA		2
+#define PXENV_BUS_PCI		3
+#define PXENV_BUS_VESA		4
+#define PXENV_BUS_PCMCIA	5
+
+
+
+/*
+ **************************************************************************
+ *
+ * Status codes returned in the status word of the PXENV API parameter
+ * structure. Some of these codes are also used to return status
+ * information from a boot image loader back to the bootrom.
+ */
+
+/* Generic API errors that are reported by the loader */
+#define PXENV_STATUS_SUCCESS		0x00
+#define PXENV_STATUS_FAILURE		0x01	/* general failure */
+#define PXENV_STATUS_BAD_FUNC		0x02	/* invalid function number */
+#define PXENV_STATUS_UNSUPPORTED	0x03	/* not yet supported */
+#define PXENV_STATUS_KEEP_UNDI		0x04	/* keep UNDI in memory */
+#define PXENV_STATUS_KEEP_ALL		0x05	/* keep everything in memory */
+#define PXENV_STATUS_OUT_OF_RESOURCES	0x06	/* also keep everything */
+
+/* ARP/UDP errors (0x10 to 0x1F) */
+#define PXENV_STATUS_ARP_CANCELED	0x10	/* ARP canceled by keystroke */
+#define PXENV_STATUS_ARP_TIMEOUT	0x11	/* ARP timeout */
+#define PXENV_STATUS_UDP_CLOSED		0x18	/* UDP closed */
+#define PXENV_STATUS_UDP_OPEN		0x19	/* UDP already open */
+#define PXENV_STATUS_TFTP_CLOSED	0x1A	/* TFTP closed */
+#define PXENV_STATUS_TFTP_OPEN		0x1B	/* TFTP already opened */
+
+/* BIOS/system errors (0x20 to 0x2F) */
+#define PXENV_STATUS_MCOPY_PROBLEM	0x20	/* can't copy into memory */
+
+/* TFP errors (0x30 to 0x3F) */
+#define PXENV_STATUS_TFTP_CANNOT_ARP	0x30	/* TFTP ARP problem */
+#define PXENV_STATUS_TFTP_OPEN_CANCELED	0x31	/* TFTP open canceled by key */
+#define PXENV_STATUS_TFTP_OPEN_TIMEOUT	0x32	/* timeout during TFTP open */
+#define PXENV_STATUS_TFTP_UNKNOWN_OPCODE 0x33	/* unknown TFTP opcode */
+#define PXENV_STATUS_TFTP_READ_CANCELED	0x34	/* TFTP read canceled by key */
+#define PXENV_STATUS_TFTP_READ_TIMEOUT	0x35	/* timeout during TFTP read */
+#define PXENV_STATUS_TFTP_ERROR_OPCODE	0x36	/* bad TFTP opcode */
+#define PXENV_STATUS_TFTP_CANNOT_OPEN_CONNECTION \
+					0x38	/* error during TFTP open */
+#define PXENV_STATUS_TFTP_CANNOT_READ_FROM_CONNECTION \
+					0x39	/* error during TFTP read */
+#define PXENV_STATUS_TFTP_TOO_MANY_PACKAGES \
+					0x3A	/* too many packages */
+#define PXENV_STATUS_TFTP_FILE_NOT_FOUND 0x3B	/* file not found */
+#define PXENV_STATUS_TFTP_ACCESS_VIOLATION 0x3C	/* access violation */
+#define PXENV_STATUS_TFTP_NO_MCAST_ADDRESS 0x3D	/* no multicast address */
+#define PXENV_STATUS_TFTP_NO_FILESIZE	0x3E	/* unable to get file size */
+#define PXENV_STATUS_TFTP_INVALID_PACKET_SIZE \
+					0x3F	/* invalid packet size */
+
+/* BOOTP errors (0x40 to 0x4F) */
+#define PXENV_STATUS_BOOTP_CANCELED	0x40	/* BOOTP canceled by key */
+#define PXENV_STATUS_BOOTP_TIMEOUT	0x41	/* timeout during BOOTP */
+#define PXENV_STATUS_BOOTP_NO_FILE	0x42	/* missing bootfile name */
+
+/* DHCP errors (0x50 to 0x5F) */
+#define PXENV_STATUS_DHCP_CANCELED	0x50	/* DHCP canceled by key */
+#define PXENV_STATUS_DHCP_TIMEOUT	0x51	/* timeout during DHCP */
+#define PXENV_STATUS_DHCP_NO_IP_ADDRESS	0x52	/* missing IP address */
+#define PXENV_STATUS_DHCP_NO_BOOTFILE_NAME 0x53	/* missing bootfile name */
+#define PXENV_STATUS_DHCP_BAD_IP_ADDRESS 0x54	/* invalid IP address */
+
+/* Driver errors (0x60 to 0x6F) */
+#define PXENV_STATUS_UNDI_INVALID_FUNCTION 0x60	/* invalid UNDI function */
+#define PXENV_STATUS_UNDI_MEDIATEST_FAILED 0x61	/* media test failed */
+#define PXENV_STATUS_UNDI_CANNOT_INIT_NIC_FOR_MCAST \
+					0x62	/* cannot init for multicast */
+#define PXENV_STATUS_UNDI_CANNOT_INITIALIZE_NIC \
+					0x63	/* cannot init NIC */
+#define PXENV_STATUS_UNDI_CANNOT_INITIALIZE_PHY \
+					0x64	/* cannot init hardware */
+#define PXENV_STATUS_UNDI_CANNOT_READ_CONFIG_DATA \
+					0x65	/* cannot read config data */
+#define PXENV_STATUS_UNDI_CANNOT_READ_INIT_DATA	\
+					0x66	/* cannot read init data */
+#define PXENV_STATUS_UNDI_BAD_MAC_ADDRESS 0x67	/* invalid hardware address */
+#define PXENV_STATUS_UNDI_BAD_EEPROM_CHECKSUM \
+					0x68	/* invalid EEPROM checksum */
+#define PXENV_STATUS_UNDI_ERROR_SETTING_ISR 0x69
+#define PXENV_STATUS_UNDI_INVALID_STATE	0x6a	/* invalid UNDI state */
+#define PXENV_STATUS_UNDI_TRANSMIT_ERROR 0x6b	/* transmit error */
+#define PXENV_STATUS_UNDI_INVALID_PARAMETER \
+					0x6c	/* almost anything */
+
+/* Bootstrap (.1) errors (0x70 to 0x7F) */
+#define PXENV_STATUS_BSTRAP_PROMPT_MENU	0x74	/* invalid bootstrap menu */
+#define PXENV_STATUS_BSTRAP_MCAST_ADDR	0x76	/* missing multicast address */
+#define PXENV_STATUS_BSTRAP_MISSING_LIST 0x77	/* missing file list */
+#define PXENV_STATUS_BSTRAP_NO_RESPONSE	0x78	/* no response from server */
+#define PXENV_STATUS_BSTRAP_FILE_TOO_BIG 0x79	/* next file too big */
+
+/* Environment (.2) errors (0x80 to 0x8F) */
+
+/* MTFTP errors (0x90 to 0x9F) */
+#define PXENV_STATUS_MTFTP_OPEN_CANCEL	0x91	/* MTFTP open canceled by key */
+#define PXENV_STATUS_MTFTP_OPEN_TIMEOUT	0x92	/* timeout during MTFTP open */
+#define PXENV_STATUS_MTFTP_UNKNOWN_OP	0x93	/* unknown TFTP opcode */
+#define PXENV_STATUS_MTFTP_READ_CANCEL	0x94	/* MTFTP read canceled by key */
+#define PXENV_STATUS_MTFTP_READ_TIMEOUT	0x95	/* timeout during MTFTP read */
+#define PXENV_STATUS_MTFTP_ERROR_OP	0x96	/* bad TFTP opcode */
+#define PXENV_STATUS_MTFTP_CANNOT_OPEN	0x98	/* error during MTFTP open */
+#define PXENV_STATUS_MTFTP_CANNOT_READ	0x99	/* error during MTFTP read */
+#define PXENV_STATUS_MTFTP_TOO_MANY	0x9A	/* too many packages */
+#define PXENV_STATUS_MTFTP_PACK_SIZE	0x9B	/* invalid package size */
+
+/* Misc. errors (0xA0 to 0xAF) */
+#define PXENV_STATUS_BINL_CANCELED_BY_KEYSTROKE	\
+					0xA0	/* BINL canceled by key */
+#define PXENV_STATUS_BINL_NO_PXE_SERVER	0xA1	/* no BINL server found */
+#define PXENV_STATUS_NOT_AVAILABLE_IN_PMODE \
+					0xA2	/* not avail. in prot mode */
+#define PXENV_STATUS_NOT_AVAILABLE_IN_RMODE \
+					0xA3	/* not avail. in real mode */
+
+/* BUSD errors (0xB0 to 0xBF) */
+#define PXENV_STATUS_BUSD_DEVICE_NOT_SUPPORTED \
+					0xB0	/* BUSD services not enabled */
+#define PXENV_STATUS_BUSD_DEV_ENABLE	0xB1	/* BUSD device not enabled */
+
+/* Loader errors (0xC0 to 0xCF) */
+#define PXENV_STATUS_LOADER_NO_FREE_BASE_MEMORY \
+					0xC0	/* no free base memory */
+#define PXENV_STATUS_LOADER_NO_BC_ROMID	0xC1	/* no base code rom ID */
+#define PXENV_STATUS_LOADER_BAD_BC_ROMID 0xC2	/* bad base code rom ID */
+#define PXENV_STATUS_LOADER_BAD_BC_RUNTIME_IMAGE \
+					0xC3	/* bad base code image */
+#define PXENV_STATUS_LOADER_NO_UNDI_ROMID 0xC4	/* no UNDI rom ID */
+#define PXENV_STATUS_LOADER_BAD_UNDI_ROMID 0xC5	/* bad UNDI rom ID */
+#define PXENV_STATUS_LOADER_UNDI_DRIVER_IMAGE \
+					0xC6	/* bad UNDI runtime image */
+#define PXENV_STATUS_LOADER_NO_PXE_STRUCT 0xC8	/* missing !PXE struct */
+#define PXENV_STATUS_LOADER_NO_PXENV_STRUCT \
+					0xC9	/* missing PXENV+ struct */
+#define PXENV_STATUS_LOADER_UNDI_START	0xCA	/* UNDI not started */
+#define PXENV_STATUS_LOADER_BC_START	0xCB	/* base code not started */
+
+/* Reserved errors (0xD0 to 0xFF) */
+#define PXENV_STATUS_IMAGE_INVALID	0xD0	/* invalid boot image */
+#define PXENV_STATUS_STOP_BASE		0xD1	/* error stopping base code */
+#define PXENV_STATUS_UNLOAD_BASE	0xD2	/* error unloading base code */
+#define PXENV_STATUS_STOP_UNDI		0xD3	/* error stopping UNDI */
+#define PXENV_STATUS_CLEANUP_UNDI	0xD4	/* error cleaning up UNDI */
+
+
+
+#endif /* PXE_H */
