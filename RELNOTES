@@ -57,6 +57,28 @@ to something with more modern tools.
 
 ---
 
+In order to create .liso images (which are .iso images which contain
+legacy floppy emulation code), you will need to have the packages
+mtools-3.9.9 or later, and syslinux-2.08 or later installed on your
+system. These packages are available in various locations and formats.
+Join and ask on the etherboot-users mailing list if you need help
+finding them.
+
+---
+
+Attempting to make an image with all etherboot drivers in it using the
+command:
+
+    make bin/etherboot.zdsk
+
+will currently fail because of code space limitations.
+
+    make bin/etherboot-pci.zdsk
+
+will work however, because it includes fewer (only PCI) drivers.
+
+---
+
 There is a bug in the Perl supplied with RH9 (and possibly RH8). It
 assumes UTF-8 even with the use bytes pragma. Either get an updated Perl
 package or set LANG to en_US (or whatever your language name is, the

@@ -266,8 +266,8 @@ ide_disk	0x0000,0x0000	Generic IDE disk support
 
 family		drivers/disk/pc_floppy
 
-#family		arch/i386/drivers/net/undi
-#undi		-
+family		arch/i386/drivers/net/undi
+undi		0x0000,0x0000	UNDI driver support
 
 family		drivers/net/pnic
 EOF
