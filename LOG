@@ -2706,3 +2706,5 @@ casting issues in dns_resover.c.
 
 + Paolo Salvan experimented with using isolinux for non-emulation
 images and contributed the first cut at the code for geniso.
+
++ Fix for relocation issue with prism2_pci driver
