@@ -1,294 +1,246 @@
-<!DOCTYPE PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
-
 <head>
-<title>Etherboot: Etherboot home page</title>
+<meta name="generator" content="HTML Tidy, see www.w3.org">
+<title>Welcome to EtherBoot.org</title>
+<meta http-equiv="Content-Type" content=
+"text/html; charset=iso-8859-1">
 </head>
+<body bgcolor="#446489" text="#000000">
 
-<body bgcolor="#CCCCCC">
+<br>
+<table summary="welcome" width="95%" border="0" cellspacing="0"
+cellpadding="3" align="center">
+<tr bgcolor="0F3161">
+<td width="278" bgcolor="0F3161" valign="bottom">
+<h2><font face="Arial, Helvetica, sans-serif" color=
+"BFCBD9">Welcome to the</font></h2>
+</td>
+<td bgcolor="0F3161">
+<p>&nbsp;</p>
+</td>
+</tr>
 
-Hosted by <A href="http://sourceforge.net">
-<IMG src="http://sourceforge.net/sflogo.php?group_id=4233&amp;type=1" width="88"
-height="31" border="0" alt="SourceForge Logo"></A>
+<tr valign="middle">
+<td bgcolor="BFCBD9">
+<div align="left"><font face="Arial"><font color="0F3161" size=
+"6">EtherBoot Project</font></font></div>
+</td>
+<td bgcolor="BFCBD9">
+<div align="right"><a href="index.html"><font size="6" face=
+"Arial"><font color="0F3161"><img src=
+"doc/html/images/etherboot_logo.gif" alt="Etherboot logo" width=
+"125" height="54" border="0"></font></font></a></div>
+</td>
+</tr>
+</table>
 
+<table summary="index" width="95%" border="0" cellspacing="0"
+cellpadding="0" align="center">
+<tr>
+<td bgcolor="0F3161" width="165" height="56" valign="top">
+<table summary="index.html" width="100%" border="0" cellspacing=
+"10" cellpadding="0" align="right">
+<tr>
+<td height="45">
+<div align="right"><a href="index.html"><font color="#FA5053" face=
+"Arial, Helvetica, sans-serif"><b>Home</b></font></a></div>
+</td>
+</tr>
 
-<hr>
+<tr>
+<td height="45">
+<div align="right"><a href="doc/html/news.html"><font face=
+"Arial, Helvetica, sans-serif" color="BFCBD9">News</font></a></div>
+</td>
+</tr>
 
-<a href="http://etherboot.sourceforge.net/"><img src="eb.png" border="0"
-alt="Etherboot logo"></a>
+<tr>
+<td height="45">
+<div align="right"><a href="doc/html/documentation.html"><font
+color="BFCBD9" face=
+"Arial, Helvetica, sans-serif">Documentation</font></a></div>
+</td>
+</tr>
 
+<tr>
+<td height="45">
+<div align="right"><a href="doc/html/download.html"><font color=
+"BFCBD9" face=
+"Arial, Helvetica, sans-serif">Download</font></a></div>
+</td>
+</tr>
 
-<ul>
-<li><a href="#What">What is Etherboot</a></li>
+<tr>
+<td height="45">
+<div align="right"><a href="doc/html/contributing.html"><font
+color="BFCBD9" face=
+"Arial, Helvetica, sans-serif">Volunteering</font></a></div>
+</td>
+</tr>
 
-<li><a href="#Doc">Documentation</a></li>
+<tr>
+<td height="45">
+<div align="right"><a href="doc/html/mailinglist.html"><font face=
+"Arial, Helvetica, sans-serif"><font color="BFCBD9">Mailing
+Lists</font></font></a></div>
+</td>
+</tr>
 
-<li><a href="#Distribution">Source distribution</a></li>
+<tr>
+<td height="45">
+<div align="right"><a href=
+"http://etherboot.sourceforge.net/relatedlinks.html"><font face=
+"Arial, Helvetica, sans-serif" color="BFCBD9">Related
+Links</font></a></div>
+</td>
+</tr>
 
-<li><a href="#Contributing">Contributing to Etherboot</a></li>
+<tr>
+<td height="45">
+<div align="right"><a href=
+"http://etherboot.sourceforge.net/clinks.html"><font face=
+"Arial, Helvetica, sans-serif"><font color="BFCBD9">Commercial
+Links</font></font></a></div>
+</td>
+</tr>
+</table>
+</td>
+<td width="700" height="56" bgcolor="#FFFFFF" valign="top" align=
+"left">
+<blockquote>
+<h2><font face="Arial, Helvetica, sans-serif" color="0F3161"><br>
+ About EtherBoot</font></h2>
 
-<li><a href="#News">News</a></li>
-
-<li><a href="#Mailing">Mailing lists</a></li>
-
-<li><a href="#Related">Related links</a></li>
-
-<li><a href="#Commercial">Commercial links</a></li>
-</ul>
-
-<h2><a name="What">What is Etherboot</a></h2>
-
-Etherboot is a software package for creating ROM images that can
-download code over an Ethernet network to be executed on an x86
-computer. Many network adapters have a socket where a ROM chip can be
-installed.  Etherboot is code that can be put in such a ROM.  Etherboot
-is normally used for for booting PCs diskless.  This is useful in
-various situations, for example: 
-
-<ul>
-
-<li>An X-terminal.</li>
-
-<li>Clusters of compute servers.</li>
-
-<li>Routers.</li>
-
-<li>Various kinds of remote servers, e.g. a tape drive server that
-can be accessed with the RMT protocol.</li>
-
-<li>Machines doing tasks in environments unfriendly to disks.</li>
-
-<li>A user platform where remote partitions are mounted over the network
-and you are willing to accept the lower speed compared to disk.</li>
-
-<li>Maintaining software for a cluster of equally configured
-workstations centrally.</li>
-
-</ul>
-
-<p>Etherboot can boot computers faster than from a disk because there
-are no delays in spinning up disks, etc. A moment's calculation will
-show that even with a 10Mbit Ethernet, sending a 500kB kernel will take
-only a couple of seconds typically. With 100Mbit Ethernet it gets even
-better.</p>
-
-<p>Compared to booting from solid-state devices, e.g. Flash disks,
-Etherboot has the advantage of centralising software adminstration, the
-tradeoff being the dependence on a server. This can be partly alleviated
-by providing redundant servers.</p>
-
-<p>Etherboot can work with RAM disks, NFS filesystems, or even local
-disks, if desired. It's a component technology and can be combined with
-other technologies to do things the way you want.</p>
-
-<p>Etherboot is usually used to load Linux, FreeBSD or DOS. However the
-protocol and boot file formats are general, so there is no reason why it
-could not be used to load arbitrary images to a PC, including other
-OSes.</p>
-
-<p>Etherboot is Open Source under the GNU General Public License Version
-2 (GPL2).</p>
-
-<p>The components needed by Etherboot are</p>
-
-<ul>
-<li>A bootstrap loader, usually in an EPROM on a network card, or
-installed in the flash BIOS, but could be put anywhere in the address
-space the BIOS probes in. For testing this could be put on a floppy disk
-or a hard disk partition. Some configurations may even be always run
-from a floppy disk (e.g. temporary testing setups or pedagogic
-uses).</li>
-
-<li>A DHCP or bootp server, for returning an IP address and other
-information when sent a MAC (Ethernet card) address.</li>
-
-<li>A tftp server, for sending the kernel images and other files
-required in the boot process. Alternatively, Etherboot can boot from an
-NFS mount.</li>
-
-<li>A Linux or FreeBSD kernel.</li>
-
-<li>Optionally, a NFS server, for providing the disk partitions that will be
-mounted if Linux or FreeBSD is being booted.</li>
-
-<li>Optionally, a RAM disk contained in the loaded image. This can be
-the initial RAM disk if desired.</li>
-
-<li>Software tools for building the download image, and tools for
-debugging.
-</ul>
-
-<h2><a name="Doc">Documentation</a></h2>
-
-<p>Online and most recent versions of this page at <a
-href="http://etherboot.sourceforge.net/">Sourceforge</a> or <a
-href="http://etherboot.berlios.de/">BerliOS</a>.</p>
-
-<p>The Etherboot project pages at <a
-href="http://sourceforge.net/projects/etherboot">Sourceforge</a> or <a
-href="http://developer.berlios.de/project/?group_id=190">BerliOS</a>.</p>
-
-<p><em>If you are viewing this document from a local directory and some
-of the following links do not work, check that you have extracted the
-documentation tarball in a subdirectory of the top directory called
-<tt>doc</tt>.</em></p>
+<p><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Etherboot is a software package for creating ROM images
+that can download code over an Ethernet network to be executed on
+an x86 computer. Many network adapters have a socket where a ROM
+chip can be installed. Etherboot is code that can be put in such a
+ROM. Etherboot is normally used for for booting PCs diskless. This
+is useful in various situations, for example:</font></p>
 
 <ul>
-<li>A <a href="doc/html/diskless.html">somewhat dated tutorial
-introduction to Etherboot</a>, originally slides from a talk given to
-the <a href= "http://www.slug.org.au/">Sydney Linux Users
-Group</a>.</li>
+<li><font face="Arial, Helvetica, sans-serif" color="0F3161">An
+X-terminal.</font></li>
 
-<li>Another <a href=
-"http://www.linuxfocus.org/English/September1998/article63.html">tutorial
-introduction</a>, written for LinuxFocus.</li>
+<li><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Clusters of compute servers.</font></li>
 
-<li>Start with this <a href="doc/html/userman.html">user manual</a></li>
+<li><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Routers.</font></li>
 
-<li>A <a href="http://www.ext2.org/99/01/xterm.html">tutorial
-introduction to setting up an X-terminal</a>, written for ext2 ezine.
-Also see <a href="related.html#kaszeta">here</a> and the <a
-href="http://www.ltsp.org/">LTSP project</a>.</li>
+<li><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Various kinds of remote servers, e.g. a tape drive server
+that can be accessed with the RMT protocol.</font></li>
 
-<li>For developers, the <a href="doc/html/devman.html">developer
-manual</a></li>
+<li><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Machines doing tasks in environments unfriendly to
+disks.</font></li>
 
-<li>A <a href="LOG">log of the changes, by version</a></li>
+<li><font face="Arial, Helvetica, sans-serif" color="0F3161">A user
+platform where remote partitions are mounted over the network and
+you are willing to accept the lower speed compared to
+disk.</font></li>
 
-<li>A <a href="http://etherboot.sourceforge.net/todo.html">wishlist of things
-to do</a></li>
-
-<li><a href="doc/html/security.html">Things to note about
-security</a> </li>
-
-<li>The <a href="doc/html/spec.html">specifications for the tagged
-image format</a></li>
-
-<li><a href="doc/html/vendortags.html">Description of the vendor
-tags in bootp replies</a></li>
-
-<li>The <a href="doc/html/compressor.html">algorithm used in the
-compression code</a></li>
-
-<li><a href="doc/html/freebsd.html">Things to do if booting from
-FreeBSD</a></li>
-
-<li><a href="doc/html/lilo+etherboot.html">Using LILO to boot a
-non-Linux disk containing Etherboot images as menu selections</a></li>
-
-<li>Some <a href="doc/html/16.html">things to note if you use the 16 bit
-version</a> (Etherboot 4.6 and earlier)</li>
-
-<li>A <a href="doc/html/atnetboot.html">recipe for netbooting a 286 and
-running programs from ramdisk</a> (Etherboot 4.6 and earlier)</li>
-
-<li><a href="doc/html/COPYING_compressor.html">Distribution
-conditions for the compression code</a></li>
+<li><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Maintaining software for a cluster of equally configured
+workstations centrally.</font></li>
 </ul>
 
-<h3><a name="NICdb">Hardware Compatibility Database</a></h3>
+<p><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Etherboot can boot computers faster than from a disk
+because there are no delays in spinning up disks, etc. A moment's
+calculation will show that even with a 10Mbit Ethernet, sending a
+500kB kernel will take only a couple of seconds typically. With
+100Mbit Ethernet it gets even better.</font></p>
 
-<p>A <a href="http://etherboot.sourceforge.net/db/">user-contribution
-database</a> of network card compatability information. Please help by
-filling in information you have.</p>
+<p><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Compared to booting from solid-state devices, e.g. Flash
+disks, Etherboot has the advantage of centralising software
+adminstration, the tradeoff being the dependence on a server. This
+can be partly alleviated by providing redundant servers.</font></p>
 
-<h2><a name="Distribution">Source distribution</a></h2>
+<p><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Etherboot can work with RAM disks, NFS filesystems, or
+even local disks, if desired. It's a component technology and can
+be combined with other technologies to do things the way you
+want.</font></p>
 
-<p>Download from <a
-href="http://etherboot.sourceforge.net/distribution.html">Sourceforge</a>
-or <a href="http://etherboot.berlios.de/distribution.html">BerliOS</a>.</p>
+<p><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Etherboot is usually used to load Linux, FreeBSD or DOS.
+However the protocol and boot file formats are general, so there is
+no reason why it could not be used to load arbitrary images to a
+PC, including other OSes.</font></p>
 
-<h2><a name="Contributing">Contributing to Etherboot</a></h2>
+<p><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Etherboot is Open Source under the GNU General Public
+License Version 2 (GPL2).</font></p>
 
-Etherboot is a volunteer project done in my spare time. Many
-kind people have contributed in various ways, see the <a href=
-"doc/html/userman.html">acknowledgement list</a>. You can help in
-various ways:
+<p><font face="Arial, Helvetica, sans-serif" color="0F3161">The
+components needed by Etherboot are</font></p>
 
 <ul>
-<li>Improve the documentation. Send me the changes if you feel
-something is missing or can be improved.</li>
+<li><font face="Arial, Helvetica, sans-serif" color="0F3161">A
+bootstrap loader, usually in an EPROM on a network card, or
+installed in the flash BIOS, but could be put anywhere in the
+address space the BIOS probes in. For testing this could be put on
+a floppy disk or a hard disk partition. Some configurations may
+even be always run from a floppy disk (e.g. temporary testing
+setups or pedagogic uses).</font></li>
 
-<li>Enter hardware compatibility information into the <a
-href="#NICdb">NIC database</a>.
+<li><font face="Arial, Helvetica, sans-serif" color="0F3161">A DHCP
+or bootp server, for returning an IP address and other information
+when sent a MAC (Ethernet card) address.</font></li>
 
-<li>Try different variations on configurations and software. Send
-me the documentation or a link to your Web page when you have
-succeeded, of course. Here is a <a href=
-"http://etherboot.sourceforge.net/todo.html">list</a> of things
-that have been suggested if you want some ideas.</li>
+<li><font face="Arial, Helvetica, sans-serif" color="0F3161">A tftp
+server, for sending the kernel images and other files required in
+the boot process. Alternatively, Etherboot can boot from an NFS
+mount.</font></li>
 
-<li>Spread the word about netbooting wherever you see a situation
-which could use the technique.</li>
+<li><font face="Arial, Helvetica, sans-serif" color="0F3161">A
+Linux or FreeBSD kernel.</font></li>
 
-<li>Write articles about your experiences with applications of
-netbooting for conferences, journals or e-zines.</li>
+<li><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Optionally, a NFS server, for providing the disk
+partitions that will be mounted if Linux or FreeBSD is being
+booted.</font></li>
 
-<li>Contribute any related software which can be put into <tt>
-contrib/</tt>.</li>
+<li><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Optionally, a RAM disk contained in the loaded image. This
+can be the initial RAM disk if desired.</font></li>
 
-<li>Write drivers for more cards. See the <a
-href="doc/html/devman.html">Developers Manual</a> for instructions.</li>
-
-<li>Offer to make EPROMs for people needing them.</li>
+<li><font face="Arial, Helvetica, sans-serif" color=
+"0F3161">Software tools for building the download image, and tools
+for debugging.</font></li>
 </ul>
 
-<h2><a name="News">News</a></h2>
+<p>&nbsp;</p>
+</blockquote>
+</td>
+<td width="12" height="56" bgcolor="0F3161">&nbsp;</td>
+</tr>
+</table>
 
-<p>News bulletins can be found at the Etherboot project pages at <a
-href="http://sourceforge.net/projects/etherboot">Sourceforge</a> or <a
-href="http://developer.berlios.de/project/?group_id=190">BerliOS</a>.</p>
+<table summary="pad" width="95%" border="0" cellspacing="0"
+cellpadding="0" align="center" height="8">
+<tr>
+<td height="5" bgcolor="BFCBD9">&nbsp;</td>
+</tr>
+</table>
 
-<h2><a name="Mailing">Mailing lists</a></h2>
-
-<p>For Etherboot user issues there is a <a
-href="http://lists.sourceforge.net/mailman/listinfo/etherboot-users">users
-mailing list</a>.  For Etherboot development issues there is <a
-href="http://lists.sourceforge.net/mailman/listinfo/etherboot-developers">developers
-mailing list</a>.  Postings are not restricted to Etherboot issues, any
-netbooting issue can be discussed.  Archives of the lists are available,
-follow the links for more details. Please do not ask me Etherboot
-related questions by email, I will not reply directly. Use the mailing
-lists instead. See the <a
-href="doc/html/userman-2.html#ss2.4">explanation</a> for this
-policy.</p>
-
-<p>Another list available is the netboot list.  You need to be on the
-list to be able to post. To subscribe, send mail to
-<tt>majordomo@baghira.han.de</tt> with the one line in the body:
-<tt>subscribe netboot</tt>. Or you may try clicking <a href=
-"mailto:majordomo@baghira.han.de?subject=subscribe&amp;body;=subscribe%20netboot%0Aend">
-here</a>. Newer browsers will automatically fill in the mail for you and
-you only have to click on Send. If not, then type in the words
-<tt>subscribe netboot</tt> yourself. <i><b>If you post about a problem
-to the Netboot mailing list, please be sure to mention if you are using
-Etherboot or Netboot; they are different packages.</b></i> An <a
-href="http://www.han.de/~gero/netboot/archive/maillist.html">archive</a>
-of the mailing list is available.</p>
-
-<h2><a name="Related">Related links</a></h2>
-
-Here are <a href="http://etherboot.sourceforge.net/related.html">links
-to related software or documentation</a>.
-
-<h2><a name="Commercial">Commercial links</a></h2>
-
-These <a
-href="http://etherboot.sourceforge.net/commercial.html">commercial
-links</a> are provided as is and do not imply endorsement of the services
-or products mentioned by the Etherboot project.
-
-<hr>Comments to <a href="mailto:ken_yap@users.sourceforge.net">Ken Yap</a>. 
-
-<p><em>Last modified 2001-10-27</em></p>
-
-<hr>
-
-Hosted by <A href="http://sourceforge.net">
-<IMG src="http://sourceforge.net/sflogo.php?group_id=4233&amp;type=1" width="88"
-height="31" border="0" alt="SourceForge Logo"></A>
-
-
+<table summary="sponsor" width="95%" border="0" cellspacing="3"
+cellpadding="0" align="center" bgcolor="0F3161">
+<tr>
+<td valign="middle" width="81">
+<div align="right"><font color="BFCBD9" face=
+"Arial, Helvetica, sans-serif">Hosted by</font></div>
+</td>
+<td valign="middle" width="610"><a href="http://sourceforge.net"><img src=
+"http://sourceforge.net/sflogo.php?group_id=4233&amp;type=1" width=
+"88" height="31" border="0" alt="SourceForge Logo"></a>
+</td>
+</tr>
+</table>
 </body>
-
 </html>
+
