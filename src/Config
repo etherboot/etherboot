@@ -243,7 +243,7 @@ CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
 # For prompting and default on timeout
 CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # If you would like to attempt to boot from other devices as well as the network.
-CFLAGS+=	-DBOOT_SECOND=BOOT_FLOPPY
+# CFLAGS+=	-DBOOT_SECOND=BOOT_FLOPPY
 # CFLAGS+=	-DBOOT_THIRD=BOOT_DISK
 # CFLAGS+=	-DBOOT_INDEX=0
 

@@ -2483,10 +2483,15 @@ Experimental UNDI driver by Michael Brown.
 
 Released as Etherboot 5.1.9 (5.2 release candidate 1)
 
-+ 82562EZ ID provided by Samual Clements.
++ 82562EZ ID provided by Samuel Clements.
 
 + Rename Local option as Quit, because that's what it really is.
 
-+ Make BOOT_SECOND floppy in default config.
++ Should prepend start16.bin to .com images, they didn't work and nobody
+noticed.
+
++ PM stack was getting clobbered by zeroing of BSS, move to own segment
+in etherboot.lds. Move %ss out of the way of Etherboot in comprefix.S.
+Now Q works from .zrom and sort of from .com (DOS is odd after that).
 
 Released as Etherboot 5.1.10 (5.2 release candidate 2)
