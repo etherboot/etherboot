@@ -12,10 +12,10 @@ See further down under -nonet if you want to boot from HD or CDROM.
 This program requires mtools, tar, bzip2, loopback mount in the kernel,
 and root privileges to execute. Hope you have them.
 
-This script only works for any of the 1.0.x, 1.1.x, and 1.9.x releases
-for which a subdirectory of that name is provided, but it should not be
-too hard to make it work for other releases, all that is done here is to
-substitute some scripts for the distributed ones.
+This script works for any of the releases for which a subdirectory of
+that name is provided, but it should not be too hard to make it work for
+other releases, all that is done here is to substitute some scripts for
+the distributed ones.
 
 First of all you should make the floppy work the way you want before
 converting it to a tagged image. This involves editing the various
@@ -23,9 +23,9 @@ config files on the floppy. Instructions on this are distributed from
 the floppyfw web page mentioned above.
 
 Edit the $tftpdir assignment for the directory where you put your tagged
-images.  Edit the $libdir assignment if you decide to put this package
-somewhere other than /usr/local/lib/mkffwnb/. Adjust the instructions
-below as necessary.
+images.  Edit the $libdir assignment and the use lib directive near the
+top if you decide to put this package somewhere other than
+/usr/local/lib/mkffwnb/. Adjust the instructions below as necessary.
 
 Copy everything to $libdir.
 
@@ -66,4 +66,4 @@ mkffwnb has to be run as root because it uses loopback mounts and also
 because the files inside the initrd are owned by root.
 
 Ken Yap
-2001-11-15
+2003-04-20
