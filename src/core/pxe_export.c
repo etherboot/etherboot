@@ -471,7 +471,7 @@ PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
 PXENV_EXIT_t pxenv_get_cached_info ( t_PXENV_GET_CACHED_INFO
 				     *get_cached_info ) {
 	BOOTPLAYER *cached_info = &pxe_stack->cached_info;
-	DBG ( "PXENV_GET_CACHED_INFO" );
+	DBG ( "PXENV_GET_CACHED_INFO %d", get_cached_info->PacketType );
 
 	/* Fill in cached_info structure in our pxe_stack */
 
@@ -500,9 +500,10 @@ PXENV_EXIT_t pxenv_get_cached_info ( t_PXENV_GET_CACHED_INFO
 	cached_info->Sname[0] = '\0';
 	memcpy ( cached_info->bootfile, KERNEL_BUF,
 		 sizeof(cached_info->bootfile) );
-	/* FIXME: pretend not to have any vendor DHCP options */
-	memset ( &cached_info->vendor, 0, sizeof(cached_info->vendor) );
-
+	/* Copy DHCP vendor options */
+	memcpy ( &cached_info->vendor.d, BOOTP_DATA_ADDR->bootp_reply.bp_vend,
+		 sizeof(cached_info->vendor.d) );
+	
 	/* Copy to user-specified buffer, or set pointer to our buffer */
 	get_cached_info->BufferLimit = sizeof(*cached_info);
 	/* PXESPEC: says to test for Buffer == NULL *and* BufferSize =
@@ -516,10 +517,11 @@ PXENV_EXIT_t pxenv_get_cached_info ( t_PXENV_GET_CACHED_INFO
 	} else {
 		/* Copy to user buffer */
 		size_t size = sizeof(*cached_info);
+		void *buffer = SEGOFF16_TO_PTR ( get_cached_info->Buffer );
 		if ( get_cached_info->BufferSize < size )
 			size = get_cached_info->BufferSize;
-		memcpy ( SEGOFF16_TO_PTR ( get_cached_info->Buffer ),
-			 cached_info, size );
+		DBG ( " to %x", virt_to_phys ( buffer ) );
+		memcpy ( buffer, cached_info, size );
 		/* PXESPEC: Should we return an error if the user
 		 * buffer is too small?  We do return the actual size
 		 * of the buffer via BufferLimit, so the user does
