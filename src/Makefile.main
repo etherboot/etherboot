@@ -96,8 +96,25 @@
 #	-DINCLUDE_NATSEMI - Include NATSEMI support
 #
 
-all:		$(UTILS) $(BUILD_LIBS) allimgs
+.PHONY:	noargs
+noargs:	$(UTILS) $(BUILD_LIBS)
+	@echo
+	@echo 'No target specified. To specify a target, do: '
+	@echo
+	@echo '  $(MAKE) bin/<rom-name>.<output-type> '
+	@echo
+	@echo 'where <output-type> is one of {zdsk, zrom, iso, liso, zlilo, zpxe, com, elf}'
+	@echo
+	@echo 'or: '
+	@echo
+	@echo '  $(MAKE) all'
+	@echo
+	@echo 'to generate all possible .rom and .zrom images'
+	@echo
+	@exit 1
 
+all:            $(UTILS) $(BUILD_LIBS) allroms
+	
 SRCS:=
 BOBJS:=
 
@@ -213,11 +230,6 @@ $(BIN)/toolcheck:	Makefile Config
 	fi
 
 include		arch/$(ARCH)/Makefile
-
-# We need allimgs because $(IMGS) is not defined until
-# the Makefile fragment "Roms" is read.
-
-allimgs:	$(BIN)/Roms $(BUILD_IMGS)
 
 # Common files
 
