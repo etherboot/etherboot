@@ -2598,3 +2598,13 @@ suspended reception.
 caused some models to not receive DHCP replies.
 
 Released as Etherboot 5.3.5 (development)
+
++ Michael Brown removed irritating A20 status change messages.
+
++ Sis900, w89c840 and tg3 drivers fixed by Timothy Legge. R8169 driver
+needs family entry in genrules.pl.
+
++ Revert to normal way of assigning string to DEFAULT_BOOTFILE as
+tricky stringify macro falls foul of C++ // comments in gcc 3.x.
+
+Released as Etherboot 5.3.6 (development)
