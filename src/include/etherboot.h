@@ -108,6 +108,10 @@
 #define TIMEOUT			(10*TICKS_PER_SEC)
 #endif
 
+#ifndef BOOTP_TIMEOUT
+#define BOOTP_TIMEOUT		(2*TICKS_PER_SEC)
+#endif
+
 /* Max interval between IGMP packets */
 #define IGMP_INTERVAL			(10*TICKS_PER_SEC)
 #define IGMPv1_ROUTER_PRESENT_TIMEOUT	(400*TICKS_PER_SEC)
@@ -128,15 +132,16 @@
 
 #include	"if_ether.h"
 
-#define ARP_CLIENT	0
-#define ARP_SERVER	1
-#define ARP_GATEWAY	2
-#ifdef	DNS_RESOLVER
-#define	ARP_NAMESERVER	3
-#define	MAX_ARP		ARP_NAMESERVER+1
-#else	/* NO DNS_RESOLVER */
-#define MAX_ARP		ARP_GATEWAY+1
-#endif	/* DNS_RESOLVER */
+enum {
+	ARP_CLIENT, ARP_SERVER, ARP_GATEWAY,
+#ifdef DNS_RESOLVER
+	ARP_NAMESERVER,
+#endif
+#ifdef PXE_EXPORT
+	ARP_PROXYDHCP,
+#endif
+	MAX_ARP
+};
 
 #define IGMP_SERVER	0
 #define MAX_IGMP	IGMP_SERVER+1
