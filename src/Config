@@ -243,6 +243,15 @@
 #			specification as published by Intel.  This may
 #                       or may not be a good thing depending on your
 #			view of the spec...
+#	-DPXE_DHCP_STRICT
+#			Strict compliance of the DHCP request packets
+#			with the PXE specification as published by
+#			Intel.  This may or may not be a good thing
+#			depending on your view of whether requesting
+#			vendor options which don't actually exist is
+#			pointless or not. You probably want this
+#			option if you intend to use Windows RIS or
+#			similar.
 #
 #	Obscure options you probably don't need to touch:
 #
@@ -389,7 +398,7 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 #CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
 
 # Etherboot as a PXE ROM
-CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
+CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT -DPXE_DHCP_STRICT
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
