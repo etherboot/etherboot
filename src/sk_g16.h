@@ -16,8 +16,8 @@
  *                  network device driver which uses this chip
  *
  * $Log$
- * Revision 1.1  2001/04/27 15:57:43  ken_yap
- * Initial revision
+ * Revision 1.1.1.1  2001/04/27 15:57:43  ken_yap
+ * Import 5.0.0 source
  *
 -*/
 
