@@ -25,6 +25,8 @@
 /* Skip the definitions that won't make sense to the assembler */
 #ifndef ASSEMBLY
 
+#include <stdarg.h>
+
 /* extcall_stack_is_corrupt_look_in_callbacks_h
  *
  * This is used as a flag to cause an invalid usage of
@@ -221,13 +223,12 @@ typedef struct {
 #define EP_RELOC_STACK(top) EXTCALL_RELOC_STACK, (top)
 
 /* Function prototypes */
+extern uint32_t v_ext_call ( uint32_t address, va_list ap );
 extern uint32_t _ext_call ( uint32_t address, ... );
 #define ext_call(address, ...) \
 	_ext_call( (uint32_t)(address), ##__VA_ARGS__, EXTCALL_END_LIST )
 #ifdef DEBUG_EXT_CALL
-extern uint32_t _ext_call_check ( uint32_t address, ... );
-#define ext_call_check(address, ...) \
-	_ext_call_check( (uint32_t)(address), ##__VA_ARGS__, EXTCALL_END_LIST )
+extern void v_ext_call_check ( uint32_t address, va_list ap );
 #endif
 
 #endif /* ASSEMBLY */
