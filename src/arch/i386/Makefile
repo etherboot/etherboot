@@ -10,7 +10,7 @@ BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMG
 
 START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o $(BIN)/linuxbios.o
 
-SRCS+=	arch/i386/prefix/boot1a.s
+SRCS+=	arch/i386/prefix/floppyload.S
 SRCS+=	arch/i386/prefix/unhuf.S
 SRCS+=	arch/i386/prefix/unnrv2b.S
 SRCS+=	arch/i386/firmware/pcbios/memsizes.c
@@ -34,7 +34,7 @@ SRCS+=	arch/i386/core/cpu.c
 RLOADER=	$(BIN)/rloader.bin
 PRLOADER=	$(BIN)/prloader.bin
 START16=	$(BIN)/start16.bin
-DISKLOADER=	$(BIN)/boot1a.bin
+DISKLOADER=	$(BIN)/floppyload.bin
 COMPREFIX=	$(BIN)/comprefix.bin
 LILOPREFIX=	$(BIN)/liloprefix.bin
 PXEPREFIX=	$(BIN)/pxeprefix.bin
@@ -118,6 +118,15 @@ $(BIN)/boot1a.bin: arch/i386/prefix/boot1a.s $(MAKEDEPS)
 	ld -nostdlib -static -N -e start -Ttext 0x7c00 -o $(BIN)/boot1a.out $(BIN)/boot1a.o
 	objcopy -S -O binary $(BIN)/boot1a.out $(BIN)/boot1a.bin
 	$(RM) $(BIN)/boot1a.o $(BIN)/boot1a.out
+
+# floppy loader
+
+$(BIN)/floppyload.o: arch/i386/prefix/floppyload.S $(MAKEDEPS)
+	$(CPP) $< | $(AS) $(ASFLAGS) -o $(BIN)/floppyload.o
+
+$(BIN)/floppyload.bin: $(BIN)/floppyload.o
+	objcopy -O binary $< $(BIN)/floppyload.bin
+	$(RM) $(BIN)/floppyload.o
 
 # PXE loader
 $(BIN)/pxeprefix.s:	arch/i386/prefix/pxeprefix.S $(MAKEDEPS)
@@ -253,16 +262,15 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 
 # Give the directory name, e.g. $(BIN)/rtl8139.dsk as the target.
 %.dsk:	%.img $(DISKLOADER) $(START16)
-	$(PERL) util/builddsk.pl $(DISKLOADER) $(START16) $< > $@
+	cat $(DISKLOADER) $(START16) $< > $@
 
 %.zdsk:	%.zimg $(DISKLOADER) $(START16)
-	$(PERL) util/builddsk.pl $(DISKLOADER) $(START16) $< > $@
+	cat $(DISKLOADER) $(START16) $< > $@
 
 # rules to write the .img/.zimg image onto a blank floppy
 # Give the directory name, e.g. $(BIN)/rtl8139.zfd0 as the target.
 %.fd0:	%.img $(DISKLOADER) $(START16)
-	$(PERL) util/builddsk.pl $(DISKLOADER) $(START16) $< > /dev/fd0
 	cat $(DISKLOADER) $(START16) $< > /dev/fd0
 
 %.zfd0:	%.zimg $(DISKLOADER) $(START16)
-	$(PERL) util/builddsk.pl $(DISKLOADER) $(START16) $< > /dev/fd0
+	cat $(DISKLOADER) $(START16) $< > /dev/fd0

@@ -6,6 +6,8 @@
 #	GPL, Ken Yap 2001
 #
 
+use bytes;
+
 use IO::Seekable;
 
 sub swaplocs ($$$)

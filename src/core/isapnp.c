@@ -34,7 +34,7 @@
 #include "timer.h"
 #include "isapnp.h"
 
-int pnp_card_csn;
+static int pnp_card_csn = 0;
 
 void DELAY(int val) {
 	int c;

@@ -8,6 +8,9 @@
 #
 
 use strict;
+
+use bytes;
+
 use File::Basename;
 
 use vars qw($nic $config @families $curfam %drivers %pcient %isaent %isalist %buildent $arch @srcs);

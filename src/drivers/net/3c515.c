@@ -77,9 +77,6 @@ static unsigned short eth_nic_base;
 #define BASE 	(eth_nic_base)
 static int if_port;
 struct corkscrew_private *vp;
-#ifdef ISA_PNP
-int pnp_card_csn = 0;
-#endif
 /* Brought directly from 3c515.c by Becker */
 #define CORKSCREW 1
 
