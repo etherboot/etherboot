@@ -92,7 +92,7 @@
 /* The etherboot authors seem to dislike the argument ordering in
  * outb macros that Linux uses. I disklike the confusion that this
  * has caused even more.... This file uses the Linux argument ordering.  */
-/* Sorry not us. It's inherted code from FreeBSD. [The authors] */
+/* Sorry not us. It's inherited code from FreeBSD. [The authors] */
 
 #include "etherboot.h"
 #include "nic.h"
@@ -670,6 +670,8 @@ static struct pci_id eepro100_nics[] = {
 		"Intel EtherExpressPro100 ID1029" },
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1030,
 		"Intel Corporation 82559 InBusiness 10/100" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1031,
+		"Intel 82801CAM Chipset Ethernet Controller" },
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1039,
 		"Intel Corporation 82559 InBusiness 10/100" },
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID103A,
@@ -688,4 +690,5 @@ static struct pci_driver eepro100_driver __pci_driver = {
 	.probe     = eepro100_probe,
 	.ids       = eepro100_nics,
 	.id_count  = sizeof(eepro100_nics)/sizeof(eepro100_nics[0]),
+	.class     = 0
 };
