@@ -211,8 +211,17 @@ run_etherboot:
 	pop	%ss
 	mov	$_estack-_start, %sp
 	push	%es			/* Record PXE stack pointer */
-	push	%di	
-	lcall	$FLOPPY_SEGMENT + (512/16), $0 /* Call start16.S */
+	push	%di
+	/* Calculated lcall to payload */
+	push	%cs			/* Our return address */
+	pushw	$(return-_start)
+	push	%cs			/* Calculate payload address */
+	pop	%ax
+	add	$((payload-_start)/16), %ax
+	push	%ax
+	pushw	$0
+	lret				/* "lcall payload" */
+return:	
 	mov	%cs,%ax			/* Restore SS (since prefix may have been relocated */
 	mov	%ax,%ss			/* and we put our stack inside the prefix)	    */
 	push	%cs			/* Restore DS */
@@ -355,9 +364,10 @@ pxe_parameter_structure:
 
 end_of_pxeloader:
 
-	.org 512
+	.balign 16, 0
 _estack:	/* We place a stack here.  It doesn't get used until after
 		 * all the PXE API calls are finished, so we can happily
 		 * trash the PXE data structures above and even the pxe_call
 		 * routine if necessary.
 		 */
+payload:
