@@ -290,6 +290,7 @@ meme820:
 	subw	%bx, %sp
 	movw	%sp, %di
 	pushw	%ax
+	xorl	%ebx, %ebx /* %ebx must be zero on first e820 int15 call */
 
 jmpe820:
 	movl	$0xe820, %eax
