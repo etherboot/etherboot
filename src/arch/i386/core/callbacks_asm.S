@@ -58,13 +58,15 @@
 
 /* Offsets from current %esp */
 /* Outgoing structure */
-#define EC_OFFSET_FLAGS 0
+#define EC_OFFSET_PREVIOUS_VA_LIST 0
+#define EC_OFFSET_FLAGS ( EC_OFFSET_PREVIOUS_VA_LIST + 4 )
 #define EC_OFFSET_REGISTERS ( EC_OFFSET_FLAGS + 4 )
 #define EC_OFFSET_SEG_REGS ( EC_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
 #define EC_OFFSET_ADDRESSES ( EC_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
 #define EC_OFFSET_PARAMS ( EC_OFFSET_ADDRESSES + 16 )
 /* Return structure */
-#define ECR_OFFSET_FLAGS 0
+#define ECR_OFFSET_PREVIOUS_VA_LIST 0
+#define ECR_OFFSET_FLAGS ( ECR_OFFSET_PREVIOUS_VA_LIST + 4 )
 #define ECR_OFFSET_REGISTERS ( ECR_OFFSET_FLAGS + 4 )
 #define ECR_OFFSET_SEG_REGS ( ECR_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
 #define ECR_OFFSET_PARAMS ( ECR_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
@@ -91,7 +93,8 @@ _v_ext_call:
 	 * addresses		%esp + EC_OFFSET_ADDRESSES
 	 * seg_registers	%esp + EC_OFFSET_SEG_REGS
 	 * registers		%esp + EC_OFFSET_REGISTERS
-	 * flags		%esp + EC_OFFSET_FLAGS ( = %esp + 0 )
+	 * flags		%esp + EC_OFFSET_FLAGS
+	 * previous_va_list	%esp + EC_OFFSET_PREVIOUS_VA_LIST ( = %esp+0 )
 	 *
 	 * trampoline : offset into ext_params of the trampoline code,
 	 * if any.  This is used only if the target address for the
@@ -128,6 +131,8 @@ _v_ext_call:
 	 * routine.  8 dwords, suitable for a single popal
 	 * instruction.
 	 *
+	 * previous_va_list : a temporary pointer used to enable
+	 * va_lists to contain further va_lists.
 	 *
 	 * %ebp is kept pointing to the bottom EC_SIGNATURE.
 	 *
@@ -165,11 +170,12 @@ _v_ext_call:
 	 * struct in callbacks.h
 	 */
 	pushw	%ax			/* %cs = 0 => "near call" */
-	pushw	%ss
-	pushw	%ds
-	pushw	%es
-	pushw	%fs
-	pushw	%gs
+	movw	$FLAT_DATA_SEG, %ax
+	pushw	%ax			/* Default for all other segment */
+	pushw	%ax			/* registers is the flat data    */
+	pushw	%ax			/* segment.			 */
+	pushw	%ax
+	pushw	%ax
 
 	/* Save registers.  (Current register contents are fairly
 	 * meaningless, but using pushal is the most efficient way to
@@ -179,6 +185,10 @@ _v_ext_call:
 
 	/* Save flags */
 	pushfl
+
+	/* Initially there is no previous va_list */
+	xorl	%eax, %eax
+	pushl	%eax
 
 	/* Set %ebx to point to first argument in list */
 	movl	EC_OFFSET_ARG_LIST(%ebp), %ebx
@@ -191,7 +201,7 @@ process_ec_params:
 	movl	0(%ebx), %eax		/* %eax = type */
 	addl	$4, %ebx
 	cmpl	$EXTCALL_END_LIST, %eax
-	je	process_ec_params_done
+	je	process_ec_params_end_list
 	cmpl	$EXTCALL_NONE, %eax
 	je	process_ec_params
 	cmpl	$EXTCALL_REGISTERS, %eax
@@ -206,6 +216,8 @@ process_ec_params:
 	je	process_ec_params_reloc_stack
 	cmpl	$EXTCALL_TRAMPOLINE, %eax
 	je	process_ec_params_trampoline
+	cmpl	$EXTCALL_VA_LIST, %eax
+	je	process_ec_params_va_list
 	/* fall through to error */
 process_ec_params_error:
 	/* Return -1 to indicate an error */
@@ -291,6 +303,27 @@ process_ec_params_trampoline:
 	movl	%eax, EC_SIG_TRAMPOLINE(%ebp)
 	/* Process as a EXTCALL_STACK parameter */
 1:	jmp	process_ec_params_stack
+process_ec_params_va_list:
+	/* Record current "previous list" pointer as return point for
+	 * this new list.
+	 */
+	movl	EC_OFFSET_PREVIOUS_VA_LIST(%esp), %eax
+	movl	%eax, 4(%ebx)
+	/* Record current position as "previous list" pointer */
+	movl	%ebx, EC_OFFSET_PREVIOUS_VA_LIST(%esp)
+	/* Start processing new list */
+	movl	0(%ebx), %ebx
+	jmp	process_ec_params
+process_ec_params_end_list:
+	/* See if we should return to a previous list */
+	movl	EC_OFFSET_PREVIOUS_VA_LIST(%esp), %ebx
+	testl	%ebx, %ebx
+	je	process_ec_params_done
+	/* Restore "previous list" pointer from the previous list */
+	movl	4(%ebx), %eax
+	movl	%eax, EC_OFFSET_PREVIOUS_VA_LIST(%esp)
+	addl	$8, %ebx
+	jmp	process_ec_params
 process_ec_params_done:
 	/* Stack is all set up as described above.  Copy to new
 	 * location, set up the register values and jump to the
@@ -345,6 +378,9 @@ process_ec_params_done:
 	movl	%eax, (EC_OFFSET_ADDRESSES+0)(%esp)
 2:
 
+	/* Skip previous va_list pointer */
+	popl	%eax
+	
 	/* Restore flags. */
 	popfl
 	
@@ -392,6 +428,10 @@ ec_return:
 	/* Record flags */
 	pushfl
 	
+	/* Initially there is no previous va_list */
+	xorl	%eax, %eax
+	pushl	%eax
+
 	/* Point ds and es to the stack, for ease of signature
 	 * scanning and re-aligning.
 	 */
@@ -473,7 +513,7 @@ process_ecr_params:
 	movl	0(%ebx), %eax		/* %eax = type */
 	addl	$4, %ebx
 	cmpl	$EXTCALL_END_LIST, %eax
-	je	process_ecr_params_done
+	je	process_ecr_params_end_list
 	cmpl	$EXTCALL_NONE, %eax
 	je	process_ecr_params
 	cmpl	$EXTCALL_REGISTERS, %eax
@@ -488,6 +528,8 @@ process_ecr_params:
 	je	process_ecr_params_reloc_stack
 	cmpl	$EXTCALL_TRAMPOLINE, %eax
 	je	process_ecr_params_trampoline
+	cmpl	$EXTCALL_VA_LIST, %eax
+	je	process_ecr_params_va_list
 	/* fall through to error */
 process_ecr_params_error:
 	/* Return -1 to indicate an error */
@@ -544,6 +586,27 @@ process_ecr_params_reloc_stack:
 	jmp	process_ecr_params
 process_ecr_params_trampoline:
 	/* Nothing to do */
+	addl	$8, %ebx
+	jmp	process_ecr_params
+process_ecr_params_va_list:
+	/* Record current "previous list" pointer as return point for
+	 * this new list.
+	 */
+	movl	ECR_OFFSET_PREVIOUS_VA_LIST(%esp), %eax
+	movl	%eax, 4(%ebx)
+	/* Record current position as "previous list" pointer */
+	movl	%ebx, ECR_OFFSET_PREVIOUS_VA_LIST(%esp)
+	/* Start processing new list */
+	movl	0(%ebx), %ebx
+	jmp	process_ecr_params
+process_ecr_params_end_list:
+	/* See if we should return to a previous list */
+	movl	ECR_OFFSET_PREVIOUS_VA_LIST(%esp), %ebx
+	testl	%ebx, %ebx
+	je	process_ecr_params_done
+	/* Restore "previous list" pointer from the previous list */
+	movl	4(%ebx), %eax
+	movl	%eax, ECR_OFFSET_PREVIOUS_VA_LIST(%esp)
 	addl	$8, %ebx
 	jmp	process_ecr_params
 process_ecr_params_done:
@@ -738,7 +801,7 @@ rm_etherboot_location:	.long 0
  * Case (a): (_prot_to_real)
  *
  * Parameters:
- *   32-bit far pmode return address
+ *   32-bit pmode near return address
  *   seg_regs_t rm_seg_regs : structure for real-mode segment register values.
  *
  * This routine will strip the far return address and segment
@@ -754,7 +817,7 @@ rm_etherboot_location:	.long 0
  *   seg_regs_t rm_seg_regs : structure for real-mode segment register values.
  *   padding (2 bytes)
  *   flags
- *   16-bit far rmode return address
+ *   16-bit rmode far return address
  *
  * This routine will strip the segment registers from the stack and
  * then return to the specified address.
@@ -768,7 +831,7 @@ rm_etherboot_location:	.long 0
 	.globl _prot_to_real
 	.code32
 _prot_to_real:
-	addl	$8, %esp		/* Skip return address */
+	addl	$4, %esp		/* Skip return address */
 _prot_to_real_core:	
 	/* Store temporary registers */
 	pushl	%ebp
