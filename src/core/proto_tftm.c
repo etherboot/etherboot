@@ -118,8 +118,6 @@ int proto_tftm(struct tftm_info *info)
 
 	tp.opcode = htons(TFTP_RRQ);
 
-	/* If I'm running over multicast join the multicast group */
-	join_group(IGMP_SERVER, info->multicast_ip.s_addr);
 
 	/* Warning: the following assumes the layout of bootp_t.
 	   But that's fixed by the IP, UDP and BOOTP specs. */
@@ -278,6 +276,8 @@ int proto_tftm(struct tftm_info *info)
 						printf("ALERT: tftp filesize to large for available memory\n");
 					return 0;
 				}
+				/* If I'm running over multicast join the multicast group */
+				join_group(IGMP_SERVER, info->multicast_ip.s_addr);
 				memset(info->bitmap, 0, bitmap_len);	
 				
 				
