@@ -10,7 +10,7 @@ BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMG
 
 START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o \
 	$(BIN)/basemem.o $(BIN)/linuxbios.o $(BIN)/callbacks_arch.o \
-	$(BIN)/callbacks_asm.o
+	$(BIN)/callbacks_asm.o $(BIN)/pxe_callbacks.o
 
 SRCS+=	arch/i386/prefix/floppyprefix.S
 SRCS+=	arch/i386/prefix/unhuf.S
@@ -37,6 +37,7 @@ SRCS+=	arch/i386/core/pic8259.c
 SRCS+=	arch/i386/core/hooks.c
 SRCS+=	arch/i386/core/callbacks_arch.c
 SRCS+=	arch/i386/core/callbacks_asm.S
+SRCS+=	arch/i386/core/pxe_callbacks.c
 
 # ROM loaders: ISA and PCI versions
 ISAPREFIX=	$(BIN)/isaprefix.bin
