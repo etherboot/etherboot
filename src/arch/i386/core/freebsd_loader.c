@@ -69,7 +69,7 @@ static void elf_freebsd_probe(void)
 static void elf_freebsd_fixup_segment(void)
 {
 	if (image_type == Elf_FreeBSD) {
-		estate.p.phdr32[estate.segment].p_addr += off;
+		estate.p.phdr32[estate.segment].p_paddr += off;
 	}
 }
 
@@ -87,7 +87,7 @@ static void elf_freebsd_find_segment_end(void)
 		estate.p.phdr32[estate.segment].p_filesz);
 }
 
-static void elf_freebsd_debug_loader(unsigned int offset)
+static int elf_freebsd_debug_loader(unsigned int offset)
 {
 	/* No more segments to be loaded - time to start the
 	 * nasty state machine to support the loading of
@@ -159,6 +159,7 @@ static void elf_freebsd_debug_loader(unsigned int offset)
 			estate.curaddr = (estate.curaddr + 4095) & ~4095;
 			
 			/* Need to make new indexes... */
+			int i;
 			for (i=0; i < estate.e.elf32.e_shnum; i++)
 			{
 				if (shdr[i].sh_type == SHT_SYMTAB)
@@ -201,7 +202,7 @@ static void elf_freebsd_debug_loader(unsigned int offset)
 			 * an old (default) boot.  Less code and lets
 			 * the state machine work in a cleaner way but this
 			 * is a nasty side-effect trick... */
-			skip = shdr[symtabindex].sh_offset - (estate.loc + offset);
+			estate.skip = shdr[symtabindex].sh_offset - (estate.loc + offset);
 			
 			/* And we need to read this many bytes... */
 			estate.toread = shdr[symtabindex].sh_size;
@@ -344,13 +345,13 @@ static void elf_freebsd_boot(unsigned long entry)
 static void aout_freebsd_probe(void)
 {
 	image_type = Aout;
-	if (((astate.a_midmag >> 16) & 0xffff) == 0) {
+	if (((astate.head.a_midmag >> 16) & 0xffff) == 0) {
 		/* Some other a.out variants have a different
 		 * value, and use other alignments (e.g. 1K),
 		 * not the 4K used by FreeBSD.  */
 		image_type = Aout_FreeBSD;
 		printf("/FreeBSD");
-		off = -(info.head.a_entry & 0xff000000);
+		off = -(astate.head.a_entry & 0xff000000);
 		astate.head.a_entry += off;
 	}
 }
@@ -366,7 +367,7 @@ static void aout_freebsd_boot(void)
 		bsdinfo.bi_kernelname = virt_to_phys(KERNEL_BUF);
 		bsdinfo.bi_nfs_diskless = NULL;
 		bsdinfo.bi_size = sizeof(bsdinfo);
-		xstart32(entry, freebsd_howto, NODEV, 0, 0, 0, 
+		xstart32(astate.head.a_entry, freebsd_howto, NODEV, 0, 0, 0, 
 			virt_to_phys(&bsdinfo), 0, 0, 0);
 		longjmp(restart_etherboot, -2);
 	}

@@ -47,9 +47,6 @@
 		.set MEM_ARG,0x900		# Arguments
 		.set MEM_ORG,0x7c00		# Origin
 		.set MEM_BUF,0x8c00		# Load area
-		.set MEM_BTX,0x9000		# BTX start
-		.set MEM_JMP,0x9010		# BTX entry point
-		.set MEM_USR,0xa000		# Client start
 		.set BDA_BOOT,0x472		# Boot howto flag
 	
 # Partition Constants 
@@ -59,10 +56,6 @@
 
 # Flag Bits
 		.set FL_PACKET,0x80		# Packet mode
-
-# Misc. Constants
-		.set SIZ_PAG,0x1000		# Page size
-		.set SIZ_SEC,0x200		# Sector size
 
 		.globl start
 		.code16
@@ -135,12 +128,8 @@ main.4: 	xor %dx,%dx			# Partition:drive
 # we read it in, we conveniently use 0x8c00 as our transfer buffer.  Thus,
 # boot1 ends up at 0x8c00, and boot2 starts at 0x8c00 + 0x200 = 0x8e00.
 # The first part of boot2 is the disklabel, which is 0x200 bytes long.
-# The second part is BTX, which is thus loaded into 0x9000, which is where
-# it also runs from.  The boot2.bin binary starts right after the end of
-# BTX, so we have to figure out where the start of it is and then move the
-# binary to 0xb000.  Normally, BTX clients start at MEM_USR, or 0xa000, but
-# when we use btxld create boot2, we use an entry point of 0x1000.  That
-# entry point is relative to MEM_USR; thus boot2.bin starts at 0xb000.
+# The second part is BTX, which is thus loaded into 0x8000, which is where
+# it also runs from.
 # 
 main.5:		mov %dx,MEM_ARG			# Save args
 		xorb %dh,%dh			# 0 means use blockcount

@@ -48,7 +48,7 @@ static void done(void);
 static void elf_freebsd_probe(void);
 static void elf_freebsd_fixup_segment(void);
 static void elf_freebsd_find_segment_end(void);
-static void elf_freebsd_debug_loader(void);
+static int elf_freebsd_debug_loader(unsigned int offset);
 static void elf_freebsd_boot(unsigned long entry);
 #else
 #define elf_freebsd_probe() do {} while(0)
