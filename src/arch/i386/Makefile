@@ -54,7 +54,8 @@ PCIENTRY=	$(BIN)/pciprefix.entry.o
 PCIEXIT=	$(BIN)/pciprefix.exit.o
 # Variables xxx_ROMTYPE are defined by genrules.pl.  ROMENTRY and
 # ROMEXIT will evaluate to give the correct objects to use.
-ROMCARD=$(firstword $(subst --, ,$*))
+TARGETBASE=$(patsubst $(BIN)/%,%,$(firstword $(subst ., ,$@)))
+ROMCARD=$(firstword $(subst --, ,$(TARGETBASE)))
 ROMTYPE=$(firstword $(ROMTYPE_$(ROMCARD)) ISA)
 ROMENTRY=$($(ROMTYPE)ENTRY)
 ROMEXIT=$($(ROMTYPE)EXIT)
