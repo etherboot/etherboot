@@ -206,7 +206,7 @@ int hunt_undi_rom ( void ) {
 static inline PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
 					uint16_t routine_off, uint16_t st0,
 					uint16_t st1, uint16_t st2 ) {
-	pxenv_exit_t ret = PXENV_EXIT_FAILURE;
+	PXENV_EXIT_t ret = PXENV_EXIT_FAILURE;
 
 	undi.undi_call_info->routine.segment = routine_seg;
 	undi.undi_call_info->routine.offset = routine_off;
