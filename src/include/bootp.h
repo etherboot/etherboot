@@ -142,18 +142,19 @@
         'A','r','c','h',':','0','0','0','0','0',':', \
         'U','N','D','I',':','0','0','2','0','0','1'
 
-/* The following vendor options are required in the PXE spec. Oh deary
- * me yes.  The are not defined in the PXE spec; they do not do
- * anything. But we have to request them. Ask Intel...
+/*
+ * The following vendor options are required in the PXE spec to pull
+ * options for the *next* image. The PXE spec doesn't help us with
+ * this (like explaining why).
  */
-#define RFC1533_VENDOR_PXE_POINTLESS128	128
-#define RFC1533_VENDOR_PXE_POINTLESS129	129
-#define RFC1533_VENDOR_PXE_POINTLESS130 130
-#define RFC1533_VENDOR_PXE_POINTLESS131 131
-#define RFC1533_VENDOR_PXE_POINTLESS132 132
-#define RFC1533_VENDOR_PXE_POINTLESS133 133
-#define RFC1533_VENDOR_PXE_POINTLESS134 134
-#define RFC1533_VENDOR_PXE_POINTLESS135 135
+#define RFC1533_VENDOR_PXE_OPT128 128
+#define RFC1533_VENDOR_PXE_OPT129 129
+#define RFC1533_VENDOR_PXE_OPT130 130
+#define RFC1533_VENDOR_PXE_OPT131 131
+#define RFC1533_VENDOR_PXE_OPT132 132
+#define RFC1533_VENDOR_PXE_OPT133 133
+#define RFC1533_VENDOR_PXE_OPT134 134
+#define RFC1533_VENDOR_PXE_OPT135 135
 
 #endif /* PXE_DHCP_STRICT */
 
