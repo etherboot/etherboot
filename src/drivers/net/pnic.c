@@ -103,17 +103,27 @@ uint16_t pnic_command ( struct nic *nic, uint16_t command,
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int pnic_poll(struct nic *nic)
+static int pnic_poll(struct nic *nic, int retrieve)
 {
 	uint16_t length;
+	uint16_t qlen;
 
+	/* Check receive queue length to see if there's anything to
+	 * get.  Necessary since once we've called PNIC_CMD_RECV we
+	 * have to read out the packet, otherwise it's lost forever.
+	 */
+	if ( pnic_command ( nic, PNIC_CMD_RECV_QLEN, NULL, 0,
+			    &qlen, sizeof(qlen), NULL )
+	     != PNIC_STATUS_OK ) return ( 0 );
+	if ( qlen == 0 ) return ( 0 );
+
+	/* There is a packet ready.  Return 1 if we're only checking. */
+	if ( ! retrieve ) return ( 1 );
+
+	/* Retrieve the packet */
 	if ( pnic_command ( nic, PNIC_CMD_RECV, NULL, 0,
 			    nic->packet, ETH_FRAME_LEN, &length )
 	     != PNIC_STATUS_OK ) return ( 0 );
-
-	/* Length 0 => no packet */
-	if ( length == 0 ) return ( 0 );
-
 	nic->packetlen = length;
 	return ( 1 );
 }
@@ -155,6 +165,31 @@ static void pnic_disable(struct dev *dev)
 }
 
 /**************************************************************************
+IRQ - Handle card interrupt status
+***************************************************************************/
+static int pnic_irq ( struct nic *nic, irq_action_t action )
+{
+	uint8_t enabled;
+
+	switch ( action ) {
+	case DISABLE :
+	case ENABLE :
+		enabled = ( action == ENABLE ? 1 : 0 );
+		if ( pnic_command ( nic, PNIC_CMD_MASK_IRQ,
+				    &enabled, sizeof(enabled), NULL, 0, NULL )
+		     != PNIC_STATUS_OK ) return 0;
+		break;
+	case FORCE :
+		if ( pnic_command ( nic, PNIC_CMD_FORCE_IRQ,
+				    NULL, 0, NULL, 0, NULL )
+		     != PNIC_STATUS_OK ) return 0;
+		break;
+	default : return 0;
+	}
+	return 1;
+}
+
+/**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 
@@ -168,6 +203,7 @@ static int pnic_probe(struct dev *dev, struct pci_device *pci)
 
 	/* Mask the bit that says "this is an io addr" */
 	nic->ioaddr = pci->ioaddr & ~3;
+	nic->irqno = pci->irq;
 	/* Not sure what this does, but the rtl8139 driver does it */
 	adjust_pci_device(pci);
 
@@ -194,6 +230,7 @@ static int pnic_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable  = pnic_disable;
 	nic->poll     = pnic_poll;
 	nic->transmit = pnic_transmit;
+	nic->irq      = pnic_irq;
 	return 1;
 }
 
