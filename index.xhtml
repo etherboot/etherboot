@@ -7,16 +7,25 @@
 
 <body bgcolor="#CCCCCC">
 
-Hosted by <A href="http://sourceforge.net">
+m4_ifelse(HOSTSITE,`SOURCEFORGE',
+`Hosted by <A href="http://sourceforge.net">
 <IMG src="http://sourceforge.net/sflogo.php?group_id=4233&amp;type=1" width="88"
-height="31" border="0" alt="SourceForge Logo"></A>
-
+height="31" border="0" alt="SourceForge Logo"></A>'
+,HOSTSITE,`BERLIOS',
+`Hosted by <A href="http://developer.berlios.de">
+<IMG src="http://developer.berlios.de/sflogo.php?group_id=190&amp;type=1"
+width="118" height="52" border="0" alt="BerliOS Logo"></A>'
+)
 
 <hr>
 
-<a href="http://etherboot.sourceforge.net/"><img src="eb.png" border="0"
-alt="Etherboot logo"></a>
-
+m4_ifelse(HOSTSITE,`SOURCEFORGE',
+`<a href="http://etherboot.sourceforge.net/"><img src="eb.png" border="0"
+alt="Etherboot logo"></a>'
+,HOSTSITE,`BERLIOS',
+`<a href="http://etherboot.berlios.de/"><img src="eb.png" border="0"
+alt="Etherboot logo"></a>'
+)
 
 <ul>
 <li><a href="#What">What is Etherboot</a></li>
@@ -284,10 +293,15 @@ or products mentioned by the Etherboot project.
 
 <hr>
 
-Hosted by <A href="http://sourceforge.net">
+m4_ifelse(HOSTSITE,`SOURCEFORGE',
+`Hosted by <A href="http://sourceforge.net">
 <IMG src="http://sourceforge.net/sflogo.php?group_id=4233&amp;type=1" width="88"
-height="31" border="0" alt="SourceForge Logo"></A>
-
+height="31" border="0" alt="SourceForge Logo"></A>'
+,HOSTSITE,`BERLIOS',
+`Hosted by <A href="http://developer.berlios.de">
+<IMG src="http://developer.berlios.de/sflogo.php?group_id=190&amp;type=1"
+width="118" height="52" border="0" alt="BerliOS Logo"></A>'
+)
 
 </body>
 

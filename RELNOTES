@@ -1,7 +1,13 @@
-Etherboot 5.0.3
+Etherboot 5.0.5
 
-Some important notes have been retained from the 4.7 development series.
-Please read the documentation for more details.
+E820 memory sizing support has been added by Eric Biederman.
+
+Holtek HT80232 has been added to the list of NE2000 PCI clones.
+
+If you find that your PnP BIOS does not recognise the ROM image (not
+floppy image) as a PnP BIOS extension, it could be that it's not fully
+compliant with the BIOS Boot Specification. Try defining
+-DBBS_BUT_NOT_PNP_COMPLIANT.
 
 The rotating bar progress display has been replaced by a sequence of
 dots, one for each transmitted packet. This is kinder to dumb displays,

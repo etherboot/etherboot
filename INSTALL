@@ -1,3 +1,6 @@
+If you don't want to install development tools, but have access to the
+Web, you can get ROM images made on demand from http://rom-o-matic.net/
+
 For the impatient, "cd src" and "make". Your ROM images will be in
 bin32/xxx.rom and bin32/xxx.lzrom, where xxx is the name of your NIC
 driver.  See src/NIC for the list of supported NICs. The mknbi tools are
@@ -9,9 +12,6 @@ The documentation tarballs should be extracted in the top directory (the
 one you are reading this INSTALL document from). A top directory called
 doc will be created. This way the links from index.html will work
 properly.
-
-If you don't want to install development tools, but have access to the
-Web, you can get ROM images made on demand from http://rom-o-matic.net/
 
 More likely if you are unfamiliar with Etherboot you should read the
 documentation starting with index.html if you have a Web browser, or

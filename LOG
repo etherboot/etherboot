@@ -2141,3 +2141,106 @@ via-rhine.c: all values "printed" inside the comments are 32 bit integers
 wd89c840.c: PCI bus/function numbers are always small
 
 Released as Etherboot 5.0.3 (production)
+
++ New version of contrib/Diskless-From-NT/furtmayer.html. I mangled the
+previous version by forgetting to extract with metamail so it was still
+quotable-printable encoded.
+
++ Renamed do_printf to vsprintf because that's the standard function it
+has the same signature as.
+
++ More patches from Klaus Espenlaub. In his own words:
+
+The patch to add UDP checksums for transmitted packets is attached.
+Just don't be surprised if some packet sniffer tells you that the
+checksum for the NFS_LOOKUP packets are wrong and that the filename is
+truncated.  It's a bug in the sniffer, not in Etherboot.
+
+Oh, and the small change in udpchksum() almost makes up for the
+increased code size.
+
+I also rewrote the NFS code to use pointers instead of array accesses.
+This reduced the code size by 124 bytes.  Patch attached.
+
+The last patch in this mail fixes misc things: a typo in misc.c
+(DOT_PROGRESS instead of BAR_PROGRESS), and twiddle() is only called if
+the packet type is IP.  This makes the output nicer - the dots are also
+printed in some non-approriate places for ARP reply packets.  The
+important packets are IP anyway.
+
++ The option BOOTP_DATA_AT_0x93C00 is deprecated, in preparation for
+expanding the parameter area and the first32.c area.
+
++ Marty Connor found a typo in index.html, should be: Etherboot can work
+with..., not Ethernet can work with... Ooops.
+
++ Eric Biederman tried a patch of Preston Wilson's and discovered that
+DI should be prefixed by ES in the test for a PnP BIOS in loader.S to be
+sure.  Furthermore some BIOSes are not fully compliant and we need an
+#ifndef PNP_BUT_NOT_BBS_COMPLIANT to work around that.
+
++ Oops, there's no entry in config.c for the DFE530TX+ even though
+there's one in NIC.
+
+Released as Etherboot 5.0.4 (production)
+
++ Fixed a struct alignment (8-byte constraint) problem in lance.c caused
+by the introduction of the rx_idx field by moving rx_idx to the end of
+the struct. Found by Rizsanyi Zsolt. Klaus Espenlaub also suggested
+increasing all the Rx buffers by 4 bytes because of the checksum stored
+at the end.
+
++ Fred Gray contributed changes in tulip.c to check for a duplex
+connection and to modify the controller register if so. Marty fixed an
+unassigned to "negotiated" variable.
+
++ Mark G of Inprimis Technologies contributed another FA311 (National
+Semiconductor DP83815) driver, also based on the Donald Becker Linux
+driver.
+
++ Armin Schindler contributed a patch to allow booting LynxOS KDI
+images.
+
++ Moved code to set PCI busmastering and reasonable latency to a routine
+in pci.c and added calls to this routine from all PCI drivers.
+
++ New files for contrib/mkffwnb for version 1.9.11 and 1.9.16.
+
++ Removed BOOTP_DATA_AT_0x93Cxx option.
+
++ Convert epic100 driver to use hardware timer for transmit timeout and
+remove polling loop from receive routine.
+
++ Steve Tilden pointed out that BOOT_INT18H is a LCONFIG option, not a
+CFLAGS32 option. Put note under option documentation and also added a
+commented-out example in Config. Steve also contributed a patch¸ in
+contrib/auto-default, which autoboots from the next device if a disk is
+detected.
+
++ PNP_BUT_NOT_BBS_COMPLIANT option renamed to BBS_BUT_NOT_PNP_COMPLIANT.
+
++ Merged in Vasil Vasilev's changes to loader.S to release memory taken
+by PXE properly.
+
++ E820 memory detection routines added by Eric Biederman. May increase
+size of bss segment and push large drivers, e.g. Tulip, nearer to limit,
+please report.
+
++ Default to -DCONGESTED in Config, may help on busy networks.
+
++ Add Holtek HT80232 to list of NE2000 PCI clones.
+
++ Remove prohibition on loading < 0x10000 in ELF images since by default
+drivers don't use memory < 0x10000 any more, with 48kB to run in.
+
++ Put define of ETH_MAX_MTU in etherboot.h inside #ifndef so that it can
+be overriden from Makefile.
+
++ Gustavo Junior Alves added .cvsignore files for src/bin and src/bin32.
+
++ Short note on how to make tomsrtbt netbootable in contrib/tomsrtbt.
+
+This release is dedicated to the memory of my mother (July 1917 -
+November 2001) [Ken Yap].
+
+Released as Etherboot 5.0.5 (production)
