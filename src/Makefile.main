@@ -111,7 +111,7 @@ MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	4
-EXTRAVERSION=   pre1
+EXTRAVERSION=   pre2
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -214,7 +214,14 @@ $(BLIB):	$(BOBJS)
 	$(RANLIB) $@
 
 $(BIN)/main.o:		core/main.c include/etherboot.h include/osdep.h include/nic.h
-$(BIN)/osloader.o:	core/osloader.c include/etherboot.h include/osdep.h
+$(BIN)/osloader.o:	core/osloader.c include/etherboot.h include/osdep.h \
+	arch/i386/core/freebsd_loader.c \
+	arch/i386/core/multiboot_loader.c \
+	arch/i386/core/wince_loader.c \
+	arch/i386/core/aout_loader.c \
+	arch/i386/core/tagged_loader.c \
+	core/elf_loader.c
+
 $(BIN)/nfs.o:		core/nfs.c include/etherboot.h include/osdep.h include/nic.h
 $(BIN)/proto_slam.o:	core/proto_slam.c include/etherboot.h include/osdep.h include/nic.h
 $(BIN)/proto_tftm.o:	core/proto_tftm.c include/etherboot.h include/osdep.h include/nic.h

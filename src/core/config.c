@@ -116,7 +116,7 @@ static int pci_probe(struct dev *dev, char *type_name)
 #endif
 
 #ifdef CONFIG_ISA
-static int isa_probe(struct dev *dev)
+static int isa_probe(struct dev *dev, char *type_name)
 {
 /*
  *	NIC probing is in the order the drivers were linked togeter.
