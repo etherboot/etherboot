@@ -16,263 +16,58 @@
 
 #define PCI_NIC(strname, probe, list) { strname, probe, list, sizeof(list)/sizeof(list[0]) }
 #ifdef	INCLUDE_NS8390
-static struct pci_id nepci_nics[] = {
-	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8029,
-		"Realtek 8029" },
-	{ PCI_VENDOR_ID_DLINK,		0x0300,
-		"DE-528" },
-	{ PCI_VENDOR_ID_WINBOND2,	PCI_DEVICE_ID_WINBOND2_89C940,
-		"Winbond NE2000-PCI" },
-	{ PCI_VENDOR_ID_COMPEX,		PCI_DEVICE_ID_COMPEX_RL2000,
-		"Compex ReadyLink 2000" },
-	{ PCI_VENDOR_ID_KTI,		PCI_DEVICE_ID_KTI_ET32P2,
-		"KTI ET32P2" },
-	{ PCI_VENDOR_ID_NETVIN,		PCI_DEVICE_ID_NETVIN_NV5000SC,
-		"NetVin NV5000SC" },
-	{ PCI_VENDOR_ID_HOLTEK,		PCI_DEVICE_ID_HOLTEK_HT80232,
-		"Holtek HT80232" },
-};
+#include "ns8390_ids.h"
 #endif
 #ifdef	INCLUDE_3C90X
-static struct pci_id a3c90x_nics[] = {
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900TPO,
-		"3Com900-TPO" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900COMBO,
-		"3Com900-Combo" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905TX,
-		"3Com905-TX" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905T4,
-		"3Com905-T4" },
-
-	{ PCI_VENDOR_ID_3COM,		0x9004,
-		"3Com900B-TPO" },
-	{ PCI_VENDOR_ID_3COM,		0x9005,
-		"3Com900B-Combo" },
-	{ PCI_VENDOR_ID_3COM,		0x9006,
-		"3Com900B-2/T" },
-	{ PCI_VENDOR_ID_3COM,		0x900A,
-		"3Com900B-FL" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905B_TX,
-		"3Com905B-TX" },
-	{ PCI_VENDOR_ID_3COM,		0x9056,
-		"3Com905B-T4"},
-	{ PCI_VENDOR_ID_3COM,		0x9058,
-		"3Com905B-9058"},
-	{ PCI_VENDOR_ID_3COM,		0x905A,
-		"3Com905B-FL" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905C_TXM,
-		"3Com905C-TXM" },
-	{ PCI_VENDOR_ID_3COM,		0x9800,
-		"3Com980-Cyclone" },
-	{ PCI_VENDOR_ID_3COM,		0x9805,
-		"3Com9805" },
-	{ PCI_VENDOR_ID_3COM,		0x7646,
-		"3CSOHO100-TX" },
-};
+#include "3c90x_ids.h"
 #endif
 #ifdef	INCLUDE_3C595
-static struct pci_id t595_nics[] = {
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C590,
-		"3Com590" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595,
-		"3Com595" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595_1,
-		"3Com595" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595_2,
-		"3Com595" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900TPO,
-		"3Com900-TPO" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900COMBO,
-		"3Com900-Combo" },
-	{ PCI_VENDOR_ID_3COM,		0x9004,
-		"3Com900B-TPO" },
-	{ PCI_VENDOR_ID_3COM,		0x9005,
-		"3Com900B-Combo" },
-	{ PCI_VENDOR_ID_3COM,		0x9006,
-		"3Com900B-2/T" },
-	{ PCI_VENDOR_ID_3COM,		0x900A,
-		"3Com900B-FL" },
-	{ PCI_VENDOR_ID_3COM,		0x9800,
-		"3Com980-Cyclone" },
-	{ PCI_VENDOR_ID_3COM,		0x9805,
-		"3Com9805" },
-	{ PCI_VENDOR_ID_3COM,		0x7646,
-		"3CSOHO100-TX" },
-};
+#include "3c595_ids.h"
 #endif
 #ifdef	INCLUDE_EEPRO100
-static struct pci_id eepro100_nics[] = {
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82557,
-		"Intel EtherExpressPro100" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82559ER,
-		"Intel EtherExpressPro100 82559ER" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1029,
-		"Intel EtherExpressPro100 ID1029" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1030,
-		"Intel Corporation 82559 InBusiness 10/100" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82562,
-		"Intel EtherExpressPro100 82562EM" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1038,
-		"Intel(R) PRO/100 VM Network Connection" },
-	{ PCI_VENDOR_ID_INTEL,		0x1039,
-		"Intel PRO100 VE 82562ET" },
-};
+#include "eepro100_ids.h"
 #endif
 #ifdef INCLUDE_E1000
-static struct pci_id e1000_nics[] = {
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82542,
-               "Intel EtherExpressPro1000" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82543GC_FIBER,
-               "Intel EtherExpressPro1000 82543GC Fiber" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82543GC_COPPER,
-               "Intel EtherExpressPro1000 82543GC Copper" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82544EI_COPPER,
-               "Intel EtherExpressPro1000 82544EI Copper" },
-	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82544GC_CREB,
-               "Intel EtherExpressPro1000 82544GC Creb" },
-};
+#include "e1000_ids.h"
 #endif
-
 #ifdef	INCLUDE_EPIC100
-static struct pci_id epic100_nics[] = {
-	{ PCI_VENDOR_ID_SMC,		PCI_DEVICE_ID_SMC_EPIC100,
-		"SMC EtherPowerII" },
-};
+#include "epic100_ids.h"
 #endif
 #ifdef	INCLUDE_LANCE
-static struct pci_id lance_nics[] = {
-	{ PCI_VENDOR_ID_AMD,		PCI_DEVICE_ID_AMD_LANCE,
-		"AMD Lance/PCI" },
-	{ PCI_VENDOR_ID_AMD_HOMEPNA,	PCI_DEVICE_ID_AMD_HOMEPNA,
-		"AMD Lance/HomePNA" },
-};
+#include "lance_ids.h"
 #endif
 #ifdef	INCLUDE_RTL8139
-static struct pci_id rtl8139_nics[] = {
-	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8129,
-		"Realtek 8129" },
-	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8139,
-		"Realtek 8139" },
-	{ PCI_VENDOR_ID_DLINK,		PCI_DEVICE_ID_DFE530TXP,
-                "DFE530TX+/DFE538TX" },
-        { PCI_VENDOR_ID_SMC_1211,       PCI_DEVICE_ID_SMC_1211,
-                "SMC EZ10/100" },
-};
-#endif
-#ifdef	INCLUDE_OTULIP
-static struct pci_id otulip_nics[] = {
-	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP,
-		"Digital Tulip" },
-	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP_FAST,
-		"Digital Tulip Fast" },
-	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP_PLUS,
-		"Digital Tulip+" },
-	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_21142,
-		"Digital Tulip 21142" },
-};
+#include "rtl8139_ids.h"
 #endif
 #ifdef	INCLUDE_TULIP
-static struct pci_id tulip_nics[] = {
-	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP,
-		"Digital Tulip" },
-	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP_FAST,
-		"Digital Tulip Fast" },
-	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_TULIP_PLUS,
-		"Digital Tulip+" },
-	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_21142,
-		"Digital Tulip 21142" },
-	{ PCI_VENDOR_ID_MACRONIX,	PCI_DEVICE_ID_MX987x3,
-		"Macronix MX987x3" },
-	{ PCI_VENDOR_ID_MACRONIX,	PCI_DEVICE_ID_MX987x5,
-		"Macronix MX987x5" },
-	{ PCI_VENDOR_ID_LINKSYS,	PCI_DEVICE_ID_LC82C115,
-		"LinkSys LNE100TX" },
-	{ PCI_VENDOR_ID_LINKSYS,	PCI_DEVICE_ID_DEC_TULIP,
-		"Netgear FA310TX" },
-	{ PCI_VENDOR_ID_DAVICOM, PCI_DEVICE_ID_DM9102,
-		"Davicom 9102" },
-	{ PCI_VENDOR_ID_DAVICOM, PCI_DEVICE_ID_DM9009,
-		"Davicom 9009" },
-	{ PCI_VENDOR_ID_ADMTEK, PCI_DEVICE_ID_ADMTEK_0985,
-		"ADMtek Centaur-P" },
-	{ PCI_VENDOR_ID_ADMTEK, 0x0981,
-		"ADMtek AN981 Comet" },
-	{ PCI_VENDOR_ID_SMC_1211, 0x1216,
-		"ADMTek AN983 Comet" },
-        { 0x125B, 0x1400,
-		"ASIX AX88140"},
-        { 0x11F6, 0x9881,
-		"Compex RL100-TX"},
-};
+#include "tulip_ids.h"
 #endif
 #ifdef	INCLUDE_DAVICOM
-static struct pci_id davicom_nics[] = {
-	{ PCI_VENDOR_ID_DAVICOM, PCI_DEVICE_ID_DM9102,
-		"Davicom 9102" },
-	{ PCI_VENDOR_ID_DAVICOM, PCI_DEVICE_ID_DM9009,
-		"Davicom 9009" },
-};
+#include "davicom_ids.h"
 #endif
 #ifdef	INCLUDE_VIA_RHINE
-static struct pci_id rhine_nics[] = {
-	{ PCI_VENDOR_ID_VIATEC, PCI_DEVICE_ID_VIA_VT6102,
-		"VIA 6102" },
-	{ PCI_VENDOR_ID_VIATEC,	PCI_DEVICE_ID_VIA_RHINE_I,
-		"VIA 3043" },
-	{ PCI_VENDOR_ID_VIATEC,	PCI_DEVICE_ID_VIA_86C100A,
-		"VIA 86C100A" },
-};
+#include "via-rhine_ids.h"
 #endif
 #ifdef	INCLUDE_W89C840
-static struct pci_id w89c840_nics[] = {
-	{ PCI_VENDOR_ID_WINBOND2,	PCI_DEVICE_ID_WINBOND2_89C840,
-		"Winbond W89C840F" },
-	{ PCI_VENDOR_ID_COMPEX,	PCI_DEVICE_ID_COMPEX_RL100ATX,
-		"Compex RL100ATX" },
-};
+#include "w89c840_ids.h"
 #endif
 #ifdef INCLUDE_SIS900
-static struct pci_id sis900_nics[] = {
-       { PCI_VENDOR_ID_SIS,     	PCI_DEVICE_ID_SIS900,
-         "SIS900" },
-       { PCI_VENDOR_ID_SIS,     	PCI_DEVICE_ID_SIS7016,
-	 "SIS7016" },
-};
+#include "sis900_ids.h"
 #endif
-
 #ifdef INCLUDE_NATSEMI
-static struct pci_id natsemi_nics[] = {
-       { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
-         "DP83815" },
-};
+#include "natsemi_ids.h"
 #endif
-
 #ifdef INCLUDE_FA311
-static struct pci_id fa311_nics[] = {
-       { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
-         "DP83815" },
-};
+#include "fa311_ids.h"
 #endif
-
 #ifdef	INCLUDE_TLAN
-static struct pci_id tlan_nics[] = {
-	{ PCI_VENDOR_ID_OLICOM,		PCI_DEVICE_ID_OLICOM_OC2326,
-	  "OC2326" },
-};
+#include "tlan_ids.h"
 #endif
-
 #ifdef	INCLUDE_PRISM2_PLX
-static struct pci_id prism2_plx_nics[] = {
-	{ PCI_VENDOR_ID_NETGEAR,	PCI_DEVICE_ID_NETGEAR_MA301,
-	  "Netgear MA301" },
-};
+#include "prism2_plx_ids.h"
 #endif
-
 #ifdef	INCLUDE_PRISM2_PCI
-static struct pci_id prism2_pci_nics[] = {
-	{ PCI_VENDOR_ID_HARRIS,		PCI_DEVICE_ID_HARRIS_PRISM2,
-	  "Harris Semiconductor Prism2.5 clone" },
-};
+#include "prism2_pci_ids.h"
 #endif
 
 /* other PCI NICs go here */
@@ -333,7 +128,7 @@ static const struct dispatch_table	NIC[] =
 	{ "3C515", t515_probe, 0 },
 #endif
 #ifdef	INCLUDE_3C595
-	PCI_NIC("3C595", t595_probe, t595_nics),
+	PCI_NIC("3C595", t595_probe, a3c595_nics),
 #endif
 #ifdef	INCLUDE_3C90X
 	PCI_NIC("3C90X", a3c90x_probe, a3c90x_nics),
@@ -394,13 +189,13 @@ static const struct dispatch_table	NIC[] =
 	{ "DEPCA", depca_probe, 0 },
 #endif
 #ifdef	INCLUDE_NS8390
-	PCI_NIC( "NE2000/PCI", nepci_probe, nepci_nics),
+	PCI_NIC( "NE2000/PCI", nepci_probe, ns8390_nics),
 #endif
 #ifdef	INCLUDE_LANCE
 	PCI_NIC( "LANCE/PCI", lancepci_probe, lance_nics),
 #endif
 #ifdef	INCLUDE_VIA_RHINE
-	PCI_NIC( "VIA 86C100", rhine_probe, rhine_nics),
+	PCI_NIC( "VIA 86C100", rhine_probe, via_rhine_nics),
 #endif
 #ifdef	INCLUDE_W89C840
 	PCI_NIC( "W89C840F", w89c840_probe, w89c840_nics),

@@ -45,6 +45,9 @@ family		3c595
 3c900b-combo	0x10b7,0x9005
 3c900b-tpb2	0x10b7,0x9006
 3c900b-fl	0x10b7,0x900a
+3c980a		0x10b7,0x9800
+3c9805a		0x10b7,0x9805
+3csoho100-txa	0x10b7,0x7646
 
 family		3c90x
 # Original 90x revisions:
@@ -69,79 +72,82 @@ family		3c90x
 
 family		eepro100
 # Intel Etherexpress Pro/100
-eepro100	0x8086,0x1229
-82559er		0x8086,0x1209
-id1029		0x8086,0x1029
-id1030		0x8086,0x1030
-id1038		0x8086,0x1038
-82562et		0x8086,0x1039
-82562em		0x8086,0x2449
+eepro100	0x8086,0x1229	Intel EtherExpressPro100
+82559er		0x8086,0x1209	Intel EtherExpressPro100 82559ER
+id1029		0x8086,0x1029	Intel EtherExpressPro100 ID1029
+id1030		0x8086,0x1030	Intel EtherExpressPro100 InBusiness 10/100
+id1038		0x8086,0x1038	Intel(R) PRO/100 VM Network Connection
+82562et		0x8086,0x1039	Intel PRO100 VE 82562ET
+82562etb	0x8086,0x103b	Intel PRO100 VE 82562ET
+82562em		0x8086,0x2449	Intel EtherExpressPro100 82562EM
 
 family		e1000
 #Intel Etherexpress Pro/1000
-e1000     	0x8086,0x1000
-e1000-fib	0x8086,0x1001
-e1000-cop	0x8086,0x1004
-e1000-ecop	0x8086,0x1008
-e1000-creb	0x8086,0x100d
+e1000     	0x8086,0x1000	Intel EtherExpressPro1000
+e1000-fib	0x8086,0x1001	Intel EtherExpressPro1000 82543GC Fiber
+e1000-cop	0x8086,0x1004	Intel EtherExpressPro1000 82543GC Copper
+e1000-ecop	0x8086,0x1008	Intel EtherExpressPro1000 82544EI Copper
+e1000-creb	0x8086,0x100d	Intel EtherExpressPro1000 82544GC Creb
 
 family		lance
 # Lance PCI PCNet/32
-lancepci	0x1022,0x2000
-pcnetfastiii	0x1022,0x2625
-amdhomepna	0x1022,0x2001	AMD HomePNA
+lancepci	0x1022,0x2000	AMD Lance/PCI
+pcnetfastiii	0x1022,0x2625	AMD Lance/PCI
+amdhomepna	0x1022,0x2001	AMD Lance/HomePNA
 ne2100		-		Novell NE2100, NE1500
 ni6510		-		Racal-Interlan NI6510
 
 family		tulip
-dc21040		0x1011,0x0002
-dc21041		0x1011,0x0014	Tulip+
-ds21140		0x1011,0x0009
-ds21140a	0x1011,0x0009
-ds21142		0x1011,0x0019	Tulip 21142
-ds21143		0x1011,0x0019	Tulip 21143
+dc21040		0x1011,0x0002	Digital Tulip
+dc21041		0x1011,0x0014	Digital Tulip+
+ds21140		0x1011,0x0009	Digital Tulip Fast
+ds21142		0x1011,0x0019	Digital Tulip 21142
+ds21143		0x1011,0x0019	Digital Tulip 21143
 # Netgear FA310TX and similar Tulip clones
-82c168		0x11ad,0x0002
-kne110tx	0x11ad,0x0002
-lc82c115	0x11ad,0xc115	LNE100TX
+82c168		0x11ad,0x0002	Netgear FA310TX
+kne110tx	0x11ad,0x0002	Netgear FA310TX
+lc82c115	0x11ad,0xc115	LinkSys LNE100TX
 # Macronix 987x5 Tulip clones
-mx98713		0x10d9,0x0512
-mx98715		0x10d9,0x0531
-mx98725		0x10d9,0x0531
+mx98713		0x10d9,0x0512	Macronix MX987x8
+mx98715		0x10d9,0x0531	Macronix MX987x5
+mx98725		0x10d9,0x0531	Macronix MX987x5
 # Another Macronix clone?
-mxic-98715	0x1113,0x1217
+mxic-98715	0x1113,0x1217	Macronix MX987x5
 an981		0x1317,0x0981	ADMTek Centaur-P (stmicro)
 an983		0x1113,0x1216	ADMTek Comet 983
-centaur-p	0x1317,0x0985	ADMtek Centaur-P
-centaur-c	0x1317,0x1985
+centaur-p	0x1317,0x0985	ADMTek Centaur-P
+an983b		0x1317,0x9511	ADMTek Comet 983b
+centaur-c	0x1317,0x1985	ADMTek Centaur-C
 ax88140		0x125b,0x1400	ASIX AX88140
-ax88141		0x125b,0x1400
+ax88141		0x125b,0x1400	ASIX AX88141
 # Davicom, but using the Tulip driver
-dm9100		0x1282,0x9100
-dm9102		0x1282,0x9102
+dm9009		0x1282,0x9009	Davicom 9009
+dm9100		0x1282,0x9100	Davicom 9100
+dm9102		0x1282,0x9102	Davicom 9102
 intel21145	0x8086,0x0039	Intel Tulip
 rl100tx		0x11f6,0x9881	Compex RL100-TX
-xircomtulip	0x115d,0x0003
+xircomtulip	0x115d,0x0003	Xircom Tulip
 
 family		davicom
+davicom9009	0x1282,0x9009	Davicom DM9009
 davicom9102	0x1282,0x9102	Davicom DM9102
-davicom9009	0x1282,0x9009
 
 family		rtl8139
 rtl8129		0x10ec,0x8129	Realtek 8129
 rtl8139		0x10ec,0x8139	Realtek 8139
-smc1211		0x1112,0x1211	SMC1211
-dfe538		0x1186,0x1300	D-Link DFE538TX
+smc1211		0x1112,0x1211	SMC EZ10/100
+smc1211a	0x1113,0x1211	SMC EZ10/100
+dfe538		0x1186,0x1300	D-Link DFE538TX+/DFE538TX
 
 family		via-rhine
 dlink-530tx-old	0x1106,0x3043	Rhine-I
-dlink-530tx	0x1106,0x3065
+dlink-530tx	0x1106,0x3065	VIA 6102
 # Rhine-II
-via-rhine-old	0x1106,0x6100
-via-rhine	0x1106,0x3065
+via-rhine-old	0x1106,0x6100	VIA 86C100A
+via-rhine	0x1106,0x3065	VIA 6102
 
 family		w89c840
-winbond840	0x1050,0x0840	Winbond W89c840
+winbond840	0x1050,0x0840	Winbond W89C840F
 compexrl100atx	0x11f6,0x2011	Compex RL100-ATX
 
 family		sis900
@@ -154,7 +160,7 @@ fa312		0x100B,0x0020	Netgear FA311/312
 dp83815		0x100B,0x0020	DP83815
 
 family		fa311
-fa311too	0x100B,0x0020	DP83815 also
+fa311too	0x100B,0x0020	DP83815
 
 family		tlan
 #olicom2326	0x108d,0x0014	TI Thunderlan
@@ -173,7 +179,7 @@ family		ns8390
 # A few NE2000 PCI clones, list not exhaustive
 rtl8029		0x10ec,0x8029	RealTek 8029
 dlink-528	0x1186,0x0300	D-Link DE528
-winbond940	0x1050,0x0940	Winbond 86C940
+winbond940	0x1050,0x0940	Winbond 89C940
 compexrl2000	0x11f6,0x1401	Compex RL2000
 ktiet32p2	0x8e2e,0x3000	KTI ET32P2
 nv5000sc	0x4a14,0x5000	NetVin 5000SC
@@ -183,7 +189,7 @@ ne		-		NE1000/2000 and clones
 3c503		-		3Com503, Etherlink II[/16]
 
 family		epic100
-epic100		0x10b8,0x0005	SMC 83c170 EPIC/100
+epic100		0x10b8,0x0005	SMC EtherPower II
 
 family		3c509
 3c509		-		3c509, ISA/EISA

@@ -80,6 +80,28 @@ sub isaonly ($) {
 	return ($#$aref < 0);
 }
 
+# Generate the ID file for each family
+sub genidfile ($) {
+	my ($family) = @_;
+
+	return if (&isaonly($family));
+	open(I, ">${family}_ids.h") or die "Cannot create ${family}_ids.h\n";
+	# Prepend an a if family name starts with non-letter
+	my $tablename = ($family =~ /^[a-z]/) ? $family : "a$family";
+	# Change - to _
+	$tablename =~ s/-/_/g;
+	my $aref = $pcient{$family};
+	print I "static struct pci_id ${tablename}_nics[] = {\n";
+	foreach my $entry (@$aref) {
+		my ($rom, $ids, $comment) = @$entry;
+		next if ($ids eq '-');
+		$comment = $comment || $rom;
+		print I "\t{ $ids, \"$comment\" },\n";
+	}
+	print I "};\n";
+	close(I);
+}
+
 $#ARGV >= 0 or die "Usage: $0 configfile\n";
 open(STDIN, $ARGV[0]) or die "$ARGV[0]: $!\n";
 
@@ -112,6 +134,7 @@ foreach my $key (sort keys %drivers) {
 	print "DOBJS32\t+= bin32/$key.o\n";
 }
 foreach my $family (sort keys %pcient) {
+	&genidfile($family);
 	my $aref = $pcient{$family};
 	foreach my $entry (@$aref) {
 		my $rom = $entry->[0];
@@ -154,7 +177,7 @@ MDROM_ALL_DEPS :=
 
 # Rule to build the config-*.o files
 
-bin32/config-%.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+bin32/config-%.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h NIC genrules.pl
 	\$(CC32) \$(CFLAGS32) \$(MDROM_ALL_INCLUDES) \$(MDROM_TRY_ALL_DEVICES) -o \$@ -c \$<
 
 EOF

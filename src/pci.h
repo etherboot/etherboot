@@ -146,7 +146,8 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_AMD_LANCE		0x2000
 #define PCI_VENDOR_ID_AMD_HOMEPNA	0x1022
 #define PCI_DEVICE_ID_AMD_HOMEPNA	0x2001
-#define PCI_VENDOR_ID_SMC_1211          0x1113
+#define PCI_VENDOR_ID_SMC_1211          0x1112
+#define PCI_VENDOR_ID_SMC_1211A         0x1113
 #define PCI_DEVICE_ID_SMC_1211          0x1211
 #define PCI_VENDOR_ID_DEC		0x1011
 #define PCI_DEVICE_ID_DEC_TULIP		0x0002

@@ -184,8 +184,8 @@ enum commands {
    Typically this takes 0 ticks. */
 static inline void wait_for_cmd_done(int cmd_ioaddr)
 {
-  short wait = 100;
-  do   ;
+  int wait = 1000;
+  do   udelay(1);
   while(inb(cmd_ioaddr) && --wait >= 0);
 }
 
