@@ -39,6 +39,15 @@
 #define DBG(...)
 #endif
 
+/* Not sure why this isn't a globally-used structure within Etherboot.
+ */
+typedef	struct {
+	char dest[ETH_ALEN];
+	char source[ETH_ALEN];
+	unsigned int nstype;
+} media_header_t;
+static const char broadcast_mac[] = { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF };
+
 /* Global pointer to currently installed PXE stack */
 pxe_stack_t *pxe_stack = NULL;
 
@@ -334,12 +343,7 @@ PXENV_EXIT_t pxenv_undi_transmit ( t_PXENV_UNDI_TRANSMIT *undi_transmit ) {
 	unsigned int type;
 	unsigned int length;
 	const char *data;
-	static const char broadcast[] = { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF };
-	struct {
-		char dest[ETH_ALEN];
-		char source[ETH_ALEN];
-		unsigned int nstype;
-	} *media_header;
+	media_header_t *media_header;
 
 	DBG ( "PXENV_UNDI_TRANSMIT" );
 	ENSURE_READY ( undi_transmit );
@@ -358,7 +362,7 @@ PXENV_EXIT_t pxenv_undi_transmit ( t_PXENV_UNDI_TRANSMIT *undi_transmit ) {
 
 	/* If destination is broadcast, we need to supply the MAC address */
 	if ( undi_transmit->XmitFlag == XMT_BROADCAST ) {
-		dest = broadcast;
+		dest = broadcast_mac;
 	} else {
 		dest = SEGOFF16_TO_PTR ( undi_transmit->DestAddr );
 	}
@@ -373,7 +377,7 @@ PXENV_EXIT_t pxenv_undi_transmit ( t_PXENV_UNDI_TRANSMIT *undi_transmit ) {
 	case P_ARP:	type = ARP;	break;
 	case P_RARP:	type = RARP;	break;
 	case P_UNKNOWN:
-		media_header = (typeof(media_header))data;
+		media_header = (media_header_t*)data;
 		dest = media_header->dest;
 		type = ntohs ( media_header->nstype );
 		data += ETH_HLEN;
@@ -607,9 +611,11 @@ PXENV_EXIT_t pxenv_undi_get_iface_info ( t_PXENV_UNDI_GET_IFACE_INFO
 
 /* PXENV_UNDI_ISR
  *
- * Status: stub
+ * Status: working when hooked to the timer interrupt
  */
 PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
+	media_header_t *media_header = (media_header_t*)nic.packet;
+
 	DBG ( "PXENV_UNDI_ISR" );
 	/* We can't call ENSURE_READY, because this could be being
 	 * called as part of an interrupt service routine.  Instead,
@@ -620,8 +626,82 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 		return PXENV_EXIT_FAILURE;
 	}
 	
-	undi_isr->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	/* Just in case some idiot actually looks at these fields when
+	 * we weren't meant to fill them in...
+	 */
+	undi_isr->BufferLength = 0;
+	undi_isr->FrameLength = 0;
+	undi_isr->FrameHeaderLength = 0;
+	undi_isr->ProtType = 0;
+	undi_isr->PktType = 0;
+
+	switch ( undi_isr->FuncFlag ) {
+	case PXENV_UNDI_ISR_IN_START :
+		/* Is there a packet waiting?  If so, disable
+		 * interrupts on the NIC, acknowledge the interrupt
+		 * and return "yes".  Do *not* clear the "is there a
+		 * packet waiting" flag, whatever form that may take
+		 * in the individual NIC driver.
+		 */
+		DBG ( " START" );
+		if ( 1 ) {
+			DBG ( " OURS" );
+			undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_OURS;
+		} else {
+			DBG ( " NOT_OURS" );
+			undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_NOT_OURS;
+		}
+		break;
+	case PXENV_UNDI_ISR_IN_PROCESS :
+		/* Call poll(), return packet.  If no packet, return "done".
+		 */
+		DBG ( " PROCESS" );
+		if ( eth_poll() ) {
+			DBG ( " RECEIVE %d", nic.packetlen );
+			if ( nic.packetlen > sizeof(pxe_stack->packet) ) {
+				/* Should never happen */
+				undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_DONE;
+				undi_isr->Status =
+					PXENV_STATUS_OUT_OF_RESOURCES;
+				return PXENV_EXIT_FAILURE;
+			}
+			undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_RECEIVE;
+			undi_isr->BufferLength = nic.packetlen;
+			undi_isr->FrameLength = nic.packetlen;
+			undi_isr->FrameHeaderLength = ETH_HLEN;
+			memcpy ( pxe_stack->packet, nic.packet, nic.packetlen);
+			PTR_TO_SEGOFF16 ( pxe_stack->packet, undi_isr->Frame );
+			switch ( ntohs(media_header->nstype) ) {
+			case IP :	undi_isr->ProtType = P_IP;	break;
+			case ARP :	undi_isr->ProtType = P_ARP;	break;
+			case RARP :	undi_isr->ProtType = P_RARP;	break;
+			default :	undi_isr->ProtType = P_UNKNOWN;
+			}
+			if ( memcmp ( media_header->dest, broadcast_mac,
+				      sizeof(broadcast_mac) ) ) {
+				undi_isr->PktType = XMT_BROADCAST;
+			} else {
+				undi_isr->PktType = XMT_DESTADDR;
+			}
+		} else {
+			DBG ( " DONE" );
+			undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_DONE;
+		}
+		break;
+	case PXENV_UNDI_ISR_IN_GET_NEXT :
+		/* We only ever return one frame at a time */
+		DBG ( " GET_NEXT DONE" );
+		undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_DONE;
+		break;
+	default :
+		/* Should never happen */
+		undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_DONE;
+		undi_isr->Status = PXENV_STATUS_UNDI_INVALID_PARAMETER;
+		return PXENV_EXIT_FAILURE;
+	}
+
+	undi_isr->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_STOP_UNDI
