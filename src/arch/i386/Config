@@ -92,6 +92,10 @@ CFLAGS+=	-DPCBIOS
 # LCONFIG+=	-DBBS_BUT_NOT_PNP_COMPLIANT
 # LCONFIG+=	-DBOOT_INT18H
 
+# Produce code that will work inside the Bochs emulator.  The pnic
+# driver is probably the best one to try.
+# CFLAGS+=	-DCONFIG_PCI_DIRECT
+
 CFLAGS+= -fstrength-reduce -fomit-frame-pointer -mcpu=i386 -march=i386
 # Squeeze the code in as little space as possible.
 # gcc3 needs a different syntax to gcc2 if you want to avoid spurious warnings.
