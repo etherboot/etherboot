@@ -1,5 +1,16 @@
+*.com
 *.rom
+*.pxe
+*.lilo
+*.dsk
 *.lzrom
-*.tmp
+*.lzpxe
+*.lzlilo
+*.lzdsk
 *.img
 *.huf
+*.a
+*.o
+*.tmp
+*.elf
+*.ebi
