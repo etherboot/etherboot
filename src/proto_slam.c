@@ -527,6 +527,9 @@ int url_slam(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigne
 	info.fnc                 = fnc;
 	info.sent_nack = 0;
 	/* Now parse the url */
+	if (url_port != -1) {
+		info.server_port = url_port;
+	}
 	if (name[0] == '/') {
 		/* multicast ip */
 		name++;

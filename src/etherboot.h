@@ -697,6 +697,7 @@ extern struct rom_info rom;
 extern char *hostname;
 extern int hostnamelen;
 extern jmpbuf restart_etherboot;
+extern int url_port;
 extern struct arptable_t arptable[MAX_ARP];
 extern struct igmptable_t igmptable[MAX_IGMP];
 #ifdef	IMAGE_MENU

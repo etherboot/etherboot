@@ -10,6 +10,7 @@
 	.section ".text16", "ax", @progbits
 	.previous
 	.code32
+	.arch i386
 
 #if defined(CONFIG_TSC_CURRTICKS)
 #undef CONFIG_BIOS_CURRTICKS

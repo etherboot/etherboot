@@ -21,6 +21,7 @@
 
 	.text
 	.code16
+	.arch i386
 	.org 0
 	.globl _start
 _start:

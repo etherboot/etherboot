@@ -49,6 +49,7 @@ START - Where all the fun begins....
 **************************************************************************/
 /* this must be the first thing in the file because we enter from the top */
 	.text
+	.arch i386
 	.global	_start
 _start:
 	.code32

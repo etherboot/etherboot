@@ -24,7 +24,8 @@ Literature dealing with the network protocols:
 #include "nic.h"
 #include "disk.h"
 
-jmpbuf			restart_etherboot;
+jmpbuf	restart_etherboot;
+int	url_port;		
 
 #ifdef	IMAGE_FREEBSD
 int freebsd_howto = 0;
@@ -284,7 +285,6 @@ int loadkernel(const char *fname)
 	in_addr ip;
 	int len;
 	const char *name;
-	int port;
 
 #if 0 && defined(CAN_BOOT_DISK)
 	if (!memcmp(fname,"/dev/",5) && fname[6] == 'd') {
@@ -309,7 +309,7 @@ int loadkernel(const char *fname)
 #endif
 	ip.s_addr = arptable[ARP_SERVER].ipaddr.s_addr;
 	name = fname;
-	port = -1;
+	url_port = -1;
 	len = 0;
 	while(fname[len] && fname[len] != ':') {
 		len++;
@@ -325,11 +325,10 @@ int loadkernel(const char *fname)
 			name += inet_aton(name, &ip);
 			if (name[0] == ':') {
 				name++;
-				port = strtoul(name, &name, 10);
+				url_port = strtoul(name, &name, 10);
 			}
 		}
 		if (name[0] == '/') {
-			/* FIXME where do I pass the port? */
 			arptable[ARP_SERVER].ipaddr.s_addr = ip.s_addr;
 			printf( "Loading %s ", fname );
 			return proto->load(name + 1, load_block);
