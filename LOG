@@ -2372,3 +2372,10 @@ send fixed binary structure instead of variable length string.
 + Bug in sis900.c, wrongly classifies revisions 0x81 and 0x82 because
 first test catches too many revisions. Changed to match the Linux
 driver.
+
++ Fotis Andritsopoulos found a small bug in cs89x0.h, TX_AFTER_ALL
+should be 0x0C0.
+
++ Brilliant idea by Eric Biederman. Ignore DHCP offers with zero server
+IP, or null filename unless DEFAULT_BOOTFILE is defined. This will
+ignore most Windows DHCP servers.

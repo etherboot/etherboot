@@ -34,6 +34,7 @@ unsigned char *end_of_rfc1533 = NULL;
 static int vendorext_isvalid;
 static const unsigned char vendorext_magic[] = {0xE4,0x45,0x74,0x68}; /* äEth */
 static const unsigned char broadcast[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+static const in_addr zeroIP = { 0L };
 
 #ifdef	IMAGE_MENU
 static char *imagelist[RFC1533_VENDOR_NUMOFIMG];
@@ -403,7 +404,11 @@ static void load(void)
 #ifdef	DOWNLOAD_PROTO_NFS
 	rpc_init();
 #endif
+#ifdef	DEFAULT_BOOTFILE
 	kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
+#else
+	kernel = KERNEL_BUF;
+#endif
 	printf("Loading %@:%s ", arptable[ARP_SERVER].ipaddr, kernel);
 	loadkernel(kernel); /* We don't return except on error */
 	printf("Unable to load file.\n");
@@ -1061,7 +1066,11 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 			   (udp->dest == htons(BOOTP_CLIENT)) &&
 			   (bootpreply->bp_op == BOOTP_REPLY) &&
 			   (bootpreply->bp_xid == xid) &&
-			   (memcmp(broadcast, bootpreply->bp_hwaddr, ETH_ALEN) ==0 ||
+			   (memcmp(&bootpreply->bp_siaddr, &zeroIP, sizeof(in_addr)) != 0) &&
+#ifndef	DEFAULT_BOOTFILE
+			   (bootpreply->bp_file[0] != '\0') &&
+#endif
+			   (memcmp(broadcast, bootpreply->bp_hwaddr, ETH_ALEN) == 0 ||
 			    memcmp(arptable[ARP_CLIENT].node, bootpreply->bp_hwaddr, ETH_ALEN) == 0)) {
 				arptable[ARP_CLIENT].ipaddr.s_addr =
 					bootpreply->bp_yiaddr.s_addr;
