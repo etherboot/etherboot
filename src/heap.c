@@ -11,7 +11,12 @@ void init_heap(void)
 	 * I can use for the heap, which is organized as 
 	 * a stack that grows backwards through memory.
 	 */
+#if 0
 	start = virt_to_phys(_text);
+#else
+	/* segment wrap around is nasty don't chance it. */
+	start = virt_to_phys(0);
+#endif
 	end  = virt_to_phys(_end);
 	size = 0;
 	for(i = 0; i < meminfo.map_count; i++) {
