@@ -403,7 +403,7 @@ static void init_ring(struct FA311_DEV *dev)
     dev->cur_tx = 0;
 
 	dev->rx_buf_sz = PKT_BUF_SZ;
-	dev->rx_head_desc = virt_to_le32(&dev->rx_ring[0]);
+	dev->rx_head_desc = virt_to_le32desc(&dev->rx_ring[0]);
 
 	/* Initialize all Rx descriptors. */
 	for (i = 0; i < RX_RING_SIZE; i++) {

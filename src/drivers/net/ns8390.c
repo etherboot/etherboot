@@ -791,7 +791,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 		if (!(eth_flags & FLAG_PIO)) {
 			memset(bus_to_virt(eth_bmem), 0, 0x2000);
 			for(i = 0; i < 0x2000; ++i)
-				if (*(bus_to_virt(eth_bmem+i))) {
+				if (*((char *)(bus_to_virt(eth_bmem+i)))) {
 					printf ("Failed to clear 3c503 shared mem.\n");
 					return (0);
 				}
