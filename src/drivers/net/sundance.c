@@ -448,8 +448,9 @@ void sundance_irq ( struct nic *nic, irq_action_t action ) {
 	case ENABLE :
 		intr_status = inw(nic->ioaddr + IntrStatus);
 		intr_status = intr_status & ~DEFAULT_INTR;
-		if ( action == ENABLE ) intr_status = intr_status | DEFAULT_INTR;
-		outw(intr_status, nic->ioaddr + IntrStatus);
+		if ( action == ENABLE ) 
+			intr_status = intr_status | DEFAULT_INTR;
+		outw(intr_status, nic->ioaddr + IntrEnable);
 		break;
         case FORCE :
 		outw(0x0200, BASE + ASICCtrl);
@@ -472,10 +473,12 @@ static int sundance_poll(struct nic *nic, int retreive)
 	if (!(frame_status & DescOwn))
 		return 0;
 
+	/* There is a packet ready */
 	if(!retreive)
 		return 1;
 
 	intr_status = inw(nic->ioaddr + IntrStatus);
+	outw(intr_status, nic->ioaddr + IntrStatus);
 
 	pkt_len = frame_status & 0x1fff;
 
@@ -489,7 +492,6 @@ static int sundance_poll(struct nic *nic, int retreive)
 			nic->packetlen = pkt_len;
 			memcpy(nic->packet, rxb +
 			       (sdc->cur_rx * PKT_BUF_SZ), nic->packetlen);
-			outw(DEFAULT_INTR & ~(IntrRxDone|IntrRxDMADone), nic->ioaddr + IntrStatus);
 
 		}
 	}
@@ -497,6 +499,8 @@ static int sundance_poll(struct nic *nic, int retreive)
 	rx_ring[entry].status = 0;
 	entry++;
 	sdc->cur_rx = entry % RX_RING_SIZE;
+	outw(DEFAULT_INTR & ~(IntrRxDone|IntrRxDMADone), 
+		nic->ioaddr + IntrStatus);
 	return 1;
 }
 
