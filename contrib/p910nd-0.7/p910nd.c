@@ -74,16 +74,17 @@ extern		int hosts_ctl(char *daemon, char *client_name,
 #define		LOCKFILE	"/var/lock/subsys/p910%cd"
 #endif
 #define		PRINTERFILE	"/dev/lp%c"
-#define		LOGOPTS		(LOG_PERROR|LOG_PID|LOG_LPR|LOG_ERR)
+#define		LOGOPTS		LOG_ERR
 
 static char	*progname;
-static char	version[] = "p910nd Version 0.6";
+static char	version[] = "p910nd Version 0.7";
 static int	lockfd = -1;
 static char	*device = 0;
+static int	bidir = 0;
 
 void usage(void)
 {
-	fprintf(stderr, "Usage: %s [-f device] [-v] [0|1|2]\n", progname);
+	fprintf(stderr, "Usage: %s [-f device] [-bv] [0|1|2]\n", progname);
 	exit(1);
 }
 
@@ -97,14 +98,14 @@ FILE *open_printer(int lpnumber)
 	FILE		*f;
 	char		lpname[sizeof(PRINTERFILE)];
 
-#ifndef	TESTING
-	(void)sprintf(lpname, PRINTERFILE, lpnumber);
+#ifdef	TESTING
+	(void)snprintf(lpname, sizeof(lpname), "/dev/tty");
 #else
-	(void)strcpy(lpname, "printer");
+	(void)snprintf(lpname, sizeof(lpname), PRINTERFILE, lpnumber);
 #endif
 	if (device == 0)
 		device = lpname;
-	if ((f = fopen(device, "w")) == NULL)
+	if ((f = fopen(device, bidir ? "w+" : "w")) == NULL)
 	{
 		syslog(LOGOPTS, "%s: %m\n", device);
 		exit(1);
@@ -117,7 +118,7 @@ int get_lock(int lpnumber)
 	char		lockname[sizeof(LOCKFILE)];
 	struct flock	lplock;
 
-	(void)sprintf(lockname, LOCKFILE, lpnumber);
+	(void)snprintf(lockname, sizeof(lockname), LOCKFILE, lpnumber);
 	if ((lockfd = open(lockname, O_CREAT|O_RDWR)) < 0)
 	{
 		syslog(LOGOPTS, "%s: %m\n", lockname);
@@ -146,27 +147,64 @@ int copy_stream(int fd, FILE *f)
 	int		nread;
 	char		buffer[8192];
 
-	while ((nread = read(fd, buffer, sizeof(buffer))) > 0)
-		(void)fwrite(buffer, sizeof(char), nread, f);
-	(void)fflush(f);
-	return (nread);
+	if (bidir) {
+		FILE	*nf;
+
+		if ((nf = fdopen(fd, "w")) == NULL) {
+			syslog(LOGOPTS, "fdopen: %m\n");
+		}
+		for (;;) {
+			fd_set	readfds;
+			int result;
+			int maxfd = fileno(f) > fd ? fileno(f) : fd;
+			FD_ZERO(&readfds);
+			FD_SET(fileno(f), &readfds);
+			FD_SET(fd, &readfds);
+			result = select(maxfd + 1, &readfds, 0, 0, 0);
+			if (result < 0)
+				return (result);
+			if (result == 0)
+				continue;
+			if (FD_ISSET(fd, &readfds)) {
+				nread = read(fd, buffer, sizeof(buffer));
+				if (nread <= 0)
+					break;
+				(void)fwrite(buffer, sizeof(char), nread, f);
+			}
+			if (FD_ISSET(fileno(f), &readfds)) {
+				nread = read(fileno(f), buffer, sizeof(buffer));
+				if (nread > 0 && nf != NULL) {
+					(void)fwrite(buffer, sizeof(char), nread, nf);
+					(void)fflush(nf);
+				}
+			}
+		}
+		(void)fflush(f);
+		(void)fclose(nf);
+		return (0);
+	} else {
+		while ((nread = read(fd, buffer, sizeof(buffer))) > 0)
+			(void)fwrite(buffer, sizeof(char), nread, f);
+		(void)fflush(f);
+		return (nread);
+	}
 }
 
 void one_job(int lpnumber)
 {
 	FILE		*f;
 	struct sockaddr_in	client;
-	int		clientlen = sizeof(client);
+	socklen_t	clientlen = sizeof(client);
 
 	if (getpeername(0, (struct sockaddr*) &client, &clientlen) >= 0)
-		syslog(LOGOPTS, "Connection from %s port %hd\n",
+		syslog(LOGOPTS, "Connection from %s port %hu\n",
 			inet_ntoa(client.sin_addr),
 			ntohs(client.sin_port));
 	if (get_lock(lpnumber) == 0)
 		return;
 	f = open_printer(lpnumber);
 	if (copy_stream(0, f) < 0)
-		syslog(LOGOPTS, "read: %m\n");
+		syslog(LOGOPTS, "copy_stream: %m\n");
 	fclose(f);
 	free_lock();
 }
@@ -177,7 +215,8 @@ void server(int lpnumber)
 #ifdef	USE_GETPROTOBYNAME
 	struct protoent	*proto;
 #endif
-	int		netfd, fd, clientlen, one = 1;
+	int		netfd, fd, one = 1;
+	socklen_t	clientlen;
 	struct sockaddr_in	netaddr, client;
 	char		pidfilename[sizeof(PIDFILE)];
 	FILE		*f;
@@ -212,7 +251,7 @@ void server(int lpnumber)
 	fd = open("/dev/null", O_RDWR);	/* stdin */
 	(void)dup(fd);			/* stdout */
 	(void)dup(fd);			/* stderr */
-	(void)sprintf(pidfilename, PIDFILE, lpnumber);
+	(void)snprintf(pidfilename, sizeof(pidfilename), PIDFILE, lpnumber);
 	if ((f = fopen(pidfilename, "w")) == NULL)
 	{
 		syslog(LOGOPTS, "%s: %m\n", pidfilename);
@@ -275,7 +314,7 @@ void server(int lpnumber)
 			ntohs(client.sin_port));
 		/*write(fd, "Printing", 8);*/
 		if (copy_stream(fd, f) < 0)
-			syslog(LOGOPTS, "read: %m\n");
+			syslog(LOGOPTS, "copy_stream: %m\n");
 		(void)close(fd);
 	}
 	syslog(LOGOPTS, "accept: %m\n");
@@ -286,7 +325,7 @@ void server(int lpnumber)
 int is_standalone(void)
 {
 	struct sockaddr_in	bind_addr;
-	int			ba_len;
+	socklen_t		ba_len;
 
 	/*
 	 * Check to see if a socket was passed to us from inetd.
@@ -317,10 +356,13 @@ int main(int argc, char *argv[])
 			progname = p + 1;
 	}
 	lpnumber = '0';
-	while ((c = getopt(argc, argv, "f:v")) != EOF)
+	while ((c = getopt(argc, argv, "bf:v")) != EOF)
 	{
 		switch (c)
 		{
+		case 'b':
+			bidir = 1;
+			break;
 		case 'f':
 			device = optarg;
 			break;
@@ -342,6 +384,11 @@ int main(int argc, char *argv[])
 	/* change the n in argv[0] to match the port so ps will show that */
 	if ((p = strstr(progname, "p910n")) != NULL)
 		p[4] = lpnumber;
+	/* We used to pass (LOG_PERROR|LOG_PID|LOG_LPR|LOG_ERR) to syslog, but
+	 * syslog ignored the LOG_PID and LOG_PERROR option.  I.e. the intention
+	 * was to add both options but the effect was to have neither.
+	 * I disagree with the intention to add PERROR.	 --Stef	 */
+	openlog (p, LOG_PID, LOG_LPR);
 	if (is_standalone())
 		server(lpnumber);
 	else

@@ -6,13 +6,7 @@
 #		You can start others if you wish.
 #
 
-# Todo: Make it work for both RH and SuSE style /etc/init.d
-
-# Source function library.
-test -r /etc/init.d/functions && . /etc/init.d/functions
-
-# Source networking configuration, and check that networking is up.
-[ -f /etc/sysconfig/network ] && . /etc/sysconfig/network && [ ${NETWORKING} = "no" ] && exit 0
+# Todo: Make it fully LSB
 
 # See how we were called.
 case "$1" in
@@ -20,7 +14,7 @@ case "$1" in
 	# Start daemons.
 	echo -n "Starting p910nd: "
 	# default port is 1 so it will appear as p9101d on a ps
-	daemon p910nd
+	start_daemon p910nd
 	echo
 	;;
   stop)

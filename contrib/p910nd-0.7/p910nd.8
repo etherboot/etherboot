@@ -1,9 +1,9 @@
-.TH P910ND 8 "1 August 2003"
+.TH P910ND 8 "1 August 2004"
 .SH NAME
 p910nd \- port 9100+n printer daemon
 .SH SYNOPSIS
 .B p910nd
-[\fB-v\fR]
+[\fB-bv\fR]
 [\fB-f device\fR]
 [\fB0|1|2\fR]
 .SH DESCRIPTION
@@ -17,6 +17,8 @@ The default is port 9100 to /dev/lp0.
 .LP
 The \fB-f\fR option can be used to specify a different printer device,
 e.g. /dev/usblp0.
+.LP
+The \fB-b\fR option turns on bidirectional copying.
 .LP
 The \fB-v\fR option shows the version number.
 .SH INSTALLATION
@@ -84,4 +86,4 @@ is under the GNU Public License
 .SH AUTHOR
 Ken Yap (ken_yap@users.sourceforge.net)
 .SH DATE
-Version 0.6 August 2003
+Version 0.7 August 2004
