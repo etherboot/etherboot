@@ -1,3 +1,9 @@
+#define EB50
+
+#ifdef EB50
+#define __unused __attribute__((unused))
+#endif
+
 /**************************************************************************
 *
 *    tlan.c -- Etherboot device driver for the Texas Instruments ThunderLAN
@@ -34,6 +40,7 @@
 *    REVISION HISTORY:
 *    ================
 *    v1.0	07-08-2003	timlegge	Initial not quite working version
+*    v1.1	07-27-2003	timlegge	Sync 5.0 and 5.1 versions
 *    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -49,48 +56,55 @@
 #include "timer.h"
 #include "tlan.h"
 
+
 /* NIC specific static variables go here */
 #define HZ 100
 #define TX_TIME_OUT	  (6*HZ)
 
-/* Condensed operations for readability. */
+#ifdef EB50
 #define	cpu_to_le32(val) (val)
 #define	le32_to_cpu(val) (val)
 #define	virt_to_bus(x) ((unsigned long) x)
 #define	bus_to_virt(x) ((unsigned long) x)
+#endif
+
+/* Condensed operations for readability. */
 #define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
 #define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
 int tx_started = 0;
-static void TLan_ResetLists(struct nic *nic);
-static void TLan_ResetAdapter(struct nic *nic);
-static void TLan_FinishReset(struct nic *nic);
+
+static void TLan_ResetLists(struct nic *nic __unused);
+static void TLan_ResetAdapter(struct nic *nic __unused);
+static void TLan_FinishReset(struct nic *nic __unused);
 
 static void TLan_EeSendStart(u16);
 static int TLan_EeSendByte(u16, u8, int);
 static void TLan_EeReceiveByte(u16, u8 *, int);
 static int TLan_EeReadByte(u16 io_base, u8, u8 *);
 
-
 static void TLan_PhyDetect(struct nic *nic);
 static void TLan_PhyPowerDown(struct nic *nic);
 static void TLan_PhyPowerUp(struct nic *nic);
-static void TLan_SetMac(struct nic *nic, int areg, char *mac);
+
+
+static void TLan_SetMac(struct nic *nic __unused, int areg, char *mac);
 
 static void TLan_PhyReset(struct nic *nic);
 static void TLan_PhyStartLink(struct nic *nic);
 static void TLan_PhyFinishAutoNeg(struct nic *nic);
+
 #ifdef MONITOR
 static void TLan_PhyMonitor(struct nic *nic);
 #endif
 
 
-static void refill_rx(struct nic *nic);
+static void refill_rx(struct nic *nic __unused);
 
-static int TLan_MiiReadReg(struct nic *nic, u16, u16, u16 *);
+static int TLan_MiiReadReg(struct nic *nic __unused, u16, u16, u16 *);
 static void TLan_MiiSendData(u16, u32, unsigned);
 static void TLan_MiiSync(u16);
-static void TLan_MiiWriteReg(struct nic *nic, u16, u16, u16);
+static void TLan_MiiWriteReg(struct nic *nic __unused, u16, u16, u16);
 
 
 const char *media[] = {
@@ -98,9 +112,8 @@ const char *media[] = {
 	"100baseTx-FD", "100baseT4", 0
 };
 
-/* This much match tulip_tbl[]!  Note 21142 == 21143. */
-
-enum tlan_nic_id {
+/* This much match tlan_pci_tbl[]!  */
+enum tlan_nics {
 	NETEL10 = 0, NETEL100 = 1, NETFLEX3I = 2, THUNDER = 3, NETFLEX3B =
 	    4, NETEL100PI = 5,
 	NETEL100D = 6, NETEL100I = 7, OC2183 = 8, OC2325 = 9, OC2326 =
@@ -196,18 +209,15 @@ typedef u8 TLanBuffer[TLAN_MAX_FRAME_SIZE];
 int chip_idx;
 
 
-	/*****************************************************************
-	 * TLAN Private Information Structure
-	 *
-	 ****************************************************************/
+/*****************************************************************
+* TLAN Private Information Structure
+*
+****************************************************************/
 struct tlan_private {
-/*	struct net_device       *nextDevice;*/
-/*	void			*dmaStorage;*/
 	unsigned short vendor_id;	/* PCI Vendor code */
 	unsigned short dev_id;	/* PCI Device code */
 	const char *nic_name;
 	u8 *padBuffer;
-/*	TLanList                *rxList;  */
 	u8 *rxBuffer;
 	struct TLanList *rx_head_desc;
 	u32 rxHead;
@@ -227,8 +237,6 @@ struct tlan_private {
 	u32 phyOnline;
 	u32 timerSetAt;
 	u32 timerType;
-/*	struct timer_list	timer; */
-/*	struct net_device_stats	stats; */
 	u32 adapterRev;
 	u32 aui;
 	u32 debug;
@@ -239,10 +247,8 @@ struct tlan_private {
 	u8 tlanRev;
 	u8 tlanFullDuplex;
 	char devName[8];
-/*	spinlock_t		lock; */
 	u8 link;
 	u8 is_eisa;
-/*	struct tq_struct	tlan_tqueue; */
 	u8 neg_be_verbose;
 } TLanPrivateInfo;
 
@@ -252,26 +258,25 @@ u32 BASE;
 
 
 
-	/***************************************************************
-	 *	TLan_ResetLists
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		dev	The device structure with the list
-	 *			stuctures to be reset.
-	 *
-	 *	This routine sets the variables associated with managing
-	 *	the TLAN lists to their initial values.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_ResetLists
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		dev	The device structure with the list
+*			stuctures to be reset.
+*
+*	This routine sets the variables associated with managing
+*	the TLAN lists to their initial values.
+*
+**************************************************************/
 
-static void TLan_ResetLists(struct nic *nic)
+void TLan_ResetLists(struct nic *nic __unused)
 {
 
 	int i;
 	struct TLanList *list;
-
 	priv->txHead = 0;
 	priv->txTail = 0;
 
@@ -306,26 +311,26 @@ static void TLan_ResetLists(struct nic *nic)
 	rx_ring[i - 1].forward = virt_to_le32desc(&rx_ring[0]);
 	priv->dirty_rx = (unsigned int) (i - TLAN_NUM_RX_LISTS);
 
-}				/* TLan_ResetLists */
+} /* TLan_ResetLists */
 
-	/***************************************************************
-	 *	TLan_Reset
-	 *
-	 *	Returns:
-	 *		0
-	 *	Parms:
-	 *		dev	Pointer to device structure of adapter
-	 *			to be reset.
-	 *
-	 *	This function resets the adapter and it's physical
-	 *	device.  See Chap. 3, pp. 9-10 of the "ThunderLAN
-	 *	Programmer's Guide" for details.  The routine tries to
-	 *	implement what is detailed there, though adjustments
-	 *	have been made.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_Reset
+*
+*	Returns:
+*		0
+*	Parms:
+*		dev	Pointer to device structure of adapter
+*			to be reset.
+*
+*	This function resets the adapter and it's physical
+*	device.  See Chap. 3, pp. 9-10 of the "ThunderLAN
+*	Programmer's Guide" for details.  The routine tries to
+*	implement what is detailed there, though adjustments
+*	have been made.
+*
+**************************************************************/
 
-static void TLan_ResetAdapter(struct nic *nic)
+void TLan_ResetAdapter(struct nic *nic __unused)
 {
 	int i;
 	u32 addr;
@@ -401,9 +406,10 @@ static void TLan_ResetAdapter(struct nic *nic)
 	} else {
 		TLan_PhyPowerDown(nic);
 	}
-}				/* TLan_ResetAdapter */
 
-static void TLan_FinishReset(struct nic *nic)
+}	/* TLan_ResetAdapter */
+
+void TLan_FinishReset(struct nic *nic)
 {
 
 	u8 data;
@@ -515,7 +521,7 @@ static void TLan_FinishReset(struct nic *nic)
 
 	}
 
-}				/* TLan_FinishReset */
+}	/* TLan_FinishReset */
 
 /**************************************************************************
 POLL - Wait for a frame
@@ -531,7 +537,7 @@ static int tlan_poll(struct nic *nic)
 	int eoc = 0;
 	int entry = priv->cur_rx % TLAN_NUM_RX_LISTS;
 	u16 tmpCStat = le32_to_cpu(rx_ring[entry].cStat);
-
+	
 	u16 host_int = inw(BASE + TLAN_HOST_INT);
 	outw(host_int, BASE + TLAN_HOST_INT);
 
@@ -545,16 +551,19 @@ static int tlan_poll(struct nic *nic)
 	framesize = rx_ring[entry].frameSize;
 
 	nic->packetlen = framesize;
-/*     printf(".%d.", framesize); */
 
+#ifdef EBDEBUG
+     printf(".%d.", framesize); 
+#endif
+     
 	memcpy(nic->packet, rxb +
 	       (priv->cur_rx * TLAN_MAX_FRAME_SIZE), nic->packetlen);
 
 	rx_ring[entry].cStat = 0;
-/*    rx_ring[entry].forward = 0; */
-/*    hex_dump(nic->packet, nic->packetlen);**/
-/*  printf("%d", entry);  */
-
+#ifdef EBDEBUG
+	hex_dump(nic->packet, nic->packetlen);
+	printf("%d", entry);  
+#endif
 	entry = (entry + 1) % TLAN_NUM_RX_LISTS;
 	priv->cur_rx = entry;
 	if (eoc) {
@@ -565,22 +574,19 @@ static int tlan_poll(struct nic *nic)
 			outl(host_cmd, BASE + TLAN_HOST_CMD);
 		}
 	} else {
-		/*      outl( TLAN_HC_GO | TLAN_HC_RT, BASE + TLAN_HOST_CMD ); */
 		host_cmd = TLAN_HC_ACK | ack | (0x000C0000);
 		outl(host_cmd, BASE + TLAN_HOST_CMD);
-/*	printf("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM)); */
+#ifdef EBDEBUG
+		printf("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM)); 
 		host_int = inw(BASE + TLAN_HOST_INT);
-/*	printf("PI-2: 0x%hX\n", host_int); */
+		printf("PI-2: 0x%hX\n", host_int); 
+#endif
 	}
-/*
-	rx_ring[entry].frameSize = TLAN_MAX_FRAME_SIZE;
-	rx_ring[entry].cStat = TLAN_CSTAT_READY;
-	*/
 	refill_rx(nic);
 	return (1);		/* initially as this is called to flush the input */
 }
 
-static void refill_rx(struct nic *nic)
+static void refill_rx(struct nic *nic __unused)
 {
 	int entry = 0;
 
@@ -595,7 +601,7 @@ static void refill_rx(struct nic *nic)
 
 }
 
-/* #define EBDEBUG  */
+ #define EBDEBUG  
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
@@ -779,7 +785,11 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void tlan_disable(struct nic *nic)
+#ifdef EB51
+static void tlan_disable(struct dev *dev __unused)
+#else
+static void tlan_disable(struct nic *nic __unused)
+#endif
 {
 	/* put the card in its initial state */
 	/* This function serves 3 purposes.
@@ -801,11 +811,15 @@ PROBE - Look for an adapter, this routine's visible to the outside
 
 #define board_found 1
 #define valid_link 0
-struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs,
-		       struct pci_device *pci)
+#ifdef EB51
+static int tlan_probe(struct dev *dev, struct pci_device *pci)
 {
-	u16 device_id;
-	u16 data = 0;
+	struct nic *nic = (struct nic *) dev;
+#else
+struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
+{
+#endif
+		u16 data = 0;
 	int err;
 	int i;
 
@@ -820,6 +834,8 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs,
 	/* I really must find out what this does */
 	adjust_pci_device(pci);
 
+	/* Point to private storage */
+	priv = &TLanPrivateInfo;
 	/* Figure out which chip we're dealing with */
 	i = 0;
 	chip_idx = -1;
@@ -832,7 +848,7 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs,
 		}
 		i++;
 	}
-	priv = &TLanPrivateInfo;
+
 	priv->vendor_id = pci->vendor;
 	priv->dev_id = pci->dev_id;
 	priv->nic_name = pci->name;
@@ -852,6 +868,7 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs,
 
 	priv->tlanRev = TLan_DioRead8(BASE, TLAN_DEF_REVISION);
 	printf("\nRevision = %d\n", priv->tlanRev);
+
 	TLan_ResetLists(nic);
 	TLan_ResetAdapter(nic);
 
@@ -869,10 +886,17 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs,
 /*	if (board_found && valid_link)
 	{*/
 	/* point to NIC specific routines */
+#ifdef EB51
+	dev->disable = tlan_disable;
+	nic->poll = tlan_poll;
+	nic->transmit = tlan_transmit;
+	return 1;
+#else
 	nic->disable = tlan_disable;
 	nic->poll = tlan_poll;
 	nic->transmit = tlan_transmit;
 	return nic;
+#endif
 }
 
 
@@ -1130,7 +1154,7 @@ int TLan_EeReadByte(u16 io_base, u8 ee_addr, u8 * data)
 	 *
 	 **************************************************************/
 
-int TLan_MiiReadReg(struct nic *nic, u16 phy, u16 reg, u16 * val)
+int TLan_MiiReadReg(struct nic *nic __unused, u16 phy, u16 reg, u16 * val)
 {
 	u8 nack;
 	u16 sio, tmp;
@@ -1290,7 +1314,7 @@ void TLan_MiiSync(u16 base_port)
 	 *
 	 **************************************************************/
 
-void TLan_MiiWriteReg(struct nic *nic, u16 phy, u16 reg, u16 val)
+void TLan_MiiWriteReg(struct nic *nic __unused, u16 phy, u16 reg, u16 val)
 {
 	u16 sio;
 	int minten;
@@ -1342,7 +1366,7 @@ void TLan_MiiWriteReg(struct nic *nic, u16 phy, u16 reg, u16 val)
 	 *
 	 **************************************************************/
 
-void TLan_SetMac(struct nic *nic, int areg, char *mac)
+void TLan_SetMac(struct nic *nic __unused, int areg, char *mac)
 {
 	int i;
 
@@ -1694,8 +1718,9 @@ void TLan_PhyFinishAutoNeg(struct nic *nic)
         *
         * ******************************************************************/
 
-void TLan_PhyMonitor(struct nic *nic)
+void TLan_PhyMonitor(struct net_device *dev)
 {
+	TLanPrivateInfo *priv = dev->priv;
 	u16 phy;
 	u16 phy_status;
 
@@ -1709,7 +1734,7 @@ void TLan_PhyMonitor(struct nic *nic)
 		if (priv->link) {
 			priv->link = 0;
 			printf("TLAN: %s has lost link\n", priv->nic_name);
-			priv->flags &= ~IFF_RUNNING; 
+			priv->flags &= ~IFF_RUNNING;
 			mdelay(2000);
 			TLan_PhyMonitor(nic);
 			/* TLan_SetTimer( dev, (2*HZ), TLAN_TIMER_LINK_BEAT ); */
@@ -1722,7 +1747,7 @@ void TLan_PhyMonitor(struct nic *nic)
 		priv->link = 1;
 		printf("TLAN: %s has reestablished link\n",
 		       priv->nic_name);
-		priv->flags |= IFF_RUNNING; 
+		priv->flags |= IFF_RUNNING;
 	}
 
 	/* Setup a new monitor */
@@ -1732,32 +1757,30 @@ void TLan_PhyMonitor(struct nic *nic)
 }
 
 #endif				/* MONITOR */
-/*
 
-#if	0
+#ifdef EB51
 static struct pci_id tlan_nics[] = {
-    PCI_ROM(0x0e11, 0xae34, "NETEL10", "Compaq Netelligent 10 T PCI UTP"),
-    PCI_ROM(0x0e11, 0xae32, "NETEL100", "Compaq Netelligent 10/100 TX PCI UTP"),
-    PCI_ROM(0x0e11, 0xae35, "NETFLEX3I", "Compaq Integrated NetFlex-3/P"),
-    PCI_ROM(0x0e11, 0xf130, "THUNDER", "Compaq NetFlex-3/P"),
-    PCI_ROM(0x0e11, 0xf150, "NETFLEX3B", "Compaq NetFlex-3/P"),
-    PCI_ROM(0x0e11, 0xae43, "NETEL100PI", "Compaq Netelligent Integrated 10/100 TX UTP"),
-    PCI_ROM(0x0e11, 0xae40, "NETEL100D", "Compaq Netelligent Dual 10/100 TX PCI UTP"),
-    PCI_ROM(0x0e11, 0xb011, "NETEL100I", "Compaq Netelligent 10/100 TX Embedded UTP"),
-    PCI_ROM(0x108d, 0x0013, "OC2183", "Olicom OC-2183/2185"),
-    PCI_ROM(0x108d, 0x0012, "OC2325", "Olicom OC-2325"),
-    PCI_ROM(0x108d, 0x0014, "OC2326", "Olicom OC-2326"),
-    PCI_ROM(0x0e11, 0xb030, "NETELLIGENT_10_100_WS_5100", "Compaq Netelligent 10/100 TX UTP"),
-    PCI_ROM(0x0e11, 0xb012, "NETELLIGENT_10_T2", "Compaq Netelligent 10 T/2 PCI UTP/Coax"),
+	PCI_ROM(0x0e11, 0xae34, "netel10", "Compaq Netelligent 10 T PCI UTP"),
+	PCI_ROM(0x0e11, 0xae32, "netel100","Compaq Netelligent 10/100 TX PCI UTP"),
+	PCI_ROM(0x0e11, 0xae35, "netflex3i", "Compaq Integrated NetFlex-3/P"),
+	PCI_ROM(0x0e11, 0xf130, "thunder", "Compaq NetFlex-3/P"),
+	PCI_ROM(0x0e11, 0xf150, "netflex3b", "Compaq NetFlex-3/P"),
+	PCI_ROM(0x0e11, 0xae43, "netel100pi", "Compaq Netelligent Integrated 10/100 TX UTP"),
+	PCI_ROM(0x0e11, 0xae40, "netel100d", "Compaq Netelligent Dual 10/100 TX PCI UTP"),
+	PCI_ROM(0x0e11, 0xb011, "netel100i", "Compaq Netelligent 10/100 TX Embedded UTP"),
+	PCI_ROM(0x108d, 0x0013, "oc2183", "Olicom OC-2183/2185"),
+	PCI_ROM(0x108d, 0x0012, "oc2325", "Olicom OC-2325"),
+	PCI_ROM(0x108d, 0x0014, "oc2326", "Olicom OC-2326"),
+	PCI_ROM(0x0e11, 0xb030, "netelligent_10_100_ws_5100", "Compaq Netelligent 10/100 TX UTP"),
+	PCI_ROM(0x0e11, 0xb012, "netelligent_10_t2", "Compaq Netelligent 10 T/2 PCI UTP/Coax"),
 };
 
 static struct pci_driver tlan_driver __pci_driver = {
-    .type = NIC_DRIVER,
-    .name = "TLAN/PCI",
-    .probe = tlan_probe,
-    .ids = tlan_nics,
-    .id_count = sizeof(tlan_nics) / sizeof(tlan_nics[0]),
-    .class = 0,
+	.type = NIC_DRIVER,
+	.name = "TLAN/PCI",
+	.probe = tlan_probe,
+	.ids = tlan_nics,
+	.id_count = sizeof(tlan_nics) / sizeof(tlan_nics[0]),
+	.class = 0,
 };
 #endif
-*/
