@@ -162,7 +162,7 @@ static void davicom_init_chain(struct nic *nic);	/* Sten 10/9 */
 static void davicom_reset(struct nic *nic);
 static void davicom_transmit(struct nic *nic, const char *d, unsigned int t,
 			   unsigned int s, const char *p);
-static int davicom_poll(struct nic *nic);
+static int davicom_poll(struct nic *nic, int retrieve);
 static void davicom_disable(struct dev *dev);
 static void whereami (const char *str);
 #ifdef	DAVICOM_DEBUG
@@ -585,12 +585,14 @@ static void davicom_transmit(struct nic *nic, const char *d, unsigned int t,
 /*********************************************************************/
 /* eth_poll - Wait for a frame                                       */
 /*********************************************************************/
-static int davicom_poll(struct nic *nic)
+static int davicom_poll(struct nic *nic, int retrieve)
 {
   whereami("davicom_poll\n");
 
   if (rxd[rxd_tail].status & 0x80000000)
     return 0;
+
+  if ( ! retrieve ) return 1;
 
   whereami("davicom_poll got one\n");
 
@@ -637,6 +639,23 @@ static void davicom_disable(struct dev *dev)
   /* Clear the missed-packet counter. */
   (volatile unsigned long)inl(ioaddr + CSR8);
 }
+
+
+/*********************************************************************/
+/* eth_irq - enable, disable and force interrupts                    */
+/*********************************************************************/
+static void davicom_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
 
 /*********************************************************************/
 /* eth_probe - Look for an adapter                                   */
@@ -653,7 +672,10 @@ static int davicom_probe(struct dev *dev, struct pci_device *pci)
 
   vendor  = pci->vendor;
   dev_id  = pci->dev_id;
-  ioaddr  = pci->ioaddr;
+  ioaddr  = pci->ioaddr & ~3;
+
+  nic->irqno  = 0;
+  nic->ioaddr = pci->ioaddr & ~3;
 
   /* wakeup chip */
   pcibios_write_config_dword(pci->bus, pci->devfn, 0x40, 0x00000000);
@@ -682,6 +704,7 @@ static int davicom_probe(struct dev *dev, struct pci_device *pci)
   dev->disable  = davicom_disable;
   nic->poll     = davicom_poll;
   nic->transmit = davicom_transmit;
+  nic->irq      = davicom_irq;
 
   return 1;
 }
