@@ -187,9 +187,9 @@ $(BIN)/%.bin:	$(BIN)/%.img $(BIN)/%.sym $(BIN)/start16.o arch/i386/prefix/start1
 	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16.lds \
 		--oformat binary -o $@ $(BIN)/start16.o $(BIN)/$*.sym -b binary $<
 
-$(BIN)/%.zbin:	$(BIN)/%.zimg $(BIN)/%.sym $(BIN)/start16.o arch/i386/prefix/start16.lds
-	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16.lds \
-		--oformat binary -o $@ $(BIN)/start16.o $(BIN)/$*.sym -b binary $<
+$(BIN)/%.zbin:	$(BIN)/%.zimg $(BIN)/%.zsym $(BIN)/start16.o arch/i386/prefix/start16z.lds
+	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16z.lds \
+		--oformat binary -o $@ $(BIN)/start16.o $(BIN)/$*.zsym -b binary $<
 
 # general rule for .bin (plain binary loader code), may be overridden
 $(BIN)/%.bin:	$(BIN)/%.o
@@ -212,8 +212,18 @@ $(BIN)/%.lzimg: $(BIN)/%.hufo $(BIN)/unhuf.o arch/i386/prefix/unhuf.lds $(MAKEDE
 $(BIN)/%.zo:	$(BIN)/%.z arch/i386/prefix/huf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/huf.lds -b binary $< -o $@
 
-$(BIN)/%.zimg:	$(BIN)/%.zo $(BIN)/unnrv2b.o arch/i386/prefix/unhuf.lds $(MAKEDEPS)
+$(BIN)/%.ztmp:	$(BIN)/%.zo $(BIN)/unnrv2b.o arch/i386/prefix/unhuf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/unhuf.lds $(BIN)/unnrv2b.o $< -o $@
+
+$(BIN)/%.zimg: $(BIN)/%.ztmp $(MAKEDEPS)
+	$(OBJCOPY) -O binary $< $@
+
+# Generate .zsym files containing symbols from decompressor alongside symbols from .sym file
+$(BIN)/%.ztmp.allsym: $(BIN)/%.ztmp $(MAKEDEPS)
+	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=decompressor_ $< $@
+
+$(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
+	$(LD) --accept-unknown-input-arch --oformat symbolsrec -r -o $@ $< $(BIN)/$*.ztmp.sym
 
 # general rules for normal/compressed ROM images, may be overridden
 $(BIN)/%.rom:	$(BIN)/%.img $(RLOADER) $(START16)
