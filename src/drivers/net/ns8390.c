@@ -330,7 +330,7 @@ static void ns8390_reset(struct nic *nic)
 #endif
 }
 
-static int ns8390_poll(struct nic *nic);
+static int ns8390_poll(struct nic *nic, int retrieve);
 
 #ifndef	INCLUDE_3C503
 /**************************************************************************
@@ -373,7 +373,7 @@ static void eth_rx_overrun(struct nic *nic)
 
 	/* clear the RX ring, acknowledge overrun interrupt */
 	eth_drain_receiver = 1;
-	while (ns8390_poll(nic))
+	while (ns8390_poll(nic, 1))
 		/* Nothing */;
 	eth_drain_receiver = 0;
 	outb(D8390_ISR_OVW, eth_nic_base+D8390_P0_ISR);
@@ -485,7 +485,7 @@ static void ns8390_transmit(
 /**************************************************************************
 NS8390_POLL - Wait for a frame
 **************************************************************************/
-static int ns8390_poll(struct nic *nic)
+static int ns8390_poll(struct nic *nic, int retrieve)
 {
 	int ret = 0;
 	unsigned char rstat, curr, next;
@@ -510,6 +510,9 @@ static int ns8390_poll(struct nic *nic)
 	outb(D8390_COMMAND_PS0, eth_nic_base+D8390_P0_COMMAND);
 	if (curr >= eth_memsize) curr=eth_rx_start;
 	if (curr == next) return(0);
+
+	if ( ! retrieve ) return 1;
+
 #ifdef	INCLUDE_WD
 	if (eth_flags & FLAG_16BIT) {
 		outb(eth_laar | WD_LAAR_M16EN, eth_asic_base + WD_LAAR);
@@ -588,6 +591,21 @@ static void ns8390_disable(struct dev *dev)
 }
 
 /**************************************************************************
+NS8390_IRQ - Enable, Disable, or Force interrupts
+**************************************************************************/
+static void ns8390_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
+/**************************************************************************
 ETH_PROBE - Look for an adapter
 **************************************************************************/
 #ifdef	INCLUDE_NS8390
@@ -604,6 +622,8 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __unused)
 #endif
 	eth_vendor = VENDOR_NONE;
 	eth_drain_receiver = 0;
+
+	nic->irqno  = 0;
 
 #ifdef	INCLUDE_WD
 {
@@ -629,6 +649,9 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __unused)
 	/* We've found a board */
 	eth_vendor = VENDOR_WD;
 	eth_nic_base = eth_asic_base + WD_NIC_ADDR;
+
+	nic->ioaddr = eth_nic_base;
+
 	c = inb(eth_asic_base+WD_BID);	/* Get board id */
 	for (brd = wd_boards; brd->name; brd++)
 		if (brd->id == c) break;
@@ -792,6 +815,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __unused)
         /* Get our ethernet address */
 
                 outb(_3COM_CR_EALO | _3COM_CR_XSEL, eth_asic_base + _3COM_CR);
+		nic->ioaddr = eth_nic_base;
                 printf("\n3Com 3c503 base %#hx, ", eth_nic_base);
                 if (eth_flags & FLAG_PIO)
 			printf("PIO mode");
@@ -896,6 +920,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __unused)
 		for (i=0; i<ETH_ALEN; i++) {
 			nic->node_addr[i] = romdata[i + ((eth_flags & FLAG_16BIT) ? i : 0)];
 		}
+		nic->ioaddr = eth_nic_base;
 		printf("\nNE%c000 base %#hx, addr %!\n",
 			(eth_flags & FLAG_16BIT) ? '2' : '1', eth_nic_base,
 			nic->node_addr);
@@ -911,6 +936,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __unused)
 	dev->disable  = ns8390_disable; 
 	nic->poll     = ns8390_poll;
 	nic->transmit = ns8390_transmit;
+	nic->irq      = ns8390_irq;
 
         /* Based on PnP ISA map */
 #ifdef	INCLUDE_WD
