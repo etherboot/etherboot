@@ -84,6 +84,8 @@ typedef union pxenv_structure {
 
 #define PXENV_STATUS_SUCCESS			0x0000
 #define PXENV_STATUS_FAILURE			0x0001
+#define PXENV_STATUS_KEEP_UNDI			0x0004
+#define PXENV_STATUS_KEEP_ALL			0x0005
 #define PXENV_STATUS_UNDI_MEDIATEST_FAILED	0x0061
 
 /* BIOS PnP parameter block.  We scan for this so that we can pass it
@@ -193,7 +195,6 @@ typedef struct undi {
 	 * there's the small issue of PXENV_UNDI_GET_STATE being the
 	 * same API call as PXENV_STOP_UNDI...
 	 */
-	uint8_t	loaded;		/* undi_loader() has been called */
 	uint8_t prestarted;	/* pxenv_start_undi() has been called */
 	uint8_t started;	/* pxenv_undi_startup() has been called */
 	uint8_t	initialized;	/* pxenv_undi_initialize() has been called */

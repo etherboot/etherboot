@@ -28,7 +28,7 @@ $Id$
 /* NIC specific static variables go here */
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 		       NULL, NULL, 0, NULL, 0, NULL,
-		       0, 0, 0, 0, 0,
+		       0, 0, 0, 0,
 		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL } };
 
 /* Function prototypes */
@@ -334,7 +334,14 @@ int undi_loader ( void ) {
 		return 0;
 	}
 	printf ( "ok\n" );
-	undi.loaded = 1;
+	printf ( "API %hx:%hx St %hx:%hx UD %hx:%hx UC %hx:%hx "
+		 "BD %hx:%hx BC %hx:%hx\n",
+		 undi.pxe->EntryPointSP.segment, undi.pxe->EntryPointSP.offset,
+		 undi.pxe->Stack.Seg_Addr, undi.pxe->Stack.Seg_Size,
+		 undi.pxe->UNDIData.Seg_Addr, undi.pxe->UNDIData.Seg_Size,
+		 undi.pxe->UNDICode.Seg_Addr, undi.pxe->UNDICode.Seg_Size,
+		 undi.pxe->BC_Data.Seg_Addr, undi.pxe->BC_Data.Seg_Size,
+		 undi.pxe->BC_Code.Seg_Addr, undi.pxe->BC_Code.Seg_Size );
 	return 1;
 }
 
@@ -458,7 +465,38 @@ int eb_pxenv_stop_undi ( void ) {
 int eb_pxenv_unload_stack ( void ) {
 	memset ( undi.pxs, 0, sizeof ( undi.pxs ) );	
 	if ( ! undi_call ( PXENV_UNLOAD_STACK ) ) return 0;
-	undi.loaded = 0;
+	return 1;
+}
+
+/* Unload UNDI base code (if any present) and free memory.
+ */
+int undi_unload_base_code ( void ) {
+	void *bc_code = VIRTUAL( undi.pxe->BC_Code.Seg_Addr, 0 );
+	size_t bc_code_size = undi.pxe->BC_Code.Seg_Size;
+	void *bc_data = VIRTUAL( undi.pxe->BC_Data.Seg_Addr, 0 );
+	size_t bc_data_size = undi.pxe->BC_Data.Seg_Size;
+	void *bc_stack = VIRTUAL( undi.pxe->Stack.Seg_Addr, 0 );
+	size_t bc_stack_size = undi.pxe->Stack.Seg_Size;
+
+	/* Don't unload if there is no base code present */
+	if ( undi.pxe->BC_Code.Seg_Addr == 0 ) return 1;
+
+	eb_pxenv_unload_stack();
+	if ( ( undi.pxs->unload_stack.Status != PXENV_STATUS_SUCCESS ) &&
+	     ( undi.pxs->unload_stack.Status != PXENV_STATUS_FAILURE ) ) {
+		printf ( "Could not free memory allocated to PXE base code: "
+			 "possible memory leak\n" );
+		return 0;
+	}
+	/* Free structures only if unload_base_stack zeroed them.
+	 * This is a safety check against insane UNDI code...
+	 */
+	if ( ( SEGMENT(bc_code) != 0 ) && ( undi.pxe->BC_Code.Seg_Addr == 0 ) )
+		forget_base_memory ( bc_code, bc_code_size );
+	if ( ( SEGMENT(bc_data) != 0 ) && ( undi.pxe->BC_Data.Seg_Addr == 0 ) )
+		forget_base_memory ( bc_data, bc_data_size );
+	if ( ( SEGMENT(bc_stack) != 0 ) && ( undi.pxe->Stack.Seg_Addr == 0 ) )
+		forget_base_memory ( bc_stack, bc_stack_size );
 	return 1;
 }
 
@@ -487,42 +525,50 @@ int undi_full_startup ( void ) {
  */
 
 int undi_full_shutdown ( void ) {
-	/* In case we didn't allocate the driver's memory in the first
-	 * place, try to grab the code and data segments and sizes
-	 * from the !PXE structure.
-	 */
-	if ( ( undi.driver_code == NULL ) && ( undi.pxe != NULL ) ) {
-		undi.driver_code = VIRTUAL( undi.pxe->UNDICode.Seg_Addr, 0 );
-		undi.driver_code_size = undi.pxe->UNDICode.Seg_Size;
-	}
-	if ( ( undi.driver_data == NULL ) && ( undi.pxe != NULL ) ) {
-		undi.driver_data = VIRTUAL( undi.pxe->UNDIData.Seg_Addr, 0 );
-		undi.driver_data_size = undi.pxe->UNDIData.Seg_Size;
-	}
-
-	/* Ignore errors and continue in the hope of shutting down anyway */
-	if ( undi.opened ) eb_pxenv_undi_close();
-	if ( undi.started ) {
-		eb_pxenv_undi_cleanup();
-		/* We may get spurious UNDI API errors at this point.
-		 * If startup() succeeded but initialize() failed then
-		 * according to the spec, we should call shutdown().
-		 * However, some NICS will fail with a status code
-		 * 0x006a (INVALID_STATE).
+	if ( undi.pxe != NULL ) {
+		/* In case we didn't allocate the driver's memory in the first
+		 * place, try to grab the code and data segments and sizes
+		 * from the !PXE structure.
 		 */
-		eb_pxenv_undi_shutdown();
-	}
-	if ( undi.prestarted ) eb_pxenv_stop_undi();
-	if ( undi.loaded ) {
-		eb_pxenv_unload_stack();
-		/* Success OR Failure indicates that memory can be
-		 * freed.  Any other status code means that it can't.
+		if ( undi.driver_code == NULL ) {
+			undi.driver_code = VIRTUAL(undi.pxe->UNDICode.Seg_Addr,
+						   0 );
+			undi.driver_code_size = undi.pxe->UNDICode.Seg_Size;
+		}
+		if ( undi.driver_data == NULL ) {
+			undi.driver_data = VIRTUAL(undi.pxe->UNDIData.Seg_Addr,
+						   0 );
+			undi.driver_data_size = undi.pxe->UNDIData.Seg_Size;
+		}
+		
+		/* Ignore errors and continue in the hope of shutting
+		 * down anyway
 		 */
-		if (( undi.pxs->unload_stack.Status!=PXENV_STATUS_SUCCESS ) &&
-		    ( undi.pxs->unload_stack.Status!=PXENV_STATUS_FAILURE )) {
-			printf ( "Could not free memory allocated to UNDI "
-				 "driver: possible memory leak\n" );
-			return 0;
+		if ( undi.opened ) eb_pxenv_undi_close();
+		if ( undi.started ) {
+			eb_pxenv_undi_cleanup();
+			/* We may get spurious UNDI API errors at this
+			 * point.  If startup() succeeded but
+			 * initialize() failed then according to the
+			 * spec, we should call shutdown().  However,
+			 * some NICS will fail with a status code
+			 * 0x006a (INVALID_STATE).
+			 */
+			eb_pxenv_undi_shutdown();
+		}
+		undi_unload_base_code();
+		if ( undi.prestarted ) {
+			eb_pxenv_stop_undi();
+			/* Success OR Failure indicates that memory
+			 * can be freed.  Any other status code means
+			 * that it can't.
+			 */
+			if (( undi.pxs->Status == PXENV_STATUS_KEEP_UNDI ) ||
+			    ( undi.pxs->Status == PXENV_STATUS_KEEP_ALL ) ) {
+				printf ("Could not free memory allocated to "
+					"UNDI driver: possible memory leak\n");
+				return 0;
+			}
 		}
 	}
 	/* Free memory allocated to UNDI driver */
@@ -700,6 +746,7 @@ int hunt_pixies_and_undi_roms ( void ) {
 			return 1;
 		}
 		undi_full_shutdown(); /* Free any allocated memory */
+		undi.pxe = NULL;
 	}
 	hunt_type = HUNT_FOR_PIXIES;
 	return 0;
