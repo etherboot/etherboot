@@ -2460,8 +2460,14 @@ Baum that might help with booting DOS.
 
 Released as Etherboot 5.1.8 (development)
 
++ Fix for correct SMC8416 detection.
+
 + Alignment bug fix for the 3c90x driver contributed by Neil Newell.
 
 + Rob Main found a bug in appending the MACHINE_INFO to the DHCP request.
 
 + SONE Takeshi fixed the Multiboot structure.
+
++ Patch from Axel Dittrich to allow timeout to be changed to a fixed
+value for peer-to-peer setups where the exponential backoff is not
+suitable.
