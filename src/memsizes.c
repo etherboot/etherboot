@@ -29,3 +29,5 @@ void get_memsizes(void)
 	/* Allocate the real mode stack */
 	real_mode_stack = (meminfo.basememsize << 10);
 }
+
+#endif
