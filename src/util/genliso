@@ -55,8 +55,10 @@ do
 		echo $f does not exist, skipping 1>&2
 		continue
 	fi
-	# give Etherboot image a suffix that won't be mangled
-	g=${f%.zlilo}
+	# shorten name for 8.3 filesystem
+	b=$(basename $f)
+	g=${b%.zlilo}
+	g=${g//[^a-z0-9]}
 	g=${g:0:8}.zli
 	case "$first" in
 	"")
@@ -64,7 +66,7 @@ do
 		;;
 	esac
 	first=$g
-	echo LABEL $g
+	echo LABEL $b
 	echo "" KERNEL $g
 	mcopy -m -i $img $f ::$g
 done >> $cfg
