@@ -5,7 +5,7 @@
 
 #define CF ( 1 << 0 )
 
-#define MEMSIZES_DEBUG 1
+#define MEMSIZES_DEBUG 0
 
 /* by Eric Biederman */
 
