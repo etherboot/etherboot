@@ -187,10 +187,8 @@ typedef unsigned long dma_addr_t;
 #define RX_COPY_THRESHOLD  		256
 
 #define RX_STD_MAX_SIZE			1536
+#define RX_STD_MAX_SIZE_5705		512
 #define RX_JUMBO_MAX_SIZE		0xdeadbeef /* XXX */
-#if TG3_MINI_RING_WORKS
-#define RX_MINI_MAX_SIZE		256
-#endif
 
 /* First 256 bytes are a mirror of PCI config space. */
 #define TG3PCI_VENDOR			0x00000000
@@ -225,7 +223,7 @@ typedef unsigned long dma_addr_t;
 #define  PCIX_CAPS_SPLIT_SHIFT		 20
 #define  PCIX_CAPS_BURST_MASK		 0x000c0000
 #define  PCIX_CAPS_BURST_SHIFT		 18
-#define  PCIX_CAPS_MAX_BURST_5704	 2
+#define  PCIX_CAPS_MAX_BURST_CPIOB	 2
 #define TG3PCI_PM_CAP_PTR		0x00000041
 #define TG3PCI_X_COMMAND		0x00000042
 #define TG3PCI_X_STATUS			0x00000044
@@ -279,11 +277,16 @@ typedef unsigned long dma_addr_t;
 #define  CHIPREV_ID_5703_A2		 0x1002
 #define  CHIPREV_ID_5703_A3		 0x1003
 #define  CHIPREV_ID_5704_A0		 0x2000
+#define  CHIPREV_ID_5704_A1		 0x2001
+#define  CHIPREV_ID_5704_A2		 0x2002
+#define  CHIPREV_ID_5705_A0		 0x3000
+#define  CHIPREV_ID_5705_A1		 0x3001
 #define  GET_ASIC_REV(CHIP_REV_ID)	((CHIP_REV_ID) >> 12)
 #define   ASIC_REV_5700			 0x07
 #define   ASIC_REV_5701			 0x00
 #define   ASIC_REV_5703			 0x01
 #define   ASIC_REV_5704			 0x02
+#define   ASIC_REV_5705			 0x03
 #define  GET_CHIP_REV(CHIP_REV_ID)	((CHIP_REV_ID) >> 8)
 #define   CHIPREV_5700_AX		 0x70
 #define   CHIPREV_5700_BX		 0x71
@@ -344,6 +347,9 @@ typedef unsigned long dma_addr_t;
 #define  CLOCK_CTRL_ALTCLK		 0x00001000
 #define  CLOCK_CTRL_PWRDOWN_PLL133	 0x00008000
 #define  CLOCK_CTRL_44MHZ_CORE		 0x00040000
+#define  CLOCK_CTRL_625_CORE		 0x00100000
+#define  CLOCK_CTRL_FORCE_CLKRUN	 0x00200000
+#define  CLOCK_CTRL_CLKRUN_OENABLE	 0x00400000
 #define  CLOCK_CTRL_DELAY_PCI_GRANT	 0x80000000
 #define TG3PCI_REG_BASE_ADDR		0x00000078
 #define TG3PCI_MEM_WIN_BASE_ADDR	0x0000007c
@@ -620,17 +626,90 @@ typedef unsigned long dma_addr_t;
 #define  RCV_RULE_DISABLE_MASK		 0x7fffffff
 #define MAC_RCV_RULE_CFG		0x00000500
 #define  RCV_RULE_CFG_DEFAULT_CLASS	0x00000008
-/* 0x504 --> 0x590 unused */
+#define MAC_LOW_WMARK_MAX_RX_FRAME	0x00000504
+/* 0x508 --> 0x520 unused */
+#define MAC_HASHREGU_0			0x00000520
+#define MAC_HASHREGU_1			0x00000524
+#define MAC_HASHREGU_2			0x00000528
+#define MAC_HASHREGU_3			0x0000052c
+#define MAC_EXTADDR_0_HIGH		0x00000530
+#define MAC_EXTADDR_0_LOW		0x00000534
+#define MAC_EXTADDR_1_HIGH		0x00000538
+#define MAC_EXTADDR_1_LOW		0x0000053c
+#define MAC_EXTADDR_2_HIGH		0x00000540
+#define MAC_EXTADDR_2_LOW		0x00000544
+#define MAC_EXTADDR_3_HIGH		0x00000548
+#define MAC_EXTADDR_3_LOW		0x0000054c
+#define MAC_EXTADDR_4_HIGH		0x00000550
+#define MAC_EXTADDR_4_LOW		0x00000554
+#define MAC_EXTADDR_5_HIGH		0x00000558
+#define MAC_EXTADDR_5_LOW		0x0000055c
+#define MAC_EXTADDR_6_HIGH		0x00000560
+#define MAC_EXTADDR_6_LOW		0x00000564
+#define MAC_EXTADDR_7_HIGH		0x00000568
+#define MAC_EXTADDR_7_LOW		0x0000056c
+#define MAC_EXTADDR_8_HIGH		0x00000570
+#define MAC_EXTADDR_8_LOW		0x00000574
+#define MAC_EXTADDR_9_HIGH		0x00000578
+#define MAC_EXTADDR_9_LOW		0x0000057c
+#define MAC_EXTADDR_10_HIGH		0x00000580
+#define MAC_EXTADDR_10_LOW		0x00000584
+#define MAC_EXTADDR_11_HIGH		0x00000588
+#define MAC_EXTADDR_11_LOW		0x0000058c
 #define MAC_SERDES_CFG			0x00000590
 #define MAC_SERDES_STAT			0x00000594
 /* 0x598 --> 0x600 unused */
 #define MAC_TX_MAC_STATE_BASE		0x00000600 /* 16 bytes */
 #define MAC_RX_MAC_STATE_BASE		0x00000610 /* 20 bytes */
 /* 0x624 --> 0x800 unused */
-#define MAC_RX_STATS_BASE		0x00000800 /* 26 32-bit words */
-/* 0x868 --> 0x880 unused */
-#define MAC_TX_STATS_BASE		0x00000880 /* 28 32-bit words */
-/* 0x8f0 --> 0xc00 unused */
+#define MAC_TX_STATS_OCTETS		0x00000800
+#define MAC_TX_STATS_RESV1		0x00000804
+#define MAC_TX_STATS_COLLISIONS		0x00000808
+#define MAC_TX_STATS_XON_SENT		0x0000080c
+#define MAC_TX_STATS_XOFF_SENT		0x00000810
+#define MAC_TX_STATS_RESV2		0x00000814
+#define MAC_TX_STATS_MAC_ERRORS		0x00000818
+#define MAC_TX_STATS_SINGLE_COLLISIONS	0x0000081c
+#define MAC_TX_STATS_MULT_COLLISIONS	0x00000820
+#define MAC_TX_STATS_DEFERRED		0x00000824
+#define MAC_TX_STATS_RESV3		0x00000828
+#define MAC_TX_STATS_EXCESSIVE_COL	0x0000082c
+#define MAC_TX_STATS_LATE_COL		0x00000830
+#define MAC_TX_STATS_RESV4_1		0x00000834
+#define MAC_TX_STATS_RESV4_2		0x00000838
+#define MAC_TX_STATS_RESV4_3		0x0000083c
+#define MAC_TX_STATS_RESV4_4		0x00000840
+#define MAC_TX_STATS_RESV4_5		0x00000844
+#define MAC_TX_STATS_RESV4_6		0x00000848
+#define MAC_TX_STATS_RESV4_7		0x0000084c
+#define MAC_TX_STATS_RESV4_8		0x00000850
+#define MAC_TX_STATS_RESV4_9		0x00000854
+#define MAC_TX_STATS_RESV4_10		0x00000858
+#define MAC_TX_STATS_RESV4_11		0x0000085c
+#define MAC_TX_STATS_RESV4_12		0x00000860
+#define MAC_TX_STATS_RESV4_13		0x00000864
+#define MAC_TX_STATS_RESV4_14		0x00000868
+#define MAC_TX_STATS_UCAST		0x0000086c
+#define MAC_TX_STATS_MCAST		0x00000870
+#define MAC_TX_STATS_BCAST		0x00000874
+#define MAC_TX_STATS_RESV5_1		0x00000878
+#define MAC_TX_STATS_RESV5_2		0x0000087c
+#define MAC_RX_STATS_OCTETS		0x00000880
+#define MAC_RX_STATS_RESV1		0x00000884
+#define MAC_RX_STATS_FRAGMENTS		0x00000888
+#define MAC_RX_STATS_UCAST		0x0000088c
+#define MAC_RX_STATS_MCAST		0x00000890
+#define MAC_RX_STATS_BCAST		0x00000894
+#define MAC_RX_STATS_FCS_ERRORS		0x00000898
+#define MAC_RX_STATS_ALIGN_ERRORS	0x0000089c
+#define MAC_RX_STATS_XON_PAUSE_RECVD	0x000008a0
+#define MAC_RX_STATS_XOFF_PAUSE_RECVD	0x000008a4
+#define MAC_RX_STATS_MAC_CTRL_RECVD	0x000008a8
+#define MAC_RX_STATS_XOFF_ENTERED	0x000008ac
+#define MAC_RX_STATS_FRAME_TOO_LONG	0x000008b0
+#define MAC_RX_STATS_JABBERS		0x000008b4
+#define MAC_RX_STATS_UNDERSIZE		0x000008b8
+/* 0x8bc --> 0xc00 unused */
 
 /* Send data initiator control registers */
 #define SNDDATAI_MODE			0x00000c00
@@ -762,6 +841,7 @@ typedef unsigned long dma_addr_t;
 #define  RCVLPC_STATSCTRL_ENABLE	 0x00000001
 #define  RCVLPC_STATSCTRL_FASTUPD	 0x00000002
 #define RCVLPC_STATS_ENABLE		0x00002018
+#define  RCVLPC_STATSENAB_LNGBRST_RFIX	 0x00400000
 #define RCVLPC_STATS_INCMASK		0x0000201c
 /* 0x2020 --> 0x2100 unused */
 #define RCVLPC_SELLST_BASE		0x00002100 /* 16 16-byte entries */
@@ -975,13 +1055,16 @@ typedef unsigned long dma_addr_t;
 #define BUFMGR_MB_POOL_ADDR		0x00004408
 #define BUFMGR_MB_POOL_SIZE		0x0000440c
 #define BUFMGR_MB_RDMA_LOW_WATER	0x00004410
-#define  DEFAULT_MB_RDMA_LOW_WATER	 0x00000040
+#define  DEFAULT_MB_RDMA_LOW_WATER	 0x00000050
+#define  DEFAULT_MB_RDMA_LOW_WATER_5705	 0x00000000
 #define  DEFAULT_MB_RDMA_LOW_WATER_JUMBO 0x00000130
 #define BUFMGR_MB_MACRX_LOW_WATER	0x00004414
 #define  DEFAULT_MB_MACRX_LOW_WATER	  0x00000020
+#define  DEFAULT_MB_MACRX_LOW_WATER_5705  0x00000010
 #define  DEFAULT_MB_MACRX_LOW_WATER_JUMBO 0x00000098
 #define BUFMGR_MB_HIGH_WATER		0x00004418
 #define  DEFAULT_MB_HIGH_WATER		 0x00000060
+#define  DEFAULT_MB_HIGH_WATER_5705	 0x00000060
 #define  DEFAULT_MB_HIGH_WATER_JUMBO	 0x0000017c
 #define BUFMGR_RX_MB_ALLOC_REQ		0x0000441c
 #define  BUFMGR_MB_ALLOC_BIT		 0x10000000
@@ -1017,6 +1100,8 @@ typedef unsigned long dma_addr_t;
 #define  RDMAC_MODE_LNGREAD_ENAB	 0x00000200
 #define  RDMAC_MODE_SPLIT_ENABLE	 0x00000800
 #define  RDMAC_MODE_SPLIT_RESET		 0x00001000
+#define  RDMAC_MODE_FIFO_SIZE_128	 0x00020000
+#define  RDMAC_MODE_FIFO_LONG_BURST	 0x00030000
 #define RDMAC_STATUS			0x00004804
 #define  RDMAC_STATUS_TGTABORT		 0x00000004
 #define  RDMAC_STATUS_MSTABORT		 0x00000008
@@ -1040,6 +1125,7 @@ typedef unsigned long dma_addr_t;
 #define  WDMAC_MODE_FIFOURUN_ENAB	 0x00000080
 #define  WDMAC_MODE_FIFOOREAD_ENAB	 0x00000100
 #define  WDMAC_MODE_LNGREAD_ENAB	 0x00000200
+#define  WDMAC_MODE_RX_ACCEL	 	 0x00000400
 #define WDMAC_STATUS			0x00004c04
 #define  WDMAC_STATUS_TGTABORT		 0x00000004
 #define  WDMAC_STATUS_MSTABORT		 0x00000008
@@ -1302,7 +1388,11 @@ typedef unsigned long dma_addr_t;
 #define  GRC_MISC_CFG_BOARD_ID_5703S	0x00002000
 #define  GRC_MISC_CFG_BOARD_ID_5704	0x00000000
 #define  GRC_MISC_CFG_BOARD_ID_5704CIOBE 0x00004000
+#define  GRC_MISC_CFG_BOARD_ID_5704_A2	0x00008000
+#define  GRC_MISC_CFG_BOARD_ID_5788	0x00010000
+#define  GRC_MISC_CFG_BOARD_ID_5788M	0x00018000
 #define  GRC_MISC_CFG_BOARD_ID_AC91002A1 0x00018000
+#define  GRC_MISC_CFG_KEEP_GPHY_POWER	0x04000000
 #define GRC_LOCAL_CTRL			0x00006808
 #define  GRC_LCLCTRL_INT_ACTIVE		0x00000001
 #define  GRC_LCLCTRL_CLEARINT		0x00000002
@@ -1417,8 +1507,8 @@ typedef unsigned long dma_addr_t;
 #define NIC_SRAM_STATUS_BLK		0x00000b00
 
 #define NIC_SRAM_FIRMWARE_MBOX		0x00000b50
-#define  NIC_SRAM_FIRMWARE_MBOX_MAGIC1	 0x4B657654U
-#define  NIC_SRAM_FIRMWARE_MBOX_MAGIC2	 0x4861764bU /* !dma on linkchg */
+#define  NIC_SRAM_FIRMWARE_MBOX_MAGIC1	 0x4B657654
+#define  NIC_SRAM_FIRMWARE_MBOX_MAGIC2	 0x4861764b /* !dma on linkchg */
 
 #define NIC_SRAM_DATA_SIG		0x00000b54
 #define  NIC_SRAM_DATA_SIG_MAGIC	 0x4b657654 /* ascii for 'KevT' */
@@ -1437,6 +1527,7 @@ typedef unsigned long dma_addr_t;
 #define  NIC_SRAM_DATA_CFG_WOL_ENABLE		 0x00000040
 #define  NIC_SRAM_DATA_CFG_ASF_ENABLE		 0x00000080
 #define  NIC_SRAM_DATA_CFG_EEPROM_WP		 0x00000100
+#define  NIC_SRAM_DATA_CFG_MINI_PCI		 0x00001000
 #define  NIC_SRAM_DATA_CFG_FIBER_WOL		 0x00004000
 
 #define NIC_SRAM_DATA_PHY_ID		0x00000b74
@@ -1464,9 +1555,7 @@ typedef unsigned long dma_addr_t;
 #define NIC_SRAM_MAC_ADDR_HIGH_MBOX	0x00000c14
 #define NIC_SRAM_MAC_ADDR_LOW_MBOX	0x00000c18
 
-#if TG3_MINI_RING_WORKS
 #define NIC_SRAM_RX_MINI_BUFFER_DESC	0x00001000
-#endif
 
 #define NIC_SRAM_DMA_DESC_POOL_BASE	0x00002000
 #define  NIC_SRAM_DMA_DESC_POOL_SIZE	 0x00002000
@@ -1476,6 +1565,8 @@ typedef unsigned long dma_addr_t;
 #define NIC_SRAM_MBUF_POOL_BASE		0x00008000
 #define  NIC_SRAM_MBUF_POOL_SIZE96	 0x00018000
 #define  NIC_SRAM_MBUF_POOL_SIZE64	 0x00010000
+#define  NIC_SRAM_MBUF_POOL_BASE5705	0x00010000
+#define  NIC_SRAM_MBUF_POOL_SIZE5705	0x0000e000
 
 /* Currently this is fixed. */
 #define PHY_ADDR		0x01
@@ -1616,9 +1707,7 @@ struct tg3_rx_buffer_desc {
 #define RXD_FLAGS_SHIFT	0
 
 #define RXD_FLAG_END			0x0004
-#if TG3_MINI_RING_WORKS
 #define RXD_FLAG_MINI			0x0800
-#endif
 #define RXD_FLAG_JUMBO			0x0020
 #define RXD_FLAG_VLAN			0x0040
 #define RXD_FLAG_ERROR			0x0400
@@ -1653,9 +1742,7 @@ struct tg3_rx_buffer_desc {
 #define RXD_OPAQUE_INDEX_SHIFT		0
 #define RXD_OPAQUE_RING_STD		0x00010000
 #define RXD_OPAQUE_RING_JUMBO		0x00020000
-#if TG3_MINI_RING_WORKS
 #define RXD_OPAQUE_RING_MINI		0x00040000
-#endif
 #define RXD_OPAQUE_RING_MASK		0x00070000
 };
 
@@ -1863,6 +1950,9 @@ struct tg3_link_config {
 	uint16_t			speed;
 	uint8_t				duplex;
 	uint8_t				autoneg;
+#define SPEED_INVALID		0xffff
+#define DUPLEX_INVALID		0xff
+#define AUTONEG_INVALID		0xff
 #endif
 
 	/* Describes what we actually have. */
@@ -1919,9 +2009,6 @@ struct tg3 {
 	uint32_t			rx_std_ptr;
 #if 0
 	uint32_t			rx_jumbo_ptr;
-#if TG3_MINI_RING_WORKS
-	uint32_t			rx_mini_ptr;
-#endif
 	spinlock_t			indirect_lock;
 
 	struct net_device_stats		net_stats;
@@ -1967,9 +2054,15 @@ struct tg3 {
 #define TG3_FLAG_SPLIT_MODE		0x40000000
 #define TG3_FLAG_INIT_COMPLETE		0x80000000
 
-#if 0
-	uint32_t			msg_enable;
-#endif
+	uint32_t			tg3_flags2;
+#define TG3_FLG2_RESTART_TIMER		0x00000001
+#define TG3_FLG2_SUN_5704		0x00000002
+#define TG3_FLG2_NO_ETH_WIRE_SPEED	0x00000004
+#define TG3_FLG2_IS_5788		0x00000008
+#define TG3_FLG2_MAX_RXPEND_64		0x00000010
+#define TG3_FLG2_TSO_CAPABLE		0x00000020
+
+
 
 	uint32_t			split_mode_max_reqs;
 #define SPLIT_MODE_5704_MAX_REQ		3
@@ -1988,20 +2081,13 @@ struct tg3 {
 
 #if 0
 	uint32_t			rx_pending;
-#endif
-#if TG3_MINI_RING_WORKS
-	uint32_t			rx_mini_pending;
-#endif
-#if 0
 	uint32_t			rx_jumbo_pending;
 	uint32_t			tx_pending;
 #endif
 
 	/* cache h/w values, often passed straight to h/w */
-#if 0
 	uint32_t			rx_mode;
 	uint32_t			tx_mode;
-#endif
 	uint32_t			mac_mode;
 	uint32_t			mi_mode;
 	uint32_t			misc_host_ctrl;
@@ -2033,6 +2119,7 @@ struct tg3 {
 #define PHY_ID_BCM5701			0x60008110
 #define PHY_ID_BCM5703			0x60008160
 #define PHY_ID_BCM5704			0x60008190
+#define PHY_ID_BCM5705			0x600081a0
 #define PHY_ID_BCM8002			0x60010140
 #define PHY_ID_SERDES			0xfeedbee0
 #define PHY_ID_INVALID			0xffffffff
@@ -2045,6 +2132,11 @@ struct tg3 {
 	enum phy_led_mode		led_mode;
 
 	char				board_part_number[24];
+	uint32_t			nic_sram_data_cfg;
+	uint32_t			pci_clock_ctrl;
+#if 0
+	struct pci_device		*pdev_peer;
+#endif
 
 	/* This macro assumes the passed PHY ID is already masked
 	 * with PHY_ID_MASK.
@@ -2053,6 +2145,7 @@ struct tg3 {
 	((X) == PHY_ID_BCM5400 || (X) == PHY_ID_BCM5401 || \
 	 (X) == PHY_ID_BCM5411 || (X) == PHY_ID_BCM5701 || \
 	 (X) == PHY_ID_BCM5703 || (X) == PHY_ID_BCM5704 || \
+	 (X) == PHY_ID_BCM5705 || \
 	 (X) == PHY_ID_BCM8002 || (X) == PHY_ID_SERDES)
 
 	unsigned long			regs;
@@ -2069,15 +2162,6 @@ struct tg3 {
 #if 0
 	struct ring_info		*rx_std_buffers;
 	dma_addr_t			rx_std_mapping;
-#endif
-#if TG3_MINI_RING_WORKS
-	struct tg3_rx_buffer_desc	*rx_mini;
-#if 0
-	struct ring_info		*rx_mini_buffers;
-	dma_addr_t			rx_mini_mapping;
-#endif
-#endif
-#if 0
 	struct tg3_rx_buffer_desc	*rx_jumbo;
 	struct ring_info		*rx_jumbo_buffers;
 	dma_addr_t			rx_jumbo_mapping;
@@ -2098,6 +2182,9 @@ struct tg3 {
 	struct tg3_hw_status		*hw_status;
 #if 0
 	dma_addr_t			status_mapping;
+#endif
+#if 0
+	uint32_t			msg_enable;
 #endif
 
 	struct tg3_hw_stats		*hw_stats;
