@@ -119,10 +119,12 @@ BOBJS+=		$(BIN)/pic8259.o $(BIN)/hooks.o
 # ROM loaders
 
 $(ISAPREFIX):	arch/i386/prefix/romprefix.S $(MAKEDEPS)
-	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
+	$(CPP) $(CFLAGS) $(LCONFIG) -Ui386 -D ASSEMBLY $< \
+		| $(AS) $(ASFLAGS) -o $@ 
 
 $(PCIPREFIX):	arch/i386/prefix/romprefix.S $(MAKEDEPS)
-	$(CPP) -DPCI_PNP_HEADER $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
+	$(CPP) -DPCI_PNP_HEADER $(CFLAGS) $(LCONFIG) -Ui386 -D ASSEMBLY $< \
+		| $(AS) $(ASFLAGS) -o $@ 
 
 # Prefix splitters
 $(BIN)/%prefix.entry.o: $(BIN)/%prefix.o $(MAKEDEPS)
