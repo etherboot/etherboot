@@ -244,8 +244,8 @@ static u32 dmfe_cr6_user_set;
 
 /* For module input parameter */
 static int debug;
-static u32 cr6set;
-static unsigned char mode = 8;
+//static u32 cr6set;
+//static unsigned char mode = 8;
 static u8 chkmode = 1;
 static u8 HPNA_mode;		/* Default: Low Power/High Speed */
 static u8 HPNA_rx_cmd;		/* Default: Disable Rx remote command */
@@ -560,7 +560,7 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
  *	Using Chain structure, and allocate Tx/Rx buffer
  */
 
-static void dmfe_descriptor_init(struct nic *nic, unsigned long ioaddr)
+static void dmfe_descriptor_init(struct nic *nic __unused, unsigned long ioaddr)
 {
 	int i;
 	db->cur_tx = 0;
@@ -623,14 +623,15 @@ static void update_cr6(u32 cr6_data, unsigned long ioaddr)
  *	This setup frame initilize DM910X addres filter mode
 */
 
-static void dm9132_id_table(struct nic *nic)
+static void dm9132_id_table(struct nic *nic __unused)
 {
+#ifdef LINUX
 	u16 *addrptr;
 	u8 dmi_addr[8];
 	unsigned long ioaddr = BASE + 0xc0;	/* ID Table */
 	u32 hash_val;
 	u16 i, hash_table[4];
-
+#endif
 	dprintf(("dm9132_id_table\n"));
 
 	printf("FIXME: This function is broken.  If you have this card contact "
@@ -676,10 +677,7 @@ static void dm9132_id_table(struct nic *nic)
 static void send_filter_frame(struct nic *nic)
 {
 
-	struct tx_desc *txptr;
-	u16 *addrptr;
 	u8 *ptxb;
-	u8 *suptr;
 	int i;
 
 	dprintf(("send_filter_frame\n"));
@@ -752,7 +750,7 @@ static u16 read_srom_word(long ioaddr, int offset)
  *	Auto sense the media mode
  */
 
-static u8 dmfe_sense_speed(struct nic *nic)
+static u8 dmfe_sense_speed(struct nic *nic __unused)
 {
 	u8 ErrFlag = 0;
 	u16 phy_mode;
@@ -807,7 +805,7 @@ static u8 dmfe_sense_speed(struct nic *nic)
  *	Force mode: phyxcer register4 is the force media
  */
 
-static void dmfe_set_phyxcer(struct nic *nic)
+static void dmfe_set_phyxcer(struct nic *nic __unused)
 {
 	u16 phy_reg;
 
@@ -871,7 +869,7 @@ static void dmfe_set_phyxcer(struct nic *nic)
  *			N-way force capability with SWITCH
  */
 
-static void dmfe_process_mode(struct nic *nic)
+static void dmfe_process_mode(struct nic *nic __unused)
 {
 	u16 phy_reg;
 
@@ -1196,7 +1194,7 @@ static void dmfe_parse_srom(struct nic *nic)
  *	Init HomeRun DM9801
  */
 
-static void dmfe_program_DM9801(struct nic *nic, int HPNA_rev)
+static void dmfe_program_DM9801(struct nic *nic __unused, int HPNA_rev)
 {
 	u32 reg17, reg25;
 
@@ -1235,7 +1233,7 @@ static void dmfe_program_DM9801(struct nic *nic, int HPNA_rev)
  *	Init HomeRun DM9802
  */
 
-static void dmfe_program_DM9802(struct nic *nic)
+static void dmfe_program_DM9802(struct nic *nic __unused)
 {
 	u32 phy_reg;
 
