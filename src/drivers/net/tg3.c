@@ -6,7 +6,9 @@
  * Copyright (C) 2003 Eric Biederman (ebiederman@lnxi.com)  [etherboot port]
  */
 
-/* 11-13-2003	timlegge	Fix Issue with NetGear GA302T */
+/* 11-13-2003	timlegge	Fix Issue with NetGear GA302T 
+ * 11-18-2003   ebiederm        Generalize NetGear Fix to what the code was supposed to be.
+ */
 
 #include "etherboot.h"
 #include "nic.h"
@@ -2014,17 +2016,18 @@ static int tg3_setup_hw(struct tg3 *tp)
 	if (GET_ASIC_REV(tp->pci_chip_rev_id) != ASIC_REV_5705) {
 		tw32_carefully(DMAC_MODE, DMAC_MODE_ENABLE);
 	}
-	
+
+	val = (	WDMAC_MODE_ENABLE | WDMAC_MODE_TGTABORT_ENAB |
+		WDMAC_MODE_MSTABORT_ENAB | WDMAC_MODE_PARITYERR_ENAB |
+		WDMAC_MODE_ADDROFLOW_ENAB | WDMAC_MODE_FIFOOFLOW_ENAB |
+		WDMAC_MODE_FIFOURUN_ENAB | WDMAC_MODE_FIFOOREAD_ENAB |
+		WDMAC_MODE_LNGREAD_ENAB);
 	if ((GET_ASIC_REV(tp->pci_chip_rev_id) != ASIC_REV_5705) &&
-		(((tr32(TG3PCI_PCISTATE) & PCISTATE_BUS_SPEED_HIGH) != 0) || (tp->pci_chip_rev_id == CHIPREV_ID_5701_B5)) &&  
-		!(tp->tg3_flags2 & TG3_FLG2_IS_5788)) {    
-		tw32_carefully(WDMAC_MODE, 
-			(	WDMAC_MODE_ENABLE | WDMAC_MODE_TGTABORT_ENAB |
-				WDMAC_MODE_MSTABORT_ENAB | WDMAC_MODE_PARITYERR_ENAB |
-				WDMAC_MODE_ADDROFLOW_ENAB | WDMAC_MODE_FIFOOFLOW_ENAB |
-				WDMAC_MODE_FIFOURUN_ENAB | WDMAC_MODE_FIFOOREAD_ENAB |
-				WDMAC_MODE_LNGREAD_ENAB));
+		((tr32(TG3PCI_PCISTATE) & PCISTATE_BUS_SPEED_HIGH) != 0) &&
+		!(tp->tg3_flags2 & TG3_FLG2_IS_5788)) {
+		val |= WDMAC_MODE_RX_ACCEL;
 	}
+	tw32_carefully(WDMAC_MODE, val);
 
 	if ((tp->tg3_flags & TG3_FLAG_PCIX_MODE) != 0) {
 		val = tr32(TG3PCI_X_CAPS);
