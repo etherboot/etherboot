@@ -61,6 +61,10 @@ void print_config(void)
 }
 #endif	
 	putchar('\n');
+#if	(BOOTP_SERVER != 67) || (BOOTP_CLIENT != 68)
+	printf("This Etherboot uses non-standard ports %d and %d\n",
+		BOOTP_SERVER, BOOTP_CLIENT);
+#endif
 }
 
 #ifdef CONFIG_PCI
