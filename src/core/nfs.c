@@ -501,10 +501,10 @@ int nfs(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int
 	if ( name != dirname ) {
 		memcpy(dirname, name, namelen + 1);
 	}
+	recursion = 0;
 nfssymlink:
 	if ( recursion > NFS_MAXLINKDEPTH ) {
 		printf ( "\nRecursion: More than %d symlinks followed. Abort.\n", NFS_MAXLINKDEPTH );
-		recursion = 0;
 		return	0;
 	}
 	recursion++;
