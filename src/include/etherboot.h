@@ -613,7 +613,11 @@ extern int sprintf P((char *, const char *, ...));
 extern int inet_aton P((const char *p, in_addr *i));
 #ifdef PCBIOS
 extern void gateA20_set P((void));
+#ifdef	RELOCATE
+#define gateA20_unset()
+#else
 extern void gateA20_unset P((void));
+#endif
 #else
 #define gateA20_set()
 #define gateA20_unset()
