@@ -547,7 +547,12 @@ rm_callback_interface_size:
  */
 	.globl	pxe_callback_interface
 	.code16
-pxe_callback_interface:	
+pxe_callback_interface:
+
+/* Macro to calculate offset of labels within code segment in
+ * installed copy of code.
+ */
+#define INSTALLED(x) ( (x) - pxe_callback_interface )
 
 /****************************************************************************
  * PXE entry points (!PXE and PXENV+ APIs)
@@ -605,8 +610,10 @@ _pxenv_in_call_far:
  * unsigned ints
  ****************************************************************************
  */
+#ifdef TEST_EXCLUDE_ALGORITHM
 	.code32
-_exclude_memory_range:
+#endif /* TEST_EXCLUDE_ALGORITHM */
+exclude_memory_range:
 	/* Convert (start,length) to (start,end) */
 	addl	%eax, %ecx
 	addl	%ebx, %edx
@@ -646,6 +653,7 @@ use_suffix:	/* Use suffix, discard prefix */
 99:	subl	%eax, %ecx		/* Convert back to (start,length) */
 	ret
 
+#ifdef TEST_EXCLUDE_ALGORITHM
 	.globl	__test_exclude
 __test_exclude:
 	pushl   %ebx
@@ -655,13 +663,14 @@ __test_exclude:
 	movl    20(%esp), %ebx
 	movl    24(%esp), %edx
 	movl	28(%esp), %edi
-	call    _exclude_memory_range
+	call    exclude_memory_range
 	shll    $16, %eax
 	orl     %ecx, %eax
 	popl	%edi
 	popl	%ebx
 	ret
 	.code16
+#endif /* TEST_EXCLUDE_ALGORITHM */
 	
 /****************************************************************************
  * Exclude Etherboot-reserved address ranges from a potentially
@@ -677,24 +686,20 @@ __test_exclude:
  *		All other registers (including %di) preserved
  ****************************************************************************
  */
-_exclude_hidden_memory_ranges:
-	pushw	%bp
+exclude_hidden_memory_ranges:
 	pushw	%si
 	pushl	%ebx
 	pushl	%edx
-	call	1f
-1:	popw	%bp
-	movw	$(_pxe_hide_memory-1b), %si
-2:	movl	%cs:0(%bp,%si), %ebx
-	movl	%cs:4(%bp,%si), %edx
-	call	_exclude_memory_range
+	movw	$INSTALLED(_pxe_hide_memory), %si
+2:	movl	%cs:0(%si), %ebx
+	movl	%cs:4(%si), %edx
+	call	exclude_memory_range
 	addw	$8, %si
-	cmpw	$(_pxe_hide_memory_end-1b), %si
+	cmpw	$INSTALLED(_pxe_hide_memory_end), %si
 	jl	2b
 	popl	%edx
 	popl	%ebx
-	pushw	%si
-	popw	%bp
+	popw	%si
 	ret
 	
 	.globl	_pxe_hide_memory	
@@ -715,10 +720,8 @@ _pxe_intercept_int15:
 	/* Store %ax for future reference */
 	pushw	%ax
 	/* Make INT-style call to old INT15 routine */
-	call	1f
-1:	popw	%bp
 	pushfw
-	lcall	%cs:*(_pxe_intercepted_int15-1b)(%bp)
+	lcall	%cs:*INSTALLED(_pxe_intercepted_int15)
 	/* Preserve flags returned by original E820 routine */
 	pushfw
 	/* Check for valid INT15 routine */
@@ -767,7 +770,7 @@ pxe_intercept_e820:
 	movl	%es:8(%di), %ecx	/* Length */
 	pushw	%di
 	xorw	%di, %di		/* "truncate either end" flag */
-	call	_exclude_hidden_memory_ranges
+	call	exclude_hidden_memory_ranges
 	popw	%di
 	movl	%eax, %es:0(%di)	/* Store updated base */
 	movl	%ecx, %es:8(%di)	/* Store updated length */
@@ -804,7 +807,7 @@ e801_adjust:
 	movw	%bx, %cx		/* (no need to zero high word) */
 	shll	$16, %ecx		/* %ecx = length in bytes */
 	movl	$(1<<24), %eax		/* 16MB start address */
-	call	_exclude_hidden_memory_ranges
+	call	exclude_hidden_memory_ranges
 	shrl	$16, %ecx		/* %cx = updated length in 64KB */
 	movw	%cx, %bx		/* Return in %bx */
 	
@@ -812,7 +815,7 @@ e801_adjust:
 	popw	%cx			/* Orig. %ax (high word already 0) */
 	shll	$10, %ecx		/* %ecx = length in bytes */
 	shrl	$4, %eax		/* 1MB start address */
-	call	_exclude_hidden_memory_ranges
+	call	exclude_hidden_memory_ranges
 	shrl	$10, %ecx		/* %cx = updated length in KB */
 	pushw	%cx			/* Will be picked up in %eax */
 	
