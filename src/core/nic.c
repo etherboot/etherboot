@@ -66,8 +66,19 @@ static const unsigned char dhcpdiscover[] = {
 	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
-	RFC2132_PARAM_LIST,4,RFC1533_NETMASK,RFC1533_GATEWAY,
-	RFC1533_HOSTNAME,RFC1533_VENDOR
+	RFC2132_PARAM_LIST,
+#define DHCPDISCOVER_PARAMS_BASE 4
+#ifdef  DNS_RESOLVER
+#define DHCPDISCOVER_PARAMS_DNS  1
+#else
+#define DHCPDISCOVER_PARAMS_DNS  0
+#endif /* DNS_RESOLVER */
+	( DHCPDISCOVER_PARAMS_BASE +
+	  DHCPDISCOVER_PARAMS_DNS ),
+	RFC1533_NETMASK,
+	RFC1533_GATEWAY,
+	RFC1533_HOSTNAME,
+	RFC1533_VENDOR
 #ifdef	DNS_RESOLVER
 	,RFC1533_DNS
 #endif
@@ -82,29 +93,41 @@ static const unsigned char dhcprequest [] = {
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
 	/* request parameters */
 	RFC2132_PARAM_LIST,
+#define DHCPREQUEST_PARAMS_BASE    ( 5 + 4 + 2 + 8 + 16 ) 
 #ifdef	IMAGE_FREEBSD
-	/* 5 standard + 8 vendortags + 8 motd + 16 menu items */
-	5 + 8 + 8 + 16,
+#define DHCPREQUEST_PARAMS_FREEBSD 2
 #else
-	/* 5 standard + 6 vendortags + 8 motd + 16 menu items */
-	5 + 6 + 8 + 16,
-#endif
-	/* Standard parameters */
-	RFC1533_NETMASK, RFC1533_GATEWAY,
-	RFC1533_HOSTNAME,RFC1533_VENDOR,
+#define DHCPREQUEST_PARAMS_FREEBSD 0
+#endif /* IMAGE_FREEBSD */
+#ifdef  DNS_RESOLVER
+#define DHCPREQUEST_PARAMS_DNS     1
+#else
+#define DHCPREQUEST_PARAMS_DNS     0
+#endif /* DNS_RESOLVER */
+	( DHCPREQUEST_PARAMS_BASE +
+	  DHCPREQUEST_PARAMS_DNS +
+	  DHCPREQUEST_PARAMS_FREEBSD ),
+	/* 5 Standard parameters */
+	RFC1533_NETMASK,
+	RFC1533_GATEWAY,
+	RFC1533_HOSTNAME,
+	RFC1533_VENDOR,
 	RFC1533_ROOTPATH,	/* only passed to the booted image */
-	/* Etherboot vendortags */
+	/* 4 Etherboot vendortags */
 	RFC1533_VENDOR_MAGIC,
 	RFC1533_VENDOR_ADDPARM,
 	RFC1533_VENDOR_ETHDEV,
 	RFC1533_VENDOR_ETHERBOOT_ENCAP,
 #ifdef	IMAGE_FREEBSD
+	/* 2 FreeBSD options */
 	RFC1533_VENDOR_HOWTO,
 	RFC1533_VENDOR_KERNEL_ENV,
 #endif
 #ifdef	DNS_RESOLVER
+	/* 1 DNS option */
 	RFC1533_DNS,
 #endif
+	/* 2 Menu entries */
 	RFC1533_VENDOR_MNUOPTS, RFC1533_VENDOR_SELECTION,
 	/* 8 MOTD entries */
 	RFC1533_VENDOR_MOTD,
