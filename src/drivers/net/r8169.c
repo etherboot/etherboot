@@ -49,8 +49,8 @@
 #include "pci.h"
 #include "timer.h"
 
-#define drv_version "v1.5"
-#define drv_date "01-17-2004"
+#define drv_version "v1.6"
+#define drv_date "03-27-2004"
 
 typedef unsigned char u8;
 typedef signed char s8;
