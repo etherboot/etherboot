@@ -2464,7 +2464,7 @@ Released as Etherboot 5.1.8 (development)
 
 + Alignment bug fix for the 3c90x driver contributed by Neil Newell.
 
-+ Rob Main found a bug in appending the MACHINE_INFO to the DHCP request.
++ Robb Main found a bug in appending the MACHINE_INFO to the DHCP request.
 
 + SONE Takeshi fixed the Multiboot structure.
 
@@ -2482,3 +2482,7 @@ suitable.
 Experimental UNDI driver by Michael Brown.
 
 Released as Etherboot 5.1.9 (5.2 release candidate 1)
+
++ 82562EZ ID provided by Samual Clements.
+
+Released as Etherboot 5.1.10 (5.2 release candidate 2)

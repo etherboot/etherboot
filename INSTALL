@@ -5,7 +5,7 @@ For the impatient, "cd src" and "make". Your ROM images will be in
 bin/xxx.rom and bin/xxx.zrom, where xxx is the name of your NIC
 driver.  See src/NIC for the list of supported NICs. The mknbi tools are
 now distributed separately from the Etherboot web site
-http://etherboot.sourceforge.net/  Mknbi is not needed for booting
+http://www.etherboot.org/  Mknbi is not needed for booting
 FreeBSD.
 
 The documentation tarballs should be extracted in the top directory (the

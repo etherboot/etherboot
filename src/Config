@@ -23,7 +23,7 @@
 #			(alternatives: BOOT_NIC, BOOT_DISK,
 #			 BOOT_FLOPPY, BOOT_NOTHING)
 #			See etherboot.h for prompt and answer strings.
-#	-DBOOT_INDEX    The device to boot from 0 == any device.
+#	-DBOOT_INDEX	The device to boot from 0 == any device.
 #			1 == The first nic found.
 #			2 == The second nic found
 #			...
@@ -78,7 +78,7 @@
 #	Boot tuning parameters:
 #
 #	-DCONGESTED
-#			Turns on packet retransmission.  Use it on a
+#			Turns on packet retransmission.	 Use it on a
 #			congested network, where the normal operation
 #			can't boot the image.
 #	-DBACKOFF_LIMIT
@@ -86,7 +86,7 @@
 #			Do not set this unreasonably low, because on networks
 #			with many machines they can saturate the link
 #			(the delay corresponding to the exponent is a random
-#			time in the range 0..3.5*2^n seconds).  Use 5 for a
+#			time in the range 0..3.5*2^n seconds).	Use 5 for a
 #			VERY small network (max. 2 minutes delay), 7 for a
 #			medium sized network (max. 7.5 minutes delay) or 10
 #			for a really huge network with many clients, frequent
@@ -141,10 +141,10 @@
 #			Add generic ELF64 kernel boot support (useful for > 4GB disks).
 #	-DWINCE_IMAGE
 #			Add the ability to boot WINCE.... now only sis630 OK!
-#       -DFREEBSD_PXEEMU
-#                       Add the ability to boot PXE images... only FreeBSD supported
-#       -DX86_BOOTSECTOR_IMAGE
-#                       Add the ability to boot 512 byte x86 boot sectors
+#	-DFREEBSD_PXEEMU
+#			Add the ability to boot PXE images... only FreeBSD supported
+#	-DX86_BOOTSECTOR_IMAGE
+#			Add the ability to boot 512 byte x86 boot sectors
 #	-DIMAGE_MULTIBOOT
 #			Add Multiboot image support (currently only
 #			for ELF images).
@@ -156,9 +156,9 @@
 #			Pass in FreeBSD kernel environment
 #	-DAOUT_LYNX_KDI
 #			Add Lynx a.out KDI support
-#       -DMULTICAST_LEVEL1
+#	-DMULTICAST_LEVEL1
 #			Support for sending multicast packets
-#       -DMULTICAST_LEVEL2
+#	-DMULTICAST_LEVEL2
 #			Support for receiving multicast packets
 #	-DDOWNLOAD_PROTO_TFTP
 #			If defined, boots by TFTP (recommended).
@@ -166,9 +166,9 @@
 #			If defined, boots from a NFS mount and disables
 #			TFTP loading. Default is DOWNLOAD_PROTO_TFTP
 #			if neither is defined.
-#       -DDOWNLOAD_PROTO_SLAM
+#	-DDOWNLOAD_PROTO_SLAM
 #			If defined, boots via Scalable Local Area Multicast.
-#       -DDOWNLOAD_PROTO_TFTM
+#	-DDOWNLOAD_PROTO_TFTM
 #			If defined, enables booting via TFTP Multicast mode.
 #	-DSAFEBOOTMODE
 #			Enables "Safe Boot Mode": Only boot images after verification
@@ -219,10 +219,11 @@
 #			But may not work for all CPUs.
 #	-DT503_AUI
 #			Use AUI by default on 3c503 cards.
-#       -DRELOCATE
+#	-DRELOCATE
 #			After starting etherboot relocate to the top
 #			of memory.  This allows loading fairly arbitrary
-#			rom images.  This doesn't work with all drivers yet.
+#			rom images.  This doesn't work with a couple of
+#			drivers, e.g. lance.
 #
 #	BUS options:
 #	
