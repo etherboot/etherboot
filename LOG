@@ -2708,3 +2708,6 @@ casting issues in dns_resover.c.
 images and contributed the first cut at the code for geniso.
 
 + Fix for relocation issue with prism2_pci driver
+
++ Small patch to support 3Com tulip version from Jacek Kalinski
+
