@@ -28,16 +28,25 @@ static uint16_t trivial_irq_previous_trigger_count = 0;
  * These must *not* be the first variables to appear in this file; the
  * first variable to appear gets the ".data" directive.
  */
-BEGIN_RM_FRAGMENT(_trivial_irq_handler);
-__asm__ ( "pushw %bx" );
-__asm__ ( "call  1f\n1:\tpopw %bx" );   /* PIC access to variables */
-__asm__ ( "incw  %cs:(_trivial_irq_trigger_count-1b)(%bx)" );
-__asm__ ( "popw  %bx" );
-__asm__ ( "iret" );
-volatile uint16_t _trivial_irq_trigger_count = 0;
-segoff_t _trivial_irq_chain_to = { 0, 0 };
-uint8_t _trivial_irq_chain = 0;
-END_RM_FRAGMENT(_trivial_irq_handler);
+RM_FRAGMENT(_trivial_irq_handler,
+	"pushw %bx\n\t"
+	"call  1f\n1:\tpopw %bx\n\t"   /* PIC access to variables */
+	"incw  %cs:(_trivial_irq_trigger_count-1b)(%bx)\n\t" 
+	"popw  %bx\n\t" 
+	"iret\n\t" 
+	"\n\t"
+	".globl _trivial_irq_trigger_count\n\t"
+	"_trivial_irq_trigger_count: .short 0\n\t"
+	"\n\t"
+	".globl _trivial_irq_chain_to\n\t"
+	"_trivial_irq_chain_to: .short 0,0\n\t"
+	"\n\t"
+	".globl _trivial_irq_chain\n\t"
+	"_trivial_irq_chain: .byte 0\n\t"
+	);
+extern volatile uint16_t _trivial_irq_trigger_count;
+extern segoff_t _trivial_irq_chain_to;
+extern int8_t _trivial_irq_chain;
 
 /* Current locations of trivial IRQ handler.  These will change at
  * runtime when relocation is used; the handler needs to be copied to
@@ -294,12 +303,12 @@ void fake_irq ( irq_t irq ) {
 	 */
 	in_stack.int_number = ( ( irq - 8 ) ^ 0x70 ) & 0x7f;
 
-	BEGIN_RM_FRAGMENT(rm_fake_irq);
-	__asm__ ( "popw %ax" );		/* %ax = INT number */
-	__asm__ ( "call 1f\n1:\tpop %bx" );
-	__asm__ ( "movb %al, %cs:(2f-1b+1)(%bx)" ); /* Overwrite INT number..*/
-	__asm__ ( "\n2:\tint $0x00" );		    /* ..in this instruction */
-	END_RM_FRAGMENT(rm_fake_irq);
+	RM_FRAGMENT(rm_fake_irq,
+		"popw %ax\n\t"		/* %ax = INT number */
+		"call 1f\n1:\tpop %bx\n\t"
+		"movb %al, %cs:(2f-1b+1)(%bx)\n\t" /* Overwrite INT number..*/
+		"\n2:\tint $0x00\n\t"		    /* ..in this instruction */
+	);
 
 	real_call ( rm_fake_irq, &in_stack, NULL );
 }

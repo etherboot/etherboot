@@ -24,21 +24,25 @@ typedef union {
 
 /* Macros to help with defining inline real-mode trampoline fragments.
  */
-#define _append_end(x) x ## _end
-#define BEGIN_RM_FRAGMENT(name) \
-	void name ( void ); \
-	void _append_end(name) ( void ); \
-	__asm__ ( ".section \".text16\"" ); \
-	__asm__ ( ".code16" ); \
-	__asm__ ( ".arch i386" ); \
-	__asm__ ( ".globl " #name ); \
-	__asm__ ( "\n" #name ":" );
-#define END_RM_FRAGMENT(name) \
-	__asm__ ( ".globl " #name "_end" ); \
-	__asm__ ( "\n" #name "_end:" ); \
-	__asm__ ( ".code32" ); \
-	__asm__ ( ".previous" );
-#define FRAGMENT_SIZE(fragment) ( (size_t) ( ( (void*) _append_end(fragment) )\
+#define RM_XSTR(x) #x	/* Macro hackery needed to stringify       */
+#define RM_STR(x) RM_XSTR(x)
+#define	RM_FRAGMENT(name, asm_code_str)		\
+	extern void name ( void );		\
+	extern void name ## _end (void);	\
+	__asm__(				\
+		".section \".text16\"\n\t"	\
+		".code16\n\t"			\
+		".arch i386\n\t"		\
+		".globl " #name " \n\t"		\
+		#name ":\n\t"			\
+		asm_code_str "\n\t"		\
+		".globl " #name "_end\n\t"	\
+		#name "_end:\n\t"		\
+		".code32\n\t"			\
+		".previous\n\t"			\
+	)
+
+#define FRAGMENT_SIZE(fragment) ( (size_t) ( ( (void*) fragment ## _end )\
 					     - ( (void*) (fragment) ) ) )
 
 /* Data structures in _prot_to_real and _real_to_prot.  These

@@ -14,19 +14,20 @@
 /**************************************************************************
 CONSOLE_PUTC - Print a character on console
 **************************************************************************/
-void console_putc ( int character ) {
+void console_putc ( int character )
+{
 	struct {
 		reg16_t ax;
 	} PACKED in_stack;
 
-	BEGIN_RM_FRAGMENT(rm_console_putc);
-	__asm__ ( "sti" );
-	__asm__ ( "popw %ax" );
-	__asm__ ( "movb $0x0e, %ah" );
-	__asm__ ( "movl $1, %ebx" );
-	__asm__ ( "int $0x10" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_console_putc);
+	RM_FRAGMENT(rm_console_putc,
+		"sti\n\t"
+		"popw %ax\n\t"
+		"movb $0x0e, %ah\n\t"
+		"movl $1, %ebx\n\t"
+		"int $0x10\n\t"
+		"cli\n\t"
+	);
 
 	in_stack.ax.l = character;
 	real_call ( rm_console_putc, &in_stack, NULL );
@@ -35,14 +36,15 @@ void console_putc ( int character ) {
 /**************************************************************************
 CONSOLE_GETC - Get a character from console
 **************************************************************************/
-int console_getc ( void ) {
-	BEGIN_RM_FRAGMENT(rm_console_getc);
-	__asm__ ( "sti" );
-	__asm__ ( "xorw %ax, %ax" );
-	__asm__ ( "int $0x16" );
-	__asm__ ( "xorb %ah, %ah" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_console_getc);
+int console_getc ( void )
+{
+	RM_FRAGMENT(rm_console_getc,
+		"sti\n\t"
+		"xorw %ax, %ax\n\t"
+		"int $0x16\n\t"
+		"xorb %ah, %ah\n\t"
+		"cli\n\t"
+	);	
 
 	return real_call ( rm_console_getc, NULL, NULL );
 }
@@ -50,15 +52,16 @@ int console_getc ( void ) {
 /**************************************************************************
 CONSOLE_ISCHAR - Check for keyboard interrupt
 **************************************************************************/
-int console_ischar ( void ) {
-	BEGIN_RM_FRAGMENT(rm_console_ischar);
-	__asm__ ( "sti" );
-	__asm__ ( "movb $1, %ah" );
-	__asm__ ( "int $0x16" );
-	__asm__ ( "pushfw" );
-	__asm__ ( "popw %ax" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_console_ischar);
+int console_ischar ( void )
+{
+	RM_FRAGMENT(rm_console_ischar,
+		"sti\n\t"
+		"movb $1, %ah\n\t"
+		"int $0x16\n\t"
+		"pushfw\n\t"
+		"popw %ax\n\t"
+		"cli\n\t"
+	);
 
 	return ( ( real_call ( rm_console_ischar, NULL, NULL ) & ZF ) == 0 );
 }
@@ -66,14 +69,15 @@ int console_ischar ( void ) {
 /**************************************************************************
 GETSHIFT - Get keyboard shift state
 **************************************************************************/
-int getshift ( void ) {
-	BEGIN_RM_FRAGMENT(rm_getshift);
-	__asm__ ( "sti" );
-	__asm__ ( "movb $2, %ah" );
-	__asm__ ( "int $0x16" );
-	__asm__ ( "andw $0x3, %ax" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_getshift);
+int getshift ( void )
+{
+	RM_FRAGMENT(rm_getshift,
+		"sti\n\t"
+		"movb $2, %ah\n\t"
+		"int $0x16\n\t"
+		"andw $0x3, %ax\n\t" 
+		"cli\n\t"
+	);
 
 	return real_call ( rm_getshift, NULL, NULL );
 }

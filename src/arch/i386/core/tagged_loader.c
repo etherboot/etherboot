@@ -187,15 +187,15 @@ void xstart16 (unsigned long execaddr, segoff_t location,
 	in_stack.bootp.segment = SEGMENT(bootp);
 	in_stack.bootp.offset = OFFSET(bootp);
 
-	BEGIN_RM_FRAGMENT(rm_xstart16);
-	__asm__ ( "popl %eax" );	/* Calculated lcall */
-	__asm__ ( "pushw %cs" );
-	__asm__ ( "call 1f\n1:\tpopw %bp" );
-	__asm__ ( "leaw (2f-1b)(%bp), %bx" );
-	__asm__ ( "pushw %bx" );
-	__asm__ ( "pushl %eax" );
-	__asm__ ( "lret\n2:") ;
-	END_RM_FRAGMENT(rm_xstart16);
+	RM_FRAGMENT(rm_xstart16,
+		"popl %eax\n\t"	/* Calculated lcall */
+		"pushw %cs\n\t" 
+		"call 1f\n1:\tpopw %bp\n\t" 
+		"leaw (2f-1b)(%bp), %bx\n\t" 
+		"pushw %bx\n\t" 
+		"pushl %eax\n\t"
+		"lret\n2:\n\t"
+	);
        
 	real_call ( rm_xstart16, &in_stack, NULL );
 }

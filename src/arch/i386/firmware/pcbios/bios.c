@@ -23,19 +23,20 @@ timeofday BIOS interrupt.
 #define CONFIG_BIOS_CURRTICKS 1
 #endif
 #if defined(CONFIG_BIOS_CURRTICKS)
-unsigned long currticks (void) {
+unsigned long currticks (void) 
+{
 	static uint32_t days = 0;
 	uint32_t *ticks = VIRTUAL(0x0040,0x006c);
 	uint8_t *midnight = VIRTUAL(0x0040,0x0070);
 
 	/* Re-enable interrupts so that the timer interrupt can occur
 	 */
-	BEGIN_RM_FRAGMENT(rm_currticks);
-	__asm__ ( "sti" );
-	__asm__ ( "nop" );
-	__asm__ ( "nop" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_currticks);
+	RM_FRAGMENT(rm_currticks,
+		"sti\n\t"
+		"nop\n\t"
+		"nop\n\t"
+		"cli\n\t"
+	);	
 
 	real_call ( rm_currticks, NULL, NULL );
 
@@ -50,7 +51,8 @@ unsigned long currticks (void) {
 /**************************************************************************
 INT15 - Call Interrupt 0x15
 **************************************************************************/
-int int15 ( int ax ) {
+int int15 ( int ax )
+{
 	struct {
 		reg16_t ax;
 	} PACKED in_stack;
@@ -59,14 +61,14 @@ int int15 ( int ax ) {
 	} PACKED out_stack;
 	reg16_t ret_ax;
 
-	BEGIN_RM_FRAGMENT(rm_int15);
-	__asm__ ( "sti" );
-	__asm__ ( "popw %ax" );
-	__asm__ ( "stc" );
-	__asm__ ( "int $0x15" );
-	__asm__ ( "pushf" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_int15);
+	RM_FRAGMENT(rm_int15,
+		"sti\n\t"
+		"popw %ax\n\t"
+		"stc\n\t"
+		"int $0x15\n\t"
+		"pushf\n\t"
+		"cli\n\t"
+	);
 
 	in_stack.ax.word = ax;
 	ret_ax.word = real_call ( rm_int15, &in_stack, &out_stack );
@@ -80,12 +82,13 @@ int int15 ( int ax ) {
 /**************************************************************************
 CPU_NAP - Save power by halting the CPU until the next interrupt
 **************************************************************************/
-void cpu_nap ( void ) {
-	BEGIN_RM_FRAGMENT(rm_cpu_nap);
-	__asm__ ( "sti" );
-	__asm__ ( "hlt" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_cpu_nap);
+void cpu_nap ( void )
+{
+	RM_FRAGMENT(rm_cpu_nap,
+		"sti\n\t"
+		"hlt\n\t"
+		"cli\n\t"
+	);	
 
 	real_call ( rm_cpu_nap, NULL, NULL );
 }
@@ -95,14 +98,15 @@ void cpu_nap ( void ) {
 /**************************************************************************
 DISK_INIT - Initialize the disk system
 **************************************************************************/
-void disk_init ( void ) {
-	BEGIN_RM_FRAGMENT(rm_disk_init);
-	__asm__ ( "sti" );
-	__asm__ ( "xorw %ax,%ax" );
-	__asm__ ( "movb $0x80,%dl" );
-	__asm__ ( "int $0x13" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_disk_init);
+void disk_init ( void )
+{
+	RM_FRAGMENT(rm_disk_init,
+		"sti\n\t"
+		"xorw %ax,%ax\n\t"
+		"movb $0x80,%dl\n\t"
+		"int $0x13\n\t"
+		"cli\n\t"
+	);
 	
 	real_call ( rm_disk_init, NULL, NULL );
 }
@@ -123,17 +127,17 @@ unsigned int pcbios_disk_read ( int drive, int cylinder, int head, int sector,
 	} PACKED out_stack;
 	reg16_t ret_ax;
 
-	BEGIN_RM_FRAGMENT(rm_pcbios_disk_read);
-	__asm__ ( "sti" );
-	__asm__ ( "popw %ax" );
-	__asm__ ( "popw %cx" );
-	__asm__ ( "popw %dx" );
-	__asm__ ( "popw %bx" );
-	__asm__ ( "popw %es" );
-	__asm__ ( "int $0x13" );
-	__asm__ ( "pushfw" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_pcbios_disk_read);
+	RM_FRAGMENT(rm_pcbios_disk_read,
+		"sti\n\t"
+		"popw %ax\n\t"
+		"popw %cx\n\t"
+		"popw %dx\n\t"
+		"popw %bx\n\t"
+		"popw %es\n\t"
+		"int $0x13\n\t"
+		"pushfw\n\t"
+		"cli\n\t"
+	);
 
 	in_stack.ax.h = 2; /* INT 13,2 - Read disk sector */
 	in_stack.ax.l = 1; /* Read one sector */

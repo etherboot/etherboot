@@ -8,6 +8,10 @@ PLDSCRIPT=	arch/i386/core/etherboot.prefix.lds
 
 LCONFIG+=	-Ui386
 
+ROMLIMIT=	524288
+CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
+	{ $(RM) $@; echo "ERROR: code size exceeds limit!"; exit 1; }; exit 0; }
+
 START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
 	$(BIN)/bios.o $(BIN)/console.o $(BIN)/memsizes.o $(BIN)/basemem.o \
 	$(BIN)/hidemem.o $(BIN)/e820mangler.o \
@@ -213,6 +217,7 @@ SUFFIXES +=	rom zrom
 
 $(BIN)/%.rom.rt: $(BIN)/%.rt.o  $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(romEXIT) $<
+	@$(SIZE) $@ | $(CHECKSIZE)
 
 $(BIN)/%.rom: $(BIN)/%.rom.prf
 	$(OBJCOPY) -O binary $< $@
@@ -278,6 +283,7 @@ $(BIN)/%.com: $(BIN)/%.com.zprf
 SUFFIXES +=	exe
 $(BIN)/%.exe.rt: $(BIN)/%.rt.o $(exeENTRY) $(exeEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(exeEXIT)
+	@$(SIZE) $@ | $(CHECKSIZE)
 
 $(BIN)/%.exe: $(BIN)/%.exe.prf
 	$(OBJCOPY) -O binary $< $@
@@ -287,6 +293,7 @@ SUFFIXES +=	lilo zlilo
 
 $(BIN)/%.lilo.rt: $(BIN)/%.rt.o $(liloENTRY) $(liloEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(liloEXIT)
+	@$(SIZE) $@ | $(CHECKSIZE)
 
 $(BIN)/%.lilo: $(BIN)/%.lilo.prf
 	$(OBJCOPY) -O binary $< $@
@@ -297,8 +304,8 @@ $(BIN)/%.zlilo: $(BIN)/%.lilo.zprf
 # rules to make big linux boot protocol image
 SUFFIXES +=	bImage bzImage
 
-$(BIN)/%.bImage.rt: $(BIN)/%.rt.o $(liloENTRY) $(liloEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(liloEXIT)
+$(BIN)/%.bImage.rt: $(BIN)/%.rt.o $(bImageENTRY) $(bImageEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(bImageEXIT)
 
 $(BIN)/%.bImage: $(BIN)/%.bImage.prf
 	$(OBJCOPY) -O binary $< $@
@@ -312,6 +319,7 @@ SUFFIXES +=	pxe zpxe
 
 $(BIN)/%.pxe.rt: $(BIN)/%.rt.o $(pxeENTRY) $(pxeEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(pxeEXIT)
+	@$(SIZE) $@ | $(CHECKSIZE)
 
 $(BIN)/%.pxe: $(BIN)/%.pxe.prf
 	$(OBJCOPY) -O binary $< $@
@@ -324,6 +332,7 @@ SUFFIXES +=	dsk zdsk
 
 $(BIN)/%.dsk.rt: $(BIN)/%.rt.o $(dskENTRY) $(dskEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(dskEXIT)
+	@$(SIZE) $@ | $(CHECKSIZE)
 
 $(BIN)/%.dsk: $(BIN)/%.dsk.prf
 	$(OBJCOPY) -O binary $< $@

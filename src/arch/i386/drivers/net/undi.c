@@ -382,18 +382,18 @@ PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
 		{ routine_off, routine_seg }, st0, st1, st2
 	};
 
-	BEGIN_RM_FRAGMENT(rm_undi_call);
-	__asm__ ( "popw %di" );			/* %es:di = routine */
-	__asm__ ( "popw %es" );
-	__asm__ ( "pushw %cs" );		/* set up return address */
-	__asm__ ( "call 1f\n\t1:popw %bx" );
-	__asm__ ( "leaw (2f-1b)(%bx), %ax" );
-	__asm__ ( "pushw %ax" );
-	__asm__ ( "pushw %es" );		/* routine address to stack */
-	__asm__ ( "pushw %di" );
-	__asm__ ( "lret" );			/* calculated lcall */
-	__asm__ ( "\n2:" );			/* continuation point */
-	END_RM_FRAGMENT(rm_undi_call);
+	RM_FRAGMENT(rm_undi_call, 
+		"popw %di\n\t"			/* %es:di = routine */
+		"popw %es\n\t"
+		"pushw %cs\n\t"			/* set up return address */
+		"call 1f\n\t1:popw %bx\n\t"
+		"leaw (2f-1b)(%bx), %ax\n\t"
+		"pushw %ax\n\t"
+		"pushw %es\n\t"			/* routine address to stack */
+		"pushw %di\n\t"
+		"lret\n\t"			/* calculated lcall */
+		"\n2:\n\t"			/* continuation point */
+	);
 
 	/* Parameters are left on stack: set out_stack = in_stack */
 	ret = real_call ( rm_undi_call, &in_stack, &in_stack );
@@ -487,59 +487,57 @@ uint8_t nontrivial_irq_chain = 0;
 segoff_t nontrivial_irq_chain_to = { 0, 0 };
 
 int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused ) {
-	BEGIN_RM_FRAGMENT(nontrivial_irq_handler);
+	RM_FRAGMENT(nontrivial_irq_handler,
 	/* Will be installed on a paragraph boundary, so access variables
 	 * using %cs:(xxx-irqstart)
 	 */
-	__asm__ ( "\nirqstart:" );
+		"\n\t"
+		"irqstart:\n\t"
 	/* Fields here must match those in undi_irq_handler_t */
-	__asm__ ( "\nentry:\t.word 0,0" );
-	__asm__ ( "\ncount_all:\t.word 0" );
-	__asm__ ( "\ncount_ours:\t.word 0" );
-	__asm__ ( "\nundi_isr:" );
-	__asm__ ( "\nundi_isr_Status:\t.word 0" );
-	__asm__ ( "\nundi_isr_FuncFlag:\t.word 0" );
-	__asm__ ( "\nundi_isr_others:\t.word 0,0,0,0,0,0" );
-	__asm__ ( "\nhandler:" );
+		"entry:\t.word 0,0\n\t"
+		"count_all:\t.word 0\n\t"
+		"count_ours:\t.word 0\n\t"
+		"undi_isr:\n\t" 
+		"undi_isr_Status:\t.word 0\n\t" 
+		"undi_isr_FuncFlag:\t.word 0\n\t" 
+		"undi_isr_others:\t.word 0,0,0,0,0,0\n\t"
+		"handler:\n\t"
 	/* Assume that PXE stack will corrupt everything */
-	__asm__ ( "pushal" );
-	__asm__ ( "push %ds" );
-	__asm__ ( "push %es" );
-	__asm__ ( "push %fs" );
-	__asm__ ( "push %gs" );
+		"pushal\n\t"
+		"push %ds\n\t"
+		"push %es\n\t"
+		"push %fs\n\t"
+		"push %gs\n\t"
 	/* Set up parameters for call */
-	__asm__ ( "movw %0, %%cs:(undi_isr_FuncFlag-irqstart)"
-		  : : "i" ( PXENV_UNDI_ISR_IN_START ) );
-	__asm__ ( "pushw %cs" );
-	__asm__ ( "popw %es" );
-	__asm__ ( "movw $(undi_isr-irqstart), %di" );
-	__asm__ ( "movw %0, %%bx" : : "i" ( PXENV_UNDI_ISR ) );
-	__asm__ ( "pushw %es" );    /* Registers for PXENV+, stack for !PXE */
-	__asm__ ( "pushw %di" );
-	__asm__ ( "pushw %bx" );
+		"movw $" RM_STR(PXENV_UNDI_ISR_IN_START) ", %cs:(undi_isr_FuncFlag-irqstart)\n\t"
+		"pushw %cs\n\t"
+		"popw %es\n\t"
+		"movw $(undi_isr-irqstart), %di\n\t"
+		"movw $" RM_STR(PXE_UNDI_ISR) ", %bx\n\t"
+		"pushw %es\n\t"    /* Registers for PXENV+, stack for !PXE */
+		"pushw %di\n\t"
+		"pushw %bx\n\t"
 	/* Make PXE API call */
-	__asm__ ( "lcall *%cs:(entry-irqstart)" );
-	__asm__ ( "addw $6, %sp" );
+		"lcall *%cs:(entry-irqstart)\n\t"
+		"addw $6, %sp\n\t"
 	/* Check return status to see if it's one of our interrupts */
-	__asm__ ( "cmpw %0, %%cs:(undi_isr_Status-irqstart)"
-		  : : "i" ( PXENV_STATUS_SUCCESS ) );
-	__asm__ ( "jne 1f" );
-	__asm__ ( "cmpw %0, %%cs:(undi_isr_FuncFlag-irqstart) "
-		  : : "i" ( PXENV_UNDI_ISR_OUT_OURS ) );
-	__asm__ ( "jne 1f" );
+		"cmpw $" RM_STR(PXE_ENV_STATUS_SUCCESS) ", %cs:(undi_isr_Status-irqstart)\n\t"
+		"jne 1f\n\t"
+		"cmpw $" RM_STR(PXENV_UNDI_ISR_OUT_OURS), ", %cs:(undi_isr_FuncFlag-irqstart)\n\t"
+		"jne 1f\n\t"
 	/* Increment count_ours if so */
-	__asm__ ( "incw %cs:(count_ours-irqstart)" );
-	__asm__ ( "\n1:" );
+		"incw %cs:(count_ours-irqstart)\n\t"
+		"1:\n\t"
 	/* Increment count_all anyway */
-	__asm__ ( "incw %cs:(count_all-irqstart)" );
+		"incw %cs:(count_all-irqstart)\n\t"
 	/* Restore registers and return */
-	__asm__ ( "popw %gs" );
-	__asm__ ( "popw %fs" );
-	__asm__ ( "popw %es" );
-	__asm__ ( "popw %ds" );
-	__asm__ ( "popal" );
-	__asm__ ( "iret" );
-	END_RM_FRAGMENT(nontrivial_irq_handler);
+		"popw %gs\n\t"
+		"popw %fs\n\t"
+		"popw %es\n\t"
+		"popw %ds\n\t"
+		"popal\n\t"
+		"iret\n\t"
+	);
 
 	/* Copy handler */
 	memcpy ( target, nontrivial_irq_handler, NONTRIVIAL_IRQ_HANDLER_SIZE );

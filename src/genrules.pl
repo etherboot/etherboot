@@ -231,7 +231,6 @@ foreach my $source (@srcs) {
 
 # Generate the assignments to DOBJS and BINS
 print "# Driver object files and ROM image files\n";
-print "IMGS\t:=\n";
 print "DOBJS\t:=\n";
 print "PCIOBJS\t:=\n";
 
@@ -260,7 +259,6 @@ foreach my $pci (sort keys %pcient) {
 
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
 	print "PCIOBJS\t+= \$(BIN)/$img.o\n" unless isaonly($pci);
-	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg\n";
 
 # Output targets
 	print "EB_LILOS\t+= \$(BIN)/$img.lilo \nEB_ZLILOS\t+= \$(BIN)/$img.zlilo\n";
@@ -280,7 +278,6 @@ foreach my $pci (sort keys %pcient) {
 foreach my $img (sort keys %buildent) {
 
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
-	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg\n";
 
 # Output targets
 	print "EB_LILOS\t+= \$(BIN)/$img.lilo \nEB_ZLILOS\t+= \$(BIN)/$img.zlilo\n";

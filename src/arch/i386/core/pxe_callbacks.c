@@ -276,13 +276,11 @@ int xstartpxe ( void ) {
 
 	/* Real-mode trampoline fragment used to jump to PXE NBP
 	 */
-	BEGIN_RM_FRAGMENT(jump_to_pxe_nbp);
-	#define xstr(x) #x	/* Macro hackery needed to stringify       */
-	#define str(x) xstr(x)	/* the constants PXE_LOAD_{SEGMENT,OFFSET} */
-	__asm__ ( "popw %bx" );
-	__asm__ ( "popw %es" );
-	__asm__ ( "lcall $" str(PXE_LOAD_SEGMENT) ", $" str(PXE_LOAD_OFFSET) );
-	END_RM_FRAGMENT(jump_to_pxe_nbp);
+	RM_FRAGMENT(jump_to_pxe_nbp, 
+		"popw %bx\n\t"
+		"popw %es\n\t"
+		"lcall $" RM_STR(PXE_LOAD_SEGMENT) ", $" RM_STR(PXE_LOAD_OFFSET) "\n\t"
+	);
 
 	/* Call to PXE image */
 	gateA20_unset();

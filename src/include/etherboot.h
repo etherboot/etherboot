@@ -327,6 +327,7 @@ struct e820entry {
 #define E820_ACPI	3 /* usable as RAM once ACPI tables have been read */
 #define E820_NVS	4
 } PACKED;
+#define E820ENTRY_SIZE 20
 #define E820MAX 32
 struct meminfo {
 	uint16_t basememsize;

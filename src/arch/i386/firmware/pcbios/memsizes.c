@@ -16,17 +16,19 @@ struct meminfo meminfo;
 /**************************************************************************
 BASEMEMSIZE - Get size of the conventional (base) memory
 **************************************************************************/
-unsigned short basememsize ( void ) {
-	BEGIN_RM_FRAGMENT(rm_basememsize);
-	__asm__ ( "int $0x12" );
-	END_RM_FRAGMENT(rm_basememsize);
+unsigned short basememsize ( void )
+{
+	RM_FRAGMENT(rm_basememsize,
+		"int $0x12\n\t"
+	);	
 	return real_call ( rm_basememsize, NULL, NULL );
 }
 
 /**************************************************************************
 MEMSIZE - Determine size of extended memory
 **************************************************************************/
-unsigned int memsize ( void ) {
+unsigned int memsize ( void )
+{
 	struct {
 		reg16_t ax;
 	} PACKED in_stack;
@@ -39,22 +41,22 @@ unsigned int memsize ( void ) {
 	} PACKED out_stack;
 	int memsize;
 
-	BEGIN_RM_FRAGMENT(rm_memsize);
+	RM_FRAGMENT(rm_memsize,
 	/* Some buggy BIOSes don't clear/set carry on pass/error of
 	 * e801h memory size call or merely pass cx,dx through without
 	 * changing them, so we set carry and zero cx,dx before call.
 	 */
-	__asm__ ( "stc" );
-	__asm__ ( "xorw %cx,%cx" );
-	__asm__ ( "xorw %dx,%dx" );
-	__asm__ ( "popw %ax" );
-	__asm__ ( "int $0x15" );
-	__asm__ ( "pushfw" );
-	__asm__ ( "pushw %dx" );
-	__asm__ ( "pushw %cx" );
-	__asm__ ( "pushw %bx" );
-	__asm__ ( "pushw %ax" );
-	END_RM_FRAGMENT(rm_memsize);
+		"stc\n\t"
+		"xorw %cx,%cx\n\t"
+		"xorw %dx,%dx\n\t"
+		"popw %ax\n\t"
+		"int $0x15\n\t"
+		"pushfw\n\t"
+		"pushw %dx\n\t"
+		"pushw %cx\n\t"
+		"pushw %bx\n\t"
+		"pushw %ax\n\t"
+	);
 
 	/* Try INT 15,e801 first */
 	in_stack.ax.word = 0xe801;
@@ -79,7 +81,8 @@ unsigned int memsize ( void ) {
 }
 
 #define SMAP ( 0x534d4150 )
-int meme820 ( struct e820entry *buf, int count ) {
+int meme820 ( struct e820entry *buf, int count )
+{
 	struct {
 		reg16_t flags;
 		reg32_t eax;
@@ -87,21 +90,21 @@ int meme820 ( struct e820entry *buf, int count ) {
 		struct e820entry entry;
 	} PACKED stack;
 	int index = 0;
-	
-	BEGIN_RM_FRAGMENT(rm_meme820);
-	__asm__ ( "addw $6, %sp" );	/* skip flags, eax */
-	__asm__ ( "popl %ebx" );
-	__asm__ ( "pushw %ss" );	/* es:di = ss:sp */
-	__asm__ ( "popw %es" );
-	__asm__ ( "movw %sp, %di" );
-	__asm__ ( "movl $0xe820, %eax" );
-	__asm__ ( "movl %0, %%edx" : : "i" ( SMAP ) );
-	__asm__ ( "movl %0, %%ecx" : : "i" ( sizeof(stack.entry) ) );
-	__asm__ ( "int $0x15" );
-	__asm__ ( "pushl %ebx" );
-	__asm__ ( "pushl %eax" );
-	__asm__ ( "pushfw" );
-	END_RM_FRAGMENT(rm_meme820);
+
+	RM_FRAGMENT(rm_meme820,
+		"addw $6, %sp\n\t"	/* skip flags, eax */
+		"popl %ebx\n\t"
+		"pushw %ss\n\t"	/* es:di = ss:sp */
+		"popw %es\n\t"
+		"movw %sp, %di\n\t"
+		"movl $0xe820, %eax\n\t"
+		"movl $" RM_STR(SMAP) ", %edx\n\t"
+		"movl $" RM_STR(E820ENTRY_SIZE) ", %ecx\n\t"
+		"int $0x15\n\t"
+		"pushl %ebx\n\t"
+		"pushl %eax\n\t"
+		"pushfw\n\t"
+	);
 
 	stack.ebx.dword = 0; /* 'EOF' marker */
 	while ( ( index < count ) &&
