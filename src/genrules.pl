@@ -174,7 +174,8 @@ while ( <FAM> ) {
 			next;
 		}
 		if ($driver =~ "^arch" && $driver !~ "^arch/$arch") {
-			print STDERR "Driver file $driver.c not for arch $arch, skipping...\n";
+# This warning just makes noise for most compilations.
+#			print STDERR "Driver file $driver.c not for arch $arch, skipping...\n";
 			next;
 		}
 		&addfam($curfam = $driver);
