@@ -2,12 +2,35 @@ ARCH_FORMAT=	elf64-ia64-little
 
 LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES)
 
-ROMLIMIT:=3276800
 
 BUILD_EFIS=	$(patsubst %.img, %.efi, $(IMGS)) $(patsubst %.img, %.nrv2befi, $(IMGS))
-allefis:	$(BUILD_EFIS)
 
 START=	$(BIN)/start.o $(BIN)/efi_main.o $(BIN)/reloc.o 
+
+SRCS+=	arch/ia64/prefix/efi_prefix.S arch/ia64/prefix/unnrv2b.S
+SRCS+=	arch/ia64/core/__call.S 
+SRCS+=	arch/ia64/core/ia64_timer.c
+SRCS+=	arch/ia64/core/idiv32.S
+SRCS+=	arch/ia64/core/idev64.S
+SRCS+=	arch/ia64/core/longjmp.S
+SRCS+=	arch/ia64/core/memmove.S
+SRCS+=	arch/ia64/core/memset.S
+SRCS+=	arch/ia64/core/pal.c
+SRCS+=	arch/ia64/core/pci_io.c
+SRCS+=	arch/ia64/core/reloc.S
+SRCS+=	arch/ia64/core/relocate_to.S
+SRCS+=	arch/ia64/core/sal.c
+SRCS+=	arch/ia64/core/setjmp.S
+SRCS+=	arch/ia64/core/start.S
+
+ROMLIMIT:=3276800
+
+include		$(BIN)/Roms
+
+# We need allefis because $(IMGS) is not defined until
+# the Makefile fragment "Roms" is read.
+allefis:	$(BUILD_EFIS)
+
 
 BOBJS+=		$(BIN)/acpi.o 
 BOBJS+=		$(BIN)/sal.o $(BIN)/pal.o
