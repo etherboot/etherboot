@@ -369,15 +369,16 @@ static void ns8390_transmit(
 	unsigned int s,			/* size */
 	const char *p)			/* Packet */
 {
+	Address		eth_vmem = bus_to_virt(eth_bmem);
 #ifdef	INCLUDE_3C503
         if (!(eth_flags & FLAG_PIO)) {
-                memcpy((char *)eth_bmem, d, ETH_ALEN);	/* dst */
-                memcpy((char *)eth_bmem+ETH_ALEN, nic->node_addr, ETH_ALEN); /* src */
-                *((char *)eth_bmem+12) = t>>8;		/* type */
-                *((char *)eth_bmem+13) = t;
-                memcpy((char *)eth_bmem+ETH_HLEN, p, s);
+                memcpy((char *)eth_vmem, d, ETH_ALEN);	/* dst */
+                memcpy((char *)eth_vmem+ETH_ALEN, nic->node_addr, ETH_ALEN); /* src */
+                *((char *)eth_vmem+12) = t>>8;		/* type */
+                *((char *)eth_vmem+13) = t;
+                memcpy((char *)eth_vmem+ETH_HLEN, p, s);
                 s += ETH_HLEN;
-                while (s < ETH_ZLEN) *((char *)eth_bmem+(s++)) = 0;
+                while (s < ETH_ZLEN) *((char *)eth_vmem+(s++)) = 0;
         }
 #endif
 
@@ -393,13 +394,13 @@ static void ns8390_transmit(
 		inb(0x84);
 	}
 	inb(0x84);
-	memcpy((char *)eth_bmem, d, ETH_ALEN);	/* dst */
-	memcpy((char *)eth_bmem+ETH_ALEN, nic->node_addr, ETH_ALEN); /* src */
-	*((char *)eth_bmem+12) = t>>8;		/* type */
-	*((char *)eth_bmem+13) = t;
-	memcpy((char *)eth_bmem+ETH_HLEN, p, s);
+	memcpy((char *)eth_vmem, d, ETH_ALEN);	/* dst */
+	memcpy((char *)eth_vmem+ETH_ALEN, nic->node_addr, ETH_ALEN); /* src */
+	*((char *)eth_vmem+12) = t>>8;		/* type */
+	*((char *)eth_vmem+13) = t;
+	memcpy((char *)eth_vmem+ETH_HLEN, p, s);
 	s += ETH_HLEN;
-	while (s < ETH_ZLEN) *((char *)eth_bmem+(s++)) = 0;
+	while (s < ETH_ZLEN) *((char *)eth_vmem+(s++)) = 0;
 	if (eth_flags & FLAG_790) {
 		outb(0, eth_asic_base + WD_MSR);
 		inb(0x84);
@@ -500,7 +501,7 @@ static int ns8390_poll(struct nic *nic)
 	if (eth_flags & FLAG_PIO)
 		eth_pio_read(pktoff, (char *)&pkthdr, 4);
 	else
-		memcpy(&pkthdr, (char *)eth_rmem + pktoff, 4);
+		memcpy(&pkthdr, bus_to_virt(eth_rmem + pktoff), 4);
 	pktoff += sizeof(pkthdr);
 	/* incoming length includes FCS so must sub 4 */
 	len = pkthdr.len - 4;
@@ -518,7 +519,7 @@ static int ns8390_poll(struct nic *nic)
 			if (eth_flags & FLAG_PIO)
 				eth_pio_read(pktoff, p, frag);
 			else
-				memcpy(p, (char *)eth_rmem + pktoff, frag);
+				memcpy(p, bus_to_virt(eth_rmem + pktoff), frag);
 			pktoff = eth_rx_start << 8;
 			p += frag;
 			len -= frag;
@@ -527,7 +528,7 @@ static int ns8390_poll(struct nic *nic)
 		if (eth_flags & FLAG_PIO)
 			eth_pio_read(pktoff, p, len);
 		else
-			memcpy(p, (char *)eth_rmem + pktoff, len);
+			memcpy(p, bus_to_virt(eth_rmem + pktoff), len);
 		ret = 1;
 	}
 #ifdef	INCLUDE_WD
@@ -618,13 +619,13 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 			eth_memsize = MEM_16384;
 	}
 	if ((c & WD_SOFTCONFIG) && (!(eth_flags & FLAG_790))) {
-		eth_bmem = bus_to_virt((0x80000 |
-		 ((inb(eth_asic_base + WD_MSR) & 0x3F) << 13)));
+		eth_bmem = (0x80000 |
+		 ((inb(eth_asic_base + WD_MSR) & 0x3F) << 13));
 	} else
-		eth_bmem = bus_to_virt(WD_DEFAULT_MEM);
+		eth_bmem = WD_DEFAULT_MEM;
 	if (brd->id == TYPE_SMC8216T || brd->id == TYPE_SMC8216C) {
-		*((unsigned int *)(eth_bmem + 8192)) = (unsigned int)0;
-		if (*((unsigned int *)(eth_bmem + 8192))) {
+		*((unsigned int *)(bus_to_virt(eth_bmem) + 8192)) = (unsigned int)0;
+		if (*((unsigned int *)(bus_to_virt(eth_bmem) + 8192))) {
 			brd += 2;
 			eth_memsize = brd->memsize;
 		}
@@ -641,19 +642,19 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 		eth_flags |= FLAG_PIO;		/* force PIO mode */
 		outb(0, eth_asic_base+WD_MSR);
 #else
-		printf(", memory %#hx, addr %!\n", eth_bmem, nic->node_addr);
+		printf(", memory %#x, addr %!\n", eth_bmem, nic->node_addr);
 		outb(WD_MSR_MENB, eth_asic_base+WD_MSR);
 		outb((inb(eth_asic_base+0x04) |
 			0x80), eth_asic_base+0x04);
-		outb((((unsigned)virt_to_bus(eth_bmem) >> 13) & 0x0F) |
-			(((unsigned)virt_to_bus(eth_bmem) >> 11) & 0x40) |
+		outb(((unsigned)(eth_bmem >> 13) & 0x0F) |
+			((unsigned)(eth_bmem >> 11) & 0x40) |
 			(inb(eth_asic_base+0x0B) & 0xB0), eth_asic_base+0x0B);
 		outb((inb(eth_asic_base+0x04) &
 			~0x80), eth_asic_base+0x04);
 #endif
 	} else {
-		printf(", memory %#hx, addr %!\n", eth_bmem, nic->node_addr);
-		outb((((unsigned)virt_to_bus(eth_bmem) >> 13) & 0x3F) | 0x40, eth_asic_base+WD_MSR);
+		printf(", memory %#x, addr %!\n", eth_bmem, nic->node_addr);
+		outb(((unsigned)(eth_bmem >> 13) & 0x3F) | 0x40, eth_asic_base+WD_MSR);
 	}
 	if (eth_flags & FLAG_16BIT) {
 		if (eth_flags & FLAG_790) {
@@ -738,7 +739,6 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 				default:
 					continue;	/* nope */
 				}
-			eth_bmem = bus_to_virt(eth_bmem);
 			break;
 		}
 
@@ -767,7 +767,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
                 if (eth_flags & FLAG_PIO)
 			printf("PIO mode");
                 else
-			printf("memory %#hx", eth_bmem);
+			printf("memory %#x", eth_bmem);
                 for (i=0; i<ETH_ALEN; i++) {
                         nic->node_addr[i] = inb(eth_nic_base+i);
                 }
@@ -789,9 +789,9 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
          */
 
 		if (!(eth_flags & FLAG_PIO)) {
-			memset((char *)eth_bmem, 0, 0x2000);
+			memset(bus_to_virt(eth_bmem), 0, 0x2000);
 			for(i = 0; i < 0x2000; ++i)
-				if (*(((char *)eth_bmem)+i)) {
+				if (*(bus_to_virt(eth_bmem+i))) {
 					printf ("Failed to clear 3c503 shared mem.\n");
 					return (0);
 				}
