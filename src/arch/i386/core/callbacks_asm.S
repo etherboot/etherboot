@@ -19,7 +19,11 @@
 
 /* Offsets from base of signature block */
 #define EC_OFFSET_SIGBLOCK (0)
-#define EC_SIGBLOCK_LENGTH (12)
+#define EC_SIG_SIG1 (0)
+#define EC_SIG_LENGTH ( EC_SIG_SIG1 + 4 )
+#define EC_SIG_STACK ( EC_SIG_LENGTH + 4 )
+#define EC_SIG_SIG2 ( EC_SIG_STACK + 4 )
+#define EC_SIGBLOCK_LENGTH ( EC_SIG_SIG2 + 4 )
 #define EC_OFFSET_CALLPRESERVE ( EC_OFFSET_SIGBLOCK + EC_SIGBLOCK_LENGTH )
 #define EC_CALLPRESERVE_LENGTH (16)
 #define EC_OFFSET_RETADDR ( EC_OFFSET_CALLPRESERVE + EC_CALLPRESERVE_LENGTH )
@@ -53,13 +57,20 @@ _ext_call:
 
 	/* We set up a stack that looks like this:
 	 * 
-	 * EC_SIGNATURE
-	 * length
-	 * EC_SIGNATURE
+	 * EC_SIGNATURE		%ebp + EC_SIG_SIG2
+	 * stack_ptr		%ebp + EC_SIG_STACK
+	 * length		%ebp + EC_SIG_LENGTH
+	 * EC_SIGNATURE		%ebp + EC_SIG_SIG1 ( = %ebp + 0 )
 	 * ext_params		%esp + EC_OFFSET_PARAMS
 	 * addresses		%esp + EC_OFFSET_ADDRESSES
 	 * seg_registers	%esp + EC_OFFSET_SEG_REGS
 	 * registers		%esp + EC_OFFSET_REGISTERS ( = %esp + 0 )
+	 *
+	 * stack_ptr : used to record the address of the top of this
+	 * stack, i.e. %ebp + EC_SIGBLOCK_LENGTH.  This is recorded
+	 * for the case where the stack is copied to a new location
+	 * before the exteral call; it indicates where we should copy
+	 * the stack back to on return.
 	 *
 	 * ext_params : Parameters to pass on stack to external call.
 	 * "length" indicates the length of this data, which may not
@@ -80,8 +91,7 @@ _ext_call:
 	 * instruction.
 	 *
 	 *
-	 * %ebp is kept pointing to the bottom EC_SIGNATURE, so that
-	 * length is available at 4(%ebp) throughout.
+	 * %ebp is kept pointing to the bottom EC_SIGNATURE.
 	 *
 	 * %ebx is used to point to the current argument in our
 	 * argument list as we process them.
@@ -90,10 +100,13 @@ _ext_call:
 	/* Create signature block */
 	movl	$EC_SIGNATURE, %eax
 	xorl	%ecx, %ecx
-	pushl	%eax		/* Set up signature and initial length */
-	pushl	%ecx
-	pushl	%eax
+	movl	%esp, %ebx
+	pushl	%eax		/* Signature */
+	pushl	%ebx		/* stack_ptr */
+	pushl	%ecx		/* length */
+	pushl	%eax		/* Signature */
 	movl	%esp, %ebp	/* and preserve stack position in %ebp */
+	/* %ebx = stack_ptr from signature block */
 
 	/* Save default addresses for a near call */
 	leal	ec_return, %eax
@@ -107,7 +120,7 @@ _ext_call:
 	/* Save segment registers.  Order matches the seg_regs_t
 	 * struct in callbacks.h
 	 */
-	pushw	%cs
+	pushw	%ax		/* %cs = 0 => "near call" */
 	pushw	%ss
 	pushw	%ds
 	pushw	%es
@@ -116,9 +129,15 @@ _ext_call:
 
 	/* Save registers.  (Current register contents are fairly
 	 * meaningless, but using pushal is the most efficient way to
-	 * allocate the stack space.
+	 * allocate the stack space.)
+	 *
+	 * Record %ebx (i.e. &(signature block)) as the value for
+	 * %esp.  This is used later to indicate the location to which
+	 * to copy the stack before transferring to the external
+	 * routine.  
 	 */
 	pushal
+	movl	%ebx, 12(%esp)		/* Record %ebx for %esp */
 
 	/* Set %ebx to point to first argument in list */
 	leal	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
@@ -174,8 +193,13 @@ process_ec_params_seg_registers:
 	movl	$NUM_SEG_REGS, %ecx
 	leal	EC_OFFSET_SEG_REGS(%esp), %edi
 	rep movsw
+	/* Recalculate return address based on new CS (fall-through) */
+ec_recalc_addresses:
 	/* Check code segment register, set near/far call addresses */
-	leal	ec_return, %ecx		/* %ecx = return address */
+	call	1f
+1:	popl	%eax
+	subl	$1b, %eax		/* %eax = current offset */
+	leal	ec_return(%eax), %ecx	/* %ecx = return address */
 	movl	(EC_OFFSET_ARGUMENTS)(%ebp), %edx /* %edx = call address */
 	movzwl	(EC_OFFSET_SEG_REGS+10)(%esp), %eax /* %eax = '%cs' */
 	testl	%eax, %eax
@@ -195,14 +219,33 @@ process_ec_params_seg_registers:
 	movl	%ecx, (EC_OFFSET_ADDRESSES+8)(%esp)	/* return address */
 	jmp	process_ec_params
 process_ec_params_gdt:
-	movl	0(%ebx), %eax		/* %ebx = &gdt */
-	addl	$4, %ebx
-	lgdt	(%eax)
-	/* Don't reset the segment registers yet */
-	jmp	process_ec_params
+	movl	0(%ebx), %eax		/* %eax = &gdt */
+	lgdt	(%eax)			/* Load new GDT */
+	/* Calculate eip offset for new CS and ljmp to reload */
+	movl	4(%ebx), %ecx		/* %ecx = replacement %cs */
+	addl	%ecx, %eax		/* %eax = &(code segment descriptor) */
+	movb	7(%eax), %dh
+	movb	4(%eax), %dl
+	shll	$16, %edx
+	movw	2(%eax), %dx		/* %edx = new %cs base address */
+	subl	virt_offset, %edx	/* %edx = offset to new base address */
+	leal	2f, %eax		/* %eax = new %eip for 2f */
+	subl	%edx, %eax
+	pushl	%ecx			/* new %cs */
+	pushl	%eax			/* new %eip */
+	lret				/* and ljmp */
+2:	/* Don't reset the segment registers yet; they will be
+	 * reloaded just before the external call.  For now, we still
+	 * want to be able to access the Etherboot data and stack
+	 * segments.  Interrupts are disabled so we're safe doing
+	 * this.
+	 */
+	addl	$8, %ebx
+	/* Recalculate return address based on new CS */
+	jmp	ec_recalc_addresses
 process_ec_params_stack:
 	/* Move data currently on stack down to accommodate new data */
-	movl	4(%ebp), %ecx		/* %ecx = current data length */
+	movl	EC_SIG_LENGTH(%ebp), %ecx /* %ecx = current data length */
 	movl	4(%ebx), %edx		/* %edx = extra data length */
 	addl	$EC_OFFSET_PARAMS, %ecx	/* %ecx = total data len to copy */
 	movl	%esp, %esi		/* Source location */
@@ -215,7 +258,7 @@ process_ec_params_stack:
 	movl	%edx, %ecx		/* Extra data length */
 	movl	0(%ebx), %esi		/* Extra data source */
 	rep movsb			/* Copy in new data */
-	addl	%edx, 4(%ebp)		/* Update length */
+	addl	%edx, EC_SIG_LENGTH(%ebp) /* Update length */
 	addl	$8, %ebx
 	jmp	process_ec_params
 process_ec_params_ret_stack:
@@ -291,7 +334,7 @@ ec_return:
 	xorl	%ecx, %ecx
 	decl	%ecx		/* Scan indefinitely */
 1:	repne scasl		/* Search for signature */
-	cmpl	4(%edi), %eax	/* Check second signature */
+	cmpl	(EC_SIG_SIG2-4)(%edi), %eax /* Check second signature */
 	jne	1b		/* Continue searching if not found */
 	subl	$4, %edi
 	movl	%edi, %ebp
@@ -301,7 +344,7 @@ ec_return:
 	movl	%ebp, %ecx	/* &(signature) */
 	leal	ECR_OFFSET_PARAMS(%esp), %edx /* Returned %esp */
 	subl	%edx, %ecx
-	movl	%ecx, 4(%ebp)	/* Store length */
+	movl	%ecx, EC_SIG_LENGTH(%ebp) /* Store length */
 
 	/* Align stack by shifting down */
 	addl	$ECR_OFFSET_PARAMS, %ecx /* Length to copy */
@@ -311,22 +354,34 @@ ec_return:
 	rep movsb		/* Shift stack down */
 	/* Stack aligned, length set as before, structures in place */
 
-	/* Reload GDT at this point, copy back stack and reset segment
-	 * registers?  Should be clear to do it now; we've got the
-	 * signature block in ebp so we know where to find anything
-	 * that was set up on callout, and we have the stack structure
-	 * in the shape we want it.  Signature block will have to
-	 * store a "reload GDT" flag.
-	 */
-
-	/* Reload segment registers.  cs and ss dealt with by "reload
-	 * GDT" code.
-	 */
-	movw	$KERN_DATA_SEG, %ax
-	movw	%ax, %ds
+	/* Reload GDT, copy back stack and reset segment registers. */
+	pushfw
+	cli			/* Disable interrupts */
+	call	1f
+1:	popl	%eax
+	subl	$1b, %eax
+	lgdt	%cs:gdtarg(%eax) /* Reload our standard GDT */
+	ljmp	$KERN_CODE_SEG, $1f /* Reset our %cs */
+1:	movw	$KERN_DATA_SEG, %ax
+	/* Leave %ss pointing to old (external routine's) stack segment */
+	movw	%ax, %ds	/* Reload other segment registers */
 	movw	%ax, %es
 	movw	%ax, %fs
 	movw	%ax, %gs
+	/* Transfer stack contents back to Etherboot stack, reload
+	 * %ss:esp and %ebp
+	 */
+	movl	%esp, %esi	/* %ss:esi = source address */
+	leal	EC_SIGBLOCK_LENGTH(%ebp), %ecx
+	subl	%esp, %ecx	/* %ecx = stack length */
+	movl	EC_SIG_STACK(%ebp), %edi
+	movl	%edi, %ebp
+	subl	%ecx, %edi	/* %es:edi = dest address */
+	subl	$EC_SIGBLOCK_LENGTH, %ebp /* New %ebp */
+	movl	%edi, %esp	/* New %esp */
+	rep ss movsb
+	movw	%ax, %ss	/* Reload %ss */
+	popfw			/* Restore interrupt status */
 
 	/* %ebx now points to first parameter in list, as before */
 	leal	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
@@ -380,7 +435,7 @@ process_ecr_params_seg_registers:
 	jmp	process_ecr_params
 process_ecr_params_gdt:
 	/* Nothing to do */
-	addl	$4, %ebx
+	addl	$8, %ebx
 	jmp	process_ecr_params
 process_ecr_params_stack:
 	/* Nothing to do */
@@ -390,7 +445,7 @@ process_ecr_params_ret_stack:
 	/* Copy returned stack to C structure.  Be careful of maximum
 	 * structure length
 	 */
-	movl	4(%ebp), %ecx		/* %ecx = returned stack length */
+	movl	EC_SIG_LENGTH(%ebp), %ecx /* %ecx = returned stack length */
 	leal	ECR_OFFSET_PARAMS(%esp), %esi /* %esi = &(returned stack) */
 	movl	0(%ebx), %edi		/* %edi = &(C structure) */
 	movl	8(%ebx), %eax		/* %eax = &(C length variable) */
@@ -427,17 +482,18 @@ process_ecr_params_done:
 	.globl demo_extcall
 demo_extcall:
 	movl	4(%esp), %eax
-	addl	8(%esp), %eax
+/*	addl	8(%esp), %eax
 	addl	12(%esp), %eax
-	addl	16(%esp), %eax
+	addl	16(%esp), %eax */
 	movl	%ebx, %ecx
 	mov	$0x18, %dx
 	mov	%dx, %ds
 	mov	%dx, %es
 	popl	%ebx			/* return address */
-	pushw	$0x12
-	pushw	$0x34
-	pushw	$0x56
+	pushw	$0xabcd
+	pushw	$0x5678
+	pushw	$0x1234
+	pushw	%cs
 	pushl	%ebx
 	ret
 	
