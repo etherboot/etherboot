@@ -39,10 +39,9 @@
 
 #include <asm/boot.h>
 
-#define	SYSSIZE	2048		/* 2048 * 16 bytes = 32kB maximum size of
-				   .ROM file */
 #define	SETUPSECS 4		/* Minimal nr of setup-sectors */
 #define PREFIXSIZE ((SETUPSECS+1)*512)
+#define PREFIXPGH (PREFIXSIZE / 16 )
 #define	BOOTSEG 0x07C0		/* original address of boot-sector */
 #define	INITSEG DEF_INITSEG	/* we move boot here - out of the way */
 #define	SETUPSEG DEF_SETUPSEG	/* setup starts here */
@@ -97,7 +96,7 @@ setup_sects:
 root_flags: 
 	.word	0
 syssize: 
-	.word	SYSSIZE
+	.word	_verbatim_size_pgh - PREFIXPGH
 swap_dev: 
 	.word	0
 ram_size: 
@@ -140,6 +139,7 @@ prefix_exit_end:
 	
 	.org	(PREFIXSIZE-1)
 	.byte	0
+prefix_end:
 /*
 	That's about it.
 */

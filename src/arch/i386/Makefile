@@ -283,11 +283,12 @@ SUFFIXES +=	lilo zlilo
 $(BIN)/%.lilo.rt: $(BIN)/%.rt.o $(liloENTRY) $(liloEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(liloEXIT)
 
-$(BIN)/%.lilo: $(BIN)/%.lilo.prf.bin
-	$(PERL) util/makelilo.pl $^ > $@
+#$(PERL) util/makelilo.pl $^ > $@
+$(BIN)/%.lilo: $(BIN)/%.lilo.prf
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zlilo: $(BIN)/%.lilo.zprf.bin
-	$(PERL) util/makelilo.pl $^ > $@
+$(BIN)/%.zlilo: $(BIN)/%.lilo.zprf
+	$(OBJCOPY) -O binary $< $@
 
 # rules to generate a PXE loadable image
 SUFFIXES +=	pxe zpxe

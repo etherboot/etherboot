@@ -29,21 +29,35 @@ SECTIONS {
 	_verbatim_end = . ;
 
 
+	/* Size of the core of etherboot in memory */
 	_base_size = _end - _text;
+
+	/* _prefix_size is the length of the non-core etherboot prefix */
 	_prefix_size = _prefix_end - _prefix_start;
 
 	/* _verbatim_size is the actual amount that has to be copied to base memory */
 	_verbatim_size = _verbatim_end - _verbatim_start;
-	_exe_size = (_verbatim_size) + 16;
-	_exe_size_tail = (_exe_size) % 512;
-	_exe_size_pages = ((_exe_size) + 511) / 512;
-	_bss_size_pgh = (_bss_size + 15) / 16;
-	_rom_size = (_verbatim_size + 511) / 512 ; 
 
 	/* _image_size is the amount of base memory needed to run */
 	_image_size = _base_size +  _prefix_size;
-	_image_size_pgh = (_image_size + 15) / 16 ;
 
+	/* Standard sizes rounded up to paragraphs */
+	_prefix_size_pgh   = (_prefix_size + 15) / 16;
+	_verbatim_size_pgh = (_verbatim_size + 15) / 16;
+	_image_size_pgh    = (_image_size + 15) / 16 ;
+	
+	/* Standard sizes in sectors */
+	_prefix_size_sct   = (_prefix_size + 511) / 512;
+	_verbatim_size_sct = (_verbatim_size + 511) / 512;
+	_image_size_sct    = (_image_size + 511) / 512;
+
+	/* Symbol offsets and sizes for the exe prefix */
+	_exe_hdr_size   = 32;
+	_exe_size       = _verbatim_size; /* Should this be - 32 to exclude the header? */
+	_exe_size_tail  = (_exe_size) % 512;
+	_exe_size_pages = ((_exe_size) + 511) / 512;
+	_exe_bss_size   = ((_image_size - _verbatim_size) + 15) / 16;
+	_exe_ss_offset  = (_stack_offset + _prefix_size - _exe_hdr_size + 15) / 16 ;
 
 	/* This is where we copy the compressed image before decompression.
 	 * Prepare to decompress in place.  The end mark is about 8.25 bytes long,

@@ -16,9 +16,9 @@ _prefix:
 	.short	_exe_size_pages			/* pages */
 	.short	0				/* relocations */
 	.short	2				/* header paras */
-	.short	_bss_size_pgh			/* min */
+	.short	_exe_bss_size			/* min */
 	.short	0xFFFF				/* max paras */
-	.short	_stack_offset_pgh		/* SS */
+	.short	_exe_ss_offset			/* SS */
 	.short	_stack_size			/* SP */
 	.short	0				/* checksum */
 	.short	0				/* IP */
