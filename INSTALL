@@ -2,7 +2,7 @@ If you don't want to install development tools, but have access to the
 Web, you can get ROM images made on demand from http://rom-o-matic.net/
 
 For the impatient, "cd src" and "make". Your ROM images will be in
-bin32/xxx.rom and bin32/xxx.lzrom, where xxx is the name of your NIC
+bin32/xxx.rom and bin32/xxx.zrom, where xxx is the name of your NIC
 driver.  See src/NIC for the list of supported NICs. The mknbi tools are
 now distributed separately from the Etherboot web site
 http://etherboot.sourceforge.net/  Mknbi is not needed for booting
@@ -31,7 +31,6 @@ The index.html file is the same as the one on the Etherboot home page at
 the time the distribution was made. Therefore some of the local file:/
 links from the Distribution section may not work.
 
-Etherboot was built using gcc 2.95.3 and binutils 2.10.91 from SuSE 7.2.
+Etherboot was built using gcc 3.2 and binutils 2.12.90 from SuSE 8.1.
 The version of as used must recognise the code16 and code32 directives.
-gas 2.9.5 or later is required. It also compiles under gcc 3.0 and gas
-2.11, but only mimimal testing has been done.
+gas 2.9.5 or later is required.
