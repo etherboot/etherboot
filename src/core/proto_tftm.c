@@ -379,11 +379,11 @@ int proto_tftm(struct tftm_info *info)
 /*		printf("T=%d", state.total_packets); */
 		if(state.received_packets == state.total_packets) {
 			/* We are done get out */
-			tp.opcode = htons(TFTP_ACK);
+		/*	tp.opcode = htons(TFTP_ACK);
 			tp.u.ack.block = htons(state.total_packets);
 			oport = ntohs(tr->udp.src);
 			udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
-				iport, oport, TFTP_MIN_PACKET, &tp);
+				iport, oport, TFTP_MIN_PACKET, &tp);*/
 			forget(state.bitmap);
 			break;
 		}
