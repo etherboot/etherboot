@@ -169,6 +169,7 @@ int pxe_initialise_nic ( void ) {
 int pxe_shutdown_nic ( void ) {
 	if ( pxe_stack->state <= MIDWAY ) return 1;
 
+	eth_irq ( DISABLE );
 	eth_disable();
 	pxe_stack->state = MIDWAY;
 	return 1;
@@ -316,6 +317,12 @@ PXENV_EXIT_t pxenv_undi_shutdown ( t_PXENV_UNDI_SHUTDOWN *undi_shutdown ) {
 PXENV_EXIT_t pxenv_undi_open ( t_PXENV_UNDI_OPEN *undi_open ) {
 	DBG ( "PXENV_UNDI_OPEN" );
 	ENSURE_READY ( undi_open );
+
+	/* PXESPEC: This is where we choose to enable interrupts.
+	 * Can't actually find where we're meant to in the PXE spec,
+	 * but this should work.
+	 */
+	eth_irq ( ENABLE );
 
 	undi_open->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
@@ -638,14 +645,17 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 	switch ( undi_isr->FuncFlag ) {
 	case PXENV_UNDI_ISR_IN_START :
 		/* Is there a packet waiting?  If so, disable
-		 * interrupts on the NIC, acknowledge the interrupt
-		 * and return "yes".  Do *not* clear the "is there a
-		 * packet waiting" flag, whatever form that may take
-		 * in the individual NIC driver.
+		 * interrupts on the NIC and return "it's ours".  Do
+		 * *not* necessarily acknowledge the interrupt; this
+		 * can happen later when eth_poll(1) is called.  As
+		 * long as the interrupt is masked off so that it
+		 * doesn't immediately retrigger the 8259A then all
+		 * should be well.
 		 */
 		DBG ( " START" );
-		if ( 1 ) {
+		if ( eth_poll ( 0 ) ) {
 			DBG ( " OURS" );
+			eth_irq ( DISABLE );
 			undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_OURS;
 		} else {
 			DBG ( " NOT_OURS" );
@@ -656,7 +666,7 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 		/* Call poll(), return packet.  If no packet, return "done".
 		 */
 		DBG ( " PROCESS" );
-		if ( eth_poll() ) {
+		if ( eth_poll ( 1 ) ) {
 			DBG ( " RECEIVE %d", nic.packetlen );
 			if ( nic.packetlen > sizeof(pxe_stack->packet) ) {
 				/* Should never happen */
@@ -685,12 +695,16 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 			}
 		} else {
 			DBG ( " DONE" );
+			/* Re-enable interrupts */
+			eth_irq ( ENABLE );
 			undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_DONE;
 		}
 		break;
 	case PXENV_UNDI_ISR_IN_GET_NEXT :
 		/* We only ever return one frame at a time */
 		DBG ( " GET_NEXT DONE" );
+		/* Re-enable interrupts */
+		eth_irq ( ENABLE );
 		undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_DONE;
 		break;
 	default :
