@@ -621,7 +621,7 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
     ioaddr = probe_addrs[0]; /* Mask the bit that says "this is an io addr" */
 
 #if defined(W89C840_DEBUG)
-    printf("winbond-840 : PCI bus %hX device function %hX : I/O address : %hX\n", p->bus, p->devfn, ioaddr);
+    printf("winbond-840: PCI bus %hhX device function %hhX: I/O address: %hX\n", p->bus, p->devfn, ioaddr);
 #endif
 
     ioaddr = ioaddr & ~3; /* Mask the bit that says "this is an io addr" */
@@ -652,7 +652,7 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
 
     if (pci_command != new_command) {
         printf("\nThe PCI BIOS has not enabled this device!\n"
-               "Updating PCI command %hX->%hX. pci_bus %hX pci_device_fn %hX\n",
+               "Updating PCI command %hX->%hX. pci_bus %hhX pci_device_fn %hhX\n",
                pci_command, new_command, p->bus, p->devfn);
         pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
     }

@@ -303,9 +303,9 @@ static int t595_poll(struct nic *nic)
 	type = (nic->packet[12]<<8) | nic->packet[13];
 	if(nic->packet[0]+nic->packet[1]+nic->packet[2]+nic->packet[3]+nic->packet[4]+
 	    nic->packet[5] == 0xFF*ETH_ALEN)
-		printf(",t=%#hX,b]",type);
+		printf(",t=%hX,b]",type);
 	else
-		printf(",t=%#hX]",type);
+		printf(",t=%hX]",type);
 #endif
 	return 1;
 }

@@ -561,7 +561,7 @@ sis900_init_rxfilter(struct nic *nic)
         outl(w, ioaddr + rfdr);
 
         if (sis900_debug > 0)
-            printf("sis900_init_rxfilter: Receive Filter Addrss[%d]=%hX\n",
+            printf("sis900_init_rxfilter: Receive Filter Addrss[%d]=%X\n",
                    i, inl(ioaddr + rfdr));
     }
 

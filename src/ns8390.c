@@ -564,7 +564,7 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 	for (brd = wd_boards; brd->name; brd++)
 		if (brd->id == c) break;
 	if (!brd->name) {
-		printf("Unknown WD/SMC NIC type %hx\n", c);
+		printf("Unknown WD/SMC NIC type %hhX\n", c);
 		return (0);	/* Unknown type */
 	}
 	eth_flags = brd->flags;

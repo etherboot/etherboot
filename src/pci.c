@@ -120,7 +120,7 @@ static unsigned long bios32_service(unsigned long service)
 			printf("bios32_service(%d) : not present\n", service);
 			return 0;
 		default: /* Shouldn't happen */
-			printf("bios32_service(%d) : returned %#hX, mail drew@colorado.edu\n",
+			printf("bios32_service(%d) : returned %#X, mail drew@colorado.edu\n",
 				service, return_code);
 			return 0;
 	}
@@ -294,7 +294,7 @@ static void check_pcibios(void)
 #if	DEBUG
 		if (pcibios_entry) {
 			printf ("pcibios_init : PCI BIOS revision %hhX.%hhX"
-				" entry at %#hX\n", major_revision,
+				" entry at %#X\n", major_revision,
 				minor_revision, pcibios_entry);
 		}
 #endif
@@ -327,13 +327,13 @@ static void pcibios_init(void)
 		if (sum != 0)
 			continue;
 		if (check->fields.revision != 0) {
-			printf("pcibios_init : unsupported revision %d at %#hX, mail drew@colorado.edu\n",
+			printf("pcibios_init : unsupported revision %d at %#X, mail drew@colorado.edu\n",
 				check->fields.revision, check);
 			continue;
 		}
 #if	DEBUG
 		printf("pcibios_init : BIOS32 Service Directory "
-			"structure at %#hX\n", check);
+			"structure at %#X\n", check);
 #endif
 		if (!bios32_entry) {
 			if (check->fields.entry >= 0x100000) {
@@ -344,7 +344,7 @@ static void pcibios_init(void)
 				bios32_entry = check->fields.entry;
 #if	DEBUG
 				printf("pcibios_init : BIOS32 Service Directory"
-					" entry at %#hX\n", bios32_entry);
+					" entry at %#X\n", bios32_entry);
 #endif
 				bios32_indirect.address = bios32_entry;
 			}
@@ -387,7 +387,7 @@ static void scan_bus(struct pci_device *pcidev)
 			device = (l >> 16) & 0xffff;
 
 #if	DEBUG
-			printf("bus %hX, function %hX, vendor %hX, device %hX\n",
+			printf("bus %hhX, function %hhX, vendor %hX, device %hX\n",
 				bus, devfn, vendor, device);
 #endif
 			for (i = 0; pcidev[i].vendor != 0; i++) {

@@ -548,16 +548,16 @@ a3c90x_transmit(struct nic *nic, const char *d, unsigned int t,
 	if ((status & 0xbf) == 0x80)
 	    return;
 
-	   printf("3C90X: Status (%hX)\n", status);
+	   printf("3C90X: Status (%hhX)\n", status);
 	/** check error codes **/
 	if (status & 0x02)
 	    {
-	    printf("3C90X: Tx Reclaim Error (%hX)\n", status);
+	    printf("3C90X: Tx Reclaim Error (%hhX)\n", status);
 	    a3c90x_reset(NULL);
 	    }
 	else if (status & 0x04)
 	    {
-	    printf("3C90X: Tx Status Overflow (%hX)\n", status);
+	    printf("3C90X: Tx Status Overflow (%hhX)\n", status);
 	    for (i=0; i<32; i++)
 		outb(0x00, INF_3C90X.IOAddr + regTxStatus_b);
 	    /** must re-enable after max collisions before re-issuing tx **/
@@ -565,23 +565,23 @@ a3c90x_transmit(struct nic *nic, const char *d, unsigned int t,
 	    }
 	else if (status & 0x08)
 	    {
-	    printf("3C90X: Tx Max Collisions (%hX)\n", status);
+	    printf("3C90X: Tx Max Collisions (%hhX)\n", status);
 	    /** must re-enable after max collisions before re-issuing tx **/
 	    a3c90x_internal_IssueCommand(INF_3C90X.IOAddr, cmdTxEnable, 0);
 	    }
 	else if (status & 0x10)
 	    {
-	    printf("3C90X: Tx Underrun (%hX)\n", status);
+	    printf("3C90X: Tx Underrun (%hhX)\n", status);
 	    a3c90x_reset(NULL);
 	    }
 	else if (status & 0x20)
 	    {
-	    printf("3C90X: Tx Jabber (%hX)\n", status);
+	    printf("3C90X: Tx Jabber (%hhX)\n", status);
 	    a3c90x_reset(NULL);
 	    }
 	else if ((status & 0x80) != 0x80)
 	    {
-	    printf("3C90X: Internal Error - Incomplete Transmission (%hX)\n",
+	    printf("3C90X: Internal Error - Incomplete Transmission (%hhX)\n",
 	           status);
 	    a3c90x_reset(NULL);
 	    }
@@ -696,7 +696,7 @@ a3c90x_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci
     pcibios_read_config_word(pci->bus, pci->devfn, PCI_COMMAND, &pci_command);
     new_command = pci_command | PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
     if (pci_command != new_command) {
-	    printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %hX->%hX. pci_bus %hX pci_device_fn %hX\n",
+	    printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %hX->%hX. pci_bus %hhX pci_device_fn %hhX\n",
 		    pci_command, new_command, pci->bus, pci->devfn);
 	    pcibios_write_config_word(pci->bus, pci->devfn, PCI_COMMAND, new_command);
     }

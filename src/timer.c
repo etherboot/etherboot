@@ -46,7 +46,7 @@ void load_timer2(unsigned int ticks)
 
 static unsigned long long calibrate_tsc(void)
 {
-       /* Set the Gate high, disable speaker */
+	/* Set the Gate high, disable speaker */
 	outb((inb(0x61) & ~0x02) | 0x01, 0x61);
 
 	/*

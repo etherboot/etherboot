@@ -147,7 +147,8 @@ notmidnite:
 	popl	%ebx
 	popl	%ebp
 	ret
-#endif /* CONFIG_BIOS_CURRTICKS */
+#endif	/* CONFIG_BIOS_CURRTICKS */
+
 /**************************************************************************
 CONSOLE_PUTC - Print a character on console
 **************************************************************************/
@@ -302,8 +303,8 @@ cpu_nap:
 	popl	%esi
 	popl	%ebx
 	ret
-
 #endif	/* POWERSAVE */
+
 /**************************************************************************
 MEMSIZE - Determine size of extended memory
 **************************************************************************/

@@ -781,16 +781,13 @@ static int exos205_probe1(struct nic *nic)
 			break;
 	if (mem_start == 0)
 		return (0);
-	printf("\nEXOS205 ioaddr %#hX, mem [%#hX-%#hX], addr ",
-		ioaddr, mem_start, mem_end);
 	/* Get station address */
 	for (i = 0; i < ETH_ALEN; ++i)
 	{
-		printf("%hhX", nic->node_addr[i] = inb(ioaddr+i));
-		if (i < ETH_ALEN -1)
-			printf(":");
+		nic->node_addr[i] = inb(ioaddr+i);
 	}
-	putchar('\n');
+	printf("\nEXOS205 ioaddr %#hX, mem [%#X-%#X], addr %!\n",
+		ioaddr, mem_start, mem_end, nic->node_addr);
 	return (1);
 }
 

@@ -300,7 +300,7 @@ natsemi_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
 	       chip_config & 0x4000 ? "0" : "",
 	       chip_config & 0x8000 ? "full" : "half");
     }
-    printf("%s: Transceiver status %hx advertising %hx\n",
+    printf("%s: Transceiver status %hX advertising %hX\n",
 	   nic_name, (int)inl(ioaddr + 0x84), advertising);
 
     /* Disable PME:

@@ -391,8 +391,8 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 	  t, s, status, inw (ioaddr + SCBCmd));
 #endif
 
-  memcpy (&hdr.dst_addr, d, 6);
-  memcpy (&hdr.src_addr, nic->node_addr, 6);
+  memcpy (&hdr.dst_addr, d, ETH_ALEN);
+  memcpy (&hdr.src_addr, nic->node_addr, ETH_ALEN);
 
   hdr.type = htons (t);
 
@@ -511,7 +511,7 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 		new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
 
 		if (pci_command != new_command) {
-			printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %hX->%hX. pci_bus %hX pci_device_fn %hX\n",
+			printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %hX->%hX. pci_bus %hhX pci_device_fn %hhX\n",
 				   pci_command, new_command, p->bus, p->devfn);
 			pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
 		}

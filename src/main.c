@@ -798,33 +798,33 @@ static int bootp(void)
 #endif	/* RARP_NOT_BOOTP */
 
 /**************************************************************************
-UDPCHKSUM - Checksum UDP Packet (one of the rare cases when assembly is 
+UDPCHKSUM - Checksum UDP Packet (one of the rare cases when assembly is
             actually simpler...)
  RETURNS: checksum, 0 on checksum error. This
           allows for using the same routine for RX and TX summing:
-          RX  if (packet->udp.chksum && udpchksum(&packet)) error("checksum error");
-		  TX  packet->upd.chksum=0;
-			  if (0==(packet->udp.chksum=udpchksum(packet)))
-				packet->upd.chksum=0xffff;
+          RX  if (packet->udp.chksum && udpchksum(&packet))
+                  error("checksum error");
+          TX  packet->upd.chksum=0;
+              if (0==(packet->udp.chksum=udpchksum(packet)))
+                  packet->upd.chksum=0xffff;
 **************************************************************************/
-
 static inline void dosum(unsigned short *start, unsigned int len, unsigned short *sum)
 {
-__asm__ __volatile__(
-"           clc         \n\t"
-"   1:      lodsw       \n\t"
-"           xchg    %%al,%%ah\n\t"  /* convert to host byte order */
-"           adcw    %%ax,%0\n\t"    /* add carry of previous iteration */
-"           loop    1b\n\t"
-"           adcw    $0,%0\n\t"      /* add carry of last iteration */
-         : "=bx" (*sum), "=S"(start), "=c"(len)
-         : "0"(*sum), "1"(start), "2"(len)
-         : "ax", "cc"
-        );
+	__asm__ __volatile__(
+	"clc\n"
+	"1:\tlodsw\n\t"
+	"xchg %%al,%%ah\n\t"	/* convert to host byte order */
+	"adcw %%ax,%0\n\t"	/* add carry of previous iteration */
+	"loop 1b\n\t"
+	"adcw $0,%0"		/* add carry of last iteration */
+	: "=b" (*sum), "=S"(start), "=c"(len)
+	: "0"(*sum), "1"(start), "2"(len)
+	: "ax", "cc"
+	);
 }
 
 /* UDP sum:
- * proto, src_ip, dst_ip, udp_dport, udp_sport, 2*udp_len, payload, 
+ * proto, src_ip, dst_ip, udp_dport, udp_sport, 2*udp_len, payload
  */
 static unsigned short udpchksum(struct iphdr *packet)
 {

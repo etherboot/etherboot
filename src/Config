@@ -175,7 +175,7 @@
 #			Only works for BIOSes of a certain era.
 #	-DCONFIG_TSC_CURRTICKS
 #			Uses the processor time stamp counter instead of reading
-#			the BIOS time counter.	This allows etherboot to work
+#			the BIOS time counter.  This allows etherboot to work
 #			even without a BIOS.  This only works on late model
 #			486s and above.
 #
@@ -185,7 +185,6 @@
 #			Halt the processor when waiting for keyboard input
 #			which saves power while waiting for user interaction.
 #			Good for compute clusters and VMware emulation.
-#
 #	-DT503_AUI
 #			Use AUI by default on 3c503 cards.
 #	-DMOVEROM

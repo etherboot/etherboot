@@ -1055,30 +1055,30 @@ rhine_reset (struct nic *nic)
     tx_ring_tmp1 = (int) virt_to_bus ((char *) tx_ring_tmp);
     j = (tx_ring_tmp1 + 32) & (~0x1f);
     tp->tx_ring = (struct rhine_tx_desc *) bus_to_virt (j);
-    /* printf ("rxring[%hX]", j); */
+    /* printf ("rxring[%X]", j); */
 
 
     tx_bufs_tmp1 = (int) virt_to_bus ((char *) tx_bufs_tmp);
     j = (int) (tx_bufs_tmp1 + 32) & (~0x1f);
     tx_bufs_tmp = (int) bus_to_virt (j);
-    /* printf ("txb[%hX]", j); */
+    /* printf ("txb[%X]", j); */
 
     rx_bufs_tmp1 = (int) virt_to_bus ((char *) rx_bufs_tmp);
     j = (int) (rx_bufs_tmp1 + 32) & (~0x1f);
     rx_bufs_tmp = (int) bus_to_virt (j);
-    /* printf ("rxb[%hX][%hX]", rx_bufs_tmp1, j); */
+    /* printf ("rxb[%X][%X]", rx_bufs_tmp1, j); */
 
     for (i = 0; i < RX_RING_SIZE; i++)
     {
 	tp->rx_buffs[i] = (char *) rx_bufs_tmp;
-	/* printf("r[%hX]",tp->rx_buffs[i]); */
+	/* printf("r[%X]",tp->rx_buffs[i]); */
 	rx_bufs_tmp += 1536;
     }
 
     for (i = 0; i < TX_RING_SIZE; i++)
     {
 	tp->tx_buffs[i] = (char *) tx_bufs_tmp;
-	/* printf("t[%hX]",tp->tx_buffs[i]);  */
+	/* printf("t[%X]",tp->tx_buffs[i]);  */
 	tx_bufs_tmp += 1536;
     }
 
@@ -1132,7 +1132,7 @@ rhine_poll (struct nic *nic)
 	}
 	else if (rxstatus & (RSR_ABNORMAL))
 	{
-	    printf ("rxerr[%hX]\n", rxstatus);
+	    printf ("rxerr[%X]\n", rxstatus);
 	}
 	else
 	    good = 1;
@@ -1183,14 +1183,14 @@ rhine_transmit (struct nic *nic,
     CR1bak = inb (byCR1);
 
     CR1bak = CR1bak | CR1_TDMD1;
-    /*printf("tdsw=[%hX]",tp->tx_ring[entry].tx_status.lw); */
-    /*printf("tdcw=[%hX]",tp->tx_ring[entry].tx_ctrl.lw); */
-    /*printf("tdbuf1=[%hX]",tp->tx_ring[entry].buf_addr_1); */
-    /*printf("tdbuf2=[%hX]",tp->tx_ring[entry].buf_addr_2); */
-    /*printf("td1=[%hX]",inl(dwCurrentTDSE0)); */
-    /*printf("td2=[%hX]",inl(dwCurrentTDSE1)); */
-    /*printf("td3=[%hX]",inl(dwCurrentTDSE2)); */
-    /*printf("td4=[%hX]",inl(dwCurrentTDSE3)); */
+    /*printf("tdsw=[%X]",tp->tx_ring[entry].tx_status.lw); */
+    /*printf("tdcw=[%X]",tp->tx_ring[entry].tx_ctrl.lw); */
+    /*printf("tdbuf1=[%X]",tp->tx_ring[entry].buf_addr_1); */
+    /*printf("tdbuf2=[%X]",tp->tx_ring[entry].buf_addr_2); */
+    /*printf("td1=[%X]",inl(dwCurrentTDSE0)); */
+    /*printf("td2=[%X]",inl(dwCurrentTDSE1)); */
+    /*printf("td3=[%X]",inl(dwCurrentTDSE2)); */
+    /*printf("td4=[%X]",inl(dwCurrentTDSE3)); */
 
     outb (CR1bak, byCR1);
     tp->cur_tx++;
