@@ -1,3 +1,4 @@
+#undef i386
 /* #defines because ljmp wants a number, probably gas bug */
 /*	.equ	KERN_CODE_SEG,_pmcs-_gdt	*/
 #define	KERN_CODE_SEG	0x08

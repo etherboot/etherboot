@@ -1,15 +1,7 @@
-#if 0
-#  include <arch/io.h>
-#  include <floppy_subr.h>
-#  include <printk.h>
-#  include <string.h>
-#  include <delay.h>
-#else
 #include "etherboot.h"
 #include "timer.h"
 #include "disk.h"
 #include "isa.h"
-#endif
 
 
 #undef MDEBUG
@@ -1151,7 +1143,7 @@ static unsigned short floppy_ioaddrs[] =
 {
 	0x3F0, 0x370, 0
 };
-static struct isa_driver skel_isa_driver __isa_driver = {
+static struct isa_driver floppy_isa_driver __isa_driver = {
 	.type    = FLOPPY_DRIVER,
 	.name    = "PC flopyy",
 	.probe   = floppy_probe,
