@@ -313,6 +313,7 @@ _prot_to_real:
 	movw	%ax, (p2r_rmcs+2)(%ebp)
 	shrl	$16, %eax			/* Remainder of cs base addr */
 	movb	%al, (p2r_rmcs+4)(%ebp)
+	movb	%ah, (p2r_rmcs+7)(%ebp)
 
 	/* Calculate SS base address: set GDT data segment, retain to
 	 * use for adjusting %esp.
@@ -323,6 +324,7 @@ _prot_to_real:
 	movl	%eax, %ebx
 	shrl	$16, %ebx
 	movb	%bl, (p2r_rmds+4)(%ebp)
+	movb	%bh, (p2r_rmds+7)(%ebp)
 
 	/* Load GDT */
 	lgdt	p2r_gdt(%ebp)
