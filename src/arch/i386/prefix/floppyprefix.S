@@ -20,7 +20,7 @@
 
 .equ	BOOTSEG, 0x07C0			/* original address of boot-sector */
 
-.equ	SYSSEG, (BOOTSEG + 512/16)	/* system loaded at SYSSEG<<4 */
+.equ	SYSSEG, 0x1000			/* system loaded at SYSSEG<<4 */
 
 	.org	0
 	.text
@@ -145,11 +145,12 @@ sigok:
 
 	pushl	$0		/* No parameters to preserve for exit path */
 	pushw	$0		/* Use prefix exit path mechanism */
-	jmp	_start
+	ljmp	$SYSSEG, $_start
 
 	.section ".text16", "ax", @progbits
 	.globl	prefix_exit
 prefix_exit:
+	xchgw	%bx, %bx
 	int	$0x19		/* should try to boot machine */
 	.globl	prefix_exit_end
 prefix_exit_end:
@@ -162,7 +163,7 @@ prefix_exit_end:
  * in:	es - starting address segment (normally SYSSEG)
  */
 read_it: 
-	movw	$1,sread
+	movw	$0,sread		/* read whole image incl boot sector */
 	movw	%es,%ax
 	testw	$0x0fff, %ax
 die:	jne	die			/* es must be at 64kB boundary */
