@@ -1,9 +1,13 @@
 #ifdef LINUXBIOS
 
 #include "etherboot.h"
+#include "dev.h"
 #include "linuxbios_tables.h"
 
 struct meminfo meminfo;
+static unsigned long lb_boot_first = NO_DRIVER;
+static unsigned long lb_boot_second;
+static unsigned long lb_boot_third;
 
 #undef DEBUG_LINUXBIOS
 
@@ -24,6 +28,23 @@ static void set_high_mem_k(struct meminfo *info, unsigned mem_k)
 		info->memsize = mem_k;
 	}
 }
+
+#define for_each_lbrec(head, rec) \
+	for(rec = (struct lb_record *)(((char *)head) + sizeof(*head)); \
+		(((char *)rec) < (((char *)head) + sizeof(*head) + head->table_bytes))  && \
+		(rec->size >= 1) && \
+		((((char *)rec) + rec->size) <= (((char *)head) + sizeof(*head) + head->table_bytes)); \
+		rec = (struct lb_record *)(((char *)rec) + rec->size)) 
+		
+
+#define for_each_crec(tbl, rec) \
+	for(rec = (struct lb_record *)(((char *)tbl) + tbl->header_length); \
+		(((char *)rec) < (((char *)tbl) + tbl->size))  && \
+		(rec->size >= 1) && \
+		((((char *)rec) + rec->size) <= (((char *)tbl) + tbl->size)); \
+		rec = (struct lb_record *)(((char *)rec) + rec->size)) 
+		
+
 
 static void read_lb_memory(
 	struct meminfo *info, struct lb_memory *mem)
@@ -77,26 +98,68 @@ static void read_lb_memory(
 		}
 	}
 }
+static unsigned cmos_read(unsigned offset, unsigned int size)
+{
+	unsigned addr, old_addr;
+	unsigned value;
+	
+	addr = offset/8;
 
+	old_addr = inb(0x70);
+	outb(addr | (old_addr &0x80), 0x70);
+	value = inb(0x71);
+	outb(old_addr, 0x70);
+
+	value >>= offset & 0x7;
+	value &= ((1 << size) - 1);
+	
+	return value;
+}
 
 static void read_linuxbios_values(struct meminfo *info,
 	struct lb_header *head)
 {
 	/* Read linuxbios tables... */
 	struct lb_record *rec;
-	void *start, *end;
+	lb_boot_first  = NO_DRIVER;
+	lb_boot_second = NO_DRIVER;
+	lb_boot_third  = NO_DRIVER;
 
-	start = ((unsigned char *)head) + sizeof(*head);
-	end = ((char *)start) + head->table_bytes;
-	for(rec = start; ((void *)rec < end) &&
-		((long)rec->size <= (end - (void *)rec)); 
-		rec = (void *)(((char *)rec) + rec->size)) {
+	for_each_lbrec(head, rec) {
 		switch(rec->tag) {
 		case LB_TAG_MEMORY:
 		{
 			struct lb_memory *mem;
 			mem = (struct lb_memory *) rec;
 			read_lb_memory(info, mem); 
+			break;
+		}
+		case LB_TAG_CMOS_OPTION_TABLE:
+		{
+			struct cmos_option_table *tbl;
+			struct lb_record *crec;
+			struct cmos_entries *entry;
+			tbl = (struct cmos_option_table *)rec;
+			for_each_crec(tbl, crec) {
+				if (crec->tag != LB_TAG_OPTION)
+					continue;
+				entry = (struct cmos_entries *)crec;
+				if (entry->length != 4)
+					continue;
+				if (entry->config != 'e')
+					continue;
+				if ((entry->bit < 112) || (entry->bit > 1020))
+					continue;
+				if (memcmp(entry->name, "boot_first", 11) == 0) {
+					lb_boot_first = cmos_read(entry->bit, entry->length);
+				}
+				else if (memcmp(entry->name, "boot_second", 12) == 0) {
+					lb_boot_second = cmos_read(entry->bit, entry->length);
+				}
+				else if (memcmp(entry->name, "boot_third", 11) == 0) {
+					lb_boot_third = cmos_read(entry->bit, entry->length);
+				}
+			}
 			break;
 		}
 		default: 
@@ -199,4 +262,14 @@ void get_memsizes(void)
 	
 }
 
+unsigned long get_boot_order(unsigned long order)
+{
+	if (lb_boot_first != NO_DRIVER) {
+		order =	(lb_boot_first  << (0*DRIVER_BITS)) |
+			(lb_boot_second << (1*DRIVER_BITS)) |
+			(lb_boot_third  << (2*DRIVER_BITS)) |
+			0;
+	}
+	return order;
+}
 #endif /* LINUXBIOS */

@@ -9,12 +9,31 @@ Author: Martin Renters
 #include "osdep.h"
 
 /* These could be customised for different languages perhaps */
-#define	ASK_PROMPT	"Boot from (N)etwork or from (L)ocal? "
+#define	ASK_PROMPT	\
+		"Boot from (N)etwork (D)isk (F)loppy or from L)ocal? "
+
 #define	ANS_NETWORK	'N'
+#define ANS_DISK	'D'
+#define ANS_FLOPPY	'F'
 #define	ANS_LOCAL	'L'
-#ifndef	ANS_DEFAULT	/* in case left out in Makefile */
-#define	ANS_DEFAULT	ANS_NETWORK
+#define ANS_DEFAULT	'\n'
+
+#ifndef BOOT_FIRST
+#define BOOT_FIRST	NIC_DRIVER
 #endif
+#ifndef BOOT_SECOND
+#define BOOT_SECOND	NO_DRIVER
+#endif
+#ifndef BOOT_THIRD
+#define BOOT_THIRD	NO_DRIVER
+#endif
+
+#define DEFAULT_BOOT_ORDER ( \
+	(BOOT_FIRST  << (0*DRIVER_BITS)) | \
+	(BOOT_SECOND << (1*DRIVER_BITS)) | \
+	(BOOT_THIRD  << (2*DRIVER_BITS)) | \
+	(NO_DRIVER   << (3*DRIVER_BITS)) | \
+	0)
 
 #if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE)
 #define	TAGGED_IMAGE		/* choose at least one */
@@ -600,6 +619,7 @@ struct meminfo {
 };
 extern struct meminfo meminfo;
 extern void get_memsizes(void);
+extern unsigned long get_boot_order(unsigned long);
 #ifdef RELOCATE
 extern void relocate(void);
 extern void relocate_to(unsigned long phys_dest);

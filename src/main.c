@@ -20,6 +20,7 @@ Literature dealing with the network protocols:
 /* #define MDEBUG */
 
 #include "etherboot.h"
+#include "dev.h"
 #include "nic.h"
 #include "disk.h"
 
@@ -34,8 +35,12 @@ char freebsd_kernel_env[256];
 extern char		pxeemu_nbp_active;
 #endif	/* FREEBSD_PXEBOOT */
 
-static inline void ask_boot(void)
+static inline unsigned long ask_boot(void)
 {
+	unsigned long order = DEFAULT_BOOT_ORDER;
+#ifdef LINUXBIOS
+	order = get_boot_order(order);
+#endif
 #if defined(ASK_BOOT) && ASK_BOOT > 0
 	while(1) {
 		int c;
@@ -48,16 +53,38 @@ static inline void ask_boot(void)
 			}
 		c = getchar();
 		if ((c >= 'a') && (c <= 'z')) c &= 0x5F;
-		if (c == '\n') c = ANS_DEFAULT;
-done:
 		if ((c >= ' ') && (c <= '~')) putchar(c);
 		putchar('\n');
-		if (c == ANS_LOCAL)
-			exit(0);
-		if (c == ANS_NETWORK)
+done:
+		switch(c) {
+		default:
+			/* Nothing useful try again */
+			continue;
+		case ANS_LOCAL:
+			order = NO_DRIVER;
 			break;
+		case ANS_DEFAULT:
+			/* Preserve the default boot order */
+			break;
+		case ANS_NETWORK:
+			order = (NIC_DRIVER << (0*DRIVER_BITS)) | 
+				(NO_DRIVER  << (1*DRIVER_BITS));
+			break;
+		case ANS_DISK:
+			order = (DISK_DRIVER << (0*DRIVER_BITS)) | 
+				(NO_DRIVER  << (1*DRIVER_BITS));
+			break;
+		case ANS_FLOPPY:
+			order = (FLOPPY_DRIVER << (0*DRIVER_BITS)) | 
+				(NO_DRIVER  << (1*DRIVER_BITS));
+			break;
+		}
+		break;
 	}
+ out:
+	putchar('\n');
 #endif /* ASK_BOOT */
+	return order;
 }
 
 static inline void try_floppy_first(void)
@@ -100,15 +127,14 @@ operations[] = {
 	{ &disk.dev, disk_probe, disk_load_configuration, disk_load },
 };
 
-static int classes[] = { NIC_DRIVER, DISK_DRIVER, FLOPPY_DRIVER };
 
 /**************************************************************************
 MAIN - Kick off routine
 **************************************************************************/
 int main(void)
 {
+	unsigned long order;
 	char *p;
-	static int card_retries = 0;
 	int type;
 	struct dev *dev;
 	struct class_operations *ops;
@@ -159,20 +185,30 @@ int main(void)
 			state = 4;
 
 			/* We just called setjmp ... */
-			ask_boot();
+			order = ask_boot();
 			try_floppy_first();
 			break;
-		case 1:
-			/* Any return from load is a failure */
-			ops->load(dev);
-			state = -1;
-			break;
-		case 2:
-			state = -1;
-			if (ops->load_configuration(dev) >= 0) {
-				state = 1;
+		case 4:
+			cleanup();
+			forget(heap_base);
+			i += 1;
+			type = (order >> (i * DRIVER_BITS)) & DRIVER_MASK;
+			if ((i == 0) && (type == NO_DRIVER)) {
+				/* Return to caller */
+				exit(0);
 			}
-			break;
+			if (type >= NO_DRIVER) {
+				printf("No adapter found\n");
+				interruptible_sleep(2);
+				state = 0;
+				break;
+			}
+			ops = &operations[type];
+			dev = ops->dev;
+			dev->how_probe = PROBE_FIRST;
+			dev->type = type;
+			state = 3;
+				break;
 		case 3:
 			state = -1;
 			heap_base = allot(0);
@@ -186,23 +222,17 @@ int main(void)
 				state = 2;
 			}
 			break;
-		case 4:
-			cleanup();
-			forget(heap_base);
-			i += 1;
-			if (i > sizeof(classes)/sizeof(classes[0])) {
-				printf("No adapter found\n");
-				interruptible_sleep(++card_retries);
-				state = 0;
-				break;
+		case 2:
+			state = -1;
+			if (ops->load_configuration(dev) >= 0) {
+				state = 1;
 			}
-			type = classes[i];
-			ops = &operations[type];
-			dev = ops->dev;
-			dev->how_probe = PROBE_FIRST;
-			dev->type = type;
-			state = 3;
-				break;
+			break;
+		case 1:
+			/* Any return from load is a failure */
+			ops->load(dev);
+			state = -1;
+			break;
 		case 255:
 			exit(0);
 			state = -1;

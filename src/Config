@@ -8,15 +8,20 @@
 #	User interaction options:
 #
 #	-DASK_BOOT=n
-#			Ask "Boot from Network or from Local? " at startup,
-#			timeout after n seconds (0 = no timeout); this
-#			can be done in a more generic way by using the
+#			Ask "Boot from Network Disk Floppy or from Local? " 
+#			at startup, timeout after n seconds (0 = no timeout);  
+#			this can be done in a more generic way by using the
 #			IMAGE_MENU, but it requires that the "bootp"
 #			server is accessible, even when booting locally.
 #			If unset, boot immediately using the default.
-#	-DANS_DEFAULT=ANS_NETWORK
-#			Assume Network to previous question
-#			(alternative: ANS_LOCAL) on timeout or Return key
+#	-DBOOT_FIRST
+#	-DBOOT_SECOND
+#	-DBOOT_THIRD
+#			On timeout or Return key from previous
+#			question, selects the order to try to boot from
+#			various devices.
+#			(alternatives: NIC_DRIVER, DISK_DRIVER,
+#			 FLOPPY_DRIVER, NO_DRIVER)
 #			See etherboot.h for prompt and answer strings.
 #	-DBAR_PROGRESS
 #			Use rotating bar instead of sequential dots
@@ -27,6 +32,17 @@
 #	-DSIZEINDICATOR
 #			Update a running total of the amount of code
 #			loaded so far, in kilobytes.
+#
+#	Boot order options:
+#
+#	-DBOOT_CLASS_FIRST
+#	-DBOOT_CLASS_SECOND
+#	-DBOOT_CLASS_THIRD
+#			Select the priority of the boot classes
+#			Valid values are:
+#				NIC_DRIVER
+#				DISK_DRIVER
+#				FLOPPY_DRIVER
 #
 #	Boot autoconfiguration protocol options:
 #
@@ -252,7 +268,10 @@ CFLAGS32+=	-DPCBIOS
 CFLAGS32+=	-DCONFIG_PCI -DCONFIG_ISA
 
 # For prompting and default on timeout
-CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
+CFLAGS32+=	-DASK_BOOT=3 -DBOOT_FIRST=NIC_DRIVER
+# If you would like to attempt to boot from other devices as well as the network.
+# CFLAGS32+=	-DBOOT_SECOND=DISK_DRIVER
+# CFLAGS32+=	-DBOOT_THIRD=FLOPPY_DRIVER
 # If you prefer the old style rotating bar progress display
 # CFLAGS32+=	-DBAR_PROGRESS
 
@@ -292,6 +311,7 @@ CFLAGS32+=	-DTAGGED_IMAGE -DELF_IMAGE
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
 #CFLAGS32+= -DFREEBSD_PXEEMU
+
 
 # Options to make a version of Etherboot that will work under linuxBIOS.
 #CFLAGS32+= -DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE 

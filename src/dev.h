@@ -60,9 +60,14 @@ struct dev
 	union probe_state state;
 };
 
+#define DRIVER_BITS	3
+#define DRIVER_MASK	((1 << DRIVER_BITS) -1)
+
 #define NIC_DRIVER    0
 #define DISK_DRIVER   1
 #define FLOPPY_DRIVER 2
+#define NO_DRIVER     3
+
 #define BRIDGE_DRIVER 1000
 
 #define PROBE_FIRST  (-1)
