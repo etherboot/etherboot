@@ -3,10 +3,27 @@
 # First, we define a global entry which specifies the stuff every host uses.
 global:\
   :hd=/boot:\
+  :ht=ethernet:\
   :sm=<your netmask here>:\
-  :hn:bf=null:
+  :bf=|cd /boot; buildqnx -b 0x10000 build/<your build-file here> | mkQNXnbi:\
+  :hn:
 
-node2:tc=global:\
-  :ht=ethernet:ha=<your MAC here>:\
+# node 2 uses the default build-file
+node2:\
+  :tc=global:\
+  :ha=<your MAC here>:\
+  :ip=<your IP address here>:
+
+# node 3 uses its own build-file
+node3:\
+  :tc=global:\
+  :ha=<your MAC here>:\
   :ip=<your IP address here>:\
-  :bf=|cd /boot; buildqnx build/<your build-file here> | mknbi:
+  :bf=|cd /boot; buildqnx -b 0x10000 build/<your build-file here> | mkQNXnbi:
+
+# node 4 uses a pre-built boot image
+node3:\
+  :tc=global:\
+  :ha=<your MAC here>:\
+  :ip=<your IP address here>:\
+  :bf=images/<your image-file here>:
