@@ -114,6 +114,7 @@ static int e1000_write_phy_reg_ex(struct e1000_hw *hw, uint32_t reg_addr, uint16
 static void e1000_phy_hw_reset(struct e1000_hw *hw);
 static int e1000_phy_reset(struct e1000_hw *hw);
 static int e1000_detect_gig_phy(struct e1000_hw *hw);
+static void e1000_irq(struct nic *nic, irq_action_t action);
 
 /* Printing macros... */
 
@@ -3441,6 +3442,7 @@ e1000_poll (struct nic *nic, int retrieve)
 	/* nic->packet should contain data on return */
 	/* nic->packetlen should contain length of data */
 	struct e1000_rx_desc *rd;
+	uint32_t icr;
 
 	rd = rx_base + rx_last;
 	if (!rd->status & E1000_RXD_STAT_DD)
@@ -3452,6 +3454,17 @@ e1000_poll (struct nic *nic, int retrieve)
 	memcpy (nic->packet, packet, rd->length);
 	nic->packetlen = rd->length;
 	fill_rx ();
+
+	/* Acknowledge interrupt.  If another packet has arrived by
+	 * the time we've done this, regenerate the interrupt, since
+	 * we can't handle multiple packets per poll(), and it seems
+	 * as though this card expects us to do so.
+	 */
+	icr = E1000_READ_REG(&hw, ICR);
+	rd = rx_base + rx_last;
+	if (rd->status & E1000_RXD_STAT_DD)
+		e1000_irq ( nic, FORCE );
+
 	return 1;
 }
 
@@ -3547,16 +3560,22 @@ static void e1000_disable (struct dev *dev __unused)
 /**************************************************************************
 IRQ - Enable, Disable, or Force interrupts
 ***************************************************************************/
-static void e1000_irq(struct nic *nic __unused, irq_action_t action __unused)
+static void e1000_irq(struct nic *nic __unused, irq_action_t action)
 {
-  switch ( action ) {
-  case DISABLE :
-    break;
-  case ENABLE :
-    break;
-  case FORCE :
-    break;
-  }
+	switch ( action ) {
+	case DISABLE :
+		E1000_WRITE_REG(&hw, IMC, ~0);
+		E1000_WRITE_FLUSH(&hw);
+		break;
+	case ENABLE :
+		E1000_WRITE_REG(&hw, IMS,
+				E1000_IMS_RXT0 | E1000_IMS_RXSEQ);
+		E1000_WRITE_FLUSH(&hw);
+		break;
+	case FORCE :
+		E1000_WRITE_REG(&hw, ICS, E1000_ICS_RXT0);
+		break;
+	}
 }
 
 #define IORESOURCE_IO	0x00000100     /* Resource type */
@@ -3608,7 +3627,7 @@ static int e1000_probe(struct dev *dev, struct pci_device *p)
 	adjust_pci_device(p);
 
 	nic->ioaddr   = p->ioaddr & ~3;
-	nic->irqno    = 0;
+	nic->irqno    = p->irq;
 
 	/* From Matt Hortman <mbhortman@acpthinclient.com> */
 	/* MAC and Phy settings */
