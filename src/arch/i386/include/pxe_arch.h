@@ -9,7 +9,7 @@
 
 /* SEGOFF16_t defined in separate header
  */
-#include <segoff.h>
+#include "segoff.h"
 typedef segoff_t I386_SEGOFF16_t;
 #define SEGOFF16_t I386_SEGOFF16_t
 
@@ -24,5 +24,10 @@ typedef struct {
 
 typedef	uint16_t I386_SEGSEL_t;
 #define SEGSEL_t I386_SEGSEL_t
+
+typedef struct {
+	uint16_t	opcode;
+	segoff_t	segoff;
+} PACKED pxe_call_params_t;
 
 #endif /* PXE_ARCH_H */
