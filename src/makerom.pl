@@ -108,8 +108,8 @@ if ($opts{'x'}) {
 	exit(0);
 }
 # Don't work out romsize in image if size specified
-my $romsize = getromsize(\$rom) unless defined($opts{'s'});
-$romsize = MAXROMSIZE if ($romsize == 0);
+my $romsize = defined($opts{'s'}) ? oct($opts{'s'}) : &getromsize(\$rom);
+$romsize = MAXROMSIZE if ($romsize <= 0);
 print STDERR "ROM size of $romsize not big enough for data\n"
 	if ($filesize > $romsize);
 # Shrink it down to the smallest size that will do
