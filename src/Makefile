@@ -246,6 +246,7 @@ gcccheck:	Makefile Config
 		echo 'Your Perl version has a Unicode handling bug'; \
 		echo 'To workaround, execute this before compiling Etherboot:'; \
 		echo 'export LANG=$${LANG%.UTF-8}'; \
+		exit 1; \
 	fi
 
 include Roms
