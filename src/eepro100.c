@@ -92,7 +92,7 @@
 /* The etherboot authors seem to dislike the argument ordering in
  * outb macros that Linux uses. I disklike the confusion that this
  * has caused even more.... This file uses the Linux argument ordering.  */
-/* Sorry not us. It's inherted code from FreeBSD. [The authors] */
+/* Sorry not us. It's inherited code from FreeBSD. [The authors] */
 
 #include "etherboot.h"
 #include "nic.h"
@@ -182,9 +182,18 @@ enum commands {
    Typically this takes 0 ticks. */
 static inline void wait_for_cmd_done(int cmd_ioaddr)
 {
-  int wait = 1000;
-  do   udelay(1);
-  while(inb(cmd_ioaddr) && --wait >= 0);
+  int wait = 0;
+  int delayed_cmd;
+  do
+    if (inb(cmd_ioaddr) == 0) return;
+  while(++wait <= 100);
+  delayed_cmd = inb(cmd_ioaddr);
+  do
+    if (inb(cmd_ioaddr) == 0) break;
+  while(++wait <= 10000);
+  printf("Command %2.2x was not immediately accepted, %d ticks!\n",
+      delayed_cmd, wait);
+
 }
 
 /* Elements of the dump_statistics block. This block must be lword aligned. */
