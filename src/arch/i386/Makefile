@@ -72,6 +72,9 @@ LILOEXIT=	$(BIN)/liloprefix.exit.o
 PXEPREFIX=	$(BIN)/pxeprefix.o
 PXEENTRY=	$(BIN)/pxeprefix.entry.o
 PXEEXIT=	$(BIN)/pxeprefix.exit.o
+NULLPREFIX=	$(BIN)/nullprefix.o
+NULLENTRY=	$(BIN)/nullprefix.entry.o
+NULLEXIT=	$(BIN)/nullprefix.exit.o
 
 # ELF loader
 ELFPREFIX=	$(BIN)/elfprefix.o
@@ -307,9 +310,20 @@ SUFFIXES +=	fd0 zfd0
 %.zfd0:	%.zdsk
 	dd if=$< bs=512 conv=sync of=/dev/fd0
 
+# rules to create raw executable images
+SUFFIXES +=	raw
+$(BIN)/%.raw.rt: $(BIN)/%.rt.o $(NULLEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(NULLEXIT)
+
+$(BIN)/%.raw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(PREFIXOBJS) $< $(NULLEXIT)
+
+$(BIN)/%.raw: $(BIN)/%.raw.prf.bin $(BIN)/%.raw.rt.bin
+	cat $^ > $@
+
 # rule to make a non-emulation ISO boot image
 SUFFIXES +=	iso
-%.iso:	%.zbin
+%.iso:	%.raw
 	mkdir -p $*.dir
 	cat $< > $*.dir/$(*F).bin
 	mkisofs -o $@ -c boot.cat -no-emul-boot -b $(*F).bin $*.dir
