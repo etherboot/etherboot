@@ -460,6 +460,10 @@ PXENV_EXIT_t pxenv_udp_write ( t_PXENV_UDP_WRITE *udp_write ) {
  */
 PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
 	DBG ( "PXENV_UNLOAD_STACK" );
+	/* NOTE FOR REFERENCE: we probably need to call cleanup(),
+	 * since we avoided calling it in the usual place (as part of
+	 * done()).
+	 */
 	unload_stack->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }

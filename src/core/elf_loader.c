@@ -339,7 +339,7 @@ elf_startkernel:
 			}
 		}
 #endif
-		done();
+		done(1);
 		/* Fixup the offset to the program header so you can find the program headers from
 		 * the ELF header mknbi needs this.
 		 */
@@ -559,7 +559,7 @@ elf_startkernel:
 			}
 		}
 #endif
-		done();
+		done(1);
 		/* Fixup the offset to the program header so you can find the program headers from
 		 * the ELF header mknbi needs this.
 		 */

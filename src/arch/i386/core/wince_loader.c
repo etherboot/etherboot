@@ -202,7 +202,7 @@ static int get_x_header(unsigned char *dbuffer, unsigned long now)
 	if (X.addr == 0)
 	{
 		entry = X.size;
-		done();
+		done(1);
 		printf("Entry Point Address = [%lx] \n", entry);
 		jump_2ep();		
 	}

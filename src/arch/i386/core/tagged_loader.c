@@ -116,7 +116,7 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 		while (tctx.seglen == 0) {
 			struct segheader	sh;
 			if (tctx.segflags & 0x04) {
-				done();
+				done(1);
 				if (LINEAR_EXEC_ADDR) {
 					int result;
 					/* no gateA20_unset for PM call */

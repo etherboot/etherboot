@@ -131,7 +131,7 @@ static sector_t aout_download(unsigned char *data, unsigned int len, int eof)
 
 aout_startkernel:
 		entry = astate.head.a_entry;
-		done();
+		done(1);
 
 		aout_freebsd_boot();
 #ifdef AOUT_LYNX_KDI

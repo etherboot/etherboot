@@ -42,7 +42,7 @@ static struct ebinfo		loaderinfo = {
 
 static int prep_segment(unsigned long start, unsigned long mid, unsigned long end,
 	unsigned long istart, unsigned long iend);
-static void done(void);
+static void done(int do_cleanup);
 
 #if defined(IMAGE_FREEBSD) && defined(ELF_IMAGE)
 static void elf_freebsd_probe(void);
@@ -110,7 +110,7 @@ R_RSA_PUBLIC_KEY publicKey;
 char encryptedString[MAX_RSA_MODULUS_LEN+2];
 #endif
 
-static void done(void)
+static void done(int do_cleanup)
 {
 #ifdef SAFEBOOTMODE
 	unsigned char buf[16];
@@ -164,7 +164,13 @@ static void done(void)
 	}
 		
 #endif
-	cleanup();
+	/* We may not want to do the cleanup: when booting a PXE
+	 * image, for example, we need to leave the network card
+	 * enabled, and it helps debugging if the serial console
+	 * remains enabled.  The call the cleanup() will be triggered
+	 * when the PXE stack is shut down.
+	 */
+	if ( do_cleanup ) cleanup();
 }
 
 static int prep_segment(unsigned long start, unsigned long mid, unsigned long end,
