@@ -31,6 +31,15 @@
 #
 # 3C90X options:
 #	-DINCLUDE_3C90X	- Include 3c90x support
+#
+#	Warning Warning Warning
+#	If you use any of the XCVR options below, please do not complain about
+#	the behaviour with Linux drivers to the kernel developers. You are
+#	on your own if you do this. Please read 3c90x.txt to understand
+#	what they do. If you don't understand them, ask for help on the
+#	Etherboot mailing list. And please document what you did to the NIC
+#	on the NIC so that people after you won't get nasty surprises.
+#
 #	-DCFG_3C90X_PRESERVE_XCVR - Reset the transceiver type to the value it
 #			  had initially just before the loaded code is started.
 #	-DCFG_3C90X_XCVR - Hardcode the tranceiver type Etherboot uses.
@@ -86,13 +95,14 @@
 include Config
 
 GCC=		gcc
-CPP=		gcc -E
+CPP=		gcc -E -Wp,-Wall
 STRIP=		strip
 OBJCOPY=	objcopy
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
-VERSION_PATCH=	1
-VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
+VERSION_PATCH=	2
+EXTRAVERSION=
+VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
 		-DVERSION=\"$(VERSION)\" -DRELOC=$(RELOCADDR) $(OLDGAS)
@@ -115,13 +125,13 @@ BUILD_BINS=	$(BINS32)
 MAKEROM_3c503=	-3
 3C507FLAGS=	-DINCLUDE_3C507
 3C509FLAGS=	-DINCLUDE_3C509
-3C515FLAGS=	-DINCLUDE_3C515
 3C529FLAGS=	-DINCLUDE_3C529
 3C595FLAGS=	-DINCLUDE_3C595
 3C90XFLAGS=	-DINCLUDE_3C90X
 CS89X0FLAGS=	-DINCLUDE_CS89X0
 EEPROFLAGS=	-DINCLUDE_EEPRO
 EEPRO100FLAGS=	-DINCLUDE_EEPRO100
+E1000FLAGS=	-DINCLUDE_E1000
 EPIC100FLAGS=	-DINCLUDE_EPIC100
 EXOS205FLAGS=	-DINCLUDE_EXOS205
 LANCEFLAGS=	-DINCLUDE_LANCE		# Lance/PCI!
@@ -144,7 +154,7 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S serial.S
+SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
 SRCS+=	main.c pci.c osloader.c nfs.c misc.c ansiesc.c bootmenu.c config.c
 SRCS+=	md5.c floppy.c
 
@@ -159,8 +169,8 @@ DISKLOADER=	bin/boot1a.bin
 COMPREFIX=	bin/comprefix.bin
 LILOPREFIX=	bin/liloprefix.bin
 
-START32=	bin32/start32.o
-UBE_START32=	bin32/ube_start32.o bin32/ube.o
+START32=	bin32/start32.o bin32/pcbios.o bin32/memsizes.o
+ELF_START32=	bin32/start32.o bin32/linuxbios.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/misc.o
 BOBJS32+=	bin32/ansiesc.o bin32/bootmenu.o bin32/md5.o bin32/floppy.o
@@ -169,8 +179,11 @@ BLIB32=		bin32/bootlib.a
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf
 STDDEPS32=	$(START32) $(BLIB32) $(UTILS)
-UBE_DEPS32=	$(UBE_START32) $(BLIB32)
-MAKEDEPS=	Makefile Config Roms
+ELF_DEPS32=	$(ELF_START32) $(BLIB32)
+# MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
+# If you are confident that gcc 2.96 works for you, you can delete gcccheck
+# from the next line
+MAKEDEPS=	Makefile Config Roms gcccheck
 
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 	{ $(RM) $@; echo "ERROR: code size exceeds limit!"; exit 1; }; exit 0; }
@@ -179,7 +192,7 @@ CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 # Setting it to 0x94000 leaves about 45kB of space for the Etherboot program.
 # The check is done based running 'size' on the binary, not ROM size, but
 # roughly this means a ROM of 16kB or a partially used ROM of 32kB,
-# remembering to compressed ROM images into account.
+# remembering to take compressed ROM images into account.
 #
 # You may also set RELOCADDR to 0x84000 to avoid using 0x94000
 # because of other drivers (e.g. Disk On Chip). In that case, you may
@@ -199,8 +212,8 @@ endif
 # and for the Etherboot runtime stack.  Under normal situations, 2K of stack
 # are rarely needed.  If you experience strange behaviour in functions that use
 # many local variables or that call functions that do, check for stack overrun!
-# Make sure that the normal case needs no perl interpreter - if someone uses a
-# different RELOCADDR, then he has perl installed anyways (the shell cannot
+# Make sure that the normal case needs no Perl interpreter - if someone uses a
+# different RELOCADDR, then he has Perl installed anyways (the shell cannot
 # deal with hex numbers, as test/eval don't support non-decimal integers).
 ifeq ($(RELOCADDR),0x94000)
 ROMLIMIT=46080
@@ -211,6 +224,15 @@ endif
 # Start of targets
 
 all:	$(UTILS) $(BUILD_LIBS) allbins
+
+gcccheck:	Makefile Config
+	@if $(CC32) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
+	then \
+		echo 'gcc 2.96 is unsuitable for compiling Etherboot, edit Config to use kgcc instead'; \
+		exit 1; \
+	else \
+		touch gcccheck; \
+	fi
 
 include Roms
 
@@ -394,8 +416,15 @@ clean:
 	$(RM) bin32/*.lilo bin32/*.lzlilo
 	$(RM) bin32/*.pxe bin32/*.lzpxe
 	$(RM) bin32/*.elf bin32/*.ebi
+	$(RM) gcccheck
 
-tarball:
+../index.html:	../index.xhtml
+	(cd ..; m4 -P -DHOSTSITE=SOURCEFORGE index.xhtml > index.html)
+
+../index-berlios.html:	../index.xhtml
+	(cd ..; m4 -P -DHOSTSITE=BERLIOS index.xhtml > index-berlios.html)
+
+tarball: ../index.html ../index-berlios.html
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
 	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude doc etherboot-$(VERSION))
 	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2

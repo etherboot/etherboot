@@ -327,7 +327,7 @@ static void w89c840_reset(struct nic *nic)
     writel(virt_to_bus(w840private.rx_ring), ioaddr + RxRingPtr);
     writel(virt_to_bus(w840private.tx_ring), ioaddr + TxRingPtr);
 
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < ETH_ALEN; i++)
         writeb(nic->node_addr[i], ioaddr + StationAddr + i);
 
     /* Initialize other registers. */
@@ -462,9 +462,9 @@ static int w89c840_poll(struct nic *nic)
 
 #if defined(W89C840_DEBUG)
             /* You will want this info for the initial debug. */
-            printf("  Rx data %b:%b:%b:%b:%b:"
-                   "%b %b:%b:%b:%b:%b:%b %b%b "
-                   "%b.%b.%b.%b.\n",
+            printf("  Rx data %hhX:%hhX:%hhX:%hhX:%hhX:"
+                   "%hhX %hhX:%hhX:%hhX:%hhX:%hhX:%hhX %hhX%hhX "
+                   "%hhX.%hhX.%hhX.%hhX.\n",
                    nic->packet[0],  nic->packet[1],  nic->packet[2], nic->packet[3],
                    nic->packet[4],  nic->packet[5],  nic->packet[6], nic->packet[7],
                    nic->packet[8],  nic->packet[9],  nic->packet[10],
@@ -611,17 +611,13 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
     int options;
     int promisc;
 
-    unsigned short pci_command;
-    unsigned short new_command;
-    unsigned char pci_latency;
-
     if (probe_addrs == 0 || probe_addrs[0] == 0)
         return 0;
 
     ioaddr = probe_addrs[0]; /* Mask the bit that says "this is an io addr" */
 
 #if defined(W89C840_DEBUG)
-    printf("winbond-840 : PCI bus %x device function %x : I/O address : %x\n", p->bus, p->devfn, ioaddr);
+    printf("winbond-840: PCI bus %hhX device function %hhX: I/O address: %hX\n", p->bus, p->devfn, ioaddr);
 #endif
 
     ioaddr = ioaddr & ~3; /* Mask the bit that says "this is an io addr" */
@@ -647,22 +643,7 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
 
     printf(" %s\n", w89c840_version);
 
-    pcibios_read_config_word(p->bus, p->devfn, PCI_COMMAND, &pci_command);
-    new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
-
-    if (pci_command != new_command) {
-        printf("\nThe PCI BIOS has not enabled this device!\n"
-               "Updating PCI command %x->%x. pci_bus %x pci_device_fn %x\n",
-               pci_command, new_command, p->bus, p->devfn);
-        pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
-    }
-
-    pcibios_read_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, &pci_latency);
-    if (pci_latency < 32) {
-        printf("\nPCI latency timer (CFLT) is unreasonably low at %d. "
-               "Setting to 32 clocks.\n", pci_latency);
-        pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
-    }
+    adjust_pci_device(p);
 
     /* Ok. Got one. Read the eeprom. */
     for (j = 0, i = 0; i < 0x40; i++) {
@@ -671,15 +652,13 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
         sum += value;
     }
 
-    printf ("Ethernet addr: ");
-    for (i=0;i<6;i++) {
+    for (i=0;i<ETH_ALEN;i++) {
         nic->node_addr[i] =  (eeprom[i/2] >> (8*(i&1))) & 0xff;
-        printf ("%b%c", nic->node_addr[i] , i < 5?':':' ');
     }
-    printf ("\n");
+    printf ("Ethernet addr: %!\n", nic->node_addr);
 
 #if defined(W89C840_DEBUG)
-    printf("winbond-840: EEPROM checksum %x, got eeprom", sum);
+    printf("winbond-840: EEPROM checksum %hX, got eeprom", sum);
 #endif
 
     /* Reset the chip to erase previous misconfiguration.
@@ -696,7 +675,7 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
 
 #if defined(W89C840_DEBUG)
                 printf("winbond-840 : MII PHY found at address %d, status "
-                       "%X advertising %x.\n", phy, mii_status, w840private.advertising);
+                       "%X advertising %hX.\n", phy, mii_status, w840private.advertising);
 #endif
 
             }

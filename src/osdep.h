@@ -74,6 +74,16 @@ static inline unsigned short int __swap16(unsigned short int x)
 #define	swap32(x)	__swap32(x)
 #define	swap16(x)	__swap16(x)
 
+#ifdef	FREEBSD_PXEEMU
+#undef	htonl
+#undef	htons
+#undef	ntohl
+#undef	ntohs
+#include <sys/types.h>
+#include "/sys/boot/i386/libi386/pxe.h"
+#include "/sys/boot/i386/btx/lib/btxv86.h"
+#endif
+
 #include "linux-asm-string.h"
 #include "linux-asm-io.h"
 

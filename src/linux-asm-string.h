@@ -19,7 +19,9 @@
  *		consider these trivial functions to be PD.
  */
 
+#ifndef	FREEBSD_PXEEMU
 typedef int	size_t;
+#endif
 
 extern void *__memcpy(void * to, const void * from, size_t n);
 extern void *__constant_memcpy(void * to, const void * from, size_t n);

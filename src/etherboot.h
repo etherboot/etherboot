@@ -25,13 +25,18 @@ Author: Martin Renters
 /*  Edit this to change the path to hostspecific kernel image
     kernel.<client_ip_address> in RARP boot */
 #ifndef	DEFAULT_KERNELPATH
-#define	DEFAULT_KERNELPATH	"/tftpboot/kernel.%I"
+#define	DEFAULT_KERNELPATH	"/tftpboot/kernel.%@"
 #endif
 
 /* Edit this to change the default fallback kernel image.
    This is used if bootp/dhcp-server doesn't provide the kernel path */
 #ifndef	DEFAULT_BOOTFILE
 #define DEFAULT_BOOTFILE	"/tftpboot/kernel"
+#endif
+
+#ifdef FREEBSD_PXEEMU
+#undef DEFAULT_BOOTFILE
+#define DEFAULT_BOOTFILE	PXENFSROOTPATH "/boot/pxeboot"
 #endif
 
 /* Clean up console settings... mainly CONSOLE_CRT and CONSOLE_SERIAL are used
@@ -73,11 +78,7 @@ Author: Martin Renters
 #define MAX_BOOTP_RETRIES	20
 #endif
 
-#ifdef	BOOTP_DATA_AT_0x93C00
-#define MAX_BOOTP_EXTLEN	(1024-sizeof(struct bootp_t))
-#else
-#define MAX_BOOTP_EXTLEN	(ETH_FRAME_LEN-ETH_HLEN-sizeof(struct bootp_t))
-#endif
+#define MAX_BOOTP_EXTLEN	(ETH_MAX_MTU-sizeof(struct bootpip_t))
 
 #ifndef	MAX_ARP_RETRIES
 #define MAX_ARP_RETRIES		20
@@ -117,6 +118,9 @@ Author: Martin Renters
 /*#define ETH_MIN_PACKET		64*/
 #define	ETH_FRAME_LEN		1514	/* Maximum packet */
 /*#define ETH_MAX_PACKET		1518*/
+#ifndef	ETH_MAX_MTU
+#define	ETH_MAX_MTU		(ETH_FRAME_LEN-ETH_HLEN)
+#endif
 
 #define ARP_CLIENT	0
 #define ARP_SERVER	1
@@ -259,6 +263,9 @@ Author: Martin Renters
 #define AWAIT_RARP	3
 #define AWAIT_RPC	4
 #define AWAIT_QDRAIN	5	/* drain queue, process ARP requests */
+#ifdef FREEBSD_PXEEMU
+#define AWAIT_UDP	6
+#endif
 
 typedef struct {
 	unsigned long	s_addr;
@@ -469,6 +476,18 @@ struct ebinfo {
 	unsigned short	flags;		/* Bit flags */
 };
 
+#ifdef FREEBSD_PXEEMU
+static __inline u_int min(u_int a, u_int b) { return (a < b ? a : b); }
+
+#define UDP_MAX_PAYLOAD	(ETH_FRAME_LEN - ETH_HLEN - sizeof(struct iphdr) \
+			 - sizeof(struct udphdr))
+struct udppacket_t {
+	struct iphdr	ip;
+	struct udphdr	udp;
+	char		payload[UDP_MAX_PAYLOAD];
+};
+#endif
+
 /***************************************************************************
 External prototypes
 ***************************************************************************/
@@ -489,7 +508,7 @@ extern void nfs_umountall P((int));
 /* config.c */
 extern void print_config(void);
 extern void eth_reset(void);
-extern int eth_probe(void);
+extern int eth_probe(int adapter);
 extern int eth_poll(void);
 extern void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p);
 extern void eth_disable(void);
@@ -515,8 +534,13 @@ extern int getdec P((char **));
 extern void printf P((const char *, ...));
 extern int sprintf P((char *, const char *, ...));
 extern int inet_aton P((char *p, in_addr *i));
+#ifdef PCBIOS
 extern void gateA20_set P((void));
 extern void gateA20_unset P((void));
+#else
+#define gateA20_set()
+#define gateA20_unset()
+#endif
 extern void putchar P((int));
 extern int getchar P((void));
 extern int iskey P((void));
@@ -526,8 +550,29 @@ extern int console_getc P((void));
 extern void console_putc P((int));
 extern int console_ischar P((void));
 extern int getshift P((void));
-extern unsigned int memsize P((void));
-extern unsigned short basememsize P((void));
+extern int int15 P((int));
+#ifdef	POWERSAVE
+extern void cpu_nap P((void));
+#endif	/* POWERSAVE */
+struct e820entry {
+	unsigned long long addr;
+	unsigned long long size;
+	unsigned long type;
+#define E820_RAM	1
+#define E820_RESERVED	2
+#define E820_ACPI	3 /* usable as RAM once ACPI tables have been read */
+#define E820_NVS	4
+};
+#define E820MAX 32
+struct meminfo {
+	unsigned short basememsize;
+	unsigned int memsize;
+	int map_count;
+	struct e820entry map[E820MAX];
+};
+extern struct meminfo meminfo;
+extern void get_memsizes(void);
+
 extern void disk_init P((void));
 extern unsigned int disk_read P((int drv,int c,int h,int s,char *buf));
 extern void xstart P((unsigned long, unsigned long, char *));
@@ -574,12 +619,8 @@ extern int defparams_max;
 #ifdef	MOTD
 extern char *motd[RFC1533_VENDOR_NUMOFMOTD];
 #endif
-#ifdef	BOOTP_DATA_AT_0x93C00
-#define	BOOTP_DATA_ADDR	((struct bootpd_t *)0x93C00)
-#else
 extern struct bootpd_t bootp_data;
 #define	BOOTP_DATA_ADDR	(&bootp_data)
-#endif
 extern unsigned char *end_of_rfc1533;
 #ifdef	IMAGE_FREEBSD
 extern int freebsd_howto;

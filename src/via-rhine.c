@@ -688,12 +688,12 @@ rhine_init_ring (struct nic *nic)
 
 	tp->rx_ring[i].buf_addr_1 = virt_to_bus (tp->rx_buffs[i]);
 	tp->rx_ring[i].buf_addr_2 = virt_to_bus (&tp->rx_ring[i + 1]);
-	/* printf("[%d]buf1=%x,buf2=%x",i,tp->rx_ring[i].buf_addr_1,tp->rx_ring[i].buf_addr_2); */
+	/* printf("[%d]buf1=%hX,buf2=%hX",i,tp->rx_ring[i].buf_addr_1,tp->rx_ring[i].buf_addr_2); */
     }
     /* Mark the last entry as wrapping the ring. */
     /* tp->rx_ring[i-1].rx_ctrl.bits.rx_buf_size =1518; */
     tp->rx_ring[i - 1].buf_addr_2 = virt_to_bus (&tp->rx_ring[0]);
-    /*printf("[%d]buf1=%x,buf2=%x",i-1,tp->rx_ring[i-1].buf_addr_1,tp->rx_ring[i-1].buf_addr_2); */
+    /*printf("[%d]buf1=%hX,buf2=%hX",i-1,tp->rx_ring[i-1].buf_addr_1,tp->rx_ring[i-1].buf_addr_2); */
 
     /* The Tx buffer descriptor is filled in as needed, but we
        do need to clear the ownership bit. */
@@ -705,11 +705,11 @@ rhine_init_ring (struct nic *nic)
 	tp->tx_ring[i].tx_ctrl.lw = 0x00e08000;
 	tp->tx_ring[i].buf_addr_1 = virt_to_bus (tp->tx_buffs[i]);
 	tp->tx_ring[i].buf_addr_2 = virt_to_bus (&tp->tx_ring[i + 1]);
-	/* printf("[%d]buf1=%x,buf2=%x",i,tp->tx_ring[i].buf_addr_1,tp->tx_ring[i].buf_addr_2); */
+	/* printf("[%d]buf1=%hX,buf2=%hX",i,tp->tx_ring[i].buf_addr_1,tp->tx_ring[i].buf_addr_2); */
     }
 
     tp->tx_ring[i - 1].buf_addr_2 = virt_to_bus (&tp->tx_ring[0]);
-    /* printf("[%d]buf1=%x,buf2=%x",i,tp->tx_ring[i-1].buf_addr_1,tp->tx_ring[i-1].buf_addr_2); */
+    /* printf("[%d]buf1=%hX,buf2=%hX",i,tp->tx_ring[i-1].buf_addr_1,tp->tx_ring[i-1].buf_addr_2); */
 }
 
 int
@@ -858,35 +858,12 @@ struct nic *
 rhine_probe (struct nic *nic, unsigned short *probeaddrs,
 	       struct pci_device *pci)
 {
-    unsigned char pci_latency;
-    unsigned short pci_command;
-
     if (!pci->ioaddr)
 	return NULL;
     nic = rhine_probe1 (nic, pci->ioaddr, 0, -1);
 
     if (nic)
-    {
-	/* Get and check the bus-master and latency values. */
-	pcibios_read_config_word (pci->bus, pci->devfn, PCI_COMMAND, &pci_command);
-	if (!(pci_command & PCI_COMMAND_MASTER))
-	{
-	    printf ("  PCI Master Bit has not been set! Setting...\n");
-	    pci_command |= PCI_COMMAND_MASTER;
-	    pcibios_write_config_word (pci->bus, pci->devfn, PCI_COMMAND,
-				       pci_command);
-	}
-	pcibios_read_config_byte (pci->bus, pci->devfn, PCI_LATENCY_TIMER,
-				  &pci_latency);
-	if (pci_latency < 10)
-	{
-	    printf ("  PCI latency timer (CFLT) is unreasonably low "
-		    "at %d.  Setting to 64 clocks.\n", pci_latency);
-	    pcibios_write_config_byte (pci->bus, pci->devfn, PCI_LATENCY_TIMER, 64);
-	}
-	else if (rhine_debug > 1)
-	    printf ("  PCI latency timer (CFLT) is %#x.\n", pci_latency);
-    }
+	adjust_pci_device(pci);
     nic->poll = rhine_poll;
     nic->transmit = rhine_transmit;
     nic->reset = rhine_reset;
@@ -908,14 +885,10 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 
     if (rhine_debug > 0 && did_version++ == 0)
 	printf (version);
-    printf ("IO adress %x ", ioaddr);
     /* Perhaps this should be read from the EEPROM? */
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < ETH_ALEN; i++)
 	nic->node_addr[i] = inb (byPAR0 + i);
-    printf ("Ethernet Address: ");
-    for (i = 0; i < 5; i++)
-	printf ("0x%b:", nic->node_addr[i]);
-    printf ("0x%b\n", nic->node_addr[i]);
+    printf ("IO address %hX Ethernet Address: %!\n", ioaddr, nic->node_addr);
 
     /* restart MII auto-negotiation */
     WriteMII (0, 9, 1, ioaddr);
@@ -933,7 +906,7 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 
 #if	0
 	/* JJM : for Debug */
-	printf("MII : Adress %b ",inb(ioaddr+0x6c));
+	printf("MII : Address %hhX ",inb(ioaddr+0x6c));
 	{
 	 unsigned char st1,st2,adv1,adv2,l1,l2;
 	
@@ -943,7 +916,7 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 	 adv2=ReadMII(4,ioaddr)&0xFF;
 	 l1=ReadMII(5,ioaddr)>>8;
 	 l2=ReadMII(5,ioaddr)&0xFF;
-	 printf(" status 0x%b%b, advertising 0x%b%b, link 0x%b%b\n", st1,st2,adv1,adv2,l1,l2);
+	 printf(" status 0x%hhX%hhX, advertising 0x%hhX%hhX, link 0x%hhX%hhX\n", st1,st2,adv1,adv2,l1,l2);
 	}
 #endif
 
@@ -1059,30 +1032,30 @@ rhine_reset (struct nic *nic)
     tx_ring_tmp1 = (int) virt_to_bus ((char *) tx_ring_tmp);
     j = (tx_ring_tmp1 + 32) & (~0x1f);
     tp->tx_ring = (struct rhine_tx_desc *) bus_to_virt (j);
-    /* printf ("rxring[%x]", j); */
+    /* printf ("rxring[%X]", j); */
 
 
     tx_bufs_tmp1 = (int) virt_to_bus ((char *) tx_bufs_tmp);
     j = (int) (tx_bufs_tmp1 + 32) & (~0x1f);
     tx_bufs_tmp = (int) bus_to_virt (j);
-    /* printf ("txb[%x]", j); */
+    /* printf ("txb[%X]", j); */
 
     rx_bufs_tmp1 = (int) virt_to_bus ((char *) rx_bufs_tmp);
     j = (int) (rx_bufs_tmp1 + 32) & (~0x1f);
     rx_bufs_tmp = (int) bus_to_virt (j);
-    /* printf ("rxb[%x][%x]", rx_bufs_tmp1, j); */
+    /* printf ("rxb[%X][%X]", rx_bufs_tmp1, j); */
 
     for (i = 0; i < RX_RING_SIZE; i++)
     {
 	tp->rx_buffs[i] = (char *) rx_bufs_tmp;
-	/* printf("r[%x]",tp->rx_buffs[i]); */
+	/* printf("r[%X]",tp->rx_buffs[i]); */
 	rx_bufs_tmp += 1536;
     }
 
     for (i = 0; i < TX_RING_SIZE; i++)
     {
 	tp->tx_buffs[i] = (char *) tx_bufs_tmp;
-	/* printf("t[%x]",tp->tx_buffs[i]);  */
+	/* printf("t[%X]",tp->tx_buffs[i]);  */
 	tx_bufs_tmp += 1536;
     }
 
@@ -1136,7 +1109,7 @@ rhine_poll (struct nic *nic)
 	}
 	else if (rxstatus & (RSR_ABNORMAL))
 	{
-	    printf ("rxerr[%x]\n", rxstatus);
+	    printf ("rxerr[%X]\n", rxstatus);
 	}
 	else
 	    good = 1;
@@ -1187,16 +1160,19 @@ rhine_transmit (struct nic *nic,
     CR1bak = inb (byCR1);
 
     CR1bak = CR1bak | CR1_TDMD1;
-    /*printf("tdsw=[%x]",tp->tx_ring[entry].tx_status.lw); */
-    /*printf("tdcw=[%x]",tp->tx_ring[entry].tx_ctrl.lw); */
-    /*printf("tdbuf1=[%x]",tp->tx_ring[entry].buf_addr_1); */
-    /*printf("tdbuf2=[%x]",tp->tx_ring[entry].buf_addr_2); */
-    /*printf("td1=[%x]",inl(dwCurrentTDSE0)); */
-    /*printf("td2=[%x]",inl(dwCurrentTDSE1)); */
-    /*printf("td3=[%x]",inl(dwCurrentTDSE2)); */
-    /*printf("td4=[%x]",inl(dwCurrentTDSE3)); */
+    /*printf("tdsw=[%X]",tp->tx_ring[entry].tx_status.lw); */
+    /*printf("tdcw=[%X]",tp->tx_ring[entry].tx_ctrl.lw); */
+    /*printf("tdbuf1=[%X]",tp->tx_ring[entry].buf_addr_1); */
+    /*printf("tdbuf2=[%X]",tp->tx_ring[entry].buf_addr_2); */
+    /*printf("td1=[%X]",inl(dwCurrentTDSE0)); */
+    /*printf("td2=[%X]",inl(dwCurrentTDSE1)); */
+    /*printf("td3=[%X]",inl(dwCurrentTDSE2)); */
+    /*printf("td4=[%X]",inl(dwCurrentTDSE3)); */
 
     outb (CR1bak, byCR1);
+    /* Wait until transmit is finished */
+    while (tp->tx_ring[entry].tx_status.bits.own_bit != 0)
+	;
     tp->cur_tx++;
 
     /*outw(IMRShadow,byIMR0); */

@@ -54,6 +54,7 @@
 #   0x900A : 10 Base FL
 #   0x9055 : 10/100 TPO
 #   0x9056 : 10/100 T4
+#   0x9058 : ?
 #   0x905A : 10 Base FX
 # Newer 90xC revision:
 #   0x9200 : 10/100 TPO (3C905C-TXM)
@@ -67,15 +68,26 @@
 3c905b-fl	3c90x		0x10b7,0x900a
 3c905b-tpo100	3c90x		0x10b7,0x9055
 3c905b-t4	3c90x		0x10b7,0x9056
+3c905b-9058	3c90x		0x10b7,0x9058
 3c905b-fx	3c90x		0x10b7,0x905a
 3c905c-tpo	3c90x		0x10b7,0x9200
 3c980		3c90x		0x10b7,0x9800
+3c9805		3c90x		0x10b7,0x9805
+3csoho100-tx	3c90x		0x10b7,0x7646
 # Intel Etherexpress Pro/100
 eepro100	eepro100	0x8086,0x1229
 82559er		eepro100	0x8086,0x1209
 id1029		eepro100	0x8086,0x1029
 id1030		eepro100	0x8086,0x1030
 82562em		eepro100	0x8086,0x2449
+
+#Intel Etherexpress Pro/1000
+e1000     	e1000		0x8086,0x1000
+e1000-fib	e1000		0x8086,0x1001
+e1000-cop	e1000		0x8086,0x1004
+e1000-ecop	e1000		0x8086,0x1008
+e1000-creb	e1000		0x8086,0x100d
+
 # Lance PCI PCNet/32
 lancepci	lance		0x1022,0x2000
 pcnetfastiii	lance		0x1022,0x2625
@@ -106,8 +118,10 @@ mx98715		tulip		0x10d9,0x0531
 mx98725		tulip		0x10d9,0x0531
 # Another Macronix clone?
 mxic-98715	tulip		0x1113,0x1217
-# ADMtek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
+# ADMTek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
 an981		tulip		0x1317,0x0981
+# ADMTek Comet 983 (reported by RISKO Gergely)
+an983		tulip		0x1113,0x1216
 # ADMtek Centaur-P Tulip clones
 centaur-p	tulip		0x1317,0x0985
 centaur-c	tulip		0x1317,0x1985
@@ -127,12 +141,14 @@ davicom9102	davicom		0x1282,0x9102
 davicom9009	davicom		0x1282,0x9009
 # Old base driver for Tulip, not much use now
 otulip		otulip		0x1011,0x0002
+# Realtek 8129
+rtl8129		rtl8139		0x10ec,0x8129
 # Realtek 8139
 rtl8139		rtl8139		0x10ec,0x8139
 # SMC1211 (uses Realtek 8139 but with different IDs)
 smc1211		rtl8139		0x1112,0x1211
-# D-Link DFE530TX+ (from mailing list posting)
-dfe530tx+	rtl8139		0x1186,0x1300
+# D-Link DFE538TX (from Linux 8139too driver)
+dfe538		rtl8139		0x1186,0x1300
 # Rhine-I, e.g. D-Link DFE-530TX
 dlink-530tx-old	via-rhine	0x1106,0x3043
 dlink-530tx	via-rhine	0x1106,0x3065
@@ -149,6 +165,8 @@ sis7016		sis900		0x1039,0x7016
 # A few NE2000 PCI clones, list not exhaustive
 # RealTek 8029
 rtl8029		ns8390		0x10ec,0x8029
+# D-Link DE528 (not confirmed, took numbers from pci.ids file)
+dlink-528	ns8390		0x1186,0x0300
 # Winbond 86C940
 winbond940	ns8390		0x1050,0x0940
 # Compex RL2000
@@ -157,6 +175,8 @@ compexrl2000	ns8390		0x11f6,0x1401
 ktiet32p2	ns8390		0x8e2e,0x3000
 # NetVin 5000SC
 nv5000sc	ns8390		0x4a14,0x5000
+# Holtek 80232
+holtek80232	ns8390		0x12c3,0x0058
 # WD8003/8013, SMC8216/8416
 wd		ns8390
 # NE1000/2000 and clones (ISA)
@@ -169,8 +189,6 @@ epic100		epic100		0x10b8,0x0005
 3c509
 # 3c529 == MCA 3c509
 3c529		3c509
-# 3c515 Fast EtherLink
-3c515		3c515
 # Intel Etherexpress Pro/10 (ISA card)
 eepro		eepro
 # Crystal Semiconductor CS89x0
@@ -196,3 +214,7 @@ natsemi		natsemi		0x100B,0x0020
 fa311		natsemi		0x100B,0x0020
 fa312		natsemi		0x100B,0x0020
 dp83815		natsemi		0x100B,0x0020
+# Alternate DP83815 driver
+fa311too	fa311		0x100B,0x0020
+# TI Thunderlan
+#olicom2326	tlan		0x108d,0x0014

@@ -564,7 +564,7 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 	for (brd = wd_boards; brd->name; brd++)
 		if (brd->id == c) break;
 	if (!brd->name) {
-		printf("Unknown WD/SMC NIC type %x\n", c);
+		printf("Unknown WD/SMC NIC type %hhX\n", c);
 		return (0);	/* Unknown type */
 	}
 	eth_flags = brd->flags;
@@ -589,13 +589,11 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 		}
 	}
 	outb(0x80, eth_asic_base + WD_MSR);	/* Reset */
-	printf("\n%s base %#x, memory %#x, addr ",
-		brd->name, eth_asic_base, eth_bmem);
 	for (i=0; i<ETH_ALEN; i++) {
-		printf("%b",(int)(nic->node_addr[i] =
-			inb(i+eth_asic_base+WD_LAR)));
-			if (i < ETH_ALEN-1) printf (":");
+		nic->node_addr[i] = inb(i+eth_asic_base+WD_LAR);
 	}
+	printf("\n%s base %#hx, memory %#hx, addr %!\n",
+		brd->name, eth_asic_base, eth_bmem, nic->node_addr);
 	if (eth_flags & FLAG_790) {
 		outb(WD_MSR_MENB, eth_asic_base+WD_MSR);
 		outb((inb(eth_asic_base+0x04) |
@@ -626,7 +624,6 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 		}
 		inb(0x84);
 	}
-	putchar('\n');
 #endif
 #ifdef	INCLUDE_3C503
         /******************************************************************
@@ -711,17 +708,16 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
         /* Get our ethernet address */
 
                 outb(_3COM_CR_EALO | _3COM_CR_XSEL, eth_asic_base + _3COM_CR);
-                printf("\n3Com 3c503 base %#x, ", eth_nic_base);
+                printf("\n3Com 3c503 base %#hx, ", eth_nic_base);
                 if (eth_flags & FLAG_PIO)
 			printf("PIO mode");
                 else
-			printf("memory %#x", eth_bmem);
-                printf(", %s, addr ", nic->flags ? "AUI" : "internal xcvr");
+			printf("memory %#hx", eth_bmem);
                 for (i=0; i<ETH_ALEN; i++) {
-                        printf("%b",(int)(nic->node_addr[i] =
-			inb(eth_nic_base+i)));
-                        if (i < ETH_ALEN-1) printf (":");
+                        nic->node_addr[i] = inb(eth_nic_base+i);
                 }
+                printf(", %s, addr %!\n", nic->flags ? "AUI" : "internal xcvr",
+			nic->node_addr);
                 outb(_3COM_CR_XSEL, eth_asic_base + _3COM_CR);
         /*
          * Initialize GA configuration register. Set bank and enable shared
@@ -750,9 +746,6 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
          */
                 outb(eth_tx_start, eth_asic_base + _3COM_PSTR);
                 outb(eth_memsize, eth_asic_base + _3COM_PSPR);
-
-                printf ("\n");
-
         }
 #endif
 #if	defined(INCLUDE_NE) || defined(INCLUDE_NS8390)
@@ -814,14 +807,12 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 			eth_flags |= FLAG_16BIT;
 		eth_vendor = VENDOR_NOVELL;
 		eth_pio_read(0, romdata, sizeof(romdata));
-		printf("\nNE%c000 base %#x, addr ",
-			(eth_flags & FLAG_16BIT) ? '2' : '1', eth_nic_base);
 		for (i=0; i<ETH_ALEN; i++) {
-			printf("%b",(int)(nic->node_addr[i] = romdata[i
-				+ ((eth_flags & FLAG_16BIT) ? i : 0)]));
-			if (i < ETH_ALEN-1) printf (":");
+			nic->node_addr[i] = romdata[i + ((eth_flags & FLAG_16BIT) ? i : 0)];
 		}
-		putchar('\n');
+		printf("\nNE%c000 base %#hx, addr %!\n",
+			(eth_flags & FLAG_16BIT) ? '2' : '1', eth_nic_base,
+			nic->node_addr);
 	}
 #endif
 	if (eth_vendor == VENDOR_NONE)

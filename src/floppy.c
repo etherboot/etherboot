@@ -1,4 +1,4 @@
-#ifdef	FLOPPY
+#ifdef	CAN_BOOT_DISK
 
 /*
  * This program is free software; you can redistribute it and/or
@@ -45,7 +45,7 @@ int bootdisk(int dev,int part)
 	if ((rc = disk_read_retry(dev,0,0,1)) != 0) {
 	readerr:
 		if (rc != 0xFFFF)
-			printf("read error (0x%b)",rc/256);
+			printf("read error (%#hhX)",rc/256);
 		return(0); }
 	if (part) {
 		partentry *ptr;

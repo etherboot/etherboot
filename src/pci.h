@@ -25,6 +25,8 @@
 #define PCI_COMMAND_MEM			0x2	/* Enable response in mem space */
 #define PCI_COMMAND_MASTER		0x4	/* Enable bus mastering */
 #define PCI_LATENCY_TIMER		0x0d	/* 8 bits */
+#define PCI_COMMAND_SPECIAL		0x8	/* Enable response to special cycles */
+#define PCI_COMMAND_INVALIDATE		0x10	/* Use memory write and invalidate */
 
 #define PCIBIOS_PCI_FUNCTION_ID         0xb1XX
 #define PCIBIOS_PCI_BIOS_PRESENT        0xb101
@@ -100,6 +102,7 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_ADMTEK_0985       0x0985
 #define PCI_VENDOR_ID_REALTEK           0x10ec
 #define PCI_DEVICE_ID_REALTEK_8029      0x8029
+#define PCI_DEVICE_ID_REALTEK_8129      0x8129
 #define PCI_DEVICE_ID_REALTEK_8139      0x8139
 #define PCI_VENDOR_ID_WINBOND2          0x1050
 #define PCI_DEVICE_ID_WINBOND2_89C940   0x0940
@@ -111,6 +114,8 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_KTI_ET32P2        0x3000
 #define PCI_VENDOR_ID_NETVIN            0x4a14
 #define PCI_DEVICE_ID_NETVIN_NV5000SC   0x5000
+#define	PCI_VENDOR_ID_HOLTEK		0x12c3
+#define	PCI_DEVICE_ID_HOLTEK_HT80232	0x0058
 #define PCI_VENDOR_ID_3COM		0x10b7
 #define PCI_DEVICE_ID_3COM_3C590	0x5900
 #define PCI_DEVICE_ID_3COM_3C595	0x5950
@@ -128,6 +133,11 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_INTEL_ID1029	0x1029
 #define PCI_DEVICE_ID_INTEL_ID1030	0x1030
 #define PCI_DEVICE_ID_INTEL_82562	0x2449
+#define PCI_DEVICE_ID_INTEL_82542        	0x1000
+#define PCI_DEVICE_ID_INTEL_82543GC_FIBER  	0x1001
+#define PCI_DEVICE_ID_INTEL_82543GC_COPPER 	0x1004
+#define PCI_DEVICE_ID_INTEL_82544EI_COPPER 	0x1008
+#define PCI_DEVICE_ID_INTEL_82544GC_CREB   	0x100D
 #define PCI_VENDOR_ID_AMD		0x1022
 #define PCI_DEVICE_ID_AMD_LANCE		0x2000
 #define PCI_VENDOR_ID_AMD_HOMEPNA	0x1022
@@ -144,6 +154,7 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 # define PCI_DEVICE_ID_SMC_EPIC100	0x0005
 #endif
 #define PCI_VENDOR_ID_MACRONIX		0x10d9
+#define PCI_DEVICE_ID_MX987x3		0x0512
 #define PCI_DEVICE_ID_MX987x5		0x0531
 #define PCI_VENDOR_ID_LINKSYS		0x11AD
 #define PCI_DEVICE_ID_LC82C115		0xC115
@@ -161,17 +172,32 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define	PCI_DEVICE_ID_DFE530TXP		0x1300
 #define	PCI_VENDOR_ID_NS		0x100B
 #define	PCI_DEVICE_ID_DP83815		0x0020
+#define PCI_VENDOR_ID_OLICOM		0x108d
+#define PCI_DEVICE_ID_OLICOM_OC3136	0x0001
+#define PCI_DEVICE_ID_OLICOM_OC2315	0x0011
+#define PCI_DEVICE_ID_OLICOM_OC2325	0x0012
+#define PCI_DEVICE_ID_OLICOM_OC2183	0x0013
+#define PCI_DEVICE_ID_OLICOM_OC2326	0x0014
+#define PCI_DEVICE_ID_OLICOM_OC6151	0x0021
+
+struct pci_id {
+	unsigned short vendor, dev_id;
+	const char *name;
+};
 
 struct pci_device {
 	unsigned short	vendor, dev_id;
 	const char	*name;
+	/* membase and ioaddr are silly and depricated */
 	unsigned int	membase;
-	unsigned short	ioaddr;
+	unsigned int	ioaddr;
 	unsigned char	devfn;
 	unsigned char	bus;
+	struct pci_id *	probe_id;
+	unsigned int	romaddr;
 };
 
-extern void	eth_pci_init(struct pci_device *);
+extern void eth_find_pci(struct pci_id *idlist, int ids, struct pci_device *dev);
 
 extern int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned char *value);
 extern int pcibios_write_config_byte (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned char value);
@@ -179,4 +205,5 @@ extern int pcibios_read_config_word(unsigned int bus, unsigned int device_fn, un
 extern int pcibios_write_config_word (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned short value);
 extern int pcibios_read_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int *value);
 extern int pcibios_write_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int value);
+void adjust_pci_device(struct pci_device *p);
 #endif	/* PCI_H */

@@ -6,7 +6,7 @@
  *   Bruce Schneier 'Applied Cryptography', pages 436-441, 2nd Edition, 1996,
  *     John Wiley & Sons, Inc., ISBN 0-471-11709-9.
  * The MD5 algorithm has been invented by Ron Rivest/"RSA Data Security, Inc.";
- * Bruce Scheier refers to RFC1321 as the original publication.
+ * Bruce Schneier refers to RFC1321 as the original publication.
  *
  * This implementation is copyright 1997 by M. Gutschke.
  *

@@ -185,29 +185,16 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 	struct pci_device *pci)
 {
 	int i;
-	struct pci_device *p;
 	int speed10, fullduplex;
 
 	/* There are enough "RTL8139" strings on the console already, so
 	 * be brief and concentrate on the interesting pieces of info... */
 	printf(" - ");
-	if (probeaddrs == 0 || probeaddrs[0] == 0) {
-		printf("\nERROR: no probeaddrs given, using pci_device\n");
-		for (p = pci; p->vendor; p++) {
-			if ( ( (p->vendor == PCI_VENDOR_ID_REALTEK)
-			    && (p->dev_id == PCI_DEVICE_ID_REALTEK_8139) )
-			  || ( (p->vendor == PCI_VENDOR_ID_SMC_1211)
-			    && (p->dev_id == PCI_DEVICE_ID_SMC_1211) ) ) {
-				probeaddrs[0] = p->ioaddr;
-				printf("rtl8139: probing %x (membase %x)\n",
-					p->ioaddr, p->membase);
-			}
-		}
-		return 0;
-	}
 
 	/* Mask the bit that says "this is an io addr" */
 	ioaddr = probeaddrs[0] & ~3;
+
+	adjust_pci_device(pci);
 
 	/* Bring the chip out of low-power mode. */
 	outb(0x00, ioaddr + Config1);
@@ -222,15 +209,10 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 			*ap++ = inb(ioaddr + MAC0 + i);
 	}
 
-	printf("ioaddr %#x, addr ", ioaddr);
-
-	for (i = 0; i < ETH_ALEN; i++) {
-		printf("%b", nic->node_addr[i]);
-		if (i < ETH_ALEN-1) putchar(':');
-	}
 	speed10 = inb(ioaddr + MediaStatus) & MSRSpeed10;
 	fullduplex = inw(ioaddr + MII_BMCR) & BMCRDuplex;
-	printf(" %sMbps %s-duplex\n", speed10 ? "10" : "100",
+	printf("ioaddr %#hX, addr %! %sMbps %s-duplex\n", ioaddr,
+		nic->node_addr,  speed10 ? "10" : "100",
 		fullduplex ? "full" : "half");
 
 	rtl_reset(nic);
@@ -314,7 +296,7 @@ static void rtl_reset(struct nic* nic)
 	while ((inb(ioaddr + ChipCmd) & CmdReset) != 0 && timer2_running())
 		/* wait */;
 
-	for (i = 0; i < 6; i++)
+	for (i = 0; i < ETH_ALEN; i++)
 		outb(nic->node_addr[i], ioaddr + MAC0 + i);
 
 	/* Must enable Tx/Rx before setting transfer thresholds! */
@@ -355,15 +337,16 @@ static void rtl_transmit(struct nic *nic, const char *destaddr,
 	unsigned int status, to, nstype;
 	unsigned long txstatus;
 
+	/* nstype assignment moved up here to avoid gcc 3.0.3 compiler bug */
+	nstype = htons(type);
 	memcpy(tx_buffer, destaddr, ETH_ALEN);
 	memcpy(tx_buffer + ETH_ALEN, nic->node_addr, ETH_ALEN);
-	nstype = htons(type);
-	memcpy(tx_buffer + 2 * ETH_ALEN, (char*)&nstype, 2);
+	memcpy(tx_buffer + 2 * ETH_ALEN, &nstype, 2);
 	memcpy(tx_buffer + ETH_HLEN, data, len);
 
 	len += ETH_HLEN;
 #ifdef	DEBUG_TX
-	printf("sending %d bytes ethtype %x\n", len, type);
+	printf("sending %d bytes ethtype %hX\n", len, type);
 #endif
 
 	/* Note: RTL8139 doesn't auto-pad, send minimum payload (another 4
@@ -392,12 +375,12 @@ static void rtl_transmit(struct nic *nic, const char *destaddr,
 	if (status & TxOK) {
 		cur_tx = (cur_tx + 1) % NUM_TX_DESC;
 #ifdef	DEBUG_TX
-		printf("tx done (%d ticks), status %x txstatus %X\n",
+		printf("tx done (%d ticks), status %hX txstatus %X\n",
 			to-currticks(), status, txstatus);
 #endif
 	} else {
 #ifdef	DEBUG_TX
-		printf("tx timeout/error (%d ticks), status %x txstatus %X\n",
+		printf("tx timeout/error (%d ticks), status %hX txstatus %X\n",
 			currticks()-to, status, txstatus);
 #endif
 		rtl_reset(nic);
@@ -419,7 +402,7 @@ static int rtl_poll(struct nic *nic)
 	outw(status & ~(RxFIFOOver | RxOverflow | RxOK), ioaddr + IntrStatus);
 
 #ifdef	DEBUG_RX
-	printf("rtl_poll: int %x ", status);
+	printf("rtl_poll: int %hX ", status);
 #endif
 
 	ring_offs = cur_rx % RX_BUF_LEN;
@@ -429,7 +412,7 @@ static int rtl_poll(struct nic *nic)
 
 	if ((rx_status & (RxBadSymbol|RxRunt|RxTooLong|RxCRCErr|RxBadAlign)) ||
 	    (rx_size < ETH_ZLEN) || (rx_size > ETH_FRAME_LEN + 4)) {
-		printf("rx error %x\n", rx_status);
+		printf("rx error %hX\n", rx_status);
 		rtl_reset(nic);	/* this clears all interrupts still pending */
 		return 0;
 	}
@@ -451,7 +434,7 @@ static int rtl_poll(struct nic *nic)
 #endif
 	}
 #ifdef	DEBUG_RX
-	printf(" at %X type %b%b rxstatus %x\n",
+	printf(" at %X type %hhX%hhX rxstatus %hX\n",
 		(unsigned long)(rx_ring+ring_offs+4),
 		nic->packet[12], nic->packet[13], rx_status);
 #endif

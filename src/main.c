@@ -52,9 +52,7 @@ int freebsd_howto = 0;
 char freebsd_kernel_env[256];
 #endif
 
-#ifndef	BOOTP_DATA_AT_0x93C00
 struct bootpd_t bootp_data;
-#endif
 
 #ifdef	NO_DHCP_SUPPORT
 char    rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
@@ -67,7 +65,7 @@ unsigned char rfc1533_end[] = {RFC1533_END };
 static const unsigned char dhcpdiscover[] = {
 	RFC2132_MSG_TYPE,1,DHCPDISCOVER,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
-	sizeof(struct bootpd_t) / 256, sizeof(struct bootpd_t) % 256,
+	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
 	RFC2132_PARAM_LIST,4,RFC1533_NETMASK,RFC1533_GATEWAY,
@@ -78,7 +76,7 @@ static const unsigned char dhcprequest [] = {
 	RFC2132_SRV_ID,4,0,0,0,0,
 	RFC2132_REQ_ADDR,4,0,0,0,0,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
-	sizeof(struct bootpd_t) / 256, sizeof(struct bootpd_t) % 256,
+	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
 	/* request parameters */
@@ -149,6 +147,46 @@ static void load_configuration(void);
 static void load(void);
 static int downloadkernel(unsigned char *data, int block, int len, int eof);
 static unsigned short ipchksum(unsigned short *ip, int len);
+static unsigned short udpchksum(struct iphdr *packet);
+#ifdef FREEBSD_PXEEMU
+static int pxeemu_entry(struct v86 *v86_p, int *v86_call_flag,
+			int pxeemu_func_nr, vm_offset_t pxeemu_func_arg);
+
+static pxenv_t pxenv = {
+        {'P','X','E','N','V','+'},      /* Signature    */
+        0x0100,                         /* Version      */
+        sizeof(pxenv_t),                /* Length       */
+        0,                              /* Checksum     */
+        {0, 0},                         /* RMEntry      */
+        (uint32_t)pxeemu_entry,		/* PMOffset     */
+        0,                              /* PMSelector   */
+        0,                              /* StackSeg     */
+        0,                              /* StackSize    */
+        0,                              /* BC_CodeSeg   */
+        0,                              /* BC_CodeSize  */
+        0,                              /* BC_DataSeg   */
+        0,                              /* BC_DataSize  */
+        0,                              /* UNDIDataSeg  */
+        0,                              /* UNDIDataSize */
+        0,                              /* UNDICodeSeg  */
+        0,                              /* UNDICodeSize */
+        {0, 0}                          /* !PXEPtr      */
+};
+
+static jmpbuf		pxeemu_v86call_jbuf;
+static jmpbuf		pxeemu_entry_jbuf;
+extern char		pxeemu_nbp_active;
+static char		pxeemu_boot_flag;
+
+#define PXEEMU_EXIT_ADJ		2
+#define PXENV_EXIT_SUCCESS	(0x0000 + PXEEMU_EXIT_ADJ)
+#define PXENV_EXIT_FAILURE	(0x0001 + PXEEMU_EXIT_ADJ)
+#define PXEEMU_EXIT_V86INT	(0x0002 + PXEEMU_EXIT_ADJ)
+
+#define PXENV_STATUS_SUCCESS	(PXENV_EXIT_SUCCESS - PXEEMU_EXIT_ADJ)
+#define PXENV_STATUS_FAILURE	(PXENV_EXIT_FAILURE - PXEEMU_EXIT_ADJ)
+
+#endif	/* FREEBSD_PXEBOOT */
 
 static inline void ask_boot(void)
 {
@@ -178,13 +216,13 @@ done:
 
 static inline void try_floppy_first(void)
 {
-#if (TRY_FLOPPY_FIRST > 0) && defined (FLOPPY)
+#if (TRY_FLOPPY_FIRST > 0) && defined(CAN_BOOT_DISK)
 	int i;
 	printf("Trying floppy");
 	disk_init();
 	for (i = TRY_FLOPPY_FIRST; i-- > 0; ) {
 		putchar('.');
-		if (disk_read(0, 0, 0, 0, ((char *) FLOPPY_BOOT_LOCATION)) != 0x8000) {
+		if (disk_read(0, 0, 0, 0, ((char *)FLOPPY_BOOT_LOCATION)) != 0x8000) {
 			printf("using floppy\n");
 			exit(0);
 		}
@@ -200,6 +238,7 @@ int main(void)
 {
 	char *p;
 	static int card_retries = 0;
+	static int adapter = -1;
 	int i;
 
 	for (p = edata; p < end; p++)
@@ -214,11 +253,12 @@ int main(void)
 #endif
 
 	rom = *(struct rom_info *)ROM_INFO_LOCATION;
-	printf("ROM segment %#x length %#x reloc %#x\n", rom.rom_segment,
+	printf("ROM segment %#hx length %#hx reloc %#hx\n", rom.rom_segment,
 		rom.rom_length << 1, ((unsigned long)_start) >> 4);
 
 	gateA20_set();
 	print_config();
+	get_memsizes();
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
 	   0:	retry booting bootp and tftp
@@ -232,7 +272,7 @@ int main(void)
 			/* We just called setjmp ... */
 			ask_boot();
 			try_floppy_first();
-			if (!eth_probe()) {
+			if ((adapter = eth_probe(adapter)) < 0) {
 				printf("No adapter found\n");
 				interruptible_sleep(++card_retries);
 				longjmp(restart_etherboot, -1);
@@ -273,7 +313,7 @@ int main(void)
 /**************************************************************************
 LOADKERNEL - Try to load kernel image
 **************************************************************************/
-#ifndef	FLOPPY
+#ifndef	CAN_BOOT_DISK
 #define loadkernel(s) download((s), downloadkernel)
 #else
 static int loadkernel(const char *fname)
@@ -336,14 +376,14 @@ LOAD - Try to get booted
 static void load(void)
 {
 	const char	*kernel;
-	printf("Me: %I, Server: %I",
+	printf("Me: %@, Server: %@",
 		arptable[ARP_CLIENT].ipaddr.s_addr,
 		arptable[ARP_SERVER].ipaddr.s_addr);
 	if (BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr)
-		printf(", Relay: %I",
+		printf(", Relay: %@",
 			BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr);
 	if (arptable[ARP_GATEWAY].ipaddr.s_addr)
-		printf(", Gateway %I", arptable[ARP_GATEWAY].ipaddr.s_addr);
+		printf(", Gateway %@", arptable[ARP_GATEWAY].ipaddr.s_addr);
 	putchar('\n');
 
 #ifdef	MDEBUG
@@ -364,7 +404,7 @@ static void load(void)
 	rpc_init();
 #endif
 	kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
-	printf("Loading %I:%s ", arptable[ARP_SERVER].ipaddr, kernel);
+	printf("Loading %@:%s ", arptable[ARP_SERVER].ipaddr, kernel);
 	loadkernel(kernel); /* We don't return except on error */
 	printf("Unable to load file.\n");
 	interruptible_sleep(2);		/* lay off the server for a while */
@@ -414,6 +454,8 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 	udp->dest = htons(destsock);
 	udp->len = htons(len - sizeof(struct iphdr));
 	udp->chksum = 0;
+	if ((udp->chksum = htons(udpchksum(ip))) == 0)
+		udp->chksum = 0xffff;
 	if (destip == IP_BROADCAST) {
 		eth_transmit(broadcast, IP, len, buf);
 	} else {
@@ -424,7 +466,7 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 		for(arpentry = 0; arpentry<MAX_ARP; arpentry++)
 			if (arptable[arpentry].ipaddr.s_addr == destip) break;
 		if (arpentry == MAX_ARP) {
-			printf("%I is not in my arp table!\n", destip);
+			printf("%@ is not in my arp table!\n", destip);
 			return(0);
 		}
 		for (i = 0; i < ETH_ALEN; i++)
@@ -461,6 +503,9 @@ DOWNLOADKERNEL - Try to load file
 **************************************************************************/
 static int downloadkernel(unsigned char *data, int block, int len, int eof)
 {
+#ifdef	FREEBSD_PXEEMU
+	static char *pxeemu_nbp_addr = (char *) 0x7C00;
+#endif
 #ifdef	SIZEINDICATOR
 	static int rlen = 0;
 
@@ -481,6 +526,9 @@ static int downloadkernel(unsigned char *data, int block, int len, int eof)
 #endif
 	if (block == 1)
 	{
+#ifdef FREEBSD_PXEEMU
+		pxeemu_boot_flag = 0;
+#endif
 #ifdef	SIZEINDICATOR
 		rlen=len;
 #endif
@@ -493,6 +541,10 @@ static int downloadkernel(unsigned char *data, int block, int len, int eof)
 #endif
 #ifdef	AOUT_IMAGE
 		    *((unsigned short *)data) == 0x010BL ||
+#endif
+#ifdef	FREEBSD_PXEEMU
+		    (*((unsigned long *)(data + 2)) == 0x42455850 &&
+		     (pxeemu_boot_flag = 1)) ||
 #endif
 		    0))
 		{
@@ -513,12 +565,50 @@ static int downloadkernel(unsigned char *data, int block, int len, int eof)
 		}
 	}
 	if (len != 0) {
+#ifdef	FREEBSD_PXEEMU
+		if(pxeemu_boot_flag == 0) {
+#endif
 		if (!os_download(block, data, len))
 			return(0); /* error */
+#ifdef	FREEBSD_PXEEMU
+		} else {
+			memcpy(pxeemu_nbp_addr, data, len);
+			pxeemu_nbp_addr += len;
+		}
+#endif
 	}
 	if (eof) {
+#ifdef FREEBSD_PXEEMU
+		if(pxeemu_boot_flag == 0) {
+#endif
 		os_download(block+1, data, 0); /* does not return */
 		return(0); /* error */
+#ifdef FREEBSD_PXEEMU
+		} else {
+			uint8_t val, *ptr, counter;
+
+			ptr = (uint8_t*) &pxenv;
+			val = 0;
+			for(counter = 0; counter < pxenv.Length; ++counter, 
+								 ++ptr)
+			val += *ptr;
+			pxenv.Checksum = 0xff - val + 1;
+			printf("\n");
+
+
+   __asm__ __volatile__	(
+			 "movb $1, pxeemu_nbp_active\n"
+			 "call _prot_to_real\n"
+			 ".code16\n"
+			 "movw %0, %%ax\n"                    
+			 "movw %%ax, %%es\n"
+			 "movl %1, %%ebx\n"
+			 "ljmp $0x0,$0x7c00\n"
+			 ".code32\n"
+			 : : "i" (RELOC >> 4), 
+			     "g" (((vm_offset_t)&pxenv) - RELOC));
+		}
+#endif
 	}
 	return(-1); /* there is more data */
 }
@@ -624,6 +714,11 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
  *	But that's fixed by the IP, UDP and BOOTP specs.
  */
 					len = sizeof(tp.ip) + sizeof(tp.udp) + sizeof(tp.opcode) + sizeof(tp.u.err.errcode) +
+/*
+ *	Normally bad form to omit the format string, but in this case
+ *	the string we are copying from is fixed. sprintf is just being
+ *	used as a strcpy and strlen.
+ */
 						sprintf((char *)tp.u.err.errmsg,
 						"RFC1782 error") + 1;
 					udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
@@ -646,7 +741,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 		else /* neither TFTP_OACK nor TFTP_DATA */
 			break;
 
-		if ((block || bcounter) && (block != prevblock+1)) {
+		if ((block || bcounter) && (block != (unsigned short)(prevblock+1))) {
 			/* Block order should be continuous */
 			tp.u.ack.block = htons(block = prevblock);
 		}
@@ -793,6 +888,57 @@ static int bootp(void)
 #endif	/* RARP_NOT_BOOTP */
 
 /**************************************************************************
+UDPCHKSUM - Checksum UDP Packet (one of the rare cases when assembly is
+            actually simpler...)
+ RETURNS: checksum, 0 on checksum error. This
+          allows for using the same routine for RX and TX summing:
+          RX  if (packet->udp.chksum && udpchksum(packet))
+                  error("checksum error");
+          TX  packet->udp.chksum=0;
+              if (0==(packet->udp.chksum=udpchksum(packet)))
+                  packet->upd.chksum=0xffff;
+**************************************************************************/
+static inline void dosum(unsigned short *start, unsigned int len, unsigned short *sum)
+{
+	__asm__ __volatile__(
+	"clc\n"
+	"1:\tlodsw\n\t"
+	"xchg %%al,%%ah\n\t"	/* convert to host byte order */
+	"adcw %%ax,%0\n\t"	/* add carry of previous iteration */
+	"loop 1b\n\t"
+	"adcw $0,%0"		/* add carry of last iteration */
+	: "=b" (*sum), "=S"(start), "=c"(len)
+	: "0"(*sum), "1"(start), "2"(len)
+	: "ax", "cc"
+	);
+}
+
+/* UDP sum:
+ * proto, src_ip, dst_ip, udp_dport, udp_sport, 2*udp_len, payload
+ */
+static unsigned short udpchksum(struct iphdr *packet)
+{
+	char *ptr = (char *) packet;
+	int len = ntohs(packet->len);
+	unsigned short rval;
+
+	/* add udplength + protocol number */
+	rval = (len - sizeof(struct iphdr)) + IP_UDP;
+
+	/* pad to an even number of bytes */
+	if (len % 2) {
+		((char *) packet)[len++] = 0;
+	}
+
+	/* sum over src/dst ipaddr + udp packet */
+	len -= (char *) &packet->src - (char *) packet;
+	dosum((unsigned short *) &packet->src, len >> 1, &rval);
+
+	/* take one's complement */
+	return (~rval);
+}
+
+/**************************************************************************
 AWAIT_REPLY - Wait until we get a response for our request
 **************************************************************************/
 int await_reply(int type, int ival, void *ptr, int timeout)
@@ -826,8 +972,10 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 				arpreply = (struct arprequest *)
 					&nic.packet[ETH_HLEN];
 				if ((arpreply->opcode == htons(ARP_REPLY)) &&
-				   !memcmp(arpreply->sipaddr, ptr, sizeof(in_addr)) &&
-				   (type == AWAIT_ARP)) {
+				    /* Check for AWAIT_ARP before compare */
+				    (type == AWAIT_ARP) &&
+				    !memcmp(arpreply->sipaddr, ptr, 
+					   sizeof(in_addr))) {
 					memcpy(arptable[ival].node, arpreply->shwaddr, ETH_ALEN);
 					return(1);
 				}
@@ -844,7 +992,7 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 						arpreply);
 #ifdef	MDEBUG
 					memcpy(&tmp, arpreply->tipaddr, sizeof(in_addr));
-					printf("Sent ARP reply to: %I\n",tmp);
+					printf("Sent ARP reply to: %@\n",tmp);
 #endif	/* MDEBUG */
 				}
 				continue;
@@ -878,8 +1026,25 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 			if ((ip->verhdrlen != 0x45) ||
 				ipchksum((unsigned short *)ip, sizeof(struct iphdr)) ||
 				(ip->protocol != IP_UDP)) continue;
+/*
+	- Till Straumann <Till.Straumann@TU-Berlin.de>
+	  added udp checksum (safer on a wireless link)
+	  added fragmentation check: I had a corrupted image
+	  in memory due to fragmented TFTP packets - took me
+	  3 days to find the cause for this :-(
+*/
+			/* If More Fragments bit and Fragment Offset field
+			   are non-zero then packet is fragmented */
+			if (ip->frags & htons(0x3FFF)) {
+				printf("ALERT: got a fragmented packet - reconfigure your server\n");
+				continue;
+			}
 			udp = (struct udphdr *)&nic.packet[ETH_HLEN +
 				sizeof(struct iphdr)];
+			if (udp->chksum && udpchksum(ip)) {
+				printf("UDP checksum error\n");
+				continue;
+			}
 
 					/* BOOTP ? */
 			bootpreply = (struct bootp_t *)&nic.packet[ETH_HLEN + sizeof(struct iphdr) + sizeof(struct udphdr)];
@@ -939,12 +1104,21 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 			}
 #endif	/* DOWNLOAD_PROTO_NFS */
 
+#ifdef	FREEBSD_PXEEMU
+			/* Address & Port check logic done by calee */
+			if(type == AWAIT_UDP)
+				return(1);
+#endif
 		} else {
 			/* Check for abort key only if the Rx queue is empty -
 			 * as long as we have something to process, don't
 			 * assume that something failed.  It is unlikely that
 			 * we have no processing time left between packets.  */
-			if (iskey() && (getchar() == ESC))
+			if (
+#ifdef FREEBSD_PXEEMU
+			    pxeemu_nbp_active == 0 &&
+#endif
+			    iskey() && (getchar() == ESC))
 				longjmp(restart_etherboot, -1);
 			/* Do the timeout after at least a full queue walk.  */
 			if ((timeout == 0) || (currticks() > time)) {
@@ -1114,7 +1288,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			unsigned char *q;
 			printf("Unknown RFC1533-tag ");
 			for(q=p;q<p+2+TAG_LEN(p);q++)
-				printf("%x ",*q);
+				printf("%hhX ",*q);
 			putchar('\n');
 #endif
 		}
@@ -1186,6 +1360,177 @@ void cleanup(void)
 	ansi_reset();
 #endif
 }
+
+#ifdef FREEBSD_PXEEMU
+#define	V86INT()	do {	*pxeemu_v86_flag = 1;			\
+				if(setjmp(pxeemu_v86call_jbuf) == 0)	\
+					longjmp(pxeemu_entry_jbuf,	\
+						PXEEMU_EXIT_V86INT);	\
+				*pxeemu_v86_flag = 0;			\
+			} while(0);
+
+static struct v86	*v86_p;
+static int		*pxeemu_v86_flag;
+static int		pxeemu_func_nr;
+static vm_offset_t	pxeemu_func_arg;
+static int		retval;
+
+static int pxeemu_entry(struct v86 *x_v86_p, int *x_pxeemu_v86_flag,
+			int x_pxeemu_func_nr, vm_offset_t x_pxeemu_func_arg)
+{
+	v86_p = x_v86_p;
+	pxeemu_v86_flag = x_pxeemu_v86_flag;
+	pxeemu_func_nr = x_pxeemu_func_nr;
+	pxeemu_func_arg = x_pxeemu_func_arg;
+
+	if(*pxeemu_v86_flag == 1)
+		longjmp(pxeemu_v86call_jbuf, 1);
+	else {
+		if( (retval = setjmp(pxeemu_entry_jbuf)) != 0)
+			goto pxeemu_exit;
+
+		/* Switch Stacks */
+		__asm__("xorl %%eax, %%eax\n"
+			"movw initsp, %%ax\n"
+			"addl %0, %%eax\n"
+			"movl %%eax, %%esp\n"
+			: : "i" (RELOC));
+	}
+
+	switch(pxeemu_func_nr)
+	{
+	    case PXENV_GET_CACHED_INFO:
+	    {
+ 		t_PXENV_GET_CACHED_INFO *s =
+				(t_PXENV_GET_CACHED_INFO*) pxeemu_func_arg;
+		char *buf;
+		
+		if(s->PacketType != PXENV_PACKET_TYPE_BINL_REPLY
+		   || s->Buffer.segment != 0 || s->Buffer.offset != 0) {
+			s->Status = PXENV_STATUS_FAILURE;
+			retval = PXENV_EXIT_FAILURE;
+			break;
+		}
+
+		s->Buffer.segment = (RELOC >> 4);
+		s->Buffer.offset = (((vm_offset_t)&bootp_data) - RELOC);
+		s->BufferSize = sizeof(struct bootpd_t);
+		s->BufferLimit = sizeof(struct bootpd_t);
+		s->Status = PXENV_STATUS_SUCCESS;
+		retval = PXENV_EXIT_SUCCESS;
+		break;
+	    }
+	    case PXENV_UDP_OPEN:
+	    {
+		t_PXENV_UDP_OPEN *s = (t_PXENV_UDP_OPEN*) pxeemu_func_arg;
+		arptable[ARP_CLIENT].ipaddr.s_addr = s->src_ip;
+		s->status = PXENV_STATUS_SUCCESS;
+		retval = PXENV_EXIT_SUCCESS;		
+		break;
+	    }
+	    case PXENV_UDP_WRITE:
+	    {
+		t_PXENV_UDP_WRITE *s = (t_PXENV_UDP_WRITE*) pxeemu_func_arg;
+		void *ptr = (void*)(s->buffer.segment << 4)+s->buffer.offset;
+		struct udppacket_t packet;
+		int sz;
+		
+		sz = min(s->buffer_size, UDP_MAX_PAYLOAD);
+		memcpy(packet.payload, ptr, sz);
+		sz += sizeof(struct iphdr) + sizeof(struct udphdr);
+
+		if(s->src_port == 0)
+			s->src_port = 2069;	/* XXX #define ??? */
+
+		if(udp_transmit(s->ip,
+				htons(s->src_port), htons(s->dst_port), 
+				sz, &packet) == 0) 
+		{
+    		    s->status = PXENV_STATUS_FAILURE;
+		    retval = PXENV_EXIT_FAILURE;
+		} else {
+		    s->status = PXENV_STATUS_SUCCESS;
+		    retval = PXENV_EXIT_SUCCESS;
+		}
+		break;
+	    }
+	    case PXENV_UDP_READ:
+	    {
+		t_PXENV_UDP_READ *s = (t_PXENV_UDP_READ*) pxeemu_func_arg;
+redo_pxenv_udp_read:
+		if(await_reply(AWAIT_UDP,
+			       arptable[ARP_CLIENT].ipaddr.s_addr, 
+			       0, 0) == 0) 
+		{
+			s->status = PXENV_STATUS_FAILURE;
+			retval = PXENV_EXIT_FAILURE;
+		} else {
+			struct udppacket_t *packet = (struct udppacket_t*)&nic.packet[ETH_HLEN];
+			void *ptr = (void*)(s->buffer.segment << 4);
+			ptr += s->buffer.offset;
+
+				if(((s->dest_ip != 0) &&
+				    (s->dest_ip != packet->ip.dest.s_addr)) ||
+				   ((s->d_port != 0) &&
+				    (s->d_port != packet->udp.dest)))
+					goto redo_pxenv_udp_read;
+
+			s->src_ip = packet->ip.src.s_addr;
+			s->s_port = packet->udp.src;
+			s->buffer_size = min(nic.packetlen 
+						- sizeof(struct udppacket_t)
+						+ UDP_MAX_PAYLOAD,
+					     s->buffer_size);
+			memcpy(ptr, packet->payload, s->buffer_size);
+			s->status = PXENV_STATUS_SUCCESS;
+			retval = PXENV_EXIT_SUCCESS;
+		}
+		break;
+	    }
+	    case PXENV_UDP_CLOSE:
+	    {
+		t_PXENV_UDP_CLOSE *s = (t_PXENV_UDP_CLOSE*) pxeemu_func_arg;
+		s->status = PXENV_STATUS_SUCCESS;
+		retval = PXENV_EXIT_SUCCESS;		
+		break;
+	    }
+	    case PXENV_UNLOAD_STACK:
+	    {
+		t_PXENV_UNLOAD_STACK *s = (t_PXENV_UNLOAD_STACK*) pxeemu_func_arg;
+		s->Status = PXENV_STATUS_SUCCESS;
+		retval = PXENV_EXIT_SUCCESS;		
+		break;
+	    }
+	    case PXENV_UNDI_SHUTDOWN:
+	    {
+		t_PXENV_UNDI_SHUTDOWN *s = (t_PXENV_UNDI_SHUTDOWN*) pxeemu_func_arg;
+		eth_reset();
+		s->Status = PXENV_STATUS_SUCCESS;
+		retval = PXENV_EXIT_SUCCESS;		
+		break;
+	    }
+	    default:
+		printf("Un-implemented PXE API function %d\n", pxeemu_func_nr);
+		retval = PXENV_EXIT_FAILURE;
+		break;
+	}
+
+	longjmp(pxeemu_entry_jbuf, retval);
+pxeemu_exit:
+	
+	return retval - PXEEMU_EXIT_ADJ;
+}
+
+void pxeemu_console_putc(uint32_t c)
+{
+	v86_p->ctl = 0;
+	v86_p->addr = 0x10;
+	v86_p->eax = c;
+	v86_p->ebx = 0x7;
+	V86INT();
+	return;
+}
+#endif
 
 /*
  * Local variables:

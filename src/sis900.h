@@ -39,14 +39,16 @@ enum sis900_registers {
 
 /* Symbolic names for bits in various registers */
 enum sis900_command_register_bits {
-    RESET   = 0x00000100, 
-    SWI     = 0x00000080, 
-    RxRESET = 0x00000020,
-    TxRESET = 0x00000010, 
-    RxDIS   = 0x00000008, 
-    RxENA   = 0x00000004,
-    TxDIS   = 0x00000002, 
-    TxENA   = 0x00000001
+    RELOAD     = 0x00000400,
+    ACCESSMODE = 0x00000200,
+    RESET      = 0x00000100, 
+    SWI        = 0x00000080, 
+    RxRESET    = 0x00000020,
+    TxRESET    = 0x00000010, 
+    RxDIS      = 0x00000008, 
+    RxENA      = 0x00000004,
+    TxDIS      = 0x00000002, 
+    TxENA      = 0x00000001
 };
 
 enum sis900_configuration_register_bits {
@@ -57,7 +59,10 @@ enum sis900_configuration_register_bits {
     EXD      = 0x00000010, 
     PESEL    = 0x00000008, 
     LPM      = 0x00000004, 
-    BEM      = 0x00000001
+    BEM      = 0x00000001,
+    RND_CNT  = 0x00000400,
+    FAIR_BACKOFF = 0x00000200,
+    EDB_MASTER_EN = 0x00002000
 };
 
 enum sis900_eeprom_access_reigster_bits {
@@ -107,6 +112,10 @@ enum sis900_interrupt_enable_reigster_bits {
 #define RxMXDMA_shift   20
 #define TX_DMA_BURST    0
 #define RX_DMA_BURST    0
+
+enum sis900_tx_rx_dma{
+	        DMA_BURST_512 = 0,      DMA_BURST_64 = 5
+};
 
 /* transmit FIFO threshholds */
 #define TX_FILL_THRESH  16      /* 1/4 FIFO size */
@@ -172,6 +181,7 @@ enum sis900_eeprom_command {
     EEeraseAll      = 0x0120,
     EEwriteAll      = 0x0110, 
     EEaddrMask      = 0x013F, 
+    EEcmdShift 	    = 16
 };
 
 /* Manamgement Data I/O (mdio) frame */
@@ -236,7 +246,8 @@ enum sis_mii_registers {
     MII_CONFIG1 = 0x0010,
     MII_CONFIG2 = 0x0011,
     MII_STSOUT  = 0x0012,
-    MII_MASK    = 0x0013
+    MII_MASK    = 0x0013,
+    MII_RESV    = 0x0014
 };
 
 /* mii registers specific to AMD 79C901 */
@@ -320,7 +331,9 @@ enum mii_stssum_register_bits {
 
 enum sis900_revision_id {
 	SIS630A_900_REV = 0x80,		SIS630E_900_REV = 0x81,
-	SIS630S_900_REV = 0x82,		SIS630EA1_900_REV = 0x83
+	SIS630S_900_REV = 0x82,		SIS630EA1_900_REV = 0x83,
+	SIS630ET_900_REV = 0x84,        SIS635A_900_REV = 0x90,
+	SIS900B_900_REV = 0x03
 };
 
 enum sis630_revision_id {

@@ -22,7 +22,7 @@ use Getopt::Long;
 
 use strict;
 
-use vars qw($testing $verbose $nonet $floppy $libdir $tftpdir $output
+use vars qw($testing $verbose $localtime $nonet $floppy $libdir $tftpdir $output
 	$format $tempdir $tempmount);
 
 sub findversion () {
@@ -66,7 +66,7 @@ sub gzip ($) {
 	my ($file) = @_;
 
 	print "Gzipping $file\n" if ($verbose);
-	my $status = system('gzip', '-f', $file);
+	my $status = system('gzip', '-9', '-f', $file);
 	return ($status / 256);
 }
 
@@ -121,8 +121,10 @@ sub bunzip2untar ($$) {
 
 $testing = $< != 0;
 $verbose = 1;
+$format = '';
 GetOptions('output=s' => \$output,
 	'nonet!' => \$nonet,
+	'localtime=s' => \$localtime,
 	'format=s' => \$format);
 if (defined($output) and $output !~ m(^/)) {
 	my $d = `pwd`;
@@ -155,7 +157,7 @@ print "Copying files off floppy, please be patient...\n";
 &gunzip('initrd.gz') == 0 or die "Gunzip of initrd.gz failed\n";
 mkdir($tempmount, 0755);
 &loopbackmount('initrd', $tempmount) == 0 or die "Loopback mount failed\n";
-&dostounix("$libdir/linuxrc", "linuxrc");
+&dostounix("$libdir/linuxrc", "linuxrc") if (-r "$libdir/linuxrc");
 &dostounix("$libdir/floppyfw.ini", "floppyfw.ini");
 &dostounix("config", "etc/config");
 for my $i (glob('floppyfw/add.bz2 modules/*.bz2 packages/*.bz2')) {
@@ -176,6 +178,15 @@ system("cp -p licenses/* $tempmount/licenses/");
 unless (glob('modules/*.bz2')) {
 	print "Copying additional modules\n" if ($verbose);
 	system("cp -p modules/* $tempmount/lib/modules/");
+}
+# If a timezone file has been specified, copy that onto initrd
+if (defined($localtime)) {
+	if (-r $localtime) {
+		print "Copying $localtime to $tempmount/etc/localtime\n";
+		system("cp -p $localtime $tempmount/etc/localtime");
+	} else {
+		print "$localtime: $!\n";
+	}
 }
 &loopbackumount($tempmount) == 0 or die "Loopback umount failed\n";
 &gzip('initrd') == 0 or die "Gzip of initrd failed\n";

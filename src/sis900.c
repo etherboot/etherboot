@@ -27,6 +27,9 @@
 /* Revision History */
 
 /*
+  04 Jan 2002  Chien-Yu Chen, Doug Ambrisko, Marty Connor  Patch to Etherboot 5.0.5
+     Added support for the SiS 630ET plus various bug fixes from linux kernel
+     source 2.4.17.
   01 March 2001  mdc     1.0
      Initial Release.  Tested with PCI based sis900 card and ThinkNIC
      computer.
@@ -51,6 +54,7 @@ static int sis900_debug = 0;
 
 static unsigned short vendor, dev_id;
 static unsigned long ioaddr;
+static u8 pci_revision;
 
 static unsigned int cur_phy;
 
@@ -108,10 +112,9 @@ static struct mii_phy {
 
 
 // PCI to ISA bridge for SIS640E access
-static struct pci_device   pci_isa_bridge_list[] = {
+static struct pci_id   pci_isa_bridge_list[] = {
 	{ 0x1039, 0x0008,
-		"SIS 85C503/5513 PCI to ISA bridge", 0, 0, 0, 0},
-	{0, 0, NULL, 0, 0, 0, 0}
+		"SIS 85C503/5513 PCI to ISA bridge"},
 };
 
 /* Function Prototypes */
@@ -157,7 +160,7 @@ static int sis900_get_mac_addr(struct pci_device * pci_dev , struct nic *nic)
 	/* check to see if we have sane EEPROM */
 	signature = (u16) sis900_read_eeprom( EEPROMSignature);
 	if (signature == 0xffff || signature == 0x0000) {
-		printf ("sis900_probe: Error EERPOM read %x\n", signature);
+		printf ("sis900_probe: Error EERPOM read %hX\n", signature);
 		return 0;
 	}
 
@@ -181,18 +184,20 @@ static int sis630e_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
 {
 	u8 reg;
 	int i;
-	struct pci_device	*p;
+	struct pci_device	p[1];
 
-	// find PCI to ISA bridge
-	eth_pci_init(pci_isa_bridge_list);
+	/* find PCI to ISA bridge */
+	eth_find_pci(pci_isa_bridge_list, 
+	    sizeof(pci_isa_bridge_list)/sizeof(pci_isa_bridge_list[0]), p);
 
-    /* the firts entry in this list should contain bus/devfn */
-    p = pci_isa_bridge_list;
+	/* error on failure */
+	if (!p->probe_id)
+	    return 0;
 
 	pcibios_read_config_byte(p->bus,p->devfn, 0x48, &reg);
 	pcibios_write_config_byte(p->bus,p->devfn, 0x48, reg | 0x40);
 
-	for (i = 0; i < 6; i++)
+	for (i = 0; i < ETH_ALEN; i++)
 	{
 		outb(0x09 + i, 0x70);
 		((u8 *)(nic->node_addr))[i] = inb(0x71);
@@ -200,6 +205,41 @@ static int sis630e_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
 	pcibios_write_config_byte(p->bus,p->devfn, 0x48, reg & ~0x40);
 
 	return 1;
+}
+
+/**
+ *      sis630e_get_mac_addr: - Get MAC address for SiS630E model
+ *      @pci_dev: the sis900 pci device
+ *      @net_dev: the net device to get address for
+ *
+ *      SiS630E model, use APC CMOS RAM to store MAC address.
+ *      APC CMOS RAM is accessed through ISA bridge.
+ *      MAC address is read into @net_dev->dev_addr.
+ */
+
+static int sis635_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
+{
+        u32 rfcrSave;
+        u32 i;
+
+        rfcrSave = inl(rfcr + ioaddr);
+
+        outl(rfcrSave | RELOAD, ioaddr + cr);
+        outl(0, ioaddr + cr);
+
+        /* disable packet filtering before setting filter */
+        outl(rfcrSave & ~RFEN, rfcr + ioaddr);
+
+        /* load MAC addr to filter data register */
+        for (i = 0 ; i < 3 ; i++) {
+                outl((i << RFADDR_shift), ioaddr + rfcr);
+                *( ((u16 *)nic->node_addr) + i) = inw(ioaddr + rfdr);
+        }
+
+        /* enable packet filitering */
+        outl(rfcrSave | RFEN, rfcr + ioaddr);
+
+        return 1;
 }
 
 /* 
@@ -235,13 +275,20 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
     /* wakeup chip */
     pcibios_write_config_dword(pci->bus, pci->devfn, 0x40, 0x00000000);
 
+    adjust_pci_device(pci);
+
     /* get MAC address */
     ret = 0;
     pcibios_read_config_byte(pci->bus,pci->devfn, PCI_REVISION, &revision);
-    if (revision == SIS630E_900_REV || revision == SIS630EA1_900_REV)
+    
+    /* save for use later in sis900_reset() */
+    pci_revision = revision; 
+
+    if (revision == SIS630E_900_REV || revision == SIS630EA1_900_REV 
+	|| revision == SIS630S_900_REV)
        ret = sis630e_get_mac_addr(pci, nic);
-    else if (revision == SIS630S_900_REV)
-        ret = sis630e_get_mac_addr(pci, nic);
+    else if ((revision > 0x81) && (revision <= 0x90))
+        ret = sis635_get_mac_addr(pci, nic);
     else
         ret = sis900_get_mac_addr(pci, nic);
 
@@ -251,11 +298,13 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
         return NULL;
     }
 
-    printf("\nsis900_probe: MAC addr %b:%b:%b:%b:%b:%b at ioaddr %#x\n",
-           nic->node_addr[0],nic->node_addr[1],nic->node_addr[2],
-           nic->node_addr[3],nic->node_addr[4],nic->node_addr[5],
-           ioaddr);
-    printf("sis900_probe: Vendor:%#x Device:%#x\n", vendor, dev_id);
+    /* 630ET : set the mii access mode as software-mode */
+    if (revision == SIS630ET_900_REV)
+	outl(ACCESSMODE | inl(ioaddr + cr), ioaddr + cr);
+
+    printf("\nsis900_probe: MAC addr %! at ioaddr %#hX\n",
+           nic->node_addr, ioaddr);
+    printf("sis900_probe: Vendor:%#hX Device:%#hX\n", vendor, dev_id);
 
     /* probe for mii transceiver */
     /* search for total of 32 possible mii phy addresses */
@@ -264,7 +313,7 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
     for (phy_addr = 0; phy_addr < 32; phy_addr++) {
         u16 mii_status;
         u16 phy_id0, phy_id1;
-                
+
         mii_status = sis900_mdio_read(phy_addr, MII_STATUS);
         if (mii_status == 0xffff || mii_status == 0x0000)
             /* the mii is not accessable, try next one */
@@ -272,7 +321,7 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
                 
         phy_id0 = sis900_mdio_read(phy_addr, MII_PHY_ID0);
         phy_id1 = sis900_mdio_read(phy_addr, MII_PHY_ID1);
-                
+
         /* search our mii table for the current mii */ 
         for (i = 0; mii_chip_table[i].phy_id1; i++) {
 
@@ -432,6 +481,7 @@ static u16 sis900_mdio_read(int phy_id, int location)
         outl(MDC, mdio_addr);
         sis900_mdio_delay();
     }
+    outl(0x00, mdio_addr);
     return retval;
 }
 
@@ -471,6 +521,7 @@ static void sis900_mdio_write(int phy_id, int location, int value)
         outb(MDC, mdio_addr);
         sis900_mdio_delay();
     }
+    outl(0x00, mdio_addr);
     return;
 }
 
@@ -500,7 +551,7 @@ sis900_init(struct nic *nic)
 
     sis900_check_mode(nic);
 
-    outl(RxENA, ioaddr + cr);
+    outl(RxENA| inl(ioaddr + cr), ioaddr + cr);
 }
 
 
@@ -519,18 +570,23 @@ sis900_reset(struct nic *nic)
 {
     int i = 0;
     u32 status = TxRCMP | RxRCMP;
+    u8 revision;
 
     outl(0, ioaddr + ier);
     outl(0, ioaddr + imr);
     outl(0, ioaddr + rfcr);
 
-    outl(RxRESET | TxRESET | RESET, ioaddr + cr);
-        
+    outl(RxRESET | TxRESET | RESET | inl(ioaddr + cr), ioaddr + cr);
+
     /* Check that the chip has finished the reset. */
     while (status && (i++ < 1000)) {
         status ^= (inl(isr + ioaddr) & status);
     }
-    outl(PESEL, ioaddr + cfg);
+
+    if( (pci_revision == SIS635A_900_REV) || (pci_revision == SIS900B_900_REV) )
+            outl(PESEL | RND_CNT, ioaddr + cfg);
+    else
+            outl(PESEL, ioaddr + cfg);
 }
 
 
@@ -552,7 +608,7 @@ sis900_init_rxfilter(struct nic *nic)
     rfcrSave = inl(rfcr + ioaddr);
 
     /* disable packet filtering before setting filter */
-    outl(rfcrSave & ~RFEN, rfcr);
+    outl(rfcrSave & ~RFEN, rfcr + ioaddr);
 
     /* load MAC addr to filter data register */
     for (i = 0 ; i < 3 ; i++) {
@@ -563,7 +619,7 @@ sis900_init_rxfilter(struct nic *nic)
         outl(w, ioaddr + rfdr);
 
         if (sis900_debug > 0)
-            printf("sis900_init_rxfilter: Receive Filter Addrss[%d]=%x\n",
+            printf("sis900_init_rxfilter: Receive Filter Addrss[%d]=%X\n",
                    i, inl(ioaddr + rfdr));
     }
 
@@ -674,15 +730,21 @@ static void sis900_set_rx_mode(struct nic *nic)
  */
 
 static void
-sis900_check_mode (struct nic *nic)
+sis900_check_mode(struct nic *nic)
 {
     int speed, duplex;
     u32 tx_flags = 0, rx_flags = 0;
 
     mii.chip_info->read_mode(nic, cur_phy, &speed, &duplex);
 
-    tx_flags = TxATP | (TX_DMA_BURST << TxMXDMA_shift) | (TX_FILL_THRESH << TxFILLT_shift);
-    rx_flags = RX_DMA_BURST << RxMXDMA_shift;
+    if( inl(ioaddr + cfg) & EDB_MASTER_EN ) {
+        tx_flags = TxATP | (DMA_BURST_64 << TxMXDMA_shift) | (TX_FILL_THRESH << TxFILLT_shift);
+	rx_flags = DMA_BURST_64 << RxMXDMA_shift;
+    }
+    else {
+            tx_flags = TxATP | (DMA_BURST_512 << TxMXDMA_shift) | (TX_FILL_THRESH << TxFILLT_shift);
+            rx_flags = DMA_BURST_512 << RxMXDMA_shift;
+    }
 
     if (speed == HW_SPEED_HOME || speed == HW_SPEED_10_MBPS) {
         rx_flags |= (RxDRNT_10 << RxDRNT_shift);
@@ -718,20 +780,29 @@ sis900_read_mode(struct nic *nic, int phy_addr, int *speed, int *duplex)
 {
     int i = 0;
     u32 status;
+    u16 phy_id0, phy_id1;
         
     /* STSOUT register is Latched on Transition, read operation updates it */
     while (i++ < 2)
         status = sis900_mdio_read(phy_addr, MII_STSOUT);
 
-    if (status & MII_STSOUT_SPD)
-        *speed = HW_SPEED_100_MBPS;
-    else
-        *speed = HW_SPEED_10_MBPS;
-
-    if (status & MII_STSOUT_DPLX)
-        *duplex = FDX_CAPABLE_FULL_SELECTED;
-    else
-        *duplex = FDX_CAPABLE_HALF_SELECTED;
+    *speed = HW_SPEED_10_MBPS;
+    *duplex = FDX_CAPABLE_HALF_SELECTED;
+    
+    if (status & (MII_NWAY_TX | MII_NWAY_TX_FDX))
+	*speed = HW_SPEED_100_MBPS;
+    if (status & ( MII_NWAY_TX_FDX | MII_NWAY_T_FDX))
+	*duplex = FDX_CAPABLE_FULL_SELECTED;
+	
+    /* Workaround for Realtek RTL8201 PHY issue */
+    phy_id0 = sis900_mdio_read(phy_addr, MII_PHY_ID0);
+    phy_id1 = sis900_mdio_read(phy_addr, MII_PHY_ID1);
+    if((phy_id0 == 0x0000) && ((phy_id1 & 0xFFF0) == 0x8200)){
+	if(sis900_mdio_read(phy_addr, MII_CONTROL) & MII_CNTL_FDX)
+	    *duplex = FDX_CAPABLE_FULL_SELECTED;
+	if(sis900_mdio_read(phy_addr, 0x0019) & 0x01)
+	    *speed = HW_SPEED_100_MBPS;
+    }
 
     if (status & MII_STSOUT_LINK_FAIL)
         printf("sis900_read_mode: Media Link Off\n");
@@ -878,7 +949,7 @@ static void rtl8201_read_mode(struct nic *nic, int phy_addr, int *speed, int *du
 		       *duplex == FDX_CAPABLE_FULL_SELECTED ?
 		       "full" : "half");
 	else
-		printf("rtl9201_read_config_mode: Media Link Off\n");
+		printf("rtl8201_read_config_mode: Media Link Off\n");
 }
 
 /* Function: sis900_transmit
@@ -904,7 +975,7 @@ sis900_transmit(struct nic  *nic,
     u32 tx_status;
     
     /* Stop the transmitter */
-    outl(TxDIS, ioaddr + cr);
+    outl(TxDIS | inl(ioaddr + cr), ioaddr + cr);
 
     /* load Transmit Descriptor Register */
     outl((u32) &txd, ioaddr + txdp); 
@@ -922,7 +993,7 @@ sis900_transmit(struct nic  *nic,
     s &= DSIZE;
 
     if (sis900_debug > 1)
-        printf("sis900_transmit: sending %d bytes ethtype %x\n", (int) s, t);
+        printf("sis900_transmit: sending %d bytes ethtype %hX\n", (int) s, t);
 
     /* pad to minimum packet size */
     while (s < ETH_ZLEN)  
@@ -933,7 +1004,7 @@ sis900_transmit(struct nic  *nic,
     txd.cmdsts = (u32) OWN | s;
 
     /* restart the transmitter */
-    outl(TxENA, ioaddr + cr);
+    outl(TxENA | inl(ioaddr + cr), ioaddr + cr);
 
     if (sis900_debug > 1)
         printf("sis900_transmit: Queued Tx packet size %d.\n", (int) s);
@@ -1007,7 +1078,7 @@ sis900_poll(struct nic *nic)
         cur_rx = 0;
 
     /* re-enable the potentially idle receive state machine */
-    outl(RxENA , ioaddr + cr);
+    outl(RxENA | inl(ioaddr + cr), ioaddr + cr);
 
     return retstat;
 }
@@ -1030,5 +1101,5 @@ sis900_disable(struct nic *nic)
     outl(0, ioaddr + ier);
     
     /* Stop the chip's Tx and Rx Status Machine */
-    outl(RxDIS | TxDIS, ioaddr + cr);
+    outl(RxDIS | TxDIS | inl(ioaddr + cr), ioaddr + cr);
 }

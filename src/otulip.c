@@ -359,12 +359,10 @@ struct nic *otulip_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
 
         srom_read();
 
-	for (i=0; i < 6; i++)
+	for (i=0; i < ETH_ALEN; i++)
 		nic->node_addr[i] = srom[20+i];
 
-        printf("Tulip %b:%b:%b:%b:%b:%b at ioaddr %#x\n",
-                srom[20],srom[21],srom[22],srom[23],srom[24],srom[25],
-                ioaddr);
+        printf("Tulip %! at ioaddr %#hX\n", nic->node_addr, ioaddr);
 
         tulip_reset(nic);
 

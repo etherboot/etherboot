@@ -1,8 +1,61 @@
-Etherboot 5.1.1
+Etherboot 5.1.2
 
-This is a development release.  Some important notes have been retained
-from the 4.7 development series. Please read the documentation for more
-details.
+E820 memory sizing support has been added by Eric Biederman. LinuxBIOS
+compatibility is much better now, with major changes submitted by Eric.
+
+Christopher Li has written the first Gigabit Ethernet driver, e1000.
+
+A couple more variants of existing NICs supported, i.e. the SiS900,
+SiS630ET and the Tulip.
+
+Holtek HT80232 has been added to the list of NE2000 PCI clones.
+
+Gate A20 enabling and disabling may work better with modern BIOSes now.
+
+There is support for FreeBSD booting using a PXE style secondary loader.
+
+Please, please, take care with the XCVR options for the 3c90x. They
+affect operation with Linux drivers later.
+
+If you find that your PnP BIOS does not recognise the ROM image (not
+floppy image) as a PnP BIOS extension, it could be that it's not fully
+compliant with the BIOS Boot Specification. Try defining
+-DBBS_BUT_NOT_PNP_COMPLIANT.
+
+The rotating bar progress display has been replaced by a sequence of
+dots, one for each transmitted packet. This is kinder to dumb displays,
+e.g. serial terminals, and gives a better feel for how the loading is
+going. If you want the rotating bar, use -DBAR_PROGRESS.
+
+PCI ID 0x9805 (3C980), and PCI ID 0x7646 which is listed as 3CSOHO100-TX
+in Linux kernel 3c59x.c, have been added to the list of NICs.
+
+The option FLOPPY is now called CAN_BOOT_DISK which describes it better,
+as it also controls fallback HD booting.
+
+There is a new option POWERSAVE which halts the CPU to save power while
+waiting for user input. But it may not work for all CPUs, so it's
+optional.
+
+There is a check in the Makefile for gcc 2.96, because it has been
+reported that RH 7.[01]'s gcc ("gcc 2.96") generates buggy code when
+compiling Etherboot. You can disable the check and use at your own risk,
+see the Makefile.  If you must compile on RH 7.[01], I recommend kgcc.
+When I say work, I mean work in general; some people have reported
+success with gcc 2.96, if you're one, good for you but if you get
+strange behaviour, give kgcc a try.
+
+loader.S has had the .fill changed to an .org which may or may not help
+people having trouble assembling it, getting an internal inconsistency
+error from the assembler.
+
+Developers note! Printf formats have changed to be a subset of C formats
+to reduce confusion. In short (X -> X, x -> hX, b -> hhX, I -> @ and a
+new one, !, for printing Ethernet addresses). Lowercase versions of X
+are also available as is the optional #. See misc.c for a full
+description. Also now there is no internal buffer on output to stdout so
+you can use printf to display large buffers, etc. without fear of
+exceeding any buffer limit.
 
 PXE loadable images can be generated, just say make bin32/nic.pxe or
 make bin32/nic.lzpxe where nic is the name of the NIC. This allows you
@@ -15,6 +68,10 @@ This release contains patches to make images that can be run under
 LinuxBIOS. To make an image, edit Config to enable the EBI options (and
 disable TAGGED_IMAGE), then make bin32/driver.ebi, where driver is the
 name of a supported PCI NIC.
+
+The file diskless-windows-howto.html formerly under
+contrib/Diskless-From-NT is now maintained at the LTSP site
+(www.ltsp.org).
 
 There is a driver for NICs based on the National Semiconductor DP83815
 now. Netgear FA311/312 are two that are DP83815 based.
@@ -59,11 +116,6 @@ want 00 00 02 due to an ambiguity in the original specification.
 
 You need gas 2.9.5 or later to be able to assemble loader.S and
 boot1a.s.
-
-It has been reported that RH 7.0's gcc ("gcc 2.96") generates buggy code
-when compiling Etherboot. Please do not use it. If you must compile on
-RH 7.0, use kgcc. RH 7.1's gcc may or may not work, I haven't had any
-reports either way.
 
 If you are booting kernel 2.2.18 or later, or 2.4.5 or later, you MUST
 specify ip=dhcp (or bootp or one of the other options, see kernel

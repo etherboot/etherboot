@@ -163,7 +163,7 @@ const char *p)			/* Packet */
 	int status;
 
 #ifdef	EDEBUG
-	printf("{l=%d,t=%x}",s+ETH_HLEN,t);
+	printf("{l=%d,t=%hX}",s+ETH_HLEN,t);
 #endif
 
 	/* swap bytes of type */
@@ -227,7 +227,7 @@ static int t509_poll(struct nic *nic)
 
 #ifdef	EDEBUG
 	if(cst & 0x1FFF)
-		printf("-%x-",cst);
+		printf("-%hX-",cst);
 #endif
 
 	if( (cst & S_RX_COMPLETE)==0 ) {
@@ -240,7 +240,7 @@ static int t509_poll(struct nic *nic)
 
 	status = inw(BASE + EP_W1_RX_STATUS);
 #ifdef	EDEBUG
-	printf("*%x*",status);
+	printf("*%hX*",status);
 #endif
 
 	if (status & ERR_RX) {
@@ -264,7 +264,7 @@ static int t509_poll(struct nic *nic)
 	while(1) {
 		status = inw(BASE + EP_W1_RX_STATUS);
 #ifdef	EDEBUG
-		printf("*%x*",status);
+		printf("*%hX*",status);
 #endif
 		rx_fifo = status & RX_BYTES_MASK;
 		if(rx_fifo>0) {
@@ -292,9 +292,9 @@ static int t509_poll(struct nic *nic)
 	type = (nic->packet[12]<<8) | nic->packet[13];
 	if(nic->packet[0]+nic->packet[1]+nic->packet[2]+nic->packet[3]+nic->packet[4]+
 	    nic->packet[5] == 0xFF*ETH_ALEN)
-		printf(",t=%#x,b]",type);
+		printf(",t=%hX,b]",type);
 	else
-		printf(",t=%#x]",type);
+		printf(",t=%hX]",type);
 #endif
 	return (1);
 }
@@ -527,7 +527,7 @@ struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
 	 */
 	if (mcafound) {
 		if (mcafound->id != k) {
-			printf("MCA: PROD_ID in EEPROM does not match MCA card ID! (%x != %x)\n", k, mcafound->id);
+			printf("MCA: PROD_ID in EEPROM does not match MCA card ID! (%hX != %hX)\n", k, mcafound->id);
 			goto no3c509;
 		}
 	} else { /* for ISA/EISA */
@@ -541,14 +541,14 @@ struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
 
 #ifdef	INCLUDE_3C529
 	if (mcafound) {
-		printf("%s board found on MCA at %#x IRQ %d -",
+		printf("%s board found on MCA at %#hx IRQ %d -",
 		       mcafound->name, eth_nic_base, mca_irq);
 	} else {
 #endif
 		if(eth_nic_base >= EP_EISA_START)
-			printf("3C5x9 board on EISA at %#x - ",eth_nic_base);
+			printf("3C5x9 board on EISA at %#hx - ",eth_nic_base);
 		else
-			printf("3C5x9 board on ISA at %#x - ",eth_nic_base);
+			printf("3C5x9 board on ISA at %#hx - ",eth_nic_base);
 #ifdef	INCLUDE_3C529
 	}
 #endif
@@ -600,10 +600,7 @@ struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
 		GO_WINDOW(2);
 		outw(ntohs(p[i]), BASE + EP_W2_ADDR_0 + (i * 2));
 	}
-	printf("Ethernet address: ");
-	for(i = 0; i < ETH_ALEN - 1; i++)
-		printf("%b:", nic->node_addr[i]);
-	printf("%b\n", nic->node_addr[ETH_ALEN-1]);
+	printf("Ethernet address: %!\n", nic->node_addr);
 	t509_reset(nic);
 	nic->reset = t509_reset;
 	nic->poll = t509_poll;

@@ -115,7 +115,7 @@ static int get_eeprom_data(int off, int len, unsigned short *buffer)
 	int i;
 
 #ifdef	EDEBUG
-	printf("\ncs: EEPROM data from %x for %x:",off,len);
+	printf("\ncs: EEPROM data from %hX for %hX:",off,len);
 #endif
 	for (i = 0; i < len; i++) {
 		if (wait_eeprom_ready() < 0)
@@ -129,7 +129,7 @@ static int get_eeprom_data(int off, int len, unsigned short *buffer)
 #ifdef	EDEBUG
 		if (!(i%10))
 			printf("\ncs: ");
-		printf("%x ", buffer[i]);
+		printf("%hX ", buffer[i]);
 #endif
 	}
 #ifdef	EDEBUG
@@ -402,7 +402,7 @@ retry:
 	     (s = readreg(PP_TxEvent)&~0x1F) == 0 && currticks() < tmo;)
 		/* nothing */ ;
 	if ((s & TX_SEND_OK_BITS) != TX_OK) {
-		printf("\ntransmission error %#x\n", s);
+		printf("\ntransmission error %#hX\n", s);
 	}
 
 	return;
@@ -477,7 +477,7 @@ struct nic *cs89x0_probe(struct nic *nic, unsigned short *probe_addrs)
 		eth_cs_type = rev_type &~ REVISON_BITS;
 		cs_revision = ((rev_type & REVISON_BITS) >> 8) + 'A';
 
-		printf("\ncs: cs89%c0%s rev %c, base %#x",
+		printf("\ncs: cs89%c0%s rev %c, base %#hX",
 		       eth_cs_type==CS8900?'0':'2',
 		       eth_cs_type==CS8920M?"M":"",
 		       cs_revision,
@@ -538,9 +538,9 @@ struct nic *cs89x0_probe(struct nic *nic, unsigned short *probe_addrs)
 
 		/* Retrieve and print the ethernet address. */
 		for (i=0; i<ETH_ALEN; i++) {
-			printf("%b%s",(int)(nic->node_addr[i] =
-					  ((unsigned char *)eeprom_buff)[i]),
-			       i < ETH_ALEN-1 ? ":" : "\n"); }
+			nic->node_addr[i] = ((unsigned char *)eeprom_buff)[i];
+		}
+		printf("%!\n", nic->node_addr);
 
 		/* Set the LineCTL quintuplet based on adapter
 		   configuration read from EEPROM */

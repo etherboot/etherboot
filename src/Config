@@ -18,6 +18,9 @@
 #			Assume Network to previous question
 #			(alternative: ANS_LOCAL) on timeout or Return key
 #			See etherboot.h for prompt and answer strings.
+#	-DBAR_PROGRESS
+#			Use rotating bar instead of sequential dots
+#			to indicate an IP packet transmitted.
 #	-DMOTD
 #			Display message of the day; read vendortags.html
 #			for further information.
@@ -96,14 +99,15 @@
 #
 #	Boot device options:
 #
-#	-DFLOPPY
-#			Boot from floppy/hd if bootimage matches the
-#			pattern "/dev/[fh]d*".
+#	-DCAN_BOOT_DISK
+#			Can boot from floppy/hd if bootimage matches the
+#			pattern "/dev/[fhs]d*".
 #	-DTRY_FLOPPY_FIRST
 #			If > 0, tries that many times to read the boot
 #			sector from a floppy drive before booting from
 #			ROM. If successful, does a local boot.
-#			It assumes the floppy is bootable. Requires -DFLOPPY.
+#			It assumes the floppy is bootable.
+#			Requires -DCAN_BOOT_DISK.
 #	-DEMERGENCYDISKBOOT
 #			If no BOOTP server can be found, then boot from
 #			local disk. The accessibility of the TFTP server
@@ -128,11 +132,14 @@
 #			-DAOUT_IMAGE and/or -DELF_IMAGE).
 #	-DFREEBSD_KERNEL_ENV
 #			Pass in FreeBSD kernel environment
+#	-DAOUT_LYNX_KDI
+#			Add Lynx a.out KDI support
+#
 #	-DDOWNLOAD_PROTO_TFTP
-#			If defined, boots by tftp (recommended).
+#			If defined, boots by TFTP (recommended).
 #	-DDOWNLOAD_PROTO_NFS
 #			If defined, boots from a NFS mount and disables
-#			tftp loading. Default is DOWNLOAD_PROTO_TFTP
+#			TFTP loading. Default is DOWNLOAD_PROTO_TFTP
 #			if neither is defined.
 #
 #	Console options:
@@ -153,9 +160,29 @@
 #			bits and parity. See a National Semiconditor 8250/
 #			16450/16550 data sheet for bit meanings.
 #			If undefined, defaults to 0x03 = 8N1.
+#	-DCOMPRESERVE
+#			Ignore COMSPEED and COMPARAM and instead preserve
+#			the com port parameters from the previous user
+#			of the com port.  Examples of previous user are a BIOS
+#			that implements console redirection, lilo and LinuxBIOS.
+#			This makes it trivial to keep the serial port
+#			speed setting in sync between multiple users.
+#			You set the speed in the first user and the
+#			rest follow along.
 #
 #	BIOS interface options:
 #
+#	-DPCBIOS
+#			Compile in support for the normal pcbios
+#	-DLINUXBIOS
+#			Compile in support for LinuxBIOS
+#
+#	-DBBS_BUT_NOT_PNP_COMPLIANT
+#			Some BIOSes claim to be PNP but they don't conform
+#			to the BBS spec which specifies that ES:DI must
+#			point to the string $PnP on entry. This option
+#			works around those. This option must be added to
+#			LCONFIG.
 #	-DNO_DELAYED_INT
 #			Take control as soon as BIOS detects the ROM.
 #			Normally hooks onto INT18H or INT19H. Use only if you
@@ -165,34 +192,48 @@
 #			This option was formerly called NOINT19H.
 #	-DBOOT_INT18H
 #			Etherboot normally hooks onto INT19H for legacy ROMs.
-#			You can choose to hook onto INT18H (Basic interpreter
+#			You can choose to hook onto INT18H (BASIC interpreter
 #			entry point) instead. This entry point is used when
-#			all boot devices have been exhausted.
+#			all boot devices have been exhausted. This option must
+#			be added to LCONFIG.
 #	-DCONFIG_PCI_DIRECT
 #			Define this for PCI BIOSes that do not implement
 #			BIOS32 or not correctly. Normally not needed.
 #			Only works for BIOSes of a certain era.
 #	-DCONFIG_TSC_CURRTICKS
-#                       Uses the processor time stamp counter instead of reading
-#                       the BIOS time counter.  This allows etherboot to work
-#                       even without a BIOS.  This only works on late model
-#                       486s and above.
+#			Uses the processor time stamp counter instead of reading
+#			the BIOS time counter.  This allows Etherboot to work
+#			even without a BIOS.  This only works on late model
+#			486s and above.
+#	-DPXELOADER_KEEP_UNDI
+#			For implementation later with UNDI.
+#	-DIBM_L40
+#			This option uses the 0x92 method of controlling
+#			A20 instead of the traditional method of using the
+#			keyboard controller. An explanation of A20 is here:
+#			http://www.win.tue.nl/~aeb/linux/kbd/A20.html
+#			This occurs on MCA, EISA and some embedded boards,
+#			and sometimes with the Fast Gate A20 option on some
+#			BIOSes.
+#			Enable this only if you are sure of what you are doing.
 #
 #	Obscure options you probably don't need to touch:
 #
+#	-DPOWERSAVE
+#			Halt the processor when waiting for keyboard input
+#			which saves power while waiting for user interaction.
+#			Good for compute clusters and VMware emulation.
+#			But may not work for all CPUs.
 #	-DT503_AUI
 #			Use AUI by default on 3c503 cards.
 #	-DMOVEROM
 #			If your motherboard does not cache adapter memory
 #			space, then this option can speed up loading of
-#			compressed BOOT-Prom images. It has not affect on
+#			compressed BOOT-Prom images. It has no effect on
 #			uncompressed images. Unless you are very tight on
 #			free space, you will usually want to define this
-#			option.  This flag must be added to LCONFIG!
+#			option.  This option must be added to LCONFIG!
 #			(recommended).
-#	-DBOOTP_DATA_AT_0x93C00
-#			If the area 0x93C00-0x93FFF is to be used for
-#			bootpd_data (not recommended).
 #	-DUSE_LOWMEM_BUFFER
 #			Define to put some buffers below 0x10000 which
 #			may interfere with other programs (not recommended).
@@ -201,8 +242,13 @@
 # These default settings compile Etherboot with a small number of options.
 # You may wish to enable more of the features if the size of your ROM allows.
 
+# BIOS select don't change unless you know what you are doing
+CFLAGS32+=	-DPCBIOS
+
 # For prompting and default on timeout
 CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
+# If you prefer the old style rotating bar progress display
+# CFLAGS32+=	-DBAR_PROGRESS
 CFLAGS32+=	-DMOTD -DIMAGE_MENU
 
 # Enabling this makes the boot ROM require a Vendor Class Identifier
@@ -214,12 +260,12 @@ CFLAGS32+=	-DMOTD -DIMAGE_MENU
 
 # Limit the delay on packet loss/congestion to a more bearable value. See
 # description above.  If unset, do not limit the delay between resend.
-CFLAGS32+=	-DBACKOFF_LIMIT=7
+CFLAGS32+=	-DBACKOFF_LIMIT=7 -DCONGESTED
 
 # More optional features
 # CFLAGS32+=	-DANSIESC -DGFX
 # CFLAGS32+=	-DPASSWD -DUSRPARMS
-# CFLAGS32+=	-DFLOPPY -DTRY_FLOPPY_FIRST=4
+# CFLAGS32+=	-DCAN_BOOT_DISK -DTRY_FLOPPY_FIRST=4
 
 # For a serial console, which can run in parallel with CRT console
 # CFLAGS32+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
@@ -228,15 +274,18 @@ CFLAGS32+=	-DBACKOFF_LIMIT=7
 # or FreeBSD ELF/a.out boot image support
 CFLAGS32+=	-DTAGGED_IMAGE -DELF_IMAGE
 # CFLAGS32+=	-DAOUT_IMAGE -DIMAGE_MULTIBOOT -DIMAGE_FREEBSD
+# CFLAGS32+=	-DAOUT_IMAGE -DAOUT_LYNX_KDI
 
 # Change download protocol to NFS, default is TFTP
 # CFLAGS32+=	-DDOWNLOAD_PROTO_NFS
 
-# Options to make a version of etherboot that will work under linuxBIOS.
-#CFLAGS32+= -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCONSPEED=115200 -DCONFIG_PCI_DIRECT -DELF_IMAGE -DIMAGE_MULTIBOOT
+# Options to make a version of Etherboot that will work under linuxBIOS.
+#CFLAGS32+= -DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE 
 
-# These flags affect the loader that is prepended to the Etherboot image
+# These options affect the loader that is prepended to the Etherboot image
 LCONFIG+=	-DMOVEROM
+# LCONFIG+=	-DBBS_BUT_NOT_PNP_COMPLIANT
+# LCONFIG+=	-DBOOT_INT18H
 
 # you should normally not need to change these
 RM=		rm -f
@@ -250,7 +299,7 @@ RANLIB32=	ranlib
 
 # If you use egcs or gcc-2.8, using -Os may help to reduce the code size.
 # Otherwise use -O2 (under no circumstance use -O3 or above!).
-CFLAGS32+=	-Os -g -ffreestanding -fstrength-reduce -fomit-frame-pointer -mcpu=i386
+CFLAGS32+=	-Os -ffreestanding -fstrength-reduce -fomit-frame-pointer -mcpu=i386
 # Squeeze the code in as little space as possible.
 CFLAGS32+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
 CFLAGS32+=	-Wall -W -Wno-format -Wno-unused
@@ -258,3 +307,7 @@ ASFLAGS32=
 LDFLAGS32+=	-N -Ttext $(RELOCADDR) -e _start
 LDBINARY32=	--oformat binary	# flag for headerless binary
 LIBC32=					# not needed
+
+# Support for PXE emulation. Works only with FreeBSD to load the kernel
+# via pxeboot, use only with DOWNLOAD_PROTO_NFS
+#CFLAGS32+= -DFREEBSD_PXEEMU

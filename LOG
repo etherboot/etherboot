@@ -2070,3 +2070,254 @@ disable TAGGED_IMAGE), then make bin32/driver.ebi, where driver is the
 name of a supported PCI NIC.
 
 Released as Etherboot 5.1.1 (development)
+
++ The rotating bar progress display has been replaced by a sequence of
+dots, one for each transmitted packet. This is kinder to dumb displays,
+e.g. serial terminals, and gives a better feel for how the loading is 
+going. If you want the rotating bar, use -DBAR_PROGRESS.
+
++ In loader.S change .fill 0x18-(.-_start) to .org 0x18. Might help
+people having errors assembling it.
+
++ Do Jong Gwan found a 3Com 980 with PCI ID 0x9805. Added to config.c
+and NIC. Added for good measure 0x7646 which is listed as 3CSOHO100-TX
+in Linux kernel 3c59x.c.
+
++ Add a rule to the Makefile to check for gcc 2.96, which is buggy, and
+tell the user to use kgcc instead if found.
+
++ Till Straumann added long-needed code to warn when fragmented packets
+seen (encountered on a wireless link) and to do UDP packet checksumming.
+
++ A trio of patches from Klaus Espenlaub, to fix a lance ring pointer
+error in lance.c, to fix a format error in the multiboot call in
+osloader.c and a patch to enable powersaving while waiting (good for
+compute clusters and VMware), this one requiring the new option
+-DPOWERSAVE in compiles.
+
++ While we are adding compile options, -DFLOPPY has been renamed to
+-DCAN_BOOT_DISK as FLOPPY has been a misnomer ever since the ability to
+boot /dev/hdX and /dev/sdX was added.
+
++ Spurred by correspondence from Till Straumann and Klaus Espenlaub,
+hacked printf to not require a buffer. Now printf output can be
+arbitrarily long as it no longer needs a buffer to assemble the
+characters before sending to putchar; it outputs on the spot for
+non-format chars and %s items, and at the end of the item for non-%s
+items.
+
++ DRIVER AND EXTENSION WRITERS NOTE! (s)printf formats have been changed
+to be a subset of those in glibc to reduce confusion. The changes are %x
+-> %hX, %b -> %hhX, and %I -> %@. Lower case x formats are also
+available now. The only variances from glibc are %@ for dotted quad IP
+addresses (formerly %I; %I is now used), %! for 6 byte Ethernet
+addresses, and that printf returns void. Thanks to Klaus Espenlaub for
+assistance on this, after adding the %! format, he cleaned up all of the
+Ethernet address display code in the drivers.
+
++ More cleanup patches from Klaus Espenlaub (he's better than lint;
+people who have used Bell Labs Unix will know what lint is). Changes
+noted here for posterity.
+
+3c509.c: consistent non-use of # modifier for debugging output
+3c595.c: consistent non-use of # modifier for debugging output
+3c90x.c: use optimal %x variant, PCI bus/function numbers are always small
+Config: Replace a TAB by two spaces inside the descriptions
+eepro100.c: 6->ETH_ALEN, PCI bus/function numbers are always small
+floppy.c: optimal %x variant
+genrules.pl: consistent use of TAB characters
+i82586.c: the ENET address printing patch for the EXOS205 got lost somehow....
+main.c: cleanup of the UDP_CHECKSUM comment some editor messed up, make the
+    assembly fragment use the normal formatting, fix the register assignment
+    specification for the %bx register to use the "b" constraint instead of
+    "bx" - the x makes no sense...
+natsemi.c: %X case fix...
+ns8390.c: optimal %x variant
+pci.c: fix bad Linux port (most messages truncated the hex values)
+sis900.c: a value read with inl() should probably(!) be printed with %X
+start32.S: move around the #endifs a little
+timer.c: fix space/tab characters
+via-rhine.c: all values "printed" inside the comments are 32 bit integers
+wd89c840.c: PCI bus/function numbers are always small
+
+Released as Etherboot 5.0.3 (production)
+
++ New version of contrib/Diskless-From-NT/furtmayer.html. I mangled the
+previous version by forgetting to extract with metamail so it was still
+quotable-printable encoded.
+
++ Renamed do_printf to vsprintf because that's the standard function it
+has the same signature as.
+
++ More patches from Klaus Espenlaub. In his own words:
+
+The patch to add UDP checksums for transmitted packets is attached.
+Just don't be surprised if some packet sniffer tells you that the
+checksum for the NFS_LOOKUP packets are wrong and that the filename is
+truncated.  It's a bug in the sniffer, not in Etherboot.
+
+Oh, and the small change in udpchksum() almost makes up for the
+increased code size.
+
+I also rewrote the NFS code to use pointers instead of array accesses.
+This reduced the code size by 124 bytes.  Patch attached.
+
+The last patch in this mail fixes misc things: a typo in misc.c
+(DOT_PROGRESS instead of BAR_PROGRESS), and twiddle() is only called if
+the packet type is IP.  This makes the output nicer - the dots are also
+printed in some non-approriate places for ARP reply packets.  The
+important packets are IP anyway.
+
++ The option BOOTP_DATA_AT_0x93C00 is deprecated, in preparation for
+expanding the parameter area and the first32.c area.
+
++ Marty Connor found a typo in index.html, should be: Etherboot can work
+with..., not Ethernet can work with... Ooops.
+
++ Eric Biederman tried a patch of Preston Wilson's and discovered that
+DI should be prefixed by ES in the test for a PnP BIOS in loader.S to be
+sure.  Furthermore some BIOSes are not fully compliant and we need an
+#ifndef PNP_BUT_NOT_BBS_COMPLIANT to work around that.
+
++ Oops, there's no entry in config.c for the DFE530TX+ even though
+there's one in NIC.
+
+Released as Etherboot 5.0.4 (production)
+
++ Fixed a struct alignment (8-byte constraint) problem in lance.c caused
+by the introduction of the rx_idx field by moving rx_idx to the end of
+the struct. Found by Rizsanyi Zsolt. Klaus Espenlaub also suggested
+increasing all the Rx buffers by 4 bytes because of the checksum stored
+at the end.
+
++ Fred Gray contributed changes in tulip.c to check for a duplex
+connection and to modify the controller register if so. Marty fixed an
+unassigned to "negotiated" variable.
+
++ Mark G of Inprimis Technologies contributed another FA311 (National
+Semiconductor DP83815) driver, also based on the Donald Becker Linux
+driver.
+
++ Armin Schindler contributed a patch to allow booting LynxOS KDI
+images.
+
++ Moved code to set PCI busmastering and reasonable latency to a routine
+in pci.c and added calls to this routine from all PCI drivers.
+
++ New files for contrib/mkffwnb for version 1.9.11 and 1.9.16.
+
++ Removed BOOTP_DATA_AT_0x93Cxx option.
+
++ Convert epic100 driver to use hardware timer for transmit timeout and
+remove polling loop from receive routine.
+
++ Steve Tilden pointed out that BOOT_INT18H is a LCONFIG option, not a
+CFLAGS32 option. Put note under option documentation and also added a
+commented-out example in Config. Steve also contributed a patch¸ in
+contrib/auto-default, which autoboots from the next device if a disk is
+detected.
+
++ PNP_BUT_NOT_BBS_COMPLIANT option renamed to BBS_BUT_NOT_PNP_COMPLIANT.
+
++ Merged in Vasil Vasilev's changes to loader.S to release memory taken
+by PXE properly.
+
++ E820 memory detection routines added by Eric Biederman. May increase
+size of bss segment and push large drivers, e.g. Tulip, nearer to limit,
+please report.
+
++ Default to -DCONGESTED in Config, may help on busy networks.
+
++ Add Holtek HT80232 to list of NE2000 PCI clones.
+
++ Remove prohibition on loading < 0x10000 in ELF images since by default
+drivers don't use memory < 0x10000 any more, with 48kB to run in.
+
++ Put define of ETH_MAX_MTU in etherboot.h inside #ifndef so that it can
+be overriden from Makefile.
+
++ Gustavo Junior Alves added .cvsignore files for src/bin and src/bin32.
+
++ Short note on how to make tomsrtbt netbootable in contrib/tomsrtbt.
+
+This release is dedicated to the memory of my mother (July 1917 -
+November 2001) [Ken Yap].
+
+Released as Etherboot 5.0.5 (production)
+
++ Changes to enable fa311too driver which were overlooked in 5.0.5.
+
++ Chien-Yu Chen sent in patches to support the SiS630ET. Independently,
+Doug Ambrisko made the same changes. Marty Connor tidied the patches.
+
++ In misc.c, when enabling/disabling Gate A20, call int 0x15 with
+ax=0x240x to do handling first, and if that is not supported, fall back
+to using the keyboard controller. Hopefully this will solve Gate A20
+problems for recent BIOSes.
+
++ Add missing entry to config.c for the Macronix 98713 (device ID
+0x512). But latest report is that it doesn't transmit. Anybody wanna
+debug?
+
++ Omit test for pointer to $PnP string for ISA NIC images, it may
+trigger false recognition of a PnP ROM. Just use legacy mode.
+
++ Merged in Christopher Li's Intel E1000 gigabit Ethernet driver.
+
++ RISKO Gergely found that the ADMTek Comet 983 works with the tulip
+driver if you provide the right PCI IDs.
+
++ Rohit Jalan contributed patches to support FreeBSD booting via PXE.
+(genrules.pl needed hacking to make it ignore the system includes in
+osdep.h.)  Anybody want to see if it can be made to support pxelinux?
+[Glanced at it and I think general PXE support may be hard, you may need
+an Etherboot specific secondary loader. - Ken]
+
++ Merged in Eric Biederman's patches to allow trying all PCI devices.
+
++ From Eric Biederman: A small patch to allow the serial port parameters
+to be unchanged at activation.  Major changes to start32.S to merge
+LinuxBIOS support.  New files for LinuxBIOS support.  PCBIOS specific
+functions split out into pcbios.S. Massive clean up of PCI subsystem
+logic.
+
++ Jean-Jacques Michel sent in a fix for via-rhine.c to make sure the
+transmit is finished before returning from the _transmit routine.
+Also found a bug in gcc 3.0.3 that affected rtl8139.c. Moving the
+assignment to nstype in _transmit two lines up avoids it.
+
++ Based on the experience of Yedidyah Bar-David, in eepro100.c,
+increased udelay around line 533 after getting MAC address to
+udelay(10000).
+
++ Added PCI IDs for RTL8129, which can use the rtl8139 driver.
+
++ Added PCI IDs for 3Com905 with device ID 0x9058. Confirmed working by
+Fabio Papa.
+
++ Added PCI IDs for D-Link 528, which is a PCI NE2000 clone.
+
++ Philip R. Auld found a block number rollover bug due to promotion to
+signed in main.c.
+
++ Luigi Rizzo sent in a patch to nfs.c to implement an adaptive timeout. 
+
++ New config files for floppyfw-1.9.19 in contrib/mkffwnb/.
+
++ Glenn McKechnie contributed a Perl script for making a netbootable
+image from the Dachstein LRP firewall distribution floppy. It's in
+contrib/mklrpnb/
+
++ At the request of Greg Beeley, who got irate mail from kernel NIC
+developers, put in a warning in the Makefile about the 3c90x XCVR
+options which may affect later operation with the Linux driver. For you
+tinkerers out there, if you don't know what you're doing, please read
+3c90x.txt over and over again until you understand what those options
+do. If you don't understand, please ask on the Etherboot mailing list.
+And don't complain to the kernel developers, it's nothing to do with
+them. If you must change the XCVR options on a board, please document it
+prominently on the board so that those who come after you won't
+encounter strange behaviour and complain to the kernel developers.
+Greg also supplied a patch to 3c90x.c to print a warning message.
+
+Released as Etherboot 5.0.6 (production)

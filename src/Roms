@@ -3,8 +3,10 @@ DOBJS32	+= bin32/pci.o
 DOBJS32	+= bin32/3c595.o
 DOBJS32	+= bin32/3c90x.o
 DOBJS32	+= bin32/davicom.o
+DOBJS32	+= bin32/e1000.o
 DOBJS32	+= bin32/eepro100.o
 DOBJS32	+= bin32/epic100.o
+DOBJS32	+= bin32/fa311.o
 DOBJS32	+= bin32/lance.o
 DOBJS32	+= bin32/natsemi.o
 DOBJS32	+= bin32/ns8390.o
@@ -45,6 +47,7 @@ BINS32	+= bin32/3c905-combo.rom bin32/3c905-combo.lzrom
 BINS32	+= bin32/3c905-t4.rom bin32/3c905-t4.lzrom
 BINS32	+= bin32/3c905-tpo.rom bin32/3c905-tpo.lzrom
 BINS32	+= bin32/3c905-tpo100.rom bin32/3c905-tpo100.lzrom
+BINS32	+= bin32/3c905b-9058.rom bin32/3c905b-9058.lzrom
 BINS32	+= bin32/3c905b-combo.rom bin32/3c905b-combo.lzrom
 BINS32	+= bin32/3c905b-fl.rom bin32/3c905b-fl.lzrom
 BINS32	+= bin32/3c905b-fx.rom bin32/3c905b-fx.lzrom
@@ -54,11 +57,14 @@ BINS32	+= bin32/3c905b-tpo.rom bin32/3c905b-tpo.lzrom
 BINS32	+= bin32/3c905b-tpo100.rom bin32/3c905b-tpo100.lzrom
 BINS32	+= bin32/3c905c-tpo.rom bin32/3c905c-tpo.lzrom
 BINS32	+= bin32/3c980.rom bin32/3c980.lzrom
+BINS32	+= bin32/3c9805.rom bin32/3c9805.lzrom
+BINS32	+= bin32/3csoho100-tx.rom bin32/3csoho100-tx.lzrom
 BINS32	+= bin32/82559er.rom bin32/82559er.lzrom
 BINS32	+= bin32/82562em.rom bin32/82562em.lzrom
 BINS32	+= bin32/82c168.rom bin32/82c168.lzrom
 BINS32	+= bin32/amdhomepna.rom bin32/amdhomepna.lzrom
 BINS32	+= bin32/an981.rom bin32/an981.lzrom
+BINS32	+= bin32/an983.rom bin32/an983.lzrom
 BINS32	+= bin32/ax88140.rom bin32/ax88140.lzrom
 BINS32	+= bin32/ax88141.rom bin32/ax88141.lzrom
 BINS32	+= bin32/centaur-c.rom bin32/centaur-c.lzrom
@@ -69,7 +75,8 @@ BINS32	+= bin32/davicom9009.rom bin32/davicom9009.lzrom
 BINS32	+= bin32/davicom9102.rom bin32/davicom9102.lzrom
 BINS32	+= bin32/dc21040.rom bin32/dc21040.lzrom
 BINS32	+= bin32/dc21041.rom bin32/dc21041.lzrom
-BINS32	+= bin32/dfe530tx+.rom bin32/dfe530tx+.lzrom
+BINS32	+= bin32/dfe538.rom bin32/dfe538.lzrom
+BINS32	+= bin32/dlink-528.rom bin32/dlink-528.lzrom
 BINS32	+= bin32/dlink-530tx.rom bin32/dlink-530tx.lzrom
 BINS32	+= bin32/dlink-530tx-old.rom bin32/dlink-530tx-old.lzrom
 BINS32	+= bin32/dm9100.rom bin32/dm9100.lzrom
@@ -79,10 +86,17 @@ BINS32	+= bin32/ds21140.rom bin32/ds21140.lzrom
 BINS32	+= bin32/ds21140a.rom bin32/ds21140a.lzrom
 BINS32	+= bin32/ds21142.rom bin32/ds21142.lzrom
 BINS32	+= bin32/ds21143.rom bin32/ds21143.lzrom
+BINS32	+= bin32/e1000.rom bin32/e1000.lzrom
+BINS32	+= bin32/e1000-cop.rom bin32/e1000-cop.lzrom
+BINS32	+= bin32/e1000-creb.rom bin32/e1000-creb.lzrom
+BINS32	+= bin32/e1000-ecop.rom bin32/e1000-ecop.lzrom
+BINS32	+= bin32/e1000-fib.rom bin32/e1000-fib.lzrom
 BINS32	+= bin32/eepro100.rom bin32/eepro100.lzrom
 BINS32	+= bin32/epic100.rom bin32/epic100.lzrom
 BINS32	+= bin32/fa311.rom bin32/fa311.lzrom
+BINS32	+= bin32/fa311too.rom bin32/fa311too.lzrom
 BINS32	+= bin32/fa312.rom bin32/fa312.lzrom
+BINS32	+= bin32/holtek80232.rom bin32/holtek80232.lzrom
 BINS32	+= bin32/id1029.rom bin32/id1029.lzrom
 BINS32	+= bin32/id1030.rom bin32/id1030.lzrom
 BINS32	+= bin32/intel21145.rom bin32/intel21145.lzrom
@@ -100,6 +114,7 @@ BINS32	+= bin32/otulip.rom bin32/otulip.lzrom
 BINS32	+= bin32/pcnetfastiii.rom bin32/pcnetfastiii.lzrom
 BINS32	+= bin32/rl100tx.rom bin32/rl100tx.lzrom
 BINS32	+= bin32/rtl8029.rom bin32/rtl8029.lzrom
+BINS32	+= bin32/rtl8129.rom bin32/rtl8129.lzrom
 BINS32	+= bin32/rtl8139.rom bin32/rtl8139.lzrom
 BINS32	+= bin32/sis7016.rom bin32/sis7016.lzrom
 BINS32	+= bin32/sis900.rom bin32/sis900.lzrom
@@ -147,17 +162,29 @@ bin32/davicom.o:	davicom.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h 
 bin32/config-davicom.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 	$(CC32) $(CFLAGS32) -DINCLUDE_DAVICOM -o $@ -c $<
 
+bin32/e1000.o:	e1000.c $(MAKEDEPS) pci.h cards.h e1000.h e1000_fxhw.c e1000_fxhw.h e1000_phy.c e1000_phy.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
+	$(CC32) $(CFLAGS32) $(E1000FLAGS) -o $@ -c $<
+
+bin32/config-e1000.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	$(CC32) $(CFLAGS32) -DINCLUDE_E1000 -o $@ -c $<
+
 bin32/eepro100.o:	eepro100.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(EEPRO100FLAGS) -o $@ -c $<
 
 bin32/config-eepro100.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 	$(CC32) $(CFLAGS32) -DINCLUDE_EEPRO100 -o $@ -c $<
 
-bin32/epic100.o:	epic100.c $(MAKEDEPS) pci.h cards.h epic100.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
+bin32/epic100.o:	epic100.c $(MAKEDEPS) pci.h cards.h epic100.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h timer.h
 	$(CC32) $(CFLAGS32) $(EPIC100FLAGS) -o $@ -c $<
 
 bin32/config-epic100.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 	$(CC32) $(CFLAGS32) -DINCLUDE_EPIC100 -o $@ -c $<
+
+bin32/fa311.o:	fa311.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
+	$(CC32) $(CFLAGS32) $(FA311FLAGS) -o $@ -c $<
+
+bin32/config-fa311.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	$(CC32) $(CFLAGS32) -DINCLUDE_FA311 -o $@ -c $<
 
 bin32/lance.o:	lance.c $(MAKEDEPS) pci.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(LANCEFLAGS) -o $@ -c $<
@@ -333,7 +360,7 @@ bin32/3c590.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x5900 -i$(IDENT32) $@
 
-bin32/3c590.ebi: bin32/3c595.elf
+bin32/3c590.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -353,7 +380,7 @@ bin32/3c595.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x5950 -i$(IDENT32) $@
 
-bin32/3c595.ebi: bin32/3c595.elf
+bin32/3c595.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -373,7 +400,7 @@ bin32/3c595-1.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x5951 -i$(IDENT32) $@
 
-bin32/3c595-1.ebi: bin32/3c595.elf
+bin32/3c595-1.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -393,7 +420,7 @@ bin32/3c595-2.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x5952 -i$(IDENT32) $@
 
-bin32/3c595-2.ebi: bin32/3c595.elf
+bin32/3c595-2.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -413,7 +440,7 @@ bin32/3c900-t4.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
 
-bin32/3c900-t4.ebi: bin32/3c595.elf
+bin32/3c900-t4.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -433,7 +460,7 @@ bin32/3c900-tpo.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9000 -i$(IDENT32) $@
 
-bin32/3c900-tpo.ebi: bin32/3c595.elf
+bin32/3c900-tpo.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -453,7 +480,7 @@ bin32/3c900b-combo.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
 
-bin32/3c900b-combo.ebi: bin32/3c595.elf
+bin32/3c900b-combo.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -473,7 +500,7 @@ bin32/3c900b-fl.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
 
-bin32/3c900b-fl.ebi: bin32/3c595.elf
+bin32/3c900b-fl.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -493,7 +520,7 @@ bin32/3c900b-tpb2.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9006 -i$(IDENT32) $@
 
-bin32/3c900b-tpb2.ebi: bin32/3c595.elf
+bin32/3c900b-tpb2.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -513,7 +540,7 @@ bin32/3c900b-tpo.lzpxe:	bin32/3c595.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9004 -i$(IDENT32) $@
 
-bin32/3c900b-tpo.ebi: bin32/3c595.elf
+bin32/3c900b-tpo.ebi:	bin32/3c595.elf
 	cp bin32/3c595.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -533,7 +560,7 @@ bin32/3c905-combo.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9051 -i$(IDENT32) $@
 
-bin32/3c905-combo.ebi: bin32/3c90x.elf
+bin32/3c905-combo.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -553,7 +580,7 @@ bin32/3c905-t4.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
 
-bin32/3c905-t4.ebi: bin32/3c90x.elf
+bin32/3c905-t4.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -573,7 +600,7 @@ bin32/3c905-tpo.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9000 -i$(IDENT32) $@
 
-bin32/3c905-tpo.ebi: bin32/3c90x.elf
+bin32/3c905-tpo.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -593,7 +620,27 @@ bin32/3c905-tpo100.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9050 -i$(IDENT32) $@
 
-bin32/3c905-tpo100.ebi: bin32/3c90x.elf
+bin32/3c905-tpo100.ebi:	bin32/3c90x.elf
+	cp bin32/3c90x.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/3c905b-9058.rom:	bin32/3c90x.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10b7,0x9058 -i$(IDENT32) $@
+
+bin32/3c905b-9058.lzrom:	bin32/3c90x.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10b7,0x9058 -i$(IDENT32) $@
+
+bin32/3c905b-9058.pxe:	bin32/3c90x.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9058 -i$(IDENT32) $@
+
+bin32/3c905b-9058.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9058 -i$(IDENT32) $@
+
+bin32/3c905b-9058.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -613,7 +660,7 @@ bin32/3c905b-combo.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
 
-bin32/3c905b-combo.ebi: bin32/3c90x.elf
+bin32/3c905b-combo.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -633,7 +680,7 @@ bin32/3c905b-fl.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
 
-bin32/3c905b-fl.ebi: bin32/3c90x.elf
+bin32/3c905b-fl.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -653,7 +700,7 @@ bin32/3c905b-fx.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x905a -i$(IDENT32) $@
 
-bin32/3c905b-fx.ebi: bin32/3c90x.elf
+bin32/3c905b-fx.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -673,7 +720,7 @@ bin32/3c905b-t4.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9056 -i$(IDENT32) $@
 
-bin32/3c905b-t4.ebi: bin32/3c90x.elf
+bin32/3c905b-t4.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -693,7 +740,7 @@ bin32/3c905b-tpb2.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9006 -i$(IDENT32) $@
 
-bin32/3c905b-tpb2.ebi: bin32/3c90x.elf
+bin32/3c905b-tpb2.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -713,7 +760,7 @@ bin32/3c905b-tpo.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9004 -i$(IDENT32) $@
 
-bin32/3c905b-tpo.ebi: bin32/3c90x.elf
+bin32/3c905b-tpo.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -733,7 +780,7 @@ bin32/3c905b-tpo100.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9055 -i$(IDENT32) $@
 
-bin32/3c905b-tpo100.ebi: bin32/3c90x.elf
+bin32/3c905b-tpo100.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -753,7 +800,7 @@ bin32/3c905c-tpo.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9200 -i$(IDENT32) $@
 
-bin32/3c905c-tpo.ebi: bin32/3c90x.elf
+bin32/3c905c-tpo.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -773,7 +820,47 @@ bin32/3c980.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9800 -i$(IDENT32) $@
 
-bin32/3c980.ebi: bin32/3c90x.elf
+bin32/3c980.ebi:	bin32/3c90x.elf
+	cp bin32/3c90x.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/3c9805.rom:	bin32/3c90x.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10b7,0x9805 -i$(IDENT32) $@
+
+bin32/3c9805.lzrom:	bin32/3c90x.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10b7,0x9805 -i$(IDENT32) $@
+
+bin32/3c9805.pxe:	bin32/3c90x.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9805 -i$(IDENT32) $@
+
+bin32/3c9805.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x9805 -i$(IDENT32) $@
+
+bin32/3c9805.ebi:	bin32/3c90x.elf
+	cp bin32/3c90x.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/3csoho100-tx.rom:	bin32/3c90x.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
+
+bin32/3csoho100-tx.lzrom:	bin32/3c90x.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
+
+bin32/3csoho100-tx.pxe:	bin32/3c90x.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
+
+bin32/3csoho100-tx.lzpxe:	bin32/3c90x.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
+
+bin32/3csoho100-tx.ebi:	bin32/3c90x.elf
 	cp bin32/3c90x.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -793,7 +880,7 @@ bin32/82559er.lzpxe:	bin32/eepro100.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1209 -i$(IDENT32) $@
 
-bin32/82559er.ebi: bin32/eepro100.elf
+bin32/82559er.ebi:	bin32/eepro100.elf
 	cp bin32/eepro100.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -813,7 +900,7 @@ bin32/82562em.lzpxe:	bin32/eepro100.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x2449 -i$(IDENT32) $@
 
-bin32/82562em.ebi: bin32/eepro100.elf
+bin32/82562em.ebi:	bin32/eepro100.elf
 	cp bin32/eepro100.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -833,7 +920,7 @@ bin32/82c168.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
 
-bin32/82c168.ebi: bin32/tulip.elf
+bin32/82c168.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -853,7 +940,7 @@ bin32/amdhomepna.lzpxe:	bin32/lance.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1022,0x2001 -i$(IDENT32) $@
 
-bin32/amdhomepna.ebi: bin32/lance.elf
+bin32/amdhomepna.ebi:	bin32/lance.elf
 	cp bin32/lance.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -873,7 +960,27 @@ bin32/an981.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1317,0x0981 -i$(IDENT32) $@
 
-bin32/an981.ebi: bin32/tulip.elf
+bin32/an981.ebi:	bin32/tulip.elf
+	cp bin32/tulip.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/an983.rom:	bin32/tulip.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983.lzrom:	bin32/tulip.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983.pxe:	bin32/tulip.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -893,7 +1000,7 @@ bin32/ax88140.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
 
-bin32/ax88140.ebi: bin32/tulip.elf
+bin32/ax88140.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -913,7 +1020,7 @@ bin32/ax88141.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
 
-bin32/ax88141.ebi: bin32/tulip.elf
+bin32/ax88141.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -933,7 +1040,7 @@ bin32/centaur-c.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1317,0x1985 -i$(IDENT32) $@
 
-bin32/centaur-c.ebi: bin32/tulip.elf
+bin32/centaur-c.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -953,7 +1060,7 @@ bin32/centaur-p.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1317,0x0985 -i$(IDENT32) $@
 
-bin32/centaur-p.ebi: bin32/tulip.elf
+bin32/centaur-p.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -973,7 +1080,7 @@ bin32/compexrl100atx.lzpxe:	bin32/w89c840.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x11f6,0x2011 -i$(IDENT32) $@
 
-bin32/compexrl100atx.ebi: bin32/w89c840.elf
+bin32/compexrl100atx.ebi:	bin32/w89c840.elf
 	cp bin32/w89c840.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -993,7 +1100,7 @@ bin32/compexrl2000.lzpxe:	bin32/ns8390.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x11f6,0x1401 -i$(IDENT32) $@
 
-bin32/compexrl2000.ebi: bin32/ns8390.elf
+bin32/compexrl2000.ebi:	bin32/ns8390.elf
 	cp bin32/ns8390.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1013,7 +1120,7 @@ bin32/davicom9009.lzpxe:	bin32/davicom.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1282,0x9009 -i$(IDENT32) $@
 
-bin32/davicom9009.ebi: bin32/davicom.elf
+bin32/davicom9009.ebi:	bin32/davicom.elf
 	cp bin32/davicom.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1033,7 +1140,7 @@ bin32/davicom9102.lzpxe:	bin32/davicom.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1282,0x9102 -i$(IDENT32) $@
 
-bin32/davicom9102.ebi: bin32/davicom.elf
+bin32/davicom9102.ebi:	bin32/davicom.elf
 	cp bin32/davicom.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1053,7 +1160,7 @@ bin32/dc21040.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
 
-bin32/dc21040.ebi: bin32/tulip.elf
+bin32/dc21040.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1073,28 +1180,48 @@ bin32/dc21041.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1011,0x0014 -i$(IDENT32) $@
 
-bin32/dc21041.ebi: bin32/tulip.elf
+bin32/dc21041.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
-bin32/dfe530tx+.rom:	bin32/rtl8139.img $(PRLOADER)
+bin32/dfe538.rom:	bin32/rtl8139.img $(PRLOADER)
 	cat $(PRLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
-bin32/dfe530tx+.lzrom:	bin32/rtl8139.huf $(PRZLOADER)
+bin32/dfe538.lzrom:	bin32/rtl8139.huf $(PRZLOADER)
 	cat $(PRZLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
-bin32/dfe530tx+.pxe:	bin32/rtl8139.img $(PXELOADER)
+bin32/dfe538.pxe:	bin32/rtl8139.img $(PXELOADER)
 	cat $(PXELOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
-bin32/dfe530tx+.lzpxe:	bin32/rtl8139.huf $(PXEZLOADER)
+bin32/dfe538.lzpxe:	bin32/rtl8139.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
-bin32/dfe530tx+.ebi: bin32/rtl8139.elf
+bin32/dfe538.ebi:	bin32/rtl8139.elf
 	cp bin32/rtl8139.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/dlink-528.rom:	bin32/ns8390.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1186,0x0300 -i$(IDENT32) $@
+
+bin32/dlink-528.lzrom:	bin32/ns8390.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1186,0x0300 -i$(IDENT32) $@
+
+bin32/dlink-528.pxe:	bin32/ns8390.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1186,0x0300 -i$(IDENT32) $@
+
+bin32/dlink-528.lzpxe:	bin32/ns8390.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1186,0x0300 -i$(IDENT32) $@
+
+bin32/dlink-528.ebi:	bin32/ns8390.elf
+	cp bin32/ns8390.elf $@
 	$(STRIP) -R .comment -R .note $@
 
 bin32/dlink-530tx.rom:	bin32/via-rhine.img $(PRLOADER)
@@ -1113,7 +1240,7 @@ bin32/dlink-530tx.lzpxe:	bin32/via-rhine.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
 
-bin32/dlink-530tx.ebi: bin32/via-rhine.elf
+bin32/dlink-530tx.ebi:	bin32/via-rhine.elf
 	cp bin32/via-rhine.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1133,7 +1260,7 @@ bin32/dlink-530tx-old.lzpxe:	bin32/via-rhine.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1106,0x3043 -i$(IDENT32) $@
 
-bin32/dlink-530tx-old.ebi: bin32/via-rhine.elf
+bin32/dlink-530tx-old.ebi:	bin32/via-rhine.elf
 	cp bin32/via-rhine.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1153,7 +1280,7 @@ bin32/dm9100.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1282,0x9100 -i$(IDENT32) $@
 
-bin32/dm9100.ebi: bin32/tulip.elf
+bin32/dm9100.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1173,7 +1300,7 @@ bin32/dm9102.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1282,0x9102 -i$(IDENT32) $@
 
-bin32/dm9102.ebi: bin32/tulip.elf
+bin32/dm9102.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1193,7 +1320,7 @@ bin32/dp83815.lzpxe:	bin32/natsemi.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
-bin32/dp83815.ebi: bin32/natsemi.elf
+bin32/dp83815.ebi:	bin32/natsemi.elf
 	cp bin32/natsemi.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1213,7 +1340,7 @@ bin32/ds21140.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
 
-bin32/ds21140.ebi: bin32/tulip.elf
+bin32/ds21140.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1233,7 +1360,7 @@ bin32/ds21140a.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
 
-bin32/ds21140a.ebi: bin32/tulip.elf
+bin32/ds21140a.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1253,7 +1380,7 @@ bin32/ds21142.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
 
-bin32/ds21142.ebi: bin32/tulip.elf
+bin32/ds21142.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1273,8 +1400,108 @@ bin32/ds21143.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
 
-bin32/ds21143.ebi: bin32/tulip.elf
+bin32/ds21143.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/e1000.rom:	bin32/e1000.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000.lzrom:	bin32/e1000.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000.pxe:	bin32/e1000.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000.lzpxe:	bin32/e1000.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000.ebi:	bin32/e1000.elf
+	cp bin32/e1000.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/e1000-cop.rom:	bin32/e1000.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
+
+bin32/e1000-cop.lzrom:	bin32/e1000.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
+
+bin32/e1000-cop.pxe:	bin32/e1000.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
+
+bin32/e1000-cop.lzpxe:	bin32/e1000.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
+
+bin32/e1000-cop.ebi:	bin32/e1000.elf
+	cp bin32/e1000.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/e1000-creb.rom:	bin32/e1000.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x100d -i$(IDENT32) $@
+
+bin32/e1000-creb.lzrom:	bin32/e1000.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x100d -i$(IDENT32) $@
+
+bin32/e1000-creb.pxe:	bin32/e1000.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x100d -i$(IDENT32) $@
+
+bin32/e1000-creb.lzpxe:	bin32/e1000.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x100d -i$(IDENT32) $@
+
+bin32/e1000-creb.ebi:	bin32/e1000.elf
+	cp bin32/e1000.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/e1000-ecop.rom:	bin32/e1000.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
+
+bin32/e1000-ecop.lzrom:	bin32/e1000.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
+
+bin32/e1000-ecop.pxe:	bin32/e1000.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
+
+bin32/e1000-ecop.lzpxe:	bin32/e1000.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
+
+bin32/e1000-ecop.ebi:	bin32/e1000.elf
+	cp bin32/e1000.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/e1000-fib.rom:	bin32/e1000.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
+
+bin32/e1000-fib.lzrom:	bin32/e1000.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
+
+bin32/e1000-fib.pxe:	bin32/e1000.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
+
+bin32/e1000-fib.lzpxe:	bin32/e1000.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
+
+bin32/e1000-fib.ebi:	bin32/e1000.elf
+	cp bin32/e1000.elf $@
 	$(STRIP) -R .comment -R .note $@
 
 bin32/eepro100.rom:	bin32/eepro100.img $(PRLOADER)
@@ -1293,7 +1520,7 @@ bin32/eepro100.lzpxe:	bin32/eepro100.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1229 -i$(IDENT32) $@
 
-bin32/eepro100.ebi: bin32/eepro100.elf
+bin32/eepro100.ebi:	bin32/eepro100.elf
 	cp bin32/eepro100.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1313,7 +1540,7 @@ bin32/epic100.lzpxe:	bin32/epic100.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10b8,0x0005 -i$(IDENT32) $@
 
-bin32/epic100.ebi: bin32/epic100.elf
+bin32/epic100.ebi:	bin32/epic100.elf
 	cp bin32/epic100.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1333,8 +1560,28 @@ bin32/fa311.lzpxe:	bin32/natsemi.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
-bin32/fa311.ebi: bin32/natsemi.elf
+bin32/fa311.ebi:	bin32/natsemi.elf
 	cp bin32/natsemi.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/fa311too.rom:	bin32/fa311.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/fa311too.lzrom:	bin32/fa311.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/fa311too.pxe:	bin32/fa311.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/fa311too.lzpxe:	bin32/fa311.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/fa311too.ebi:	bin32/fa311.elf
+	cp bin32/fa311.elf $@
 	$(STRIP) -R .comment -R .note $@
 
 bin32/fa312.rom:	bin32/natsemi.img $(PRLOADER)
@@ -1353,8 +1600,28 @@ bin32/fa312.lzpxe:	bin32/natsemi.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
-bin32/fa312.ebi: bin32/natsemi.elf
+bin32/fa312.ebi:	bin32/natsemi.elf
 	cp bin32/natsemi.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/holtek80232.rom:	bin32/ns8390.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
+
+bin32/holtek80232.lzrom:	bin32/ns8390.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
+
+bin32/holtek80232.pxe:	bin32/ns8390.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
+
+bin32/holtek80232.lzpxe:	bin32/ns8390.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
+
+bin32/holtek80232.ebi:	bin32/ns8390.elf
+	cp bin32/ns8390.elf $@
 	$(STRIP) -R .comment -R .note $@
 
 bin32/id1029.rom:	bin32/eepro100.img $(PRLOADER)
@@ -1373,7 +1640,7 @@ bin32/id1029.lzpxe:	bin32/eepro100.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1029 -i$(IDENT32) $@
 
-bin32/id1029.ebi: bin32/eepro100.elf
+bin32/id1029.ebi:	bin32/eepro100.elf
 	cp bin32/eepro100.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1393,7 +1660,7 @@ bin32/id1030.lzpxe:	bin32/eepro100.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x1030 -i$(IDENT32) $@
 
-bin32/id1030.ebi: bin32/eepro100.elf
+bin32/id1030.ebi:	bin32/eepro100.elf
 	cp bin32/eepro100.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1413,7 +1680,7 @@ bin32/intel21145.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x8086,0x0039 -i$(IDENT32) $@
 
-bin32/intel21145.ebi: bin32/tulip.elf
+bin32/intel21145.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1433,7 +1700,7 @@ bin32/kne110tx.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
 
-bin32/kne110tx.ebi: bin32/tulip.elf
+bin32/kne110tx.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1453,7 +1720,7 @@ bin32/ktiet32p2.lzpxe:	bin32/ns8390.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x8e2e,0x3000 -i$(IDENT32) $@
 
-bin32/ktiet32p2.ebi: bin32/ns8390.elf
+bin32/ktiet32p2.ebi:	bin32/ns8390.elf
 	cp bin32/ns8390.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1473,7 +1740,7 @@ bin32/lancepci.lzpxe:	bin32/lance.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1022,0x2000 -i$(IDENT32) $@
 
-bin32/lancepci.ebi: bin32/lance.elf
+bin32/lancepci.ebi:	bin32/lance.elf
 	cp bin32/lance.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1493,7 +1760,7 @@ bin32/lc82c115.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x11ad,0xc115 -i$(IDENT32) $@
 
-bin32/lc82c115.ebi: bin32/tulip.elf
+bin32/lc82c115.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1513,7 +1780,7 @@ bin32/mx98713.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
 
-bin32/mx98713.ebi: bin32/tulip.elf
+bin32/mx98713.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1533,7 +1800,7 @@ bin32/mx98715.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
 
-bin32/mx98715.ebi: bin32/tulip.elf
+bin32/mx98715.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1553,7 +1820,7 @@ bin32/mx98725.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
 
-bin32/mx98725.ebi: bin32/tulip.elf
+bin32/mx98725.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1573,7 +1840,7 @@ bin32/mxic-98715.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1113,0x1217 -i$(IDENT32) $@
 
-bin32/mxic-98715.ebi: bin32/tulip.elf
+bin32/mxic-98715.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1593,7 +1860,7 @@ bin32/natsemi.lzpxe:	bin32/natsemi.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
-bin32/natsemi.ebi: bin32/natsemi.elf
+bin32/natsemi.ebi:	bin32/natsemi.elf
 	cp bin32/natsemi.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1613,7 +1880,7 @@ bin32/nv5000sc.lzpxe:	bin32/ns8390.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x4a14,0x5000 -i$(IDENT32) $@
 
-bin32/nv5000sc.ebi: bin32/ns8390.elf
+bin32/nv5000sc.ebi:	bin32/ns8390.elf
 	cp bin32/ns8390.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1633,7 +1900,7 @@ bin32/otulip.lzpxe:	bin32/otulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
 
-bin32/otulip.ebi: bin32/otulip.elf
+bin32/otulip.ebi:	bin32/otulip.elf
 	cp bin32/otulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1653,7 +1920,7 @@ bin32/pcnetfastiii.lzpxe:	bin32/lance.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1022,0x2625 -i$(IDENT32) $@
 
-bin32/pcnetfastiii.ebi: bin32/lance.elf
+bin32/pcnetfastiii.ebi:	bin32/lance.elf
 	cp bin32/lance.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1673,7 +1940,7 @@ bin32/rl100tx.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x11f6,0x9881 -i$(IDENT32) $@
 
-bin32/rl100tx.ebi: bin32/tulip.elf
+bin32/rl100tx.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1693,8 +1960,28 @@ bin32/rtl8029.lzpxe:	bin32/ns8390.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10ec,0x8029 -i$(IDENT32) $@
 
-bin32/rtl8029.ebi: bin32/ns8390.elf
+bin32/rtl8029.ebi:	bin32/ns8390.elf
 	cp bin32/ns8390.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/rtl8129.rom:	bin32/rtl8139.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129.lzrom:	bin32/rtl8139.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129.pxe:	bin32/rtl8139.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129.lzpxe:	bin32/rtl8139.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129.ebi:	bin32/rtl8139.elf
+	cp bin32/rtl8139.elf $@
 	$(STRIP) -R .comment -R .note $@
 
 bin32/rtl8139.rom:	bin32/rtl8139.img $(PRLOADER)
@@ -1713,7 +2000,7 @@ bin32/rtl8139.lzpxe:	bin32/rtl8139.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x10ec,0x8139 -i$(IDENT32) $@
 
-bin32/rtl8139.ebi: bin32/rtl8139.elf
+bin32/rtl8139.ebi:	bin32/rtl8139.elf
 	cp bin32/rtl8139.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1733,7 +2020,7 @@ bin32/sis7016.lzpxe:	bin32/sis900.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1039,0x7016 -i$(IDENT32) $@
 
-bin32/sis7016.ebi: bin32/sis900.elf
+bin32/sis7016.ebi:	bin32/sis900.elf
 	cp bin32/sis900.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1753,7 +2040,7 @@ bin32/sis900.lzpxe:	bin32/sis900.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1039,0x0900 -i$(IDENT32) $@
 
-bin32/sis900.ebi: bin32/sis900.elf
+bin32/sis900.ebi:	bin32/sis900.elf
 	cp bin32/sis900.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1773,7 +2060,7 @@ bin32/smc1211.lzpxe:	bin32/rtl8139.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1112,0x1211 -i$(IDENT32) $@
 
-bin32/smc1211.ebi: bin32/rtl8139.elf
+bin32/smc1211.ebi:	bin32/rtl8139.elf
 	cp bin32/rtl8139.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1793,7 +2080,7 @@ bin32/tulip.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
 
-bin32/tulip.ebi: bin32/tulip.elf
+bin32/tulip.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1813,7 +2100,7 @@ bin32/via-rhine.lzpxe:	bin32/via-rhine.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
 
-bin32/via-rhine.ebi: bin32/via-rhine.elf
+bin32/via-rhine.ebi:	bin32/via-rhine.elf
 	cp bin32/via-rhine.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1833,7 +2120,7 @@ bin32/via-rhine-old.lzpxe:	bin32/via-rhine.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1106,0x6100 -i$(IDENT32) $@
 
-bin32/via-rhine-old.ebi: bin32/via-rhine.elf
+bin32/via-rhine-old.ebi:	bin32/via-rhine.elf
 	cp bin32/via-rhine.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1853,7 +2140,7 @@ bin32/winbond840.lzpxe:	bin32/w89c840.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1050,0x0840 -i$(IDENT32) $@
 
-bin32/winbond840.ebi: bin32/w89c840.elf
+bin32/winbond840.ebi:	bin32/w89c840.elf
 	cp bin32/w89c840.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1873,7 +2160,7 @@ bin32/winbond940.lzpxe:	bin32/ns8390.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x1050,0x0940 -i$(IDENT32) $@
 
-bin32/winbond940.ebi: bin32/ns8390.elf
+bin32/winbond940.ebi:	bin32/ns8390.elf
 	cp bin32/ns8390.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -1893,7 +2180,7 @@ bin32/xircomtulip.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	bin/makerom -x $(MAKEROM_$*) -p 0x115d,0x0003 -i$(IDENT32) $@
 
-bin32/xircomtulip.ebi: bin32/tulip.elf
+bin32/xircomtulip.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 
@@ -2039,8 +2326,8 @@ bin32/3c595.tmp:	bin32/3c595.o bin32/config-3c595.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c595.o bin32/3c595.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/3c595.elf: bin32/3c595.o bin32/config-3c595.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-3c595.o bin32/3c595.o bin32/pci.o $(LIBS32)
+bin32/3c595.elf:	bin32/3c595.o bin32/config-3c595.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-3c595.o bin32/3c595.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/3c595.img:	bin32/3c595.o bin32/3c595.tmp bin32/config-3c595.o bin32/pci.o $(STDDEPS32)
@@ -2050,8 +2337,8 @@ bin32/3c90x.tmp:	bin32/3c90x.o bin32/config-3c90x.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-3c90x.o bin32/3c90x.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/3c90x.elf: bin32/3c90x.o bin32/config-3c90x.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-3c90x.o bin32/3c90x.o bin32/pci.o $(LIBS32)
+bin32/3c90x.elf:	bin32/3c90x.o bin32/config-3c90x.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-3c90x.o bin32/3c90x.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/3c90x.img:	bin32/3c90x.o bin32/3c90x.tmp bin32/config-3c90x.o bin32/pci.o $(STDDEPS32)
@@ -2061,19 +2348,30 @@ bin32/davicom.tmp:	bin32/davicom.o bin32/config-davicom.o bin32/pci.o $(STDDEPS3
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-davicom.o bin32/davicom.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/davicom.elf: bin32/davicom.o bin32/config-davicom.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-davicom.o bin32/davicom.o bin32/pci.o $(LIBS32)
+bin32/davicom.elf:	bin32/davicom.o bin32/config-davicom.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-davicom.o bin32/davicom.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/davicom.img:	bin32/davicom.o bin32/davicom.tmp bin32/config-davicom.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-davicom.o bin32/davicom.o bin32/pci.o $(LIBS32)
 
+bin32/e1000.tmp:	bin32/e1000.o bin32/config-e1000.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-e1000.o bin32/e1000.o bin32/pci.o $(LIBS32)
+	@$(SIZE32) $@ | $(CHECKSIZE)
+
+bin32/e1000.elf:	bin32/e1000.o bin32/config-e1000.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-e1000.o bin32/e1000.o bin32/pci.o $(LIBS32)
+	@$(SIZE32) $@ | $(CHECKSIZE)
+
+bin32/e1000.img:	bin32/e1000.o bin32/e1000.tmp bin32/config-e1000.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-e1000.o bin32/e1000.o bin32/pci.o $(LIBS32)
+
 bin32/eepro100.tmp:	bin32/eepro100.o bin32/config-eepro100.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-eepro100.o bin32/eepro100.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/eepro100.elf: bin32/eepro100.o bin32/config-eepro100.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-eepro100.o bin32/eepro100.o bin32/pci.o $(LIBS32)
+bin32/eepro100.elf:	bin32/eepro100.o bin32/config-eepro100.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-eepro100.o bin32/eepro100.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/eepro100.img:	bin32/eepro100.o bin32/eepro100.tmp bin32/config-eepro100.o bin32/pci.o $(STDDEPS32)
@@ -2083,19 +2381,30 @@ bin32/epic100.tmp:	bin32/epic100.o bin32/config-epic100.o bin32/pci.o $(STDDEPS3
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-epic100.o bin32/epic100.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/epic100.elf: bin32/epic100.o bin32/config-epic100.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-epic100.o bin32/epic100.o bin32/pci.o $(LIBS32)
+bin32/epic100.elf:	bin32/epic100.o bin32/config-epic100.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-epic100.o bin32/epic100.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/epic100.img:	bin32/epic100.o bin32/epic100.tmp bin32/config-epic100.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-epic100.o bin32/epic100.o bin32/pci.o $(LIBS32)
 
+bin32/fa311.tmp:	bin32/fa311.o bin32/config-fa311.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-fa311.o bin32/fa311.o bin32/pci.o $(LIBS32)
+	@$(SIZE32) $@ | $(CHECKSIZE)
+
+bin32/fa311.elf:	bin32/fa311.o bin32/config-fa311.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-fa311.o bin32/fa311.o bin32/pci.o $(LIBS32)
+	@$(SIZE32) $@ | $(CHECKSIZE)
+
+bin32/fa311.img:	bin32/fa311.o bin32/fa311.tmp bin32/config-fa311.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-fa311.o bin32/fa311.o bin32/pci.o $(LIBS32)
+
 bin32/lance.tmp:	bin32/lance.o bin32/config-lance.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-lance.o bin32/lance.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/lance.elf: bin32/lance.o bin32/config-lance.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-lance.o bin32/lance.o bin32/pci.o $(LIBS32)
+bin32/lance.elf:	bin32/lance.o bin32/config-lance.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-lance.o bin32/lance.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/lance.img:	bin32/lance.o bin32/lance.tmp bin32/config-lance.o bin32/pci.o $(STDDEPS32)
@@ -2105,8 +2414,8 @@ bin32/natsemi.tmp:	bin32/natsemi.o bin32/config-natsemi.o bin32/pci.o $(STDDEPS3
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-natsemi.o bin32/natsemi.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/natsemi.elf: bin32/natsemi.o bin32/config-natsemi.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-natsemi.o bin32/natsemi.o bin32/pci.o $(LIBS32)
+bin32/natsemi.elf:	bin32/natsemi.o bin32/config-natsemi.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-natsemi.o bin32/natsemi.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/natsemi.img:	bin32/natsemi.o bin32/natsemi.tmp bin32/config-natsemi.o bin32/pci.o $(STDDEPS32)
@@ -2116,8 +2425,8 @@ bin32/ns8390.tmp:	bin32/ns8390.o bin32/config-ns8390.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-ns8390.o bin32/ns8390.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/ns8390.elf: bin32/ns8390.o bin32/config-ns8390.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-ns8390.o bin32/ns8390.o bin32/pci.o $(LIBS32)
+bin32/ns8390.elf:	bin32/ns8390.o bin32/config-ns8390.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-ns8390.o bin32/ns8390.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/ns8390.img:	bin32/ns8390.o bin32/ns8390.tmp bin32/config-ns8390.o bin32/pci.o $(STDDEPS32)
@@ -2127,8 +2436,8 @@ bin32/otulip.tmp:	bin32/otulip.o bin32/config-otulip.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-otulip.o bin32/otulip.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/otulip.elf: bin32/otulip.o bin32/config-otulip.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-otulip.o bin32/otulip.o bin32/pci.o $(LIBS32)
+bin32/otulip.elf:	bin32/otulip.o bin32/config-otulip.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-otulip.o bin32/otulip.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/otulip.img:	bin32/otulip.o bin32/otulip.tmp bin32/config-otulip.o bin32/pci.o $(STDDEPS32)
@@ -2138,8 +2447,8 @@ bin32/rtl8139.tmp:	bin32/rtl8139.o bin32/config-rtl8139.o bin32/pci.o $(STDDEPS3
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-rtl8139.o bin32/rtl8139.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/rtl8139.elf: bin32/rtl8139.o bin32/config-rtl8139.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-rtl8139.o bin32/rtl8139.o bin32/pci.o $(LIBS32)
+bin32/rtl8139.elf:	bin32/rtl8139.o bin32/config-rtl8139.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-rtl8139.o bin32/rtl8139.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/rtl8139.img:	bin32/rtl8139.o bin32/rtl8139.tmp bin32/config-rtl8139.o bin32/pci.o $(STDDEPS32)
@@ -2149,8 +2458,8 @@ bin32/sis900.tmp:	bin32/sis900.o bin32/config-sis900.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-sis900.o bin32/sis900.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/sis900.elf: bin32/sis900.o bin32/config-sis900.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-sis900.o bin32/sis900.o bin32/pci.o $(LIBS32)
+bin32/sis900.elf:	bin32/sis900.o bin32/config-sis900.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-sis900.o bin32/sis900.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/sis900.img:	bin32/sis900.o bin32/sis900.tmp bin32/config-sis900.o bin32/pci.o $(STDDEPS32)
@@ -2160,8 +2469,8 @@ bin32/tulip.tmp:	bin32/tulip.o bin32/config-tulip.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-tulip.o bin32/tulip.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/tulip.elf: bin32/tulip.o bin32/config-tulip.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-tulip.o bin32/tulip.o bin32/pci.o $(LIBS32)
+bin32/tulip.elf:	bin32/tulip.o bin32/config-tulip.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-tulip.o bin32/tulip.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/tulip.img:	bin32/tulip.o bin32/tulip.tmp bin32/config-tulip.o bin32/pci.o $(STDDEPS32)
@@ -2171,8 +2480,8 @@ bin32/via-rhine.tmp:	bin32/via-rhine.o bin32/config-via-rhine.o bin32/pci.o $(ST
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-via-rhine.o bin32/via-rhine.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/via-rhine.elf: bin32/via-rhine.o bin32/config-via-rhine.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-via-rhine.o bin32/via-rhine.o bin32/pci.o $(LIBS32)
+bin32/via-rhine.elf:	bin32/via-rhine.o bin32/config-via-rhine.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-via-rhine.o bin32/via-rhine.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/via-rhine.img:	bin32/via-rhine.o bin32/via-rhine.tmp bin32/config-via-rhine.o bin32/pci.o $(STDDEPS32)
@@ -2182,8 +2491,8 @@ bin32/w89c840.tmp:	bin32/w89c840.o bin32/config-w89c840.o bin32/pci.o $(STDDEPS3
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-w89c840.o bin32/w89c840.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
-bin32/w89c840.elf: bin32/w89c840.o bin32/config-w89c840.o bin32/pci.o $(UBE_DEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(UBE_START32) bin32/config-w89c840.o bin32/w89c840.o bin32/pci.o $(LIBS32)
+bin32/w89c840.elf:	bin32/w89c840.o bin32/config-w89c840.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-w89c840.o bin32/w89c840.o bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/w89c840.img:	bin32/w89c840.o bin32/w89c840.tmp bin32/config-w89c840.o bin32/pci.o $(STDDEPS32)

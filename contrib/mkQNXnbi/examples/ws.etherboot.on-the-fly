@@ -19,4 +19,4 @@ $ Net -n <highest QNX node number in network> -m $(netmap)
 $ Net.<network driver>
 
 /bin/sinit
-$ sinit -r //$(bnode)/ TERM=qansi
+$ sinit -r //$(bnode)/ TERM=<your terminal emulation {QNX|qansi}>

@@ -306,7 +306,7 @@ static void ack_status(void)
 		return;
 	shmem[iSCB_CMD>>1] = cmd;
 #if	defined(DEBUG)
-	printf("Status %x Command %x\n", status, cmd);
+	printf("Status %hX Command %hX\n", status, cmd);
 #endif
 	outb(0, ioaddr + I82586_ATTN);
 }
@@ -354,7 +354,7 @@ static void i82586_reset(struct nic *nic)
 	{
 		if (currticks() > time)
 		{
-			printf("i82586 initialisation timed out with status %x, cmd %x\n",
+			printf("i82586 initialisation timed out with status %hX, cmd %hX\n",
 					shmem[iSCB_STATUS>>1], shmem[iSCB_CMD>>1]);
 			break;
 		}
@@ -367,7 +367,7 @@ static void i82586_reset(struct nic *nic)
 	outb(0x80, ioaddr + MISC_CTRL);
 #endif
 #if	defined(DEBUG)
-	printf("i82586 status %x, cmd %x\n",
+	printf("i82586 status %hX, cmd %hX\n",
 			shmem[iSCB_STATUS>>1], shmem[iSCB_CMD>>1]);
 #endif
 }
@@ -520,17 +520,14 @@ static int t507_probe1(struct nic *nic, unsigned short ioaddr)
 	mem_end = mem_start + size;
 	scb_base = 65536L - size;
 	if_port = inb(ioaddr + ROM_CONFIG) & 0x80;
-	printf("\n3c507 ioaddr %#x, IRQ %d, mem [%#x-%#x], %sternal xcvr, addr ",
-		ioaddr, irq, mem_start, mem_end, if_port ? "in" : "ex");
 	/* Get station address */
 	outb(0x01, ioaddr + MISC_CTRL);
 	for (i = 0; i < ETH_ALEN; ++i)
 	{
-		printf("%b", nic->node_addr[i] = inb(ioaddr+i));
-		if (i < ETH_ALEN -1)
-			putchar(':');
+		nic->node_addr[i] = inb(ioaddr+i);
 	}
-	putchar('\n');
+	printf("\n3c507 ioaddr %#hX, IRQ %d, mem [%#X-%#X], %sternal xcvr, addr %!\n",
+		ioaddr, irq, mem_start, mem_end, if_port ? "in" : "ex", nic->node_addr);
 	return (1);
 }
 
@@ -610,7 +607,7 @@ static int ni5210_probe2(void)
 	{
 		if (--i == 0)
 		{
-			printf("i82586 initialisation timed out with status %x, cmd %x\n",
+			printf("i82586 initialisation timed out with status %hX, cmd %hX\n",
 				shmem[iSCB_STATUS>>1], shmem[iSCB_CMD>>1]);
 			break;
 		}
@@ -640,16 +637,13 @@ static int ni5210_probe1(struct nic *nic)
 			break;
 	if (mem_start == 0)
 		return (0);
-	printf("\nNI5210 ioaddr %#x, mem [%#X-%#X], addr ",
-		ioaddr, mem_start, mem_end);
 	/* Get station address */
 	for (i = 0; i < ETH_ALEN; ++i)
 	{
-		printf("%b", nic->node_addr[i] = inb(ioaddr+i));
-		if (i < ETH_ALEN -1)
-			printf(":");
+		nic->node_addr[i] = inb(ioaddr+i);
 	}
-	putchar('\n');
+	printf("\nNI5210 ioaddr %#hX, mem [%#X-%#X], addr %!\n",
+		ioaddr, mem_start, mem_end, nic->node_addr);
 	return (1);
 }
 
@@ -761,7 +755,7 @@ static int exos205_probe2(void)
 	{
 		if (--i == 0)
 		{
-			printf("i82586 initialisation timed out with status %x, cmd %x\n",
+			printf("i82586 initialisation timed out with status %hX, cmd %hX\n",
 				shmem[iSCB_STATUS>>1], shmem[iSCB_CMD>>1]);
 			break;
 		}
@@ -787,16 +781,13 @@ static int exos205_probe1(struct nic *nic)
 			break;
 	if (mem_start == 0)
 		return (0);
-	printf("\nEXOS205 ioaddr %#x, mem [%#x-%#x], addr ",
-		ioaddr, mem_start, mem_end);
 	/* Get station address */
 	for (i = 0; i < ETH_ALEN; ++i)
 	{
-		printf("%b", nic->node_addr[i] = inb(ioaddr+i));
-		if (i < ETH_ALEN -1)
-			printf(":");
+		nic->node_addr[i] = inb(ioaddr+i);
 	}
-	putchar('\n');
+	printf("\nEXOS205 ioaddr %#hX, mem [%#X-%#X], addr %!\n",
+		ioaddr, mem_start, mem_end, nic->node_addr);
 	return (1);
 }
 

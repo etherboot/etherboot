@@ -360,18 +360,18 @@ static int eepro_poll(struct nic *nic)
 	rcv_next_frame = inw(ioaddr + IO_PORT);
 	rcv_size = inw(ioaddr + IO_PORT);
 #if	0
-	printf("%x %x %d %x\n", rcv_status, rcv_next_frame, rcv_size,
+	printf("%hX %hX %d %hhX\n", rcv_status, rcv_next_frame, rcv_size,
 		inb(ioaddr + STATUS_REG));
 #endif
 	if ((rcv_status & (RX_OK|RX_ERROR)) != RX_OK) {
-		printf("Receive error %x\n", rcv_status);
+		printf("Receive error %hX\n", rcv_status);
 		return (0);
 	}
 	rcv_size &= 0x3FFF;
 	insw(ioaddr + IO_PORT, nic->packet, ((rcv_size + 3) >> 1));
 #if	0
 	for (i = 0; i < 48; i++) {
-		printf("%b", nic->packet[i]);
+		printf("%hhX", nic->packet[i]);
 		putchar(i % 16 == 15 ? '\n' : ' ');
 	}
 #endif
@@ -439,7 +439,7 @@ static void eepro_transmit(
 		}
 #if	DEBUG
 		if ((status & 0x2000) == 0)
-			printf("Transmit status %x\n", status);
+			printf("Transmit status %hX\n", status);
 #endif
 	}
 }
@@ -503,8 +503,8 @@ static int eepro_probe1(struct nic *nic)
 {
 	int		i, id, counter, l_eepro = 0;
 	union {
-		unsigned char	caddr[6];
-		unsigned short	saddr[3];
+		unsigned char	caddr[ETH_ALEN];
+		unsigned short	saddr[ETH_ALEN/2];
 	} station_addr;
 	char		*name;
 
@@ -542,11 +542,10 @@ static int eepro_probe1(struct nic *nic)
 	station_addr.saddr[0] = swap16(station_addr.saddr[0]);
 	station_addr.saddr[1] = swap16(station_addr.saddr[1]);
 	station_addr.saddr[2] = swap16(station_addr.saddr[2]);
-	printf("\n%s ioaddr %#x, addr", name, ioaddr);
 	for (i = 0; i < ETH_ALEN; i++) {
-		putchar(i == 0 ? ' ' : ':');
-		printf("%b", nic->node_addr[i] = station_addr.caddr[i]);
+		nic->node_addr[i] = station_addr.caddr[i];
 	}
+	printf("\n%s ioaddr %#hX, addr %!", name, ioaddr, nic->node_addr);
 	mem_start = RCV_LOWER_LIMIT << 8;
 	if ((mem_end & 0x3F) < 3 || (mem_end & 0x3F) > 29)
 		mem_end = RCV_UPPER_LIMIT << 8;

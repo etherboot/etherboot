@@ -27,11 +27,6 @@
 #if	(RELOC & 0xF0000) != 0x90000
 #define NOT_AT_0x9xxxx
 #else
-#ifdef	PXELOADER
-/* also don't depend on the amount of memory int 12 reports as it has been 
-   decreased by PXE and not increased again even after releasing it */
-#define NOT_AT_0x9xxxx
-#endif / * PXELOADER */
 #define	MAX_SP	((RELOC & 0xF0000) + 0x10000 - RELOC)
 /* e.g. RELOC = 0x84000, MAX_SP = 0x90000 - 0x84000 = 0xC000 */
 #endif
@@ -113,7 +108,7 @@ size:	.byte 0				/* number of 512 byte blocks */
 #ifdef	PCI_PNP_HEADER
 mfgstr:
 	.asciz	"Etherboot"
-	.fill	0x18-(.-_start)
+	.org	0x18
 	.word	PCI
 	.word	PnP
 
@@ -155,13 +150,25 @@ PnP:
 	.word 0x0000			/* static resource information vector */
 #endif	/* PCI_PNP_HEADER */
 
+/*
+ *	Explicitly specify DI is wrt ES to avoid problems with some BIOSes
+ *	Discovered by Eric Biederman
+ *	In addition, some BIOSes don't point DI to the string $PnP so
+ *	we need another #define to take care of that.
+ */
 over: 
-	cmpw	$'$'+'P'*256,(%di)
+/* Omit this test for ISA cards anyway */
+#ifdef	PCI_PNP_HEADER
+/* Accept old name too for backward compatibility */
+#if	!defined(BBS_BUT_NOT_PNP_COMPLIANT) && !defined(PNP_BUT_NOT_BBS_COMPLIANT)
+	cmpw	$'$'+'P'*256,%es:0(%di)
 	jne	notpnp
-	cmpw	$'n'+'P'*256,2(%di)
+	cmpw	$'n'+'P'*256,%es:2(%di)
 	jne	notpnp
+#endif	/* BBS_BUT_NOT_PNP_COMPLIANT */
 	movw	$0x20,%ax
 	lret
+#endif	/* PCI_PNP_HEADER */
 notpnp:
 #ifndef NO_DELAYED_INT
 	pushw	%ax
@@ -262,6 +269,8 @@ pxefind:
 	cmpw	$0x201, %es:6(%bx)	/* API version 2.1 or higher */
 	jae	get_pxe			/* otherwise use PXENV+ */
 use_pxenv:
+	push	%bx
+	push	%es
 	les	%es:0x0a(%bx), %di
 	mov	%di, %cs:PXEEntry  -_start
 	mov	%es, %cs:PXEEntry+2-_start
@@ -269,21 +278,39 @@ use_pxenv:
 	pop	%es
 	mov	$pxe_undi_shutdown_pkt, %di
 	mov	$PXENV_UNDI_SHUTDOWN, %bx
-	lcall	%cs:(PXEEntry-_start)
+	lcall	*%cs:(PXEEntry-_start)
 	mov	$pxe_unload_stack_pkt, %di
 	mov	$PXENV_UNLOAD_STACK, %bx
-	lcall	%cs:(PXEEntry-_start)
-	jmp	pxe
+	lcall	*%cs:(PXEEntry-_start)
+	pop	%es                      /* now adjust avail mem */
+	pop	%di
+#ifndef PXELOADER_KEEP_UNDI
+	mov	%es:0x26(%di), %bx	/* UNDICodeSize */
+#endif	
+	mov	%es:0x24(%di), %ax      /* UNDICodeSeg */
+	cmp	%es:0x20(%di), %ax      /* UNDIDataSeg */
+#ifndef PXELOADER_KEEP_UNDI
+	jnc	pxe_setmem
+#else
+	jc	pxe_setmem
+#endif
+	mov	%es:0x20(%di), %ax	/* UNDIDataSeg */
+#ifndef PXELOADER_KEEP_UNDI
+	mov	%es:0x22(%di), %bx	/* UNDIDataSize */
+#endif
+	jmp	pxe_setmem
 get_pxe:
 	les	%es:0x28(%bx), %di
 	cmpl	$0x45585021, %es:(%di)	/* '!PXE' signature */
 	jne	no_pxe
 	jmp	have_pxe
-/*	mov	%cs:PXEEntry+2-_start, %bx /* restore PXENV+ */
+/*	mov	%cs:PXEEntry+2-_start, %bx restore PXENV+ */
 /*	mov	%bx, %es
 	mov	%cs:PXEEntry  -_start, %bx
 	jmp	use_pxenv */
 have_pxe:
+	push	%di
+	push	%es
 	les	%es:0x10(%di), %di
 	mov	%di, %cs:PXEEntry  -_start
 	mov	%es, %cs:PXEEntry+2-_start
@@ -291,16 +318,70 @@ have_pxe:
 	pushw	%cs
 	pushw	$pxe_undi_shutdown_pkt
 	pushw	$PXENV_UNDI_SHUTDOWN
-	lcall	%cs:(PXEEntry-_start)
+	lcall	*%cs:(PXEEntry-_start)
 	add	$6, %sp
 	pushw	%cs
 	pushw	$pxe_unload_stack_pkt
 	pushw	$PXENV_UNLOAD_STACK
-	lcall	%cs:(PXEEntry-_start)
+	lcall	*%cs:(PXEEntry-_start)
 	add	$6, %sp
 
-pxe:	movw	$pxemsg-_start+3, %si
-	movw	$pxemsgend-pxemsg-3, %cx
+	pop	%es
+	pop	%di
+#ifndef PXELOADER_KEEP_UNDI
+	mov	%es:0x36(%di), %bx	 /* UNDICode.Seg_Size */
+#endif
+	mov	%es:0x30(%di), %ax	 /* UNDICode.Seg_Addr */
+	cmp	%es:0x28(%di), %ax	 /* UNDIData.Seg_Addr */
+#ifndef PXELOADER_KEEP_UNDI
+	jnc	pxe_setmem
+#else
+	jc	pxe_setmem
+#endif
+	mov	%es:0x28(%di), %ax	 /* UNDIData.Seg_Addr */
+#ifndef PXELOADER_KEEP_UNDI
+	mov	%es:0x2e(%di), %bx	 /* UNDIData.Seg_Size */
+#endif
+	
+pxe_setmem:
+#ifndef PXELOADER_KEEP_UNDI
+	mov	$4, %cl
+	shr	%cl, %bx
+	add	%bx, %ax
+#endif
+	mov	$6, %cl
+	shr	%cl, %ax                /* adjust to KB */
+	mov	$0x40, %cx
+	mov	%cx, %es
+	mov	%ax, %es:(0x13)		/* size in memory into (0x413) */
+
+	push	%ds
+	pop	%es
+
+	/* print amount of available low memory (<1MB)*/
+	/* \begin{hacked assembly} */
+	mov	%ax, %bx
+	shr	$8, %ax
+	add	$0x30, %al
+	mov	%al, pxeKmsg-_start+2
+	mov	%bl, %al
+	shr	$4, %al
+	clc
+	daa
+	cmp	$9, %al
+	sbb	$0xcf, %al
+	mov	%al, pxeKmsg-_start+3
+	mov	%bl, %al
+	and	$0x0f, %al
+	daa               /* no carry here */
+	cmp	$9, %al
+	sbb	$0xcf, %al
+	mov	%al, pxeKmsg-_start+4
+	movw	$0x0a0d, pxemsg-_start   /* "\r\n" */
+	/* \end{hacked assembly} */
+
+	movw	$pxeKmsg-_start, %si
+	movw	$pxemsgend-pxeKmsg, %cx
 	jmp	pxe_print
 no_pxe:
 	movw	$pxemsg-_start, %si
@@ -315,6 +396,8 @@ prloop_pxemsg:
 	
 	movw	$MAGIC,%ax
 	jmp	blockmove
+pxeKmsg:
+	.ascii	"0x123K low memory"
 pxemsg:
 	.ascii	"No PXE"
 pxemsg2:

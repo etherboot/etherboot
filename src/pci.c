@@ -120,7 +120,7 @@ static unsigned long bios32_service(unsigned long service)
 			printf("bios32_service(%d) : not present\n", service);
 			return 0;
 		default: /* Shouldn't happen */
-			printf("bios32_service(%d) : returned %#x, mail drew@colorado.edu\n",
+			printf("bios32_service(%d) : returned %#X, mail drew@colorado.edu\n",
 				service, return_code);
 			return 0;
 	}
@@ -293,8 +293,8 @@ static void check_pcibios(void)
 		}
 #if	DEBUG
 		if (pcibios_entry) {
-			printf ("pcibios_init : PCI BIOS revision %b.%b"
-				" entry at %#x\n", major_revision,
+			printf ("pcibios_init : PCI BIOS revision %hhX.%hhX"
+				" entry at %#X\n", major_revision,
 				minor_revision, pcibios_entry);
 		}
 #endif
@@ -327,13 +327,13 @@ static void pcibios_init(void)
 		if (sum != 0)
 			continue;
 		if (check->fields.revision != 0) {
-			printf("pcibios_init : unsupported revision %d at %#x, mail drew@colorado.edu\n",
+			printf("pcibios_init : unsupported revision %d at %#X, mail drew@colorado.edu\n",
 				check->fields.revision, check);
 			continue;
 		}
 #if	DEBUG
 		printf("pcibios_init : BIOS32 Service Directory "
-			"structure at %#x\n", check);
+			"structure at %#X\n", check);
 #endif
 		if (!bios32_entry) {
 			if (check->fields.entry >= 0x100000) {
@@ -344,7 +344,7 @@ static void pcibios_init(void)
 				bios32_entry = check->fields.entry;
 #if	DEBUG
 				printf("pcibios_init : BIOS32 Service Directory"
-					" entry at %#x\n", bios32_entry);
+					" entry at %#X\n", bios32_entry);
 #endif
 				bios32_indirect.address = bios32_entry;
 			}
@@ -355,8 +355,9 @@ static void pcibios_init(void)
 }
 #endif	/* CONFIG_PCI_DIRECT not defined*/
 
-static void scan_bus(struct pci_device *pcidev)
+static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 {
+	unsigned int first_bus, first_devfn, first_i;
 	unsigned int devfn, l, bus, buses;
 	unsigned char hdr_type = 0;
 	unsigned short vendor, device;
@@ -364,15 +365,27 @@ static void scan_bus(struct pci_device *pcidev)
 	int i, reg;
 	unsigned int pci_ioaddr = 0;
 
+	first_bus = 0;
+	first_devfn = 0;
+	first_i = 0;
+	if (dev->probe_id) {
+		first_bus = dev->bus;
+		first_devfn = dev->devfn;
+		first_i = dev->probe_id - id +1;
+		dev->probe_id = 0;
+		dev->bus = 0;
+		dev->devfn = 0;
+	}
+		
 	/* Scan all PCI buses, until we find our card.
-	 * We could be smart only scan the required busses but that
+	 * We could be smart only scan the required buses but that
 	 * is error prone, and tricky.
-	 * By scanning all possible pci busses in order we should find
+	 * By scanning all possible pci buses in order we should find
 	 * our card eventually. 
 	 */
 	buses=256;
-	for (bus = 0; bus < buses; ++bus) {
-		for (devfn = 0; devfn < 0xff; ++devfn) {
+	for (bus = first_bus; bus < buses; ++bus) {
+		for (devfn = first_devfn; devfn < 0xff; ++devfn) {
 			if (PCI_FUNC (devfn) == 0)
 				pcibios_read_config_byte(bus, devfn, PCI_HEADER_TYPE, &hdr_type);
 			else if (!(hdr_type & 0x80))	/* not a multi-function device */
@@ -387,51 +400,92 @@ static void scan_bus(struct pci_device *pcidev)
 			device = (l >> 16) & 0xffff;
 
 #if	DEBUG
-			printf("bus %x, function %x, vendor %x, device %x\n",
+			printf("bus %hhX, function %hhX, vendor %hX, device %hX\n",
 				bus, devfn, vendor, device);
 #endif
-			for (i = 0; pcidev[i].vendor != 0; i++) {
-				if (vendor != pcidev[i].vendor
-				    || device != pcidev[i].dev_id)
+			for (i = first_i; i < ids; i++) {
+				if (vendor != id[i].vendor)
 					continue;
-				pcidev[i].devfn = devfn;
-				pcidev[i].bus = bus;
+				if (device != id[i].dev_id)
+					continue;
+
+				dev->devfn = devfn;
+				dev->bus = bus;
+				dev->vendor = id[i].vendor;
+				dev->dev_id = id[i].dev_id;
+				dev->name = id[i].name;
+				dev->probe_id = &id[i];
+
+				
+				/* Get the ROM base address */
+				pcibios_read_config_dword(bus, devfn, PCI_ROM_ADDRESS, &romaddr);
+				romaddr >>= 10;
+				dev->romaddr = romaddr;
+				
+				/* Get the ``membase'' */
+				pcibios_read_config_dword(bus, devfn,
+					PCI_BASE_ADDRESS_1, &membase);
+				dev->membase = membase;
+				
+				/* Get the ``ioaddr'' */
 				for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
 					pcibios_read_config_dword(bus, devfn, reg, &ioaddr);
-
 					if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0 || (ioaddr & PCI_BASE_ADDRESS_SPACE_IO) == 0)
 						continue;
+
+
 					/* Strip the I/O address out of the returned value */
 					ioaddr &= PCI_BASE_ADDRESS_IO_MASK;
-					/* Get the memory base address */
-					pcibios_read_config_dword(bus, devfn,
-						PCI_BASE_ADDRESS_1, &membase);
-					/* Get the ROM base address */
-					pcibios_read_config_dword(bus, devfn, PCI_ROM_ADDRESS, &romaddr);
-					romaddr >>= 10;
-					printf("Found %s at %#x, ROM address %#x\n",
-						pcidev[i].name, ioaddr, romaddr);
+
 					/* Take the first one or the one that matches in boot ROM address */
-					if (pci_ioaddr == 0 || romaddr == ((unsigned long) rom.rom_segment << 4)) {
-						pcidev[i].membase = membase;
-						pcidev[i].ioaddr = ioaddr;
-						return;
-					}
+					dev->ioaddr = ioaddr;
 				}
+				printf("Found %s ROM address %#hx\n",
+					dev->name, romaddr);
+				return;
+
 			}
+			first_i = 0;
 		}
+		first_devfn = 0;
 	}
+	first_bus = 0;
 }
 
-void eth_pci_init(struct pci_device *pcidev)
+void eth_find_pci(struct pci_id *idlist, int ids, struct pci_device *dev)
 {
 #ifndef	CONFIG_PCI_DIRECT
-	pcibios_init();
+	if (!pcibios_entry) {
+		pcibios_init();
+	}
 	if (!pcibios_entry) {
 		printf("pci_init: no BIOS32 detected\n");
 		return;
 	}
 #endif
-	scan_bus(pcidev);
+	scan_bus(idlist, ids, dev);
 	/* return values are in pcidev structures */
+}
+
+/*
+ *	Set device to be a busmaster in case BIOS neglected to do so.
+ *	Also adjust PCI latency timer to a reasonable value, 32.
+ */
+void adjust_pci_device(struct pci_device *p)
+{
+	unsigned short	new_command, pci_command;
+	unsigned char	pci_latency;
+
+	pcibios_read_config_word(p->bus, p->devfn, PCI_COMMAND, &pci_command);
+	new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
+	if (pci_command != new_command) {
+		printf("The PCI BIOS has not enabled this device!\nUpdating PCI command %hX->%hX. pci_bus %hhX pci_device_fn %hhX\n",
+			   pci_command, new_command, p->bus, p->devfn);
+		pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
+	}
+	pcibios_read_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, &pci_latency);
+	if (pci_latency < 32) {
+		printf("PCI latency timer (CFLT) is unreasonably low at %d. Setting to 32 clocks.\n", pci_latency);
+		pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
+	}
 }
