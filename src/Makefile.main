@@ -165,9 +165,7 @@ SRCS+=	core/misc.c core/config.c core/relocate.c core/heap.c
 SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/timer.c
 SRCS+=	core/proto_slam.c core/proto_tftm.c
 SRCS+=	core/isapnp.c core/md5.c
-ifdef CONFIG_PCMCIA
 SRCS+=	core/pcmcia.c core/i82365.c
-endif
 
 BOBJS+=		$(BIN)/main.o $(BIN)/osloader.o $(BIN)/nfs.o $(BIN)/misc.o
 BOBJS+=		$(BIN)/proto_slam.o $(BIN)/proto_tftm.o
@@ -178,9 +176,7 @@ BOBJS+=		$(BIN)/isapnp.o
 BOBJS+=		$(BIN)/pci.o $(BIN)/rsa.o
 BOBJS+=		$(BIN)/vsprintf.o
 
-ifdef CONFIG_PCMCIA
 BOBJS+=		$(BIN)/pcmcia.o $(BIN)/i82365.o
-endif
 BLIB=		$(BIN)/bootlib.a 
 LIBS=		$(BLIB)
 UTILS+=		$(BIN)/nrv2b
