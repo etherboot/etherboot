@@ -2739,4 +2739,5 @@ Released as Etherboot 5.2.6 (production) 2004/11/13
 + Dag Lem provided a new pci_id for the eepro100 Intel "82801EB/ER
 (ICH5/ICH5R)"
 
++ Georg Baum fixed a compilation problem with gcc 2.95 in filo/usb/ohci.c
 

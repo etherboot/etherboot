@@ -1155,10 +1155,10 @@ int ohc_reset(uchar controller)
 
         int timeout = 30;
         int smm_timeout = 50; /* 0,5 sec */
-        
+        ohci_t *ohci = &_ohci_x[controller];
+
         debug("Resetting OHCI\n");
         ohci_regs = (ohci_regs_t *)hc_base[controller];
-        ohci_t *ohci = &_ohci_x[controller];
 
 #ifndef __hppa__
         /* PA-RISC doesn't have SMM, but PDC might leave IR set */
@@ -1204,8 +1204,8 @@ int ohc_start(uchar controller) {
 	u32 mask;
 	unsigned int fminterval;
 	int delaytime;
-	ohci_regs = (ohci_regs_t *)hc_base[controller];
 	ohci_t *ohci = &_ohci_x[controller];
+	ohci_regs = (ohci_regs_t *)hc_base[controller];
 	
         debug("Starting OHCI\n");
 	
