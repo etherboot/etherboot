@@ -10,7 +10,8 @@
 #	-DASK_BOOT=n
 #			Ask "Boot from (N)etwork ... or (Q)uit? " 
 #			at startup, timeout after n seconds (0 = no timeout).
-#			If unset, boot immediately using the default.
+#			If unset or negative, don't ask and boot immediately
+#			using the default.
 #	-DBOOT_FIRST
 #	-DBOOT_SECOND
 #	-DBOOT_THIRD
