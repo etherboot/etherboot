@@ -65,7 +65,6 @@ static void isapnp_peek(unsigned char *data, int bytes);
 static void send_key(void);
 static unsigned char isapnp_checksum(unsigned char *data);
 int Config(int csn);
-static int CheckIOResource(void);
 
 void config_pnp_device(void)
 {
@@ -80,7 +79,7 @@ void config_pnp_device(void)
 /* Isolate all the PNP Boards on the ISA BUS */
 static int Isolate(void)
 {
-    int i, cards = 0;
+    int cards = 0;
     if (read_port < 0x203 || read_port > 0x3ff) {
 	cards = do_isapnp_isolate();
 	if (cards < 0 || (read_port < 0x203 || read_port > 0x3ff)) {
@@ -100,7 +99,6 @@ static int do_isapnp_isolate(void)
     unsigned char checksum = 0x6a;
     unsigned char chksum = 0x00;
     unsigned char bit = 0x00;
-    int data;
     unsigned char c1, c2;
     int csn = 0;
     int i;
@@ -221,7 +219,7 @@ int Config(int csn)
 {
 #define TIMEOUT_PNP     100
     unsigned char id[IDENT_LEN];
-    int i, x, ret, retval;
+    int i, x;
     Wake(csn);
     udelay(1000);
     for (i = 0; i < IDENT_LEN; i++) {
@@ -354,7 +352,6 @@ static int isapnp_next_rdp(void)
 
 static int isapnp_isolate_rdp_select(void)
 {
-    int isapnp_reset = 1;
     send_key();
     /* Control: reset CSN and conditionally everything else too */
     CONFIGCONTROL;
