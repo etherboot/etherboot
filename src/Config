@@ -268,7 +268,7 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
-#CFLAGS+=	-DFREEBSD_PXEEMU
+# CFLAGS+=	-DFREEBSD_PXEEMU
 
 # Relocate etherboot to just below 4GB.
 # While not all drivers work correctly before 5.2 is released we want

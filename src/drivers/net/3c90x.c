@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /*
  * 3c90x.c -- This file implements the 3c90x driver for etherboot.  Written
  * by Greg Beeley, Greg.Beeley@LightSys.org.  Modified by Steve Smith,
@@ -911,8 +908,8 @@ static int a3c90x_probe(struct dev *dev, struct pci_device *pci)
     while (inw(INF_3C90X.IOAddr + regCommandIntStatus_w) & INT_CMDINPROGRESS)
 	;
 
-    /** Set the RX filter = receive only individual pkts & bcast. **/
-    a3c90x_internal_IssueCommand(INF_3C90X.IOAddr, cmdSetRxFilter, 0x01 + 0x04);
+    /** Set the RX filter = receive only individual pkts & multicast & bcast. **/
+    a3c90x_internal_IssueCommand(INF_3C90X.IOAddr, cmdSetRxFilter, 0x01 + 0x02 + 0x04);
     a3c90x_internal_IssueCommand(INF_3C90X.IOAddr, cmdRxEnable, 0);
 
 

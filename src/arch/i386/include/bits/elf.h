@@ -5,6 +5,10 @@
 #define	EM_CURRENT	EM_386
 #define ELFDATA_CURRENT	ELFDATA2LSB
 
+#define ELF_CHECK_ARCH(x) \
+	((((x).e_machine == EM_386) || ((x).e_machine == EM_486)) && \
+		((x).e_entry <= 0xffffffffUL))
+
 #ifdef  IMAGE_FREEBSD
 /*
  * FreeBSD has this rather strange "feature" of its design.

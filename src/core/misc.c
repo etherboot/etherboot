@@ -84,8 +84,8 @@ void poll_interruptions(void)
 		return;
 #endif
 	/* If an interruption has occured restart etherboot */
-	if (iskey() && (ch = getchar(), (ch == K_ESC) || (ch == K_INTR) || (ch == K_KILL))) {
-		int state = (ch != K_KILL)? -1 : -3;
+	if (iskey() && (ch = getchar(), (ch == K_ESC) || (ch == K_EOF) || (ch == K_INTR))) {
+		int state = (ch != K_INTR)? -1 : -3;
 		longjmp(restart_etherboot, state);
 	}
 }

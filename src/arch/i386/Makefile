@@ -71,12 +71,16 @@ allpxes:	$(BUILD_PXES)
 allcoms:	$(BUILD_COMS)
 alllilos:	$(BUILD_LILOS)
 
-SRCS+=  arch/i386/core/pxe.c arch/i386/core/pci_io.c
-BOBJS+= $(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
+SRCS+=		arch/i386/core/pxe.c arch/i386/core/pci_io.c
+BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
+BOBJS+=		$(BIN)/elf.o
+
 
 $(BIN)/pxe.o:		arch/i386/core/pxe.c include/etherboot.h include/osdep.h include/nic.h
 $(BIN)/pci_io.o:	arch/i386/core/pci_io.c include/pci.h include/etherboot.h include/osdep.h
 $(BIN)/i386_timer.o:	arch/i386/core/i386_timer.c include/timer.h include/etherboot.h include/osdep.h
+$(BIN)/elf.o:		arch/i386/core/elf.c include/etherboot.h include/osdep.h \
+			include/elf.h arch/i386/include/bits/elf.h
 
 # Assembly files
 $(BIN)/start32.o:	arch/i386/core/start32.S

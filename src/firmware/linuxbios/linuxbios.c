@@ -6,7 +6,8 @@
 
 struct meminfo meminfo;
 static int lb_failsafe = 1;
-static struct cmos_entries lb_boot[MAX_BOOT_ENTRIES];
+static unsigned lb_boot[MAX_BOOT_ENTRIES];
+static struct cmos_entries lb_countdown;
 static struct cmos_checksum lb_checksum;
 
 #undef DEBUG_LINUXBIOS
@@ -213,6 +214,11 @@ static void read_linuxbios_values(struct meminfo *info,
 				/* See if LinuxBIOS came up in fallback or normal mode */
 				if (memcmp(entry->name, "last_boot", 10) == 0) {
 					lb_failsafe = cmos_read(entry->bit, entry->length) == 0;
+					continue;
+				}
+				if (memcmp(entry->name, "boot_countdown", 15) == 0) {
+					lb_countdown =  *entry;
+					continue;
 				}
 				/* Now filter for the boot order options */
 				if (entry->length != 4)
@@ -220,13 +226,13 @@ static void read_linuxbios_values(struct meminfo *info,
 				if (entry->config != 'e')
 					continue;
 				if (memcmp(entry->name, "boot_first", 11) == 0) {
-					lb_boot[0] = *entry;
+					lb_boot[0] = cmos_read(entry->bit, entry->length);
 				}
 				else if (memcmp(entry->name, "boot_second", 12) == 0) {
-					lb_boot[1] = *entry;
+					lb_boot[1] = cmos_read(entry->bit, entry->length);
 				}
 				else if (memcmp(entry->name, "boot_third", 11) == 0) {
-					lb_boot[2] = *entry;
+					lb_boot[2] = cmos_read(entry->bit, entry->length);
 				}
 			}
 			break;
@@ -333,22 +339,30 @@ void get_memsizes(void)
 
 unsigned long get_boot_order(unsigned long order)
 {
+	static int again;
+	static int checksum_valid;
+	static unsigned boot_count;
 	int i;
-	int checksum_valid;
-	checksum_valid = cmos_valid();
+		
+	if (!again) {
+		/* Decrement the boot countdown the first time through */
+		checksum_valid = cmos_valid();
+		boot_count = cmos_read(lb_countdown.bit, lb_countdown.length);
+		if (boot_count > 0) {
+			cmos_write(lb_countdown.bit, lb_countdown.length, boot_count -1);
+		}
+		again = 1;
+	}
 	for(i = 0; i < MAX_BOOT_ENTRIES; i++) {
 		unsigned long boot;
 		boot = order >> (i*BOOT_BITS) & BOOT_MASK;
-		if (!lb_failsafe && checksum_valid && (lb_boot[i].bit > 0)) {
-			boot = cmos_read(lb_boot[i].bit, lb_boot[i].length);
-			if ((boot & BOOT_TYPE_MASK) >= BOOT_NOTHING) {
+		if (!lb_failsafe && checksum_valid) {
+			boot = lb_boot[i] & BOOT_TYPE_MASK;
+			if (boot >= BOOT_NOTHING) {
 				boot = BOOT_NOTHING;
-			} else {
-				/* Set the failsafe bit on all of 
-				 * the boot entries... 
-				 */
-				cmos_write(lb_boot[i].bit, lb_boot[i].length,
-					boot | BOOT_FAILSAFE);
+			}
+			if (boot_count == 0) {
+				boot |= BOOT_FAILSAFE;
 			}
 		}
 		order &= ~(BOOT_MASK << (i * BOOT_BITS));

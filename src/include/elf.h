@@ -17,6 +17,7 @@
 #define EM_386		 3		/* Intel 80386+ */
 #define EM_68K		 4		/* Motorola m68k family */
 #define EM_88K		 5		/* Motorola m88k family */
+#define EM_486		 6		/* Perhaps disused */
 #define EM_860		 7		/* Intel 80860 */
 #define EM_MIPS		 8		/* MIPS R3000 big-endian */
 #define EM_S370		 9		/* IBM System/370 */
@@ -158,9 +159,6 @@ typedef int32_t		Elf64_Sword;
 typedef uint32_t	Elf64_Word;
 typedef uint64_t	Elf64_Size;
 
-typedef uint16_t	Elf_Half;
-typedef uint32_t	Elf_Word;
-
 /*
  * ELF header.
  */
@@ -223,63 +221,14 @@ typedef struct {
 	Elf64_Size	p_align;	/* Alignment in memory and file. */
 } Elf64_Phdr;
 
-/* 
- * ELF Notes.
- */
-typedef struct Elf_Nhdr {
-	Elf_Word n_namesz;
-	Elf_Word n_descsz;
-	Elf_Word n_type;
-} Elf_Nhdr;
-
-/*
- * Elf boot notes...
- */
-typedef struct Elf_Bhdr {
-	Elf_Word b_signature; /* "0x0E1FB007" */
-	Elf_Word b_size;
-	Elf_Half b_checksum;
-	Elf_Half b_records;
-} Elf_Bhdr;
-
-#endif /* ASSEMBLY */
-
 /* Standardized Elf image notes for booting... The name for all of these is ELFBoot */
-
-#define ELF_NOTE_BOOT		"ELFBoot"
-
-#define EIN_PROGRAM_NAME	0x00000001
-/* The program in this ELF file */
-#define EIN_PROGRAM_VERSION	0x00000002
-/* The version of the program in this ELF file */
-#define EIN_PROGRAM_CHECKSUM	0x00000003
-/* ip style checksum of the memory image. */
-
-
-/* Notes that are passed to a loaded image */
-
-/* For the standard elf boot notes n_namesz must be zero */
-#define EBN_FIRMWARE_TYPE	0x00000001
-#define EBN_BOOTLOADER_NAME	0x00000002
-/* This specifies the name of the bootloader */
-#define EBN_BOOTLOADER_VERSION	0x00000003
-/* The version of the bootloader as a string */
-#define EBN_COMMAND_LINE	0x00000004
-/* A command line passed from the bootloader */
-#define EBN_NOP			0x00000005
-/* A generic not means nothing, useful for inserting explicit padding */
-
-#define EB_PARAM_NOTE		"Etherboot"
-#define EB_IA64_SYSTAB		0x00000001
-#define EB_IA64_MEMMAP		0x00000002
-#define EB_IA64_FPSWA		0x00000003
-#define EB_IA64_CONINFO		0x00000004
-#define EB_BOOTP_DATA		0x00000005
-#define EB_HEADER		0x00000006
-#define EB_IA64_IMAGE_HANDLE	0x00000007
 
 
 /* ELF Defines for the current architecture */
 #include "bits/elf.h"
+
+#endif /* ASSEMBLY */
+
+#include "elf_boot.h"
 
 #endif /* ELF_H */

@@ -40,8 +40,8 @@ Author: Martin Renters
 #endif
 
 #define K_ESC		'\033'
+#define K_EOF		'\04'  /* Ctrl-D */
 #define K_INTR		'\03'  /* Ctrl-C */
-#define K_KILL		'\025' /* Ctrl-U */
 
 /*  Edit this to change the path to hostspecific kernel image
     kernel.<client_ip_address> in RARP boot */
@@ -636,11 +636,12 @@ struct e820entry {
 } PACKED;
 #define E820MAX 32
 struct meminfo {
-	unsigned short basememsize;
-	unsigned int memsize;
-	int map_count;
+	uint16_t basememsize;
+	uint16_t pad;
+	uint32_t memsize;
+	uint32_t map_count;
 	struct e820entry map[E820MAX];
-};
+} PACKED;
 extern struct meminfo meminfo;
 extern void get_memsizes(void);
 extern unsigned long get_boot_order(unsigned long);

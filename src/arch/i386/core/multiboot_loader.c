@@ -57,6 +57,7 @@ static inline void multiboot_boot(unsigned long entry)
 			*c++ = '\\';
 			break;
 		default:
+			break;
 		}
 		*c++ = KERNEL_BUF[i];
 	}

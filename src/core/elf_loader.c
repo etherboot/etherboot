@@ -1,5 +1,9 @@
 #include "elf.h"
 
+#ifndef ELF_CHECK_ARCH
+#error ELF_CHECK_ARCH not defined
+#endif
+
 #define ELF_NOTES 1
 #define ELF_DEBUG 0
 
@@ -31,16 +35,16 @@ static struct elf_state estate;
 static void elf_boot(unsigned long machine, unsigned long entry)
 {
 	int result;
+	struct Elf_Bhdr *hdr;
 	multiboot_boot(entry);
-#warning "Pass the generic ELF parameters"
-	printf("FIXME pass the generic ELF parameters");
 	/* We cleanup unconditionally, and then reawaken the network
 	 * adapter after the longjmp.
 	 */
-	result = xstart32(entry,
-		virt_to_phys(&loaderinfo),
-		virt_to_phys(&estate.e.elf32),
-		virt_to_phys(BOOTP_DATA_ADDR));
+	hdr = prepare_boot_params(&estate.e);
+	result = elf_start(machine, entry, virt_to_phys(hdr));
+	if (result == 0) {
+		result = -1;
+	}
 	printf("Secondary program returned %d\n", result);
 	longjmp(restart_etherboot, result);
 }
@@ -68,7 +72,7 @@ static int elf_prep_segment(
 #endif
 
 
-#ifdef ELF_NOTES
+#if ELF_NOTES
 static void process_elf_notes(unsigned char *header,
 	unsigned long offset, unsigned long length)
 {
@@ -109,6 +113,10 @@ static void process_elf_notes(unsigned char *header,
 				 * I can detect segment overlaps.
 				 */
 				estate.ip_checksum_offset = n_desc - header;
+#if ELF_DEBUG
+				printf("Checksum: %hx\n", estate.ip_checksum);
+#endif
+
 				break;
 			}
 		}
@@ -143,10 +151,10 @@ static inline os_download_t elf32_probe(unsigned char *data, unsigned int len)
 		(estate.e.elf32.e_ident[EI_DATA] != ELFDATA_CURRENT) ||
 		(estate.e.elf32.e_ident[EI_VERSION] != EV_CURRENT) ||
 		(estate.e.elf32.e_type != ET_EXEC) ||
-		(estate.e.elf32.e_machine != EM_CURRENT) ||
 		(estate.e.elf32.e_version != EV_CURRENT) ||
 		(estate.e.elf32.e_ehsize != sizeof(Elf32_Ehdr)) ||
-		(estate.e.elf32.e_phentsize != sizeof(Elf32_Phdr))) {
+		(estate.e.elf32.e_phentsize != sizeof(Elf32_Phdr)) ||
+		!ELF_CHECK_ARCH(estate.e.elf32)) {
 		return 0;
 	}
 	printf("(ELF");
@@ -284,7 +292,6 @@ static sector_t elf32_download(unsigned char *data, unsigned int len, int eof)
 		unsigned long entry;
 		unsigned long machine;
 elf_startkernel:
-		done();
 		entry = estate.e.elf32.e_entry;
 		machine = estate.e.elf32.e_machine;
 
@@ -296,16 +303,16 @@ elf_startkernel:
 			sum = ipchksum(&estate.e.elf32, sizeof(estate.e.elf32));
 			bytes = sizeof(estate.e.elf32);
 #if ELF_DEBUG
-			printf("Ehdr: %hx sz: %lx bytes: %lx\n",
-				sum, bytes, bytes);
+			printf("Ehdr: %hx %hx sz: %lx bytes: %lx\n",
+				sum, sum, bytes, bytes);
 #endif
 
 			new_sum = ipchksum(estate.p.phdr32, sizeof(estate.p.phdr32[0]) * estate.e.elf32.e_phnum);
 			sum = add_ipchksums(bytes, sum, new_sum);
 			bytes += sizeof(estate.p.phdr32[0]) * estate.e.elf32.e_phnum;
 #if ELF_DEBUG
-			printf("Phdr: %hx sz: %lx bytes: %lx\n",
-				new_sum, 
+			printf("Phdr: %hx %hx sz: %lx bytes: %lx\n",
+				new_sum, sum,
 				sizeof(estate.p.phdr32[0]) * estate.e.elf32.e_phnum, bytes);
 #endif
 
@@ -317,8 +324,8 @@ elf_startkernel:
 				sum = add_ipchksums(bytes, sum, new_sum);
 				bytes += estate.p.phdr32[i].p_memsz;
 #if ELF_DEBUG
-			printf("seg%d: %hx sz: %x bytes: %lx\n",
-				i, new_sum, 
+			printf("seg%d: %hx %hx sz: %x bytes: %lx\n",
+				i, new_sum, sum,
 				estate.p.phdr32[i].p_memsz, bytes);
 #endif
 
@@ -330,6 +337,11 @@ elf_startkernel:
 			}
 		}
 #endif
+		done();
+		/* Fixup the offset to the program header so you can find the program headers from
+		 * the ELF header mknbi needs this.
+		 */
+		estate.e.elf32.e_phoff = (char *)&estate.p - (char *)&estate.e;
 		elf_freebsd_boot(entry);
 		elf_boot(machine,entry);
 	}
@@ -354,10 +366,10 @@ static inline os_download_t elf64_probe(unsigned char *data, unsigned int len)
 		(estate.e.elf64.e_ident[EI_DATA] != ELFDATA_CURRENT) ||
 		(estate.e.elf64.e_ident[EI_VERSION] != EV_CURRENT) ||
 		(estate.e.elf64.e_type != ET_EXEC) ||
-		(estate.e.elf64.e_machine != EM_CURRENT) ||
 		(estate.e.elf64.e_version != EV_CURRENT) ||
 		(estate.e.elf64.e_ehsize != sizeof(Elf64_Ehdr)) ||
-		(estate.e.elf64.e_phentsize != sizeof(Elf64_Phdr))) {
+		(estate.e.elf64.e_phentsize != sizeof(Elf64_Phdr)) ||
+		!ELF_CHECK_ARCH(estate.e.elf64)) {
 		return 0;
 	}
 	printf("(ELF64)... ");
@@ -501,7 +513,6 @@ static sector_t elf64_download(unsigned char *data, unsigned int len, int eof)
 		unsigned long entry;
 		unsigned long machine;
 elf_startkernel:
-		done();
 		entry = estate.e.elf64.e_entry;
 		machine = estate.e.elf64.e_machine;
 #if ELF_NOTES
@@ -512,16 +523,16 @@ elf_startkernel:
 			sum = ipchksum(&estate.e.elf64, sizeof(estate.e.elf64));
 			bytes = sizeof(estate.e.elf64);
 #if ELF_DEBUG
-			printf("Ehdr: %hx sz: %lx bytes: %lx\n",
-				sum, bytes, bytes);
+			printf("Ehdr: %hx %hx sz: %lx bytes: %lx\n",
+				sum, sum, bytes, bytes);
 #endif
 
 			new_sum = ipchksum(estate.p.phdr64, sizeof(estate.p.phdr64[0]) * estate.e.elf64.e_phnum);
 			sum = add_ipchksums(bytes, sum, new_sum);
 			bytes += sizeof(estate.p.phdr64[0]) * estate.e.elf64.e_phnum;
 #if ELF_DEBUG
-			printf("Phdr: %hx sz: %lx bytes: %lx\n",
-				new_sum, 
+			printf("Phdr: %hx %hx sz: %lx bytes: %lx\n",
+				new_sum, sum,
 				sizeof(estate.p.phdr64[0]) * estate.e.elf64.e_phnum, bytes);
 #endif
 
@@ -533,8 +544,8 @@ elf_startkernel:
 				sum = add_ipchksums(bytes, sum, new_sum);
 				bytes += estate.p.phdr64[i].p_memsz;
 #if ELF_DEBUG
-			printf("seg%d: %hx sz: %x bytes: %lx\n",
-				i, new_sum, 
+			printf("seg%d: %hx %hx sz: %x bytes: %lx\n",
+				i, new_sum, sum,
 				estate.p.phdr64[i].p_memsz, bytes);
 #endif
 
@@ -546,6 +557,11 @@ elf_startkernel:
 			}
 		}
 #endif
+		done();
+		/* Fixup the offset to the program header so you can find the program headers from
+		 * the ELF header mknbi needs this.
+		 */
+		estate.e.elf64.e_phoff = (char *)&estate.p - (char *)&estate.e;
 		elf_boot(machine,entry);
 	}
 	return skip_sectors;
