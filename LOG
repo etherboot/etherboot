@@ -2698,3 +2698,5 @@ Lance NIC users should use pcnet32. (Ken Yap)
 incomplete and needs more work before becoming mainstream. (Ken Yap)
 
 Released as Etherboot 5.3.9 (development)
+
++ Patch from Tim Fletcher for another eepro100 model.
