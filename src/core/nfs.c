@@ -501,11 +501,11 @@ int nfs(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int
 	if ( name != dirname ) {
 		memcpy(dirname, name, namelen + 1);
 	}
-	recursion++;
-	if ( recursion > 16 ) {
-		printf ( "\nRecursion: More than 16 symlinks followed. Abort.\n" );
+	if ( recursion > NFS_MAXLINKDEPTH ) {
+		printf ( "\nRecursion: More than %d symlinks followed. Abort.\n", NFS_MAXLINKDEPTH );
 		return	0;
 	}
+	recursion++;
 	fname = dirname + (namelen - 1);
 	while (fname >= dirname) {
 		if (*fname == '/') {
