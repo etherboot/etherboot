@@ -589,7 +589,7 @@ static void depca_reset(struct nic *nic)
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int depca_poll(struct nic *nic)
+static int depca_poll(struct nic *nic, int retrieve)
 {
 	int		entry;
 	u32		status;
@@ -597,6 +597,9 @@ static int depca_poll(struct nic *nic)
 	entry = lp.rx_cur;
 	if ((status = readl(&lp.rx_ring[entry].base) & R_OWN))
 		return (0);
+
+	if ( ! retrieve ) return 1;
+
 	memcpy(nic->packet, lp.rx_memcpy[entry], nic->packetlen = lp.rx_ring[entry].msg_length);
 	lp.rx_ring[entry].base |= R_OWN;
 	lp.rx_cur = (++lp.rx_cur) & lp.rxRingMask;
@@ -652,6 +655,21 @@ static void depca_disable(struct dev *dev)
 	depca_reset(nic);
 
 	STOP_DEPCA;
+}
+
+/**************************************************************************
+IRQ - Interrupt Control
+***************************************************************************/
+static void depca_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
 }
 
 /*
@@ -751,11 +769,16 @@ static int depca_probe(struct dev *dev, unsigned short *probe_addrs)
 	}
 	if (ioaddr == 0)
 		return (0);
+
+	nic->irqno    = 0;
+	nic->ioaddr   = ioaddr & ~3;
+
 	depca_reset(nic);
 	/* point to NIC specific routines */
 	dev->disable  = depca_disable;
 	nic->poll     = depca_poll;
 	nic->transmit = depca_transmit;
+	nic->irq      = depca_irq;
 
 	/* Based on PnP ISA map */
 	dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
