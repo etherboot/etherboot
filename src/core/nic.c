@@ -202,6 +202,19 @@ static const unsigned char dhcprequest [] = {
 	RFC1533_VENDOR_PXE_OPT135,
 #endif /* PXE_DHCP_STRICT */
 };
+#ifdef PXE_EXPORT
+static const unsigned char proxydhcprequest [] = {
+	RFC2132_MSG_TYPE,1,DHCPREQUEST,
+	RFC2132_MAX_SIZE,2,	/* request as much as we can */
+	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
+#ifdef  PXE_DHCP_STRICT
+	RFC3679_PXE_CLIENT_UUID,RFC3679_PXE_CLIENT_UUID_LENGTH,RFC3679_PXE_CLIENT_UUID_DEFAULT,
+	RFC3679_PXE_CLIENT_ARCH,RFC3679_PXE_CLIENT_ARCH_LENGTH,RFC3679_PXE_CLIENT_ARCH_IAX86PC,
+	RFC3679_PXE_CLIENT_NDI, RFC3679_PXE_CLIENT_NDI_LENGTH, RFC3679_PXE_CLIENT_NDI_21,
+	RFC2132_VENDOR_CLASS_ID,RFC2132_VENDOR_CLASS_ID_PXE_LENGTH,RFC2132_VENDOR_CLASS_ID_PXE,
+#endif /* PXE_DHCP_STRICT */
+};
+#endif
 
 #ifdef	REQUIRE_VCI_ETHERBOOT
 int	vci_etherboot;
@@ -330,9 +343,16 @@ LOAD - Try to get booted
 int eth_load(struct dev *dev __unused)
 {
 	const char	*kernel;
-	printf("Me: %@, Server: %@",
-		arptable[ARP_CLIENT].ipaddr.s_addr,
-		arptable[ARP_SERVER].ipaddr.s_addr);
+	printf("Me: %@", arptable[ARP_CLIENT].ipaddr.s_addr );
+#ifndef NO_DHCP_SUPPORT
+	printf(", DHCP: %@", dhcp_server );
+#ifdef PXE_EXPORT       
+	if (arptable[ARP_PROXYDHCP].ipaddr.s_addr)
+		printf(", ProxyDHCP: %@",
+		       arptable[ARP_PROXYDHCP].ipaddr.s_addr);
+#endif /* PXE_EXPORT */
+#endif /* ! NO_DHCP_SUPPORT */
+	printf(", TFTP: %@", arptable[ARP_SERVER].ipaddr.s_addr);
 	if (BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr)
 		printf(", Relay: %@",
 			BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr);
@@ -352,13 +372,19 @@ int eth_load(struct dev *dev __unused)
 #ifdef	DOWNLOAD_PROTO_NFS
 	rpc_init();
 #endif
+	kernel = KERNEL_BUF[0] == '\0' ? 
 #ifdef	DEFAULT_BOOTFILE
-	kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
+		DEFAULT_BOOTFILE
 #else
-	kernel = KERNEL_BUF;
+		NULL
 #endif
-	loadkernel(kernel); /* We don't return except on error */
-	printf("Unable to load file.\n");
+		: KERNEL_BUF;
+	if ( kernel ) {
+		loadkernel(kernel); /* We don't return except on error */
+		printf("Unable to load file.\n");
+	} else {	
+		printf("No filename\n");
+	}
 	interruptible_sleep(2);		/* lay off the server for a while */
 	longjmp(restart_etherboot, -1);
 }
@@ -841,34 +867,43 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 		return 0;
 	if (memcmp(&bootpreply->bp_siaddr, &zeroIP, sizeof(in_addr)) == 0)
 		return 0;
-#ifndef	DEFAULT_BOOTFILE
-	if (bootpreply->bp_file[0] == '\0') {
-		printf("No filename in DHCP packet\n");	/* No filename in offer */
-		return 0;
-	}
-#endif
 	if ((memcmp(broadcast, bootpreply->bp_hwaddr, ETH_ALEN) != 0) &&
 		(memcmp(arptable[ARP_CLIENT].node, bootpreply->bp_hwaddr, ETH_ALEN) != 0)) {
 		return 0;
 	}
-	arptable[ARP_CLIENT].ipaddr.s_addr = bootpreply->bp_yiaddr.s_addr;
+	if ( bootpreply->bp_siaddr.s_addr ) {
+		arptable[ARP_SERVER].ipaddr.s_addr = bootpreply->bp_siaddr.s_addr;
+		memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);	 /* Kill arp */
+	}
+	if ( bootpreply->bp_giaddr.s_addr ) {
+		arptable[ARP_GATEWAY].ipaddr.s_addr = bootpreply->bp_giaddr.s_addr;
+		memset(arptable[ARP_GATEWAY].node, 0, ETH_ALEN);  /* Kill arp */
+	}
+	if (bootpreply->bp_yiaddr.s_addr) {
+		/* Offer with an IP address */
+		arptable[ARP_CLIENT].ipaddr.s_addr = bootpreply->bp_yiaddr.s_addr;
 #ifndef	NO_DHCP_SUPPORT
-	dhcp_addr.s_addr = bootpreply->bp_yiaddr.s_addr;
+		dhcp_addr.s_addr = bootpreply->bp_yiaddr.s_addr;
 #endif	/* NO_DHCP_SUPPORT */
-	netmask = default_netmask();
-	arptable[ARP_SERVER].ipaddr.s_addr = bootpreply->bp_siaddr.s_addr;
-	memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);	 /* Kill arp */
-	arptable[ARP_GATEWAY].ipaddr.s_addr = bootpreply->bp_giaddr.s_addr;
-	memset(arptable[ARP_GATEWAY].node, 0, ETH_ALEN);  /* Kill arp */
-	/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
-	memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
-	decode_rfc1533(BOOTP_DATA_ADDR->bootp_reply.bp_vend, 0,
+		netmask = default_netmask();
+#ifdef PXE_EXPORT
+		/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
+		memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
+		decode_rfc1533(BOOTP_DATA_ADDR->bootp_reply.bp_vend, 0,
 #ifdef	NO_DHCP_SUPPORT
-		BOOTP_VENDOR_LEN + MAX_BOOTP_EXTLEN, 
+			       BOOTP_VENDOR_LEN + MAX_BOOTP_EXTLEN, 
 #else
-		DHCP_OPT_LEN + MAX_BOOTP_EXTLEN, 
+			       DHCP_OPT_LEN + MAX_BOOTP_EXTLEN, 
 #endif	/* NO_DHCP_SUPPORT */
-		1);
+			       1);
+	} else {
+		/* Offer without an IP address - use as ProxyDHCP server */
+		arptable[ARP_PROXYDHCP].ipaddr.s_addr = bootpreply->bp_siaddr.s_addr;
+		memset(arptable[ARP_PROXYDHCP].node, 0, ETH_ALEN);	 /* Kill arp */
+		/* Grab only the bootfile name from a ProxyDHCP packet */
+		memcpy(KERNEL_BUF, bootpreply->bp_file, sizeof(KERNEL_BUF));
+#endif /* PXE_EXPORT */
+	}
 #ifdef	REQUIRE_VCI_ETHERBOOT
 	if (!vci_etherboot)
 		return (0);
@@ -916,43 +951,80 @@ static int bootp(void)
 #endif	/* NO_DHCP_SUPPORT */
 
 	for (retry = 0; retry < MAX_BOOTP_RETRIES; ) {
-		long timeout;
+		uint8_t my_hwaddr[ETH_ALEN];
+		unsigned long stop_time;
+		long remaining_time;
 
 		rx_qdrain();
 
+		/* Kill arptable to avoid keeping stale entries */
+		memcpy ( my_hwaddr, arptable[ARP_CLIENT].node, ETH_ALEN );
+		memset ( arptable, 0, sizeof(arptable) );
+		memcpy ( arptable[ARP_CLIENT].node, my_hwaddr, ETH_ALEN );
+
 		udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 			sizeof(struct bootpip_t), &ip);
-		timeout = rfc2131_sleep_interval(TIMEOUT, retry++);
+		remaining_time = rfc2131_sleep_interval(BOOTP_TIMEOUT, retry++);
+		stop_time = currticks() + remaining_time;
 #ifdef	NO_DHCP_SUPPORT
 		if (await_reply(await_bootp, 0, NULL, timeout))
 			return(1);
 #else
-		if (await_reply(await_bootp, 0, NULL, timeout)) {
-			/* If not a DHCPOFFER then must be just a BOOTP reply,
-			   be backward compatible with BOOTP then */
-			if (dhcp_reply != DHCPOFFER)
-				return(1);
-			dhcp_reply = 0;
-			memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
-			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
-			/* Beware: the magic numbers 9 and 15 depend on
-			   the layout of dhcprequest */
-			memcpy(&ip.bp.bp_vend[9], &dhcp_server, sizeof(in_addr));
-			memcpy(&ip.bp.bp_vend[15], &dhcp_addr, sizeof(in_addr));
-			bp_vend = ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest;
-			/* Append machine_info to end, in encapsulated option */
-			memcpy(bp_vend, dhcp_machine_info, DHCP_MACHINE_INFO_SIZE);
-			bp_vend += DHCP_MACHINE_INFO_SIZE;
-			*bp_vend++ = RFC1533_END;
-			for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
-				udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
-					sizeof(struct bootpip_t), &ip);
-				dhcp_reply=0;
-				timeout = rfc2131_sleep_interval(TIMEOUT, reqretry++);
-				if (await_reply(await_bootp, 0, NULL, timeout))
-					if (dhcp_reply == DHCPACK)
-						return(1);
+		while ( remaining_time > 0 ) {
+			if (await_reply(await_bootp, 0, NULL, remaining_time)){
 			}
+			remaining_time = stop_time - currticks();
+		}
+		if ( ! arptable[ARP_CLIENT].ipaddr.s_addr ) {
+			printf("No IP address\n");
+			continue;
+		}
+		/* If not a DHCPOFFER then must be just a BOOTP reply,
+		 * be backward compatible with BOOTP then */
+		if (dhcp_reply != DHCPOFFER)
+			return(1);
+		dhcp_reply = 0;
+		/* Construct the DHCPREQUEST packet */
+		memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
+		memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
+		/* Beware: the magic numbers 9 and 15 depend on
+		   the layout of dhcprequest */
+		memcpy(&ip.bp.bp_vend[9], &dhcp_server, sizeof(in_addr));
+		memcpy(&ip.bp.bp_vend[15], &dhcp_addr, sizeof(in_addr));
+		bp_vend = ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest;
+		/* Append machine_info to end, in encapsulated option */
+		memcpy(bp_vend, dhcp_machine_info, DHCP_MACHINE_INFO_SIZE);
+		bp_vend += DHCP_MACHINE_INFO_SIZE;
+		*bp_vend++ = RFC1533_END;
+		for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
+			unsigned long timeout;
+
+			udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
+				     sizeof(struct bootpip_t), &ip);
+			dhcp_reply=0;
+			timeout = rfc2131_sleep_interval(TIMEOUT, reqretry++);
+			if (!await_reply(await_bootp, 0, NULL, timeout))
+				continue;
+			if (dhcp_reply != DHCPACK)
+				continue;
+			dhcp_reply = 0;
+#ifdef PXE_EXPORT			
+			if ( arptable[ARP_PROXYDHCP].ipaddr.s_addr ) {
+				/* Construct the ProxyDHCPREQUEST packet */
+				memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
+				memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, proxydhcprequest, sizeof proxydhcprequest);
+				for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
+					printf ( "\nSending ProxyDHCP request to %@...\n", arptable[ARP_PROXYDHCP].ipaddr.s_addr);
+					udp_transmit(arptable[ARP_PROXYDHCP].ipaddr.s_addr, BOOTP_CLIENT, PROXYDHCP_SERVER,
+						     sizeof(struct bootpip_t), &ip);
+					timeout = rfc2131_sleep_interval(TIMEOUT, reqretry++);
+					if (await_reply(await_bootp, 0, NULL, timeout)) {
+						break;
+					}
+				}
+			}
+#endif /* PXE_EXPORT */
+			return(1);
 		}
 #endif	/* NO_DHCP_SUPPORT */
 		ip.bp.bp_secs = htons((currticks()-starttime)/TICKS_PER_SEC);
