@@ -145,11 +145,16 @@ static void read_linuxbios_values(struct meminfo *info,
 				if (crec->tag != LB_TAG_OPTION)
 					continue;
 				entry = (struct cmos_entries *)crec;
+				if ((entry->bit < 112) || (entry->bit > 1020))
+					continue;
+				/* See if LinuxBIOS came up in fallback or normal mode */
+				if (memcmp(entry->name, "last_boot", 10) == 0) {
+					lb_failsafe = cmos_read(entry->bit, entry->length) == 0;
+				}
+				/* Now filter for the boot order options */
 				if (entry->length != 4)
 					continue;
 				if (entry->config != 'e')
-					continue;
-				if ((entry->bit < 112) || (entry->bit > 1020))
 					continue;
 				if (memcmp(entry->name, "boot_first", 11) == 0) {
 					lb_boot_first = cmos_read(entry->bit, entry->length);
@@ -159,9 +164,6 @@ static void read_linuxbios_values(struct meminfo *info,
 				}
 				else if (memcmp(entry->name, "boot_third", 11) == 0) {
 					lb_boot_third = cmos_read(entry->bit, entry->length);
-				}
-				else if (memcmp(entry->name, "last_boot", 10) == 0) {
-					lb_failsafe = cmos_read(entry->bit, entry->length) == 0;
 				}
 			}
 			break;
