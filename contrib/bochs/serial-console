@@ -1,0 +1,189 @@
+#!/usr/bin/perl -w
+
+=head1 NAME
+
+serial-console
+
+=head1 SYNOPSIS
+
+serial-console [options]
+
+Options:
+
+    -h,--help         Display brief help message
+    -v,--verbose      Increase verbosity
+    -q,--quiet        Decrease verbosity
+    -l,--log FILE     Log output to file
+    -r,--rcfile	FILE  Modify specified bochsrc file
+
+=head1 DESCRIPTION
+
+C<serial-console> provides a virtual serial console for use with
+Bochs.  Running C<serial-console> creates a pseudo-tty.  The master
+side of this pty is made available to the user for interaction; the
+slave device is written to the Bochs configuration file
+(C<bochsrc.txt>) for use by a subsequent Bochs session.
+
+=head1 EXAMPLES
+
+=item C<serial-console>
+
+Create a virtual serial console for Bochs, modify C<bochsrc.txt>
+appropriately.
+
+=item C<serial-console -r ../.bochsrc -l serial.log>
+
+Create a virtual serial console for Bochs, modify C<../.bochsrc>
+appropriately, log output to C<serial.log>.
+
+=head1 INVOCATION
+
+Before starting Bochs, run C<serial-console> in a different session
+(e.g. a different xterm window).  When you subsequently start Bochs,
+anything that the emulated machine writes to its serial port will
+appear in the window running C<serial-console>, and anything typed in
+the C<serial-console> window will arrive on the emulated machine's
+serial port.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<<-l,--log FILE>>
+
+Log all output (i.e. everything that is printed in the
+C<serial-console> window) to the specified file.
+
+=item C<<-r,--rcfile FILE>>
+
+Modify the specified bochsrc file.  The file will be updated to
+contain the path to the slave side of the psuedo tty that we create.
+The original file will be restored when C<serial-console> exits.  The
+default is to modify the file C<bochsrc.txt> in the current directory.
+
+To avoid modifying any bochsrc file, use C<--norcfile>.
+
+=back
+
+=cut
+
+use IO::Pty;
+use IO::Select;
+use File::Spec::Functions qw ( :ALL );
+use Getopt::Long;
+use Pod::Usage;
+use strict;
+use warnings;
+
+my $o;
+my $restore_file = {};
+
+##############################################################################
+#
+# Parse command line options into options hash ($o)
+#
+# $o = parse_opts();
+
+sub parse_opts {
+  # $o is the hash that will hold the options
+  my $o = {
+    verbosity => 1,
+    rcfile => 'bochsrc.txt',
+  };
+  # Special handlers for some options
+  my $opt_handlers = {
+    verbose => sub { $o->{verbosity}++; },
+    quiet => sub { $o->{verbosity}--; },
+    help => sub { pod2usage(1); },
+    norcfile => sub { delete $o->{rcfile}; },
+  };
+  # Merge handlers into main options hash (so that Getopt::Long can find them)
+  $o->{$_} = $opt_handlers->{$_} foreach keys %$opt_handlers;
+  # Option specifiers for Getopt::Long
+  my @optspec = ( 'help|h|?',
+                  'quiet|q+',
+                  'verbose|v+',
+		  'log|l=s',
+		  'rcfile|r=s',
+		  'norcfile',
+                  );
+  # Do option parsing
+  Getopt::Long::Configure ( 'bundling' );
+  pod2usage("Error parsing command-line options") unless GetOptions (
+  $o, @optspec );
+  # Clean up $o by removing the handlers
+  delete $o->{$_} foreach keys %$opt_handlers;
+  return $o;
+}
+
+##############################################################################
+#
+# Modify bochsrc file
+
+sub patch_bochsrc {
+  my $active = shift;
+  my $pty = shift;
+
+  # Rename active file to backup file
+  ( my $vol, my $dir, my $file ) = splitpath ( $active );
+  $file = '.'.$file.".serial-console";
+  my $backup = catpath ( $vol, $dir, $file );
+  rename $active, $backup
+      or die "Could not back up $active to $backup: $!\n";
+
+  # Derive line to be inserted
+  my $patch = "com1: enabled=1, dev=$pty\n";
+
+  # Modify file
+  open my $old, "<$backup" or die "Could not open $backup: $!\n";
+  open my $new, ">$active" or die "Could not open $active: $!\n";
+  my $patched;
+  while ( my $line = <$old> ) {
+    if ( $line =~ /^\s*\#?\s*com1:\s*\S/ ) {
+      if ( ! $patched ) {
+	$line = $patch;
+	$patched = 1;
+      } else {
+	$line = '# '.$line unless $line =~ /^\s*\#/;
+      }
+    }
+    print $new $line;
+  }
+  print $new $patch unless $patched;
+  close $old;
+  close $new;
+
+  return $backup;
+}
+
+##############################################################################
+#
+# Main program
+
+$o = parse_opts();
+pod2usage(1) if @ARGV;
+
+# Catch signals
+my $sigdie = sub { die "Exiting via signal\n"; };
+$SIG{INT} = $sigdie;
+
+# Create Pty, close slave side
+my $pty = IO::Pty->new();
+$pty->close_slave();
+print STDERR "Slave pty is ".$pty->ttyname."\n" if $o->{verbosity} >= 1;
+
+# Modify bochsrc file
+$restore_file = { $o->{rcfile} =>
+		  patch_bochsrc ( $o->{rcfile}, $pty->ttyname ) }
+    if $o->{rcfile};
+
+sleep(20);
+
+
+END {
+  # Restore bochsrc file if applicable
+  if ( ( my $orig_file, my $backup_file ) = %$restore_file ) {
+    unlink $orig_file;
+    rename $backup_file, $orig_file;
+  }
+}
