@@ -34,6 +34,10 @@
 #define	LJMPI(x)	ljmp	x
 #endif
 
+#include "callbacks.h"
+#define NUM_PUSHA_REGS (8)
+#define NUM_SEG_REGS (6)
+	
 /*
  * NOTE: if you write a subroutine that is called from C code (gcc/egcs),
  * then you only have to take care of %ebx, %esi, %edi and %ebp.  These
@@ -241,7 +245,167 @@ exit16_cs:	.word 0
 	.previous
 #endif /* CODE16 */
 
+/**************************************************************************
+_IN_CALL - make a call in to Etherboot.
+**************************************************************************/
+
+/* There are two 32-bit entry points: _in_call and _in_call_far, for
+ * near calls and far calls respectively.  Both should be called with
+ * flat physical addresses.  They will result in a call to the C
+ * routine in_call(); see there for API details.
+ */
+
+#define IC_OFFSET_VA_LIST_PTR ( 0 )
+#define IC_OFFSET_VA_LIST_PTR_E ( IC_OFFSET_VA_LIST_PTR + 4 )
+#define IC_OFFSET_REGISTERS ( IC_OFFSET_VA_LIST_PTR_E )
+#define IC_OFFSET_REGISTERS_E ( IC_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
+#define IC_OFFSET_SEG_REGS ( IC_OFFSET_REGISTERS_E )
+#define IC_OFFSET_SEG_REGS_E ( IC_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
+#define IC_OFFSET_GDT ( IC_OFFSET_SEG_REGS_E )
+#define IC_OFFSET_GDT_E ( IC_OFFSET_GDT + 8 )
+#define IC_OFFSET_FLAGS ( IC_OFFSET_GDT_E )
+#define IC_OFFSET_FLAGS_E ( IC_OFFSET_FLAGS + 4 )
+#define IC_OFFSET_RETADDR ( IC_OFFSET_FLAGS_E )
+#define IC_OFFSET_RETADDR_E ( IC_OFFSET_RETADDR + 8 )
+#define IC_OFFSET_ORIG_STACK ( IC_OFFSET_RETADDR )
+#define IC_OFFSET_OPCODE ( IC_OFFSET_ORIG_STACK + 8 )
+#define IC_OFFSET_OPCODE_E ( IC_OFFSET_OPCODE + 4 )
+#define IC_OFFSET_VA_LIST ( IC_OFFSET_OPCODE_E )
+	
 	.code32
+	.globl _in_call
+	.globl _in_call_far
+_in_call:
+	pushl	$0			/* Indicate near return address */
+_in_call_far:
+	/* Store flags */
+	pushfl
+	/* Store the GDT */
+	subl	$8, %esp
+	sgdt	0(%esp)
+	/* Store segment register values */
+	pushw	%cs
+	pushw	%ss
+	pushw	%ds
+	pushw	%es
+	pushw	%fs
+	pushw	%gs
+	/* Store general-purpose register values */
+	pushal
+	/* Replace %esp in store with physical %esp value on entry */
+	leal	(IC_OFFSET_ORIG_STACK - IC_OFFSET_REGISTERS)(%esp), %eax
+	movl	%eax, (IC_OFFSET_REGISTERS - IC_OFFSET_REGISTERS + 12)(%esp)
+	/* Store va_list pointer (physical address) */
+	leal	(IC_OFFSET_VA_LIST - IC_OFFSET_VA_LIST_PTR_E)(%esp), %eax
+	pushl	%eax
+	/* IC_OFFSET_*(%esp) are now valid */
+
+	/*
+	 * See where I am running, and compute virt_offset.  Yes,
+	 * we're overwriting a global variable, but if the virt_offset
+	 * really has changed since the last call then we're in
+	 * trouble already.
+	 */
+	call	1f
+1:	popl	%ebp
+	subl	$1b, %ebp
+	movl	%ebp, virt_offset(%ebp)
+
+	/* Fixup the gdt */
+	leal	_pmcs(%ebp), %eax
+	pushl	%eax
+	pushl	%ebp
+	call	set_seg_base
+	addl	$8, %esp
+
+	/* Fixup gdtarg */
+	leal	_gdt(%ebp), %eax
+	movl	%eax, gdtarg +2(%ebp)
+
+	/* Load the global descriptor table */
+	cli				/* Temporarily disable interrupts */
+	lgdt	%cs:gdtarg(%ebp)
+
+	/* reload cs */
+	ljmp	$KERN_CODE_SEG, $1f
+1:
+	/* reload other segment registers */
+	movl	$KERN_DATA_SEG, %eax
+	movl	%eax, %ds
+	movl	%eax, %es
+	movl	%eax, %ss
+	movl	%eax, %fs
+	movl	%eax, %gs
+
+	/* Fixup the stack pointer */
+	subl	%ebp, %esp
+
+	/* Fixup the va_list pointer */
+	subl	%ebp, IC_OFFSET_VA_LIST_PTR(%esp)
+
+	/* Check opcode for EB_USE_INTERNAL_STACK flag */
+	movl	IC_OFFSET_OPCODE(%esp), %eax
+	testl	$EB_USE_INTERNAL_STACK, %eax
+	je	1f
+	/* Use internal stack flag set */
+	movl	%esp, %esi		/* %esi = original stack */
+	leal	_estack, %esp		/* %esp = top of internal stack */
+	movl	$IC_OFFSET_OPCODE_E, %ecx /* %ecx = length to transfer */
+	subl	%ecx, %esp		/* %esp = internal stack pos */
+	movl	%esp, %edi		/*  = %edi */
+	rep movsb			/* Copy data to internal stack */
+1:
+
+	/* Call to C code */
+	call	i386_in_call
+
+	/* Set %eax (return code from C) in registers structure on
+	 * stack, so that we return it to the caller.
+	 */
+	movl	%eax, (IC_OFFSET_REGISTERS + 28)(%esp)
+
+	/* Calculate physical continuation address */
+	movl	virt_offset, %ebp
+	movzwl	(IC_OFFSET_SEG_REGS + 10)(%esp), %eax	/* %cs */
+	pushl	%eax			/* Continuation segment */
+	leal	1f(%ebp), %eax
+	pushl	%eax			/* Continuation offset */
+	movw	(IC_OFFSET_SEG_REGS + 8)(%esp), %ax	/* %ss */
+	
+	/* Restore caller's GDT */
+	cli				/* Temporarily disable interrupts */
+	lgdt	(8+IC_OFFSET_GDT)(%esp)
+	/* Reset %ss and adjust %esp */
+	movw	%ax, %ss
+	addl	%ebp, %esp
+	lret				/* Reload %cs:eip, flush prefetch */
+1:
+
+	/* Skip va_list ptr */
+	popl	%eax
+	/* Reload general-purpose registers to be returned */
+	popal
+	/* Reload segment registers as passed in from caller */
+	popw	%gs
+	popw	%fs
+	popw	%es
+	popw	%ds
+	addl	$(4+8), %esp	/* Skip %cs, %ss and GDT (already reloaded) */
+	/* Restore flags (including revert of interrupt status) */
+	popfl
+
+	/* Restore physical %esp from entry.  It will only be
+	 * different if EB_USE_INTERNAL_STACK was specified.
+	 */
+	movl	( 12 + IC_OFFSET_REGISTERS - IC_OFFSET_RETADDR )(%esp), %esp
+		
+	cmpl	$0, 0(%esp)		/* Check for near/far return */
+	je	2f
+1:	/* far return */
+	lret
+2:	/* near return */
+	addl	$4, %esp
+	ret
 
 #if defined(TAGGED_IMAGE)
 /**************************************************************************
@@ -731,6 +895,8 @@ set_seg_base:
 
 	ret
 
+
+	
 #ifdef CODE16
 /**************************************************************************
 _REAL_CALL - Run some code in real mode.
