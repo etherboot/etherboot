@@ -203,6 +203,8 @@ family		drivers/net/davicom
 
 family		drivers/net/rtl8139
 
+family		drivers/net/r8169
+
 family		drivers/net/via-rhine
 
 family		drivers/net/w89c840
