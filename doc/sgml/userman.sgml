@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/,
 <tt/&lt;markus+etherboot@gutschke.com&gt;/
-<date>v5.0.4, 16 September 2001
+<date>v5.0.5, 31 December 2001
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -175,7 +175,7 @@ listed on the Etherboot home page.</it>
 
 <p>
 
-The following is the current NIC configuration file as of 2001-09-16.
+The following is the current NIC configuration file as of 2001-12-28.
 
 Even if your NIC does not appear in the list, it may still be supported
 if the chip is one of those supported.  Many OEMs use chips from
@@ -318,8 +318,8 @@ otulip		otulip		0x1011,0x0002
 rtl8139		rtl8139		0x10ec,0x8139
 # SMC1211 (uses Realtek 8139 but with different IDs)
 smc1211		rtl8139		0x1112,0x1211
-# D-Link DFE530TX+ (from mailing list posting)
-dfe530tx+	rtl8139		0x1186,0x1300
+# D-Link DFE538TX (from Linux 8139too driver)
+dfe538		rtl8139		0x1186,0x1300
 # Rhine-I, e.g. D-Link DFE-530TX
 dlink-530tx-old	via-rhine	0x1106,0x3043
 dlink-530tx	via-rhine	0x1106,0x3065
@@ -344,6 +344,8 @@ compexrl2000	ns8390		0x11f6,0x1401
 ktiet32p2	ns8390		0x8e2e,0x3000
 # NetVin 5000SC
 nv5000sc	ns8390		0x4a14,0x5000
+# Holtek 80232
+holtek80232	ns8390		0x12c3,0x0058
 # WD8003/8013, SMC8216/8416
 wd		ns8390
 # NE1000/2000 and clones (ISA)
@@ -381,6 +383,10 @@ natsemi		natsemi		0x100B,0x0020
 fa311		natsemi		0x100B,0x0020
 fa312		natsemi		0x100B,0x0020
 dp83815		natsemi		0x100B,0x0020
+# Alternate DP83815 driver
+fa311too	fa311		0x100B,0x0020
+# TI Thunderlan
+#olicom2326	tlan		0x108d,0x0014
 
 
 The following drivers have notes in the src directory, please read them:
@@ -646,6 +652,9 @@ Boot image options:
 		-DAOUT_IMAGE and/or -DELF_IMAGE).
 -DFREEBSD_KERNEL_ENV
 		Pass in FreeBSD kernel environment
+-DAOUT_LYNX_KDI
+		Add Lynx a.out KDI support
+
 -DDOWNLOAD_PROTO_TFTP
 		If defined, boots by TFTP (recommended).
 -DDOWNLOAD_PROTO_NFS
@@ -674,11 +683,12 @@ Console options:
 
 BIOS interface options:
 
--DPNP_BUT_NOT_BBS_COMPLIANT
+-DBBS_BUT_NOT_PNP_COMPLIANT
 		Some BIOSes claim to be PNP but they don't conform
 		to the BBS spec which specifies that ES:DI must
 		point to the string $PnP on entry. This option
-		works around those.
+		works around those. This option must be added to
+		LCONFIG.
 -DNO_DELAYED_INT
 		Take control as soon as BIOS detects the ROM.
 		Normally hooks onto INT18H or INT19H. Use only if you
@@ -690,7 +700,8 @@ BIOS interface options:
 		Etherboot normally hooks onto INT19H for legacy ROMs.
 		You can choose to hook onto INT18H (BASIC interpreter
 		entry point) instead. This entry point is used when
-		all boot devices have been exhausted.
+		all boot devices have been exhausted. This option must
+		be added to LCONFIG.
 -DCONFIG_PCI_DIRECT
 		Define this for PCI BIOSes that do not implement
 		BIOS32 or not correctly. Normally not needed.
@@ -700,6 +711,8 @@ BIOS interface options:
 		the BIOS time counter.  This allows Etherboot to work
 		even without a BIOS.  This only works on late model
 		486s and above.
+-DPXELOADER_KEEP_UNDI
+		For implementation later with UNDI.
 
 Obscure options you probably don't need to touch:
 
@@ -716,7 +729,7 @@ Obscure options you probably don't need to touch:
 		compressed BOOT-Prom images. It has no effect on
 		uncompressed images. Unless you are very tight on
 		free space, you will usually want to define this
-		option.  This flag must be added to LCONFIG!
+		option.  This option must be added to LCONFIG!
 		(recommended).
 -DUSE_LOWMEM_BUFFER
 		Define to put some buffers below 0x10000 which
@@ -1019,6 +1032,12 @@ options documentation.
 
 <p>
 
+Here is <url name="a practical document" url="
+http://www.geocrawler.com/archives/3/5299/2001/7/100/6129709/">
+describing how it is done.
+
+<p>
+
 More information about DHCP can be found at the <url
 url="http://web.syr.edu/&tilde;jmwobus/comfaqs/dhcp.faq.html" name="DHCP FAQ
 Web Page">.
@@ -1151,35 +1170,72 @@ the problem.
 <p>
 
 After the tagged image is loaded, Etherboot will jump to it. If it
-crashes here, check that the image is a tagged image. If it executes
-and stops at the point where it's trying to mount the NFS root,
-then you need to check that you have the "root on NFS" option compiled
-in and that you have compiled in the network card driver.
+crashes here, check that the image is a tagged image. If it executes and
+stops at the point where it's trying to mount the NFS root, and you
+intend to use kernel space NFS root (see next two sections), then you
+need to check that you have the "root on NFS" option compiled in and
+that you have compiled in the network card driver.
+
+<sect1>Setting up an initrd filesystem
+
+<p>
+
+Recent advances in the Linux kernel (2.4 and above) have made the use of
+an initrd that does user space autoconfiguration and mounting of a NFS
+root filesystem, followed by a pivot_root, a more flexible alternative
+to kernel autoconfiguration and mounting of a NFS root filesystem.
+Postings on the kernel mailing lists indicate that at some point in the
+future, kernel level autoconfiguration (BOOTP/DHCP from the kernel) may
+be removed from the Linux kernel and initrds will be the recommended way
+to start up a diskless system.
+
+<p>
+
+Until I have time to write detailed instructions on how to construct the
+initrd, I refer you to the <url name="LTSP distribution"
+url="http://www.ltsp.org/"> which uses this technique. Mknbi supports
+initrds, see the ramdisk argument of <url name="mknbi-linux"
+url="mknbi.html">.  The Linux kernel documentation describes the extra
+arguments should be passed to the kernel to make it use an initrd, and
+how to arrange the initrd so that the startup script within it is called
+when it's mounted. If the initrd mounts a NFS root filesystem then it
+should still have all the needed structure as explained in the next
+section.
+
+<p>
+
+Initrds can also be used for mounting other network filesystems instead
+of NFS root.  Some applications could even run totally out of initrd,
+e.g.  <url name="Floppy Firewall" url="http://www.zelow.no/floppyfw/">,
+provided you have the memory, of course.
 
 <sect1>Setting up a NFS root filesystem
 
 <p>
 
-Now you need to set up a NFS root filesystem for the diskless computer.
-Typically this is under /tftpboot/&lt;ip address of computer&gt;. In 2.1
-and higher kernels, this should be /tftpboot/&lt;name of computer in
-bootptab&gt;.  This needs to contain a complete root filesystem that
-will make the kernel boot happily.  This means, for most kernels, it
-should contain /dev, /proc, /etc, /sbin, /bin, /tmp and /var. The
-details vary from distribution to distribution.  Once you have got the
-initial filesystem mounted, you can mount additional network filesystems
-such as /usr or /opt to give you a full execution environment.
+The NFS root filesystem for the diskless computer is typically placed
+under /tftpboot/&lt;name of computer&gt;, provided your DHCP server
+sends the hostname in the reply, otherwise it may be under
+/tftpboot/&lt;ip address of computer&gt;.  This NFS root needs to
+contain a complete root filesystem that will make the kernel boot
+happily.  This means, for most kernels, it should contain /dev, /proc,
+/etc, /sbin, /bin, /tmp and /var. The details vary from distribution to
+distribution.  Once you have got the initial filesystem mounted, you can
+mount additional network filesystems such as /usr or /opt to give you a
+full execution environment.
 
 <p>
 
 See the FAQ section for various methods of constructing a NFS root
 filesystem. There is no one true method. In the method I use I was lazy
-so I just make a copy of the necessary files from an existing Linux
+so I just made a copy of the necessary files from an existing Linux
 filesystem on the server and modify some key files appropriately. You
-can find a description in <url url="diskless.html" name="my tutorial">
-and some shell scripts to copy the files. Since the amount of disk space
-needed is relatively small in these days of large disks, I don't bother
-to throw out things that may not be needed.
+can find a rather dated description in <url url="diskless.html" name="my
+tutorial"> and some shell scripts to copy the files. Since distributions
+have moved on since I wrote the scripts, you will have to adapt it to
+your needs.  Since the amount of disk space needed is relatively small
+in these days of large disks, I don't bother to throw out things that
+may not be needed.
 
 <p>
 
@@ -1218,35 +1274,12 @@ aware that practically all Linux distributions have a few "bugs"
 relating to symlinks and so forth for diskless booting.  These are
 mentioned in the tutorial.
 
-<sect1>Initial ramdisk
-
-<p>
-
-It is possible to use initial ramdisk (initrd) in addition to, or in
-place of an NFS root. See the ramdisk argument of <url
-name="mknbi-linux" url="mknbi.html">. You will also need to read the
-Linux kernel documentation to see what extra arguments should be passed
-to the kernel to make it use an initrd, and how to arrange the initrd so
-that the startup script within it is called when it's mounted.
-
-<p>
-
-Initrds are useful for loading modules before the NFS root is mounted,
-or to use some other network filesystem instead of NFS root, for
-example.  Some applications could even run totally out of initrd, e.g.
-<url name="Floppy Firewall" url="http://www.zelow.no/floppyfw/">,
-provided you have the memory, of course. Also postings on the kernel
-mailing lists indicate that at some point in the future, kernel level
-autoconfiguration (BOOTP/DHCP from the kernel) may be removed from the
-Linux kernel and initrds may be the way to start up a diskless system
-that can acquire an identity using a userland DHCP client program.
-
 <sect1>Other filesystem setups
 
 <p>
 
 This tutorial does not cover all possible ways of setting up a diskless
-client's initial filesystem. The NFS root method and the initrd method
+client's initial filesystem. The initrd method and the NFS root method
 described above are two ways. You could even mount a conventional hard
 disk.  Why would you want to boot "diskless" if you have a hard disk?
 Reasons might be: you do not wish to adminster the local disk; you want
@@ -2606,6 +2639,16 @@ other changes.
 <tag/Peter Lister and Vasil Vasilev/ contributed changes to generate
 .pxe image that can be booted using a PXE booter.
 
+<tag/Fred Gray contributed changes in tulip.c to check for a duplex
+connection and to modify the controller register if so.
+
+<tag/Mark G of Inprimis Technologies contributed another FA311
+(National Semiconductor DP83815) driver, also based on the Donald
+Becker Linux driver.
+
+<tag/Armin Schindler contributed a patch to allow booting LynxOS KDI
+images.
+
 </descrip>
 
 <sect>Source copyrights<label id="sourcecopyrights">
@@ -2656,6 +2699,7 @@ eepro100.c		GPL
 epic100.c		None
 epic100.h		None
 etherboot.h		GPL
+fa311.c			GPL
 floppy.c		GPL
 floppyload.S		GPL
 genrules.pl		GPL
@@ -2669,6 +2713,7 @@ lzhuf.c			Open Source
 main.c			BSD
 makerom.c		BSD
 md5.c			GPL
+memsizes.c		None
 misc.c			BSD
 natsemi.c		GPL
 nfs.c			GPL

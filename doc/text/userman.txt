@@ -1,7 +1,7 @@
   Etherboot User Manual
   Ken Yap and Markus Gutschke, <ken_yap@users.source-
   forge.net>, <markus+etherboot@gutschke.com>
-  v5.0.4, 16 September 2001
+  v5.0.5, 31 December 2001
 
   This User Manual explains how to install, configure and use the Ether-
   boot package.  The instructions here apply to version 5.0 of Ether-
@@ -98,8 +98,8 @@
 
   5. Testing the network booting
 
-     5.1 Setting up a NFS root filesystem
-     5.2 Initial ramdisk
+     5.1 Setting up an initrd filesystem
+     5.2 Setting up a NFS root filesystem
      5.3 Other filesystem setups
      5.4 Swap over NFS
 
@@ -293,7 +293,7 @@
   22..33..  WWhhaatt hhaarrddwwaarree iiss ssuuppppoorrtteedd??
 
 
-  The following is the current NIC configuration file as of 2001-09-16.
+  The following is the current NIC configuration file as of 2001-12-28.
 
   Even if your NIC does not appear in the list, it may still be
   supported if the chip is one of those supported.  Many OEMs use chips
@@ -464,8 +464,8 @@
   rtl8139         rtl8139         0x10ec,0x8139
   # SMC1211 (uses Realtek 8139 but with different IDs)
   smc1211         rtl8139         0x1112,0x1211
-  # D-Link DFE530TX+ (from mailing list posting)
-  dfe530tx+       rtl8139         0x1186,0x1300
+  # D-Link DFE538TX (from Linux 8139too driver)
+  dfe538          rtl8139         0x1186,0x1300
   # Rhine-I, e.g. D-Link DFE-530TX
   dlink-530tx-old via-rhine       0x1106,0x3043
   dlink-530tx     via-rhine       0x1106,0x3065
@@ -490,6 +490,8 @@
   ktiet32p2       ns8390          0x8e2e,0x3000
   # NetVin 5000SC
   nv5000sc        ns8390          0x4a14,0x5000
+  # Holtek 80232
+  holtek80232     ns8390          0x12c3,0x0058
   # WD8003/8013, SMC8216/8416
   wd              ns8390
   # NE1000/2000 and clones (ISA)
@@ -527,6 +529,10 @@
   fa311           natsemi         0x100B,0x0020
   fa312           natsemi         0x100B,0x0020
   dp83815         natsemi         0x100B,0x0020
+  # Alternate DP83815 driver
+  fa311too        fa311           0x100B,0x0020
+  # TI Thunderlan
+  #olicom2326     tlan            0x108d,0x0014
 
 
   The following drivers have notes in the src directory, please read them:
@@ -588,8 +594,6 @@
   only things I can suggest are to change your ISP to a more responsible
   one, or to get a Web based mailbox. I cannot help you with problems
   here as I do not administer the Netboot mailing list.
-
-
 
 
   33..  UUnnppaacckkiinngg,, ccoommppiilliinngg aanndd tteessttiinngg tthhee ppaacckkaaggee
@@ -676,10 +680,6 @@
 
 
   Here is a description of the options available:
-
-
-
-
 
 
 
@@ -852,6 +852,9 @@
                   -DAOUT_IMAGE and/or -DELF_IMAGE).
   -DFREEBSD_KERNEL_ENV
                   Pass in FreeBSD kernel environment
+  -DAOUT_LYNX_KDI
+                  Add Lynx a.out KDI support
+
   -DDOWNLOAD_PROTO_TFTP
                   If defined, boots by TFTP (recommended).
   -DDOWNLOAD_PROTO_NFS
@@ -880,11 +883,12 @@
 
   BIOS interface options:
 
-  -DPNP_BUT_NOT_BBS_COMPLIANT
+  -DBBS_BUT_NOT_PNP_COMPLIANT
                   Some BIOSes claim to be PNP but they don't conform
                   to the BBS spec which specifies that ES:DI must
                   point to the string $PnP on entry. This option
-                  works around those.
+                  works around those. This option must be added to
+                  LCONFIG.
   -DNO_DELAYED_INT
                   Take control as soon as BIOS detects the ROM.
                   Normally hooks onto INT18H or INT19H. Use only if you
@@ -896,7 +900,8 @@
                   Etherboot normally hooks onto INT19H for legacy ROMs.
                   You can choose to hook onto INT18H (BASIC interpreter
                   entry point) instead. This entry point is used when
-                  all boot devices have been exhausted.
+                  all boot devices have been exhausted. This option must
+                  be added to LCONFIG.
   -DCONFIG_PCI_DIRECT
                   Define this for PCI BIOSes that do not implement
                   BIOS32 or not correctly. Normally not needed.
@@ -906,6 +911,8 @@
                   the BIOS time counter.  This allows Etherboot to work
                   even without a BIOS.  This only works on late model
                   486s and above.
+  -DPXELOADER_KEEP_UNDI
+                  For implementation later with UNDI.
 
   Obscure options you probably don't need to touch:
 
@@ -922,7 +929,7 @@
                   compressed BOOT-Prom images. It has no effect on
                   uncompressed images. Unless you are very tight on
                   free space, you will usually want to define this
-                  option.  This flag must be added to LCONFIG!
+                  option.  This option must be added to LCONFIG!
                   (recommended).
   -DUSE_LOWMEM_BUFFER
                   Define to put some buffers below 0x10000 which
@@ -981,13 +988,14 @@
   understand how to do it, please ask the mailing list for help, don't
   just try it and destroy your disk data.
 
-
-
   When you boot with this floppy it will load the Etherboot ROM image
   from floppy and execute it. If you chose the correct ROM image, it
   should be able to detect your card. To get the bootrom to acquire an
   IP address and load the intended code, you need to set up bootp or
   DHCP, tftp and NFS services, which we will discuss next.
+
+
+
   We suggest you continue to use floppy booting until you have completed
   the setup of the server and are satisfied that diskless booting works.
 
@@ -1053,7 +1061,6 @@
 
 
 
-
   In addition you can generate .dsk and .lzdsk images. These are just
   the .rom or .lzrom with the disk loader already prepended, and the
   size padded out to 18 kB, for reasons of filling out a floppy track.
@@ -1109,6 +1116,8 @@
 
   After you have compiled the custom kernel, make the tagged image,
   typically like this:
+
+
 
 
   ______________________________________________________________________
@@ -1175,7 +1184,6 @@
   You don't have to use fixed addresses, of course, but if you use
   dynamic addresses, then you have to deal with the resulting issues of
   NFS mounting.
-
 
 
   Recent kernels in the 2.2 series can autoconfigure using DHCP thanks
@@ -1250,8 +1258,17 @@
 
 
 
+  Here is a practical document <
+  http://www.geocrawler.com/archives/3/5299/2001/7/100/6129709/>
+  describing how it is done.
+
+
+
   More information about DHCP can be found at the DHCP FAQ Web Page
   <http://web.syr.edu/~jmwobus/comfaqs/dhcp.faq.html>.
+
+
+
   If you are on a local network that is not directly connected to the
   Internet, you can use the "private" IP addresses 192.168.x.y (or in
   the other ranges mentioned in RFC1918
@@ -1300,7 +1317,6 @@
 
   Here is an example of a /etc/bootptab for the bootpd supplied with
   many Linux distributions and probably many versions of Unix:
-
 
   ______________________________________________________________________
   .default:\
@@ -1383,35 +1399,67 @@
 
   After the tagged image is loaded, Etherboot will jump to it. If it
   crashes here, check that the image is a tagged image. If it executes
-  and stops at the point where it's trying to mount the NFS root, then
+  and stops at the point where it's trying to mount the NFS root, and
+  you intend to use kernel space NFS root (see next two sections), then
   you need to check that you have the "root on NFS" option compiled in
   and that you have compiled in the network card driver.
 
 
-  55..11..  SSeettttiinngg uupp aa NNFFSS rroooott ffiilleessyysstteemm
+  55..11..  SSeettttiinngg uupp aann iinniittrrdd ffiilleessyysstteemm
 
 
-  Now you need to set up a NFS root filesystem for the diskless
-  computer.  Typically this is under /tftpboot/<ip address of computer>.
-  In 2.1 and higher kernels, this should be /tftpboot/<name of computer
-  in bootptab>.  This needs to contain a complete root filesystem that
-  will make the kernel boot happily.  This means, for most kernels, it
-  should contain /dev, /proc, /etc, /sbin, /bin, /tmp and /var. The
-  details vary from distribution to distribution.  Once you have got the
-  initial filesystem mounted, you can mount additional network
-  filesystems such as /usr or /opt to give you a full execution
+  Recent advances in the Linux kernel (2.4 and above) have made the use
+  of an initrd that does user space autoconfiguration and mounting of a
+  NFS root filesystem, followed by a pivot_root, a more flexible
+  alternative to kernel autoconfiguration and mounting of a NFS root
+  filesystem.  Postings on the kernel mailing lists indicate that at
+  some point in the future, kernel level autoconfiguration (BOOTP/DHCP
+  from the kernel) may be removed from the Linux kernel and initrds will
+  be the recommended way to start up a diskless system.
+
+
+
+  Until I have time to write detailed instructions on how to construct
+  the initrd, I refer you to the LTSP distribution
+  <http://www.ltsp.org/> which uses this technique. Mknbi supports
+  initrds, see the ramdisk argument of mknbi-linux <mknbi.html>.  The
+  Linux kernel documentation describes the extra arguments should be
+  passed to the kernel to make it use an initrd, and how to arrange the
+  initrd so that the startup script within it is called when it's
+  mounted. If the initrd mounts a NFS root filesystem then it should
+  still have all the needed structure as explained in the next section.
+
+
+
+  Initrds can also be used for mounting other network filesystems
+  instead of NFS root.  Some applications could even run totally out of
+  initrd, e.g.  Floppy Firewall <http://www.zelow.no/floppyfw/>,
+  provided you have the memory, of course.
+
+
+  55..22..  SSeettttiinngg uupp aa NNFFSS rroooott ffiilleessyysstteemm
+
+
+  The NFS root filesystem for the diskless computer is typically placed
+  under /tftpboot/<name of computer>, provided your DHCP server sends
+  the hostname in the reply, otherwise it may be under /tftpboot/<ip
+  address of computer>.  This NFS root needs to contain a complete root
+  filesystem that will make the kernel boot happily.  This means, for
+  most kernels, it should contain /dev, /proc, /etc, /sbin, /bin, /tmp
+  and /var. The details vary from distribution to distribution.  Once
+  you have got the initial filesystem mounted, you can mount additional
+  network filesystems such as /usr or /opt to give you a full execution
   environment.
-
-
-
   See the FAQ section for various methods of constructing a NFS root
   filesystem. There is no one true method. In the method I use I was
-  lazy so I just make a copy of the necessary files from an existing
+  lazy so I just made a copy of the necessary files from an existing
   Linux filesystem on the server and modify some key files
-  appropriately. You can find a description in my tutorial
-  <diskless.html> and some shell scripts to copy the files. Since the
-  amount of disk space needed is relatively small in these days of large
-  disks, I don't bother to throw out things that may not be needed.
+  appropriately. You can find a rather dated description in my tutorial
+  <diskless.html> and some shell scripts to copy the files. Since
+  distributions have moved on since I wrote the scripts, you will have
+  to adapt it to your needs.  Since the amount of disk space needed is
+  relatively small in these days of large disks, I don't bother to throw
+  out things that may not be needed.
 
 
 
@@ -1450,35 +1498,14 @@
   the server from the client. Be aware that practically all Linux
   distributions have a few "bugs" relating to symlinks and so forth for
   diskless booting.  These are mentioned in the tutorial.
-  55..22..  IInniittiiaall rraammddiisskk
-
-
-  It is possible to use initial ramdisk (initrd) in addition to, or in
-  place of an NFS root. See the ramdisk argument of mknbi-linux
-  <mknbi.html>. You will also need to read the Linux kernel
-  documentation to see what extra arguments should be passed to the
-  kernel to make it use an initrd, and how to arrange the initrd so that
-  the startup script within it is called when it's mounted.
-
-
-
-  Initrds are useful for loading modules before the NFS root is mounted,
-  or to use some other network filesystem instead of NFS root, for
-  example.  Some applications could even run totally out of initrd, e.g.
-  Floppy Firewall <http://www.zelow.no/floppyfw/>, provided you have the
-  memory, of course. Also postings on the kernel mailing lists indicate
-  that at some point in the future, kernel level autoconfiguration
-  (BOOTP/DHCP from the kernel) may be removed from the Linux kernel and
-  initrds may be the way to start up a diskless system that can acquire
-  an identity using a userland DHCP client program.
 
 
   55..33..  OOtthheerr ffiilleessyysstteemm sseettuuppss
 
 
   This tutorial does not cover all possible ways of setting up a
-  diskless client's initial filesystem. The NFS root method and the
-  initrd method described above are two ways. You could even mount a
+  diskless client's initial filesystem. The initrd method and the NFS
+  root method described above are two ways. You could even mount a
   conventional hard disk.  Why would you want to boot "diskless" if you
   have a hard disk?  Reasons might be: you do not wish to adminster the
   local disk; you want the assurance that a system is running a kernel
@@ -1515,6 +1542,7 @@
   There is also the follow-on project ENBD
   <http://www.it.uc3m.es/~ptb/nbd/>, the Enhanced Network Block Driver.
   I have no experience with this for swapping. Comments welcome.
+
 
   66..  BBoooottiinngg DDOOSS
 
@@ -1553,6 +1581,7 @@
   or better still a URL to a page explaining how you did it.
 
 
+
   77..  MMaakkiinngg aann EEtthheerrbboooott EEPPRROOMM oorr EEEEPPRROOMM
 
 
@@ -1579,7 +1608,6 @@
   for an EEPROM which can be programmed in situ with the right
   utilities.  See any release notes accompanying Etherboot for more
   information.
-
 
 
   77..11..  CChhoooossiinngg tthhee EEPPRROOMM
@@ -1620,8 +1648,6 @@
   and 27512) seem to be the cheapest per unit. Smaller EPROMs appear to
   be more expensive because they are out of mainstream production.
 
-
-
   If you cannot find out from the documentation what capacity of EPROM
   your card takes, for ISA NICs only, you could do it by trial and
   error. (PCI NICs do not enable the EPROM until the BIOS tells the NIC
@@ -1646,6 +1672,7 @@
   upper half or upper quarter of the larger EPROM, as the case may be.
   However you should double check the voltages on the pins armed with
   data sheet and a meter because CMOS EPROMs don't like floating pins.
+
 
 
   If the ROM is larger than the size of the image, for example, a 32 kB
@@ -1780,6 +1807,7 @@
      reset addresses while interrupts are active. You may need to do a
      hard reset of the computer, i.e. power down and up again before
      running Etherboot.
+
   +o  Etherboot detects card but does nothing after saying Searching for
      server. Check your network hardware. Did you select the right
      hardware interface (AUI, BNC, RJ45)? Is the cabling ok? If you have
@@ -2110,6 +2138,8 @@
      network adaptor at an address that is probed by the driver? If not,
      perhaps you need to provide some kernel parameters to help it find
      the hardware.
+
+
   2. The kernel loads but it cannot mount a root filesystem, then it
      asks me to insert a floppy.
 
@@ -2176,6 +2206,7 @@
         for your distribution, I used it on a RedHat 5.2 system long
         ago. If you don't feel up to understanding what needs to be
         fixed, see the next item.
+
      b. You could use the packaged solution from LTSP
         <http://www.ltsp.org/>, which creates a shareable NFS root for
         multiple clients.
@@ -2240,6 +2271,7 @@
   4. So how do I run applications on the client? I have this (smartcard
      reader, printer, sound card, etc) program that must execute
      locally.
+
 
 
      The client can be configured to allow you to run programs locally.
@@ -2342,7 +2374,6 @@
      You may wish to check the LTSP <http://www.ltsp.org/> site and
      mailing lists for other proposed solutions.
 
-
   3. How can I access the floppy on the client?
 
 
@@ -2373,6 +2404,8 @@
 
 
   1. I want to boot FreeDOS.
+
+
 
      The new mknbi utility supports creating tagged images from FreeDOS
      kernels now.  See the man page <mknbi.html> for details.  FreeDOS
@@ -2465,39 +2498,6 @@
 
      Here is some text contributed by Dirk von Suchodoletz. He hopes to
      put it on a web site someday:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3010,6 +3010,16 @@
         using a PXE booter.
 
 
+     FFrreedd GGrraayy ccoonnttrriibbuutteedd cchhaannggeess iinn ttuulliipp..cc ttoo cchheecckk ffoorr aa dduupplleexx
+        connection and to modify the controller register if so."
+
+     MMaarrkk GG ooff IInnpprriimmiiss TTeecchhnnoollooggiieess ccoonnttrriibbuutteedd aannootthheerr FFAA331111
+        (National Semiconductor DP83815) driver, also based on the Don-
+        ald Becker Linux driver."
+
+     AArrmmiinn SScchhiinnddlleerr ccoonnttrriibbuutteedd aa ppaattcchh ttoo aallllooww bboooottiinngg LLyynnxxOOSS KKDDII
+        images."
+
 
   1111..  SSoouurrccee ccooppyyrriigghhttss
 
@@ -3024,9 +3034,65 @@
   promise to provide on demand, the source code.  The full conditions of
   the GPL are specified in the file COPYING.
 
-
-
   Here are the copyright details of the source, file by file:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3064,6 +3130,7 @@
   epic100.c               None
   epic100.h               None
   etherboot.h             GPL
+  fa311.c                 GPL
   floppy.c                GPL
   floppyload.S            GPL
   genrules.pl             GPL
@@ -3077,6 +3144,7 @@
   main.c                  BSD
   makerom.c               BSD
   md5.c                   GPL
+  memsizes.c              None
   misc.c                  BSD
   natsemi.c               GPL
   nfs.c                   GPL
@@ -3164,7 +3232,6 @@
   NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
   WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
   */
-
   /*
    * Serial bootblock interface routines
    * Copyright (c) 1994, J"org Wunsch
@@ -3180,7 +3247,6 @@
    * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
    */
   ______________________________________________________________________
-
 
 
 

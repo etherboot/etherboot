@@ -218,6 +218,9 @@ Boot image options:
                 -DAOUT_IMAGE and/or -DELF_IMAGE).
 -DFREEBSD_KERNEL_ENV
                 Pass in FreeBSD kernel environment
+-DAOUT_LYNX_KDI
+                Add Lynx a.out KDI support
+
 -DDOWNLOAD_PROTO_TFTP
                 If defined, boots by TFTP (recommended).
 -DDOWNLOAD_PROTO_NFS
@@ -246,11 +249,12 @@ Console options:
 
 BIOS interface options:
 
--DPNP_BUT_NOT_BBS_COMPLIANT
+-DBBS_BUT_NOT_PNP_COMPLIANT
                 Some BIOSes claim to be PNP but they don't conform
                 to the BBS spec which specifies that ES:DI must
                 point to the string $PnP on entry. This option
-                works around those.
+                works around those. This option must be added to
+                LCONFIG.
 -DNO_DELAYED_INT
                 Take control as soon as BIOS detects the ROM.
                 Normally hooks onto INT18H or INT19H. Use only if you
@@ -262,7 +266,8 @@ BIOS interface options:
                 Etherboot normally hooks onto INT19H for legacy ROMs.
                 You can choose to hook onto INT18H (BASIC interpreter
                 entry point) instead. This entry point is used when
-                all boot devices have been exhausted.
+                all boot devices have been exhausted. This option must
+                be added to LCONFIG.
 -DCONFIG_PCI_DIRECT
                 Define this for PCI BIOSes that do not implement
                 BIOS32 or not correctly. Normally not needed.
@@ -272,6 +277,8 @@ BIOS interface options:
                 the BIOS time counter.  This allows Etherboot to work
                 even without a BIOS.  This only works on late model
                 486s and above.
+-DPXELOADER_KEEP_UNDI
+                For implementation later with UNDI.
 
 Obscure options you probably don't need to touch:
 
@@ -288,7 +295,7 @@ Obscure options you probably don't need to touch:
                 compressed BOOT-Prom images. It has no effect on
                 uncompressed images. Unless you are very tight on
                 free space, you will usually want to define this
-                option.  This flag must be added to LCONFIG!
+                option.  This option must be added to LCONFIG!
                 (recommended).
 -DUSE_LOWMEM_BUFFER
                 Define to put some buffers below 0x10000 which

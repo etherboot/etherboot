@@ -1,6 +1,6 @@
   Etherboot Developers Manual
   Ken Yap, <ken_yap@users.sourceforge.net>
-  v5.0.4, 16 September 2001
+  v5.0.5, 31 December 2001
 
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
@@ -469,10 +469,10 @@
   the 16-bit stack pointer (%sp) to the relocation base of Etherboot
   (%ss * 16). This calculation will not produce the correct result if
   first32.c is not in the same 64kB as Etherboot.  Currently first32.c
-  is loaded at 0x92200 so this condition is satisfied.  But it will fail
+  is loaded at 0x92800 so this condition is satisfied.  But it will fail
   if first32.c is called from something other than Etherboot, e.g. from
   another boot ROM, or if mknbi.pl has been changed to load first32.c
-  somewhere else, e.g.  0x82200.
+  somewhere else, e.g.  0x82800.
 
 
 

@@ -27,6 +27,7 @@ eepro100.c		GPL
 epic100.c		None
 epic100.h		None
 etherboot.h		GPL
+fa311.c			GPL
 floppy.c		GPL
 floppyload.S		GPL
 genrules.pl		GPL
@@ -40,6 +41,7 @@ lzhuf.c			Open Source
 main.c			BSD
 makerom.c		BSD
 md5.c			GPL
+memsizes.c		None
 misc.c			BSD
 natsemi.c		GPL
 nfs.c			GPL

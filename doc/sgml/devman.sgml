@@ -5,7 +5,7 @@
 <title>Etherboot Developers Manual
 <author>Ken Yap,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/
-<date>v5.0.4, 16 September 2001
+<date>v5.0.5, 31 December 2001
 
 <abstract>
 This document explains the internals of the Etherboot package.  The
@@ -439,11 +439,11 @@ beginning does a calculation to work out what the 32-bit extended stack
 pointer (%esp) should be set to. This is done by adding the 16-bit stack
 pointer (%sp) to the relocation base of Etherboot (%ss * 16). This
 calculation will not produce the correct result if first32.c is not in
-the same 64kB as Etherboot.  Currently first32.c is loaded at 0x92200 so
+the same 64kB as Etherboot.  Currently first32.c is loaded at 0x92800 so
 this condition is satisfied.  But it will fail if first32.c is called
 from something other than Etherboot, e.g. from another boot ROM, or if
 mknbi.pl has been changed to load first32.c somewhere else, e.g.
-0x82200.
+0x82800.
 
 <p>
 

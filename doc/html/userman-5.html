@@ -39,35 +39,70 @@ the problem.
 <P>
 <P>
 <P>After the tagged image is loaded, Etherboot will jump to it. If it
-crashes here, check that the image is a tagged image. If it executes
-and stops at the point where it's trying to mount the NFS root,
-then you need to check that you have the "root on NFS" option compiled
-in and that you have compiled in the network card driver.
+crashes here, check that the image is a tagged image. If it executes and
+stops at the point where it's trying to mount the NFS root, and you
+intend to use kernel space NFS root (see next two sections), then you
+need to check that you have the "root on NFS" option compiled in and
+that you have compiled in the network card driver.
 <P>
-<H2><A NAME="ss5.1">5.1 Setting up a NFS root filesystem</A>
+<H2><A NAME="ss5.1">5.1 Setting up an initrd filesystem</A>
 </H2>
 
 <P>
-<P>Now you need to set up a NFS root filesystem for the diskless computer.
-Typically this is under /tftpboot/&lt;ip address of computer&gt;. In 2.1
-and higher kernels, this should be /tftpboot/&lt;name of computer in
-bootptab&gt;.  This needs to contain a complete root filesystem that
-will make the kernel boot happily.  This means, for most kernels, it
-should contain /dev, /proc, /etc, /sbin, /bin, /tmp and /var. The
-details vary from distribution to distribution.  Once you have got the
-initial filesystem mounted, you can mount additional network filesystems
-such as /usr or /opt to give you a full execution environment.
+<P>Recent advances in the Linux kernel (2.4 and above) have made the use of
+an initrd that does user space autoconfiguration and mounting of a NFS
+root filesystem, followed by a pivot_root, a more flexible alternative
+to kernel autoconfiguration and mounting of a NFS root filesystem.
+Postings on the kernel mailing lists indicate that at some point in the
+future, kernel level autoconfiguration (BOOTP/DHCP from the kernel) may
+be removed from the Linux kernel and initrds will be the recommended way
+to start up a diskless system.
+<P>
+<P>
+<P>Until I have time to write detailed instructions on how to construct the
+initrd, I refer you to the 
+<A HREF="http://www.ltsp.org/">LTSP distribution</A> which uses this technique. Mknbi supports
+initrds, see the ramdisk argument of 
+<A HREF="mknbi.html">mknbi-linux</A>.  The Linux kernel documentation describes the extra
+arguments should be passed to the kernel to make it use an initrd, and
+how to arrange the initrd so that the startup script within it is called
+when it's mounted. If the initrd mounts a NFS root filesystem then it
+should still have all the needed structure as explained in the next
+section.
+<P>
+<P>
+<P>Initrds can also be used for mounting other network filesystems instead
+of NFS root.  Some applications could even run totally out of initrd,
+e.g.  
+<A HREF="http://www.zelow.no/floppyfw/">Floppy Firewall</A>,
+provided you have the memory, of course.
+<P>
+<H2><A NAME="ss5.2">5.2 Setting up a NFS root filesystem</A>
+</H2>
+
+<P>
+<P>The NFS root filesystem for the diskless computer is typically placed
+under /tftpboot/&lt;name of computer&gt;, provided your DHCP server
+sends the hostname in the reply, otherwise it may be under
+/tftpboot/&lt;ip address of computer&gt;.  This NFS root needs to
+contain a complete root filesystem that will make the kernel boot
+happily.  This means, for most kernels, it should contain /dev, /proc,
+/etc, /sbin, /bin, /tmp and /var. The details vary from distribution to
+distribution.  Once you have got the initial filesystem mounted, you can
+mount additional network filesystems such as /usr or /opt to give you a
+full execution environment.
 <P>
 <P>
 <P>See the FAQ section for various methods of constructing a NFS root
 filesystem. There is no one true method. In the method I use I was lazy
-so I just make a copy of the necessary files from an existing Linux
+so I just made a copy of the necessary files from an existing Linux
 filesystem on the server and modify some key files appropriately. You
-can find a description in 
-<A HREF="diskless.html">my tutorial</A>
-and some shell scripts to copy the files. Since the amount of disk space
-needed is relatively small in these days of large disks, I don't bother
-to throw out things that may not be needed.
+can find a rather dated description in 
+<A HREF="diskless.html">my tutorial</A> and some shell scripts to copy the files. Since distributions
+have moved on since I wrote the scripts, you will have to adapt it to
+your needs.  Since the amount of disk space needed is relatively small
+in these days of large disks, I don't bother to throw out things that
+may not be needed.
 <P>
 <P>
 <P>One thing to be aware of is that when you host the root filesystem on a
@@ -103,34 +138,12 @@ aware that practically all Linux distributions have a few "bugs"
 relating to symlinks and so forth for diskless booting.  These are
 mentioned in the tutorial.
 <P>
-<H2><A NAME="ss5.2">5.2 Initial ramdisk</A>
-</H2>
-
-<P>
-<P>It is possible to use initial ramdisk (initrd) in addition to, or in
-place of an NFS root. See the ramdisk argument of 
-<A HREF="mknbi.html">mknbi-linux</A>. You will also need to read the
-Linux kernel documentation to see what extra arguments should be passed
-to the kernel to make it use an initrd, and how to arrange the initrd so
-that the startup script within it is called when it's mounted.
-<P>
-<P>
-<P>Initrds are useful for loading modules before the NFS root is mounted,
-or to use some other network filesystem instead of NFS root, for
-example.  Some applications could even run totally out of initrd, e.g.
-<A HREF="http://www.zelow.no/floppyfw/">Floppy Firewall</A>,
-provided you have the memory, of course. Also postings on the kernel
-mailing lists indicate that at some point in the future, kernel level
-autoconfiguration (BOOTP/DHCP from the kernel) may be removed from the
-Linux kernel and initrds may be the way to start up a diskless system
-that can acquire an identity using a userland DHCP client program.
-<P>
 <H2><A NAME="ss5.3">5.3 Other filesystem setups</A>
 </H2>
 
 <P>
 <P>This tutorial does not cover all possible ways of setting up a diskless
-client's initial filesystem. The NFS root method and the initrd method
+client's initial filesystem. The initrd method and the NFS root method
 described above are two ways. You could even mount a conventional hard
 disk.  Why would you want to boot "diskless" if you have a hard disk?
 Reasons might be: you do not wish to adminster the local disk; you want
