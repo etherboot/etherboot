@@ -67,7 +67,7 @@ Major changes from 2.0 to 2.1
 + Added LSM for transname-patch to contrib.
 
 + Added patch for serial console from Claus Heine
-<claus@momo.math.rwth-aachen.de>.
+<claus AT momo PERIOD math PERIOD rwth-aachen PERIOD de>.
 
 + Claus Heine contributed patches to the 2.0.21/22 kernel sources to
 allow NFS swap.
@@ -238,11 +238,11 @@ Major changes from 3.0 to 3.1
 
 + Include netboot-0.5.3 distribution from Gero Kuhlmann.
 
-+ Included some contributions from Dickon.Reed@cl.cam.ac.uk: Running
-  display of Kbytes loaded, line of delimiters after loading complete,
-  a temporary hack to address timing problems with the 3C509, and some
-  Makefile cleanup. The first two changes need to be enabled in Config
-  with defines.
++ Included some contributions from Dickon.Reed AT cl PERIOD cam PERIOD
+ac PERIOD uk: Running display of Kbytes loaded, line of delimiters after
+loading complete, a temporary hack to address timing problems with the
+3C509, and some Makefile cleanup. The first two changes need to be
+enabled in Config with defines.
 
 + mknbi-blkdev seems to have been left out by Gero Kuhlmann. Add to
   contrib directory. You probably have to make a symlink to it from
@@ -466,8 +466,8 @@ boot images.
 + Peter Dobcsanyi contributed vendor and device IDs for the Netvin
 NE2000/PCI clone.
 
-+ adam@mudlist.eorbit.net contributed RARP code as alternative to
-BOOTP/DHCP. Activated by RARP_NOT_BOOTP define.
++ adam AT mudlist PERIOD eorbit PERIOD net contributed RARP code as
+alternative to BOOTP/DHCP. Activated by RARP_NOT_BOOTP define.
 
 + Added link to Claus-Justus Heine's NFS swap Web page and updated the
 contrib directory.
@@ -545,8 +545,8 @@ and code32 directives in recent GNU as (so if this file won't assemble
 maybe your as version is not recent enough). Also patches to the menu
 handling code.
 
-+ jluke@deakin.edu.au sent in a fix for the WD/SMC8013 long ago which
-I finally got around to verifying.
++ jluke AT deakin PERIOD edu PERIOD au sent in a fix for the WD/SMC8013
+long ago which I finally got around to verifying.
 
 + start16.o and start32.o are supplied for those people who have problems
 compiling start*.S with as/as86.
@@ -797,10 +797,11 @@ driver.
 
 Released as Etherboot 4.4.2
 
-+ hwilmer@gmx.de found a probe error in 3c507.c, shouldn't mask memory
-size with 0xffffL, this fails with 64kB memory.  Also changed to use
-real-time-clock to timeout on initialisation of i82586 rather than
-relying on decrementing a variable (which is CPU speed dependent).
++ hwilmer AT gmx PERIOD de found a probe error in 3c507.c, shouldn't
+mask memory size with 0xffffL, this fails with 64kB memory.  Also
+changed to use real-time-clock to timeout on initialisation of i82586
+rather than relying on decrementing a variable (which is CPU speed
+dependent).
 
 + James Pearson pointed out that ~ should be escaped as &tilde; in
 vendortags.sgml. Also cleaned up the 8-bit characters while I was at it.
@@ -1068,7 +1069,7 @@ failed before, please test if you can.
 
 + Moved commercial links off main web page into web page of its own.
 
-+ Merged in TRY_FLOPPY_FIRST code from <as@bart.nl>.
++ Merged in TRY_FLOPPY_FIRST code from <as AT bart PERIOD nl>.
 
 Released as Etherboot 4.5.6
 
@@ -1173,9 +1174,10 @@ Released as Etherboot 4.6.2
 
 + Minor spelling corrections to vendortags.sgml.
 
-+ andreas.kabel@slac.stanford.edu pointed out that to be RFC951 compliant,
-the broadcast BOOTP request near line 705 of main.c should use port
-BOOTP_CLIENT and thus stand a better chance of going through firewalls.
++ andreas.kabel AT slac PERIOD stanford PERIOD edu pointed out that to
+be RFC951 compliant, the broadcast BOOTP request near line 705 of main.c
+should use port BOOTP_CLIENT and thus stand a better chance of going
+through firewalls.
 
 + Christoph Plattner found that the 16 bit bus width fix for NEPCI cards
 introduced in 4.5.6 breaks operation for other NEPCI cards. So now the
@@ -2363,8 +2365,8 @@ PCI config space. Should do similar to ioaddr, but too much work.
 
 + Updated instructions in contrib/tomsrtbt for latest 2.0.103 release.
 
-+ Folded in changes by Michael Brown to send PCI IDs to the server
-and to encapsulate Etherboot specific options. Changed scheme to
++ Folded in changes by Michael Brown to send PCI and ISA IDs to the
+server and to encapsulate Etherboot specific options. Changed scheme to
 send fixed binary structure instead of variable length string.
 
 + Bug in sis900.c, wrongly classifies revisions 0x81 and 0x82 because
@@ -2374,10 +2376,17 @@ driver.
 + Fotis Andritsopoulos found a small bug in cs89x0.h, TX_AFTER_ALL
 should be 0x0C0.
 
-+ Brilliant idea by Eric Biederman. Ignore DHCP offers with zero server
++ Great idea by Eric Biederman. Ignore DHCP offers with zero server
 IP, or null filename unless DEFAULT_BOOTFILE is defined. This will
 ignore most Windows DHCP servers.
+
++ Patrik Weiskircher sent in a patch for rtl8139.c to bring it up to
+date with the Linux driver.
+
+Released as Etherboot 5.0.7 (production)
 
 + (5.1.2) Multicast support by Eric Biederman.
 
 + (5.1.2) Builtin menuing has been removed.
+
+Test release 5.1.2rc2
