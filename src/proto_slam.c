@@ -530,9 +530,8 @@ int url_slam(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigne
 	if (url_port != -1) {
 		info.server_port = url_port;
 	}
-	if (name[0] == '/') {
+	if (name[0]) {
 		/* multicast ip */
-		name++;
 		name += inet_aton(name, &info.multicast_ip);
 		if (name[0] == ':') {
 			name++;
