@@ -10,7 +10,7 @@ Author: Martin Renters
 
 /* These could be customised for different languages perhaps */
 #define	ASK_PROMPT	\
-		"Boot from (N)etwork (D)isk (F)loppy or from L)ocal? "
+		"Boot from (N)etwork (D)isk (F)loppy or from (L)ocal? "
 
 #define	ANS_NETWORK	'N'
 #define ANS_DISK	'D'

@@ -913,7 +913,7 @@ static struct pci_id prism2_pci_nics[] = {
 
 static struct pci_driver prism2_pci_driver __pci_driver = {
 	.type     = NIC_DRIVER,
-	.name     = "Prism2_PLX",
+	.name     = "Prism2_PCI",
 	.probe    = prism2_pci_probe,
 	.ids      = prism2_pci_nics,
 	.id_count = sizeof(prism2_pci_nics)/sizeof(prism2_pci_nics[0]),
