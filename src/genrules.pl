@@ -122,7 +122,7 @@ foreach my $isa (sort keys %isaent) {
 }
 
 # Generate the *.o and config-*.o rules
-print "\n# Rules to build the driver object files\n";
+print "# Rules to build the driver object files\n";
 foreach my $pci (sort keys %drivers) {
 	# For ISA the rule for .o will generated later
 	next if &isaonly($pci);
@@ -154,7 +154,7 @@ EOF
 }
 
 # Generate the Rom rules
-print "\n# Rules to build the ROM files\n";
+print "# Rules to build the ROM files\n";
 foreach my $family (sort keys %pcient) {
 	my $aref = $pcient{$family};
 	foreach my $entry (@$aref) {
@@ -199,11 +199,10 @@ EOF
 }
 
 # and generate the .img image rules
-print "\n# Rules to build the image files\n";
+print "# Rules to build the image files\n";
 foreach my $pci (sort keys %drivers) {
 	# If there are no PCI ID entries, it's an ISA only family
-	my $aref = $pcient{$pci};
-	next if ($#$aref < 0);
+	next if &isaonly($pci);
 	# PCI images are prepared once per driver
 	print <<EOF;
 bin32/$pci.tmp:	bin32/$pci.o bin32/config-$pci.o bin32/pci.o \$(STDDEPS32)
