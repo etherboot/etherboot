@@ -372,16 +372,22 @@ static inline void whereami (const char *str)
 #define whereami(s)
 #endif
 
-static void eepro100_irq(struct nic *nic __unused, irq_action_t action __unused)
+static void eepro100_irq(struct nic *nic __unused, irq_action_t action)
 {
-  switch ( action ) {
-  case DISABLE :
-    break;
-  case ENABLE :
-    break;
-  case FORCE :
-    break;
-  }
+	uint16_t enabled_mask = ( SCBMaskCmdDone | SCBMaskCmdIdle |
+				  SCBMaskEarlyRx | SCBMaskFlowCtl );
+
+	switch ( action ) {
+	case DISABLE :
+		outw(SCBMaskAll, ioaddr + SCBCmd);
+		break;
+	case ENABLE :
+		outw(enabled_mask, ioaddr + SCBCmd);
+		break;
+	case FORCE :
+		outw(enabled_mask | SCBTriggerIntr, ioaddr + SCBCmd);
+		break;
+	}
 }
 
 /* function: eepro100_transmit
@@ -436,7 +442,7 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 #endif
 
 	outl(virt_to_bus(&txfd), ioaddr + SCBPointer);
-	outw(INT_MASK | CU_START, ioaddr + SCBCmd);
+	outb(CU_START, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
 
 	s1 = inw (ioaddr + SCBStatus);
@@ -525,6 +531,10 @@ static int eepro100_poll(struct nic *nic, int retrieve)
 #ifdef	DEBUG
 		hd (nic->packet, 0x30);
 #endif
+
+		/* Acknowledge all conceivable interrupts */
+		outw(0xff00, ioaddr + SCBStatus);
+
 		return 1;
 	}
 
@@ -612,8 +622,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	adjust_pci_device(p);
 
 	/* Copy IRQ from PCI information */
-	/* nic->irqno = pci->irq; */
-	nic->irqno = 0;
+	nic->irqno = p->irq;
 
 	if ((do_eeprom_cmd(EE_READ_CMD << 24, 27) & 0xffe0000)
 		== 0xffe0000) {
@@ -643,14 +652,14 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	udelay (10000);
 	whereami ("Got eeprom.");
 
-	/* Base = 0 */
+	/* Base = 0, disable all interrupts  */
 	outl(0, ioaddr + SCBPointer);
 	outw(INT_MASK | RX_ADDR_LOAD, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
 	whereami ("set rx base addr.");
 
 	outl(virt_to_bus(&lstats), ioaddr + SCBPointer);
-	outw(INT_MASK | CU_STATSADDR, ioaddr + SCBCmd);
+	outb(CU_STATSADDR, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
 	whereami ("set stats addr.");
 
@@ -669,7 +678,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	rxfds[RXFD_COUNT-1].link    = virt_to_bus(&rxfds[0]);
 
 	outl(virt_to_bus(&rxfds[0]), ioaddr + SCBPointer);
-	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
+	outb(RX_START, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
 
 	whereami ("started RX process.");
@@ -678,7 +687,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 
 	/* Base = 0 */
 	outl(0, ioaddr + SCBPointer);
-	outw(INT_MASK | CU_CMD_BASE, ioaddr + SCBCmd);
+	outb(CU_CMD_BASE, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
 
 	whereami ("set TX base addr.");
@@ -737,7 +746,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	confcmd.data[21] = (rx_mode & 1) ? 0x0D: 0x05;
 
 	outl(virt_to_bus(&txfd), ioaddr + SCBPointer);
-	outw(INT_MASK | CU_START, ioaddr + SCBCmd);
+	outb(CU_START, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
 
 	whereami ("started TX thingy (config, iasetup).");
