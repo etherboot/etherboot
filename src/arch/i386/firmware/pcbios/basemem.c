@@ -12,6 +12,7 @@
 #define fbms ( ( uint16_t * ) phys_to_virt ( 0x413 ) )
 #define BASE_MEMORY_MAX ( 640 )
 #define FREE_BLOCK_MAGIC ( ('!'<<0) + ('F'<<8) + ('R'<<16) + ('E'<<24) )
+#define FREE_BASE_MEMORY ( (uint32_t) ( *fbms << 10 ) )
 
 typedef struct free_base_memory_block {
 	uint32_t	magic;
@@ -22,7 +23,7 @@ typedef struct free_base_memory_block {
  */
 
 uint32_t get_free_base_memory ( void ) {
-	return *fbms << 10;
+	return FREE_BASE_MEMORY;
 }
 
 /* Adjust the real mode stack pointer.  We keep the real mode stack at
@@ -30,7 +31,7 @@ uint32_t get_free_base_memory ( void ) {
  */
 
 inline void adjust_real_mode_stack ( void ) {
-	real_mode_stack = ( *fbms << 10 );
+	real_mode_stack = FREE_BASE_MEMORY;
 }
 
 /* Allocate N bytes of base memory.  Amount allocated will be rounded
@@ -57,7 +58,7 @@ void * allot_base_memory ( size_t size ) {
 	*fbms -= size_kb;
 
 	/* Calculate address of memory allocated */
-	ptr = phys_to_virt ( *fbms << 10 );
+	ptr = phys_to_virt ( FREE_BASE_MEMORY );
 
 #ifdef DEBUG_BASEMEM
 	/* Zero out memory.  We do this so that allocation of
@@ -148,7 +149,7 @@ void free_unused_base_memory ( void ) {
 	while ( 1 ) {
 		/* Calculate address of next potential free block */
 		free_block = ( free_base_memory_block_t * )
-			phys_to_virt ( *fbms << 10 );
+			phys_to_virt ( FREE_BASE_MEMORY );
 		
 		/* Stop processing if we're all the way up to 640K or
 		 * if this is not a free block
@@ -176,6 +177,30 @@ void free_unused_base_memory ( void ) {
 
 	/* Adjust real mode stack pointer */
 	adjust_real_mode_stack ();
+}
+
+/* Free base memory used by the decompressor.  Called once at start of
+ * Etherboot by arch_main().
+ */
+void forget_decompressor_base_memory ( void ) {
+	/* text_start_kb is _text rounded down to a physical KB boundary */
+	uint32_t text_start_kb = virt_to_phys(_text) & ~0x3ff;
+	
+	/* If the decompressor is in allocated base memory (which it
+	 * might not be; it could be in non-allocated base memory if
+	 * -DRELOCATE is not used) *and* the Etherboot text is in base
+	 * memory, then free the decompressor.
+	 */
+	if ( ( image_basemem >= FREE_BASE_MEMORY ) &&
+	     ( text_start_kb >= FREE_BASE_MEMORY ) &&
+	     ( text_start_kb <= ( BASE_MEMORY_MAX << 10 ) ) ) {
+		forget_base_memory ( phys_to_virt ( image_basemem ),
+				     text_start_kb - image_basemem );
+		/* Update image_basemem to indicate that our
+		 * allocation now starts with _text
+		 */
+		image_basemem = text_start_kb;
+	}
 }
 
 #endif /* PCBIOS */

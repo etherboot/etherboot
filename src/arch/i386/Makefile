@@ -33,6 +33,7 @@ SRCS+=	arch/i386/core/elf.c
 SRCS+=	arch/i386/core/cpu.c
 SRCS+=	arch/i386/core/video_subr.c
 SRCS+=	arch/i386/core/pic8259.c
+SRCS+=	arch/i386/core/hooks.c
 
 # ROM loaders: ISA and PCI versions
 ISAPREFIX=	$(BIN)/isaprefix.bin
@@ -84,7 +85,7 @@ alllilos:	$(BUILD_LILOS)
 
 BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
 BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
-BOBJS+=		$(BIN)/pic8259.o
+BOBJS+=		$(BIN)/pic8259.o $(BIN)/hooks.o
 
 # Prepended loaders
 $(BIN)/isaprefix.bin:	$(BIN)/isaprefix.o
