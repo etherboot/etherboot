@@ -10,6 +10,7 @@ BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMG
 
 START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
 	$(BIN)/bios.o $(BIN)/console.o $(BIN)/memsizes.o $(BIN)/basemem.o \
+	$(BIN)/hidemem.o $(BIN)/e820mangler.o \
 	$(BIN)/realmode.o $(BIN)/realmode_asm.o \
 	$(BIN)/callbacks.o $(BIN)/pxe_callbacks.o
 
@@ -20,6 +21,8 @@ SRCS+=	arch/i386/firmware/pcbios/bios.c
 SRCS+=	arch/i386/firmware/pcbios/console.c
 SRCS+=	arch/i386/firmware/pcbios/memsizes.c
 SRCS+=	arch/i386/firmware/pcbios/basemem.c
+SRCS+=	arch/i386/firmware/pcbios/hidemem.c
+SRCS+=	arch/i386/firmware/pcbios/e820mangler.S
 SRCS+=	arch/i386/prefix/liloprefix.S
 SRCS+=	arch/i386/prefix/elfprefix.S
 SRCS+=	arch/i386/prefix/lmelf_prefix.S
