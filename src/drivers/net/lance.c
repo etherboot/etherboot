@@ -598,22 +598,3 @@ static struct isa_driver ni6510_driver __isa_driver = {
 	.ioaddrs = 0,
 };
 #endif
-
-#ifdef INCLUDE_LANCE
-#ifdef	CONFIG_PCI
-static struct pci_id lance_nics[] = {
-PCI_ROM(0x1022, 0x2000, "lancepci",     "AMD Lance/PCI"),
-PCI_ROM(0x1022, 0x2625, "pcnetfastiii", "AMD Lance/PCI PCNet/32"),
-PCI_ROM(0x1022, 0x2001, "amdhomepna",   "AMD Lance/HomePNA"),
-};
-
-static struct pci_driver lancepci_driver __pci_driver = {
-	.type     = NIC_DRIVER,
-	.name     = "LANCE/PCI",
-	.probe    = lancepci_probe,
-	.ids      = lance_nics,
-	.id_count = sizeof(lance_nics)/sizeof(lance_nics[0]),
-	.class    = 0,
-};
-#endif	/* CONFIG_PCI */
-#endif /* INCLUDE_LANCE */
