@@ -9,10 +9,12 @@
 # in the source. Valid arguments are nbi or elf.
 #
 # The --output= options specifies an output file instead of stdout
-# The -nonet option specifies that a netbootable image is not to
+# The --nonet option specifies that a netbootable image is not to
 # be built but the vmlinuz and initrd.gz files left behind in $tempdir
 # The --localtime=f option specifies a timezone file that's to be
 # copied to /etc/localtime in the initrd, allowing a different timezone.
+# The --ffw29 option is intended for 2.9.x and above and extends
+# the size of the initrd by making a bigger one and copying the original over.
 #
 # The first non-option argument is taken to be the letter of a floppy to
 # convert, e.g. a:, b: or even x: where x: is mapped to a file using
@@ -22,10 +24,13 @@
 
 use Getopt::Long;
 
+use lib '/usr/local/lib/mkffwnb/';
+use Extendinitrd;
+
 use strict;
 
-use vars qw($testing $verbose $localtime $nonet $floppy $libdir $tftpdir $output
-	$format $tempdir $tempmount);
+use vars qw($testing $verbose $localtime $nonet $format $ffw29
+	$floppy $libdir $tftpdir $output $tempdir $tempmount);
 
 sub findversion () {
 	my ($version) = grep(/FloppyFW/, `mtype ${floppy}floppyfw.msg`);
@@ -36,7 +41,7 @@ sub findversion () {
 }
 
 sub getappendargs () {
-	my ($append) = grep(/^\s*append\s/, `mtype ${floppy}syslinux.cfg`);
+	my ($append) = join(' ', grep(/^\s*(append\s|console=)/, `mtype ${floppy}syslinux.cfg`));
 	chomp ($append);
 	my @args = split(/\s+/, $append);
 	my @result = ();
@@ -76,7 +81,7 @@ sub loopbackmount ($$) {
 	my ($file, $point) = @_;
 
 	print "Mounting $file on $point loopback\n" if ($verbose);
-	my $status = system('mount', '-t', 'ext2', '-o', 'loop', $file, $point);
+	my $status = system('mount', '-o', 'loop', $file, $point);
 	return ($testing ? 0 : $status / 256);
 }
 
@@ -98,7 +103,7 @@ sub dostounix ($$) {
 	print "Converting $src to $dst\n" if ($verbose);
 	unless (open(S, $src)) {
 		print "$src: $!\n";
-		return;
+		return (0);
 	}
 	while (<S>) {
 		chomp;
@@ -112,6 +117,7 @@ sub dostounix ($$) {
 	}
 	close(D);
 	chmod(0755, $dst);
+	return (1);
 }
 
 sub bunzip2untar ($$) {
@@ -127,14 +133,15 @@ $format = '';
 GetOptions('output=s' => \$output,
 	'nonet!' => \$nonet,
 	'localtime=s' => \$localtime,
-	'format=s' => \$format);
+	'format=s' => \$format,
+	'ffw29!' => \$ffw29);
 if (defined($output) and $output !~ m(^/)) {
 	my $d = `pwd`;
 	chomp($d);
 	$output = "$d/$output";
 }
 $libdir = '/usr/local/lib/mkffwnb';
-$tftpdir = '/tftpdir';
+$tftpdir = '/usr/local/var/tftpboot';
 # default can also be 'elf'
 $format = 'nbi' if ($format ne 'elf' and $format ne 'nbi');
 $floppy = $#ARGV >= 0 ? $ARGV[0] : 'a:';
@@ -157,10 +164,16 @@ chdir($tempdir);
 print "Copying files off floppy, please be patient...\n";
 &mcopy() == 0 or die "Mcopy failed, diskette problem?\n";
 &gunzip('initrd.gz') == 0 or die "Gunzip of initrd.gz failed\n";
+if ($ffw29) {
+	extendinitrd("initrd", 5760);
+	system("mv newinitrd initrd");
+}
 mkdir($tempmount, 0755);
 &loopbackmount('initrd', $tempmount) == 0 or die "Loopback mount failed\n";
 &dostounix("$libdir/linuxrc", "linuxrc") if (-r "$libdir/linuxrc");
-&dostounix("$libdir/floppyfw.ini", "floppyfw.ini");
+unless (&dostounix("$libdir/floppyfw.ini", "floppyfw.ini")) {
+	&dostounix("floppyfw/floppyfw.ini", $ffw29 ? "etc/floppyfw.ini" : "floppyfw.ini");
+}
 &dostounix("config", "etc/config");
 for my $i (glob('floppyfw/add.bz2 modules/*.bz2 packages/*.bz2')) {
 	&bunzip2untar($i, $tempmount);

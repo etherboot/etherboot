@@ -2421,7 +2421,7 @@ Released as Etherboot 5.1.6 (development)
 
 + Broadcomm TG3 support by Eric Biederman.
 
-+ Georg Baum found that the start16.S prefix is still needed for LILO
++ Georg Baum found that the start16.S prefix was missing from the LILO
 and PXE images, those formats were broken. He also migrated the PCI IDs
 into the driver files. Those formats should work again.
 
@@ -2429,3 +2429,33 @@ into the driver files. Those formats should work again.
 genrules.pl. NIC is now an output file, for use by rom-o-matic.
 
 Released as Etherboot 5.1.7 (development)
+
++ Fixed various syntax errors that made the source not compile with some
+configurations.
+
++ Hacked boot1a.s to take count of number of blocks to boot from book
+block itself in new scheme.
+
++ Dave Airlie found a patch for an old bug in eepro100 driver on Linux
+that applies to Etherboot driver too.
+
++ Add use bytes; pragma to Perl scripts to avoid problems with UTF-8
+handling of input data.
+
++ Replace boot1a.s with floppyload.S which has no problems loading large
+binaries. Lose the ability to boot from disk partition. Use LILO or
+something similar.
+
++ Morten Kristiansen sent in a patch to handle another variant of the
+SiS 900.
+
++ Fix for eepro100 timing problem by Georg Baum.
+
++ Add use bytes; to Eric's Perl scripts too.
+
++ Additional fix to mask interrupts after PortPartialReset by Georg
+Baum that might help with booting DOS.
+
++ Sundance driver contributed by Timothy Legge.
+
+Released as Etherboot 5.1.8 (development)
