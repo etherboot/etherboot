@@ -242,6 +242,7 @@ exit_via_pxe:				/* Stack OK, return to PXE */
 	call	print_message
 	pop	%ds			/* Restore PXE's DS */
 	popa				/* Restore PXE's other registers */
+	movw	$0, %ax			/* Return PXENV_STATUS_SUCCESS */
 	lret				/* Return control to PXE ROM */
 10:	.asciz	"EB->PXE\n"
 exit_via_int18:				/* Stack damaged, do int 18 */
