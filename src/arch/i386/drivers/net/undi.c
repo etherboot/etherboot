@@ -9,14 +9,6 @@ reserved.
 $Id$
 ***************************************************************************/
 
-/* Eventually we should refuse to work except with relocation; we need
- * to allocate significant amounts of storage in base memory for the
- * UNDI driver itself.
- */
-#ifndef RELOCATE
-/* #error UNDI driver requires relocation */
-#endif
-
 /*
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,7 +27,7 @@ $Id$
 
 /* NIC specific static variables go here */
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-		       NULL, 0, NULL, 0,
+		       NULL, NULL, 0, NULL, 0,
 		       0, 0, 0, 0, 0,
 		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL } };
 
@@ -614,6 +606,8 @@ static void undi_transmit(
 	unsigned int s,			/* size */
 	const char *p)			/* Packet */
 {
+	char *xmit_buffer = NULL;
+
 	/* Inhibit compiler warning about unused parameter nic */
 	if ( nic == NULL ) {};
 
@@ -632,15 +626,29 @@ static void undi_transmit(
 	/* Store packet length in TBD */
 	undi.xmit_data->tbd.ImmedLength = s;
 
-	/* Copy data to be transmitted into base memory buffer */
-#ifdef RELOCATE
-#error FIXME: need to copy this to base memory instead */
-#else
-	undi.xmit_data->tbd.Xmit.segment = SEGMENT( p );
-	undi.xmit_data->tbd.Xmit.offset = OFFSET( p );
-#endif
+	/* Check to see if data to be transmitted is currently in base
+	 * memory.  If not, allocate temporary storage in base memory
+	 * and copy it there.
+	 */
+	if ( SEGMENT( p ) <= 0xffff ) {
+		undi.xmit_data->tbd.Xmit.segment = SEGMENT( p );
+		undi.xmit_data->tbd.Xmit.offset = OFFSET( p );
+	} else {
+		xmit_buffer = allot_base_memory ( s );
+		if ( xmit_buffer == NULL ) {
+			printf ( "Could not allocate transmit buffer!\n" );
+			return;
+		}
+		memcpy ( xmit_buffer, p, s );
+		undi.xmit_data->tbd.Xmit.segment = SEGMENT( xmit_buffer );
+		undi.xmit_data->tbd.Xmit.offset = OFFSET( xmit_buffer );
+	}
 
 	eb_pxenv_undi_transmit_packet();
+
+	/* Free temporary buffer, if allocated */
+	if ( xmit_buffer != NULL )
+		forget_base_memory ( xmit_buffer, s );
 }
 
 /**************************************************************************
@@ -651,6 +659,8 @@ static void undi_disable(struct dev *dev)
 	/* Inhibit compiler warning about unused parameter dev */
 	if ( dev == NULL ) {};
 	undi_full_shutdown();
+	forget_base_memory ( undi.base_mem_data,
+			     sizeof(undi_base_mem_data_t) );
 }
 
 /**************************************************************************
@@ -675,6 +685,7 @@ int hunt_pixies_and_undi_roms ( void ) {
 		if ( undi_loader() ) {
 			return 1;
 		}
+		undi_full_shutdown(); /* Free any allocated memory */
 	}
 	hunt_type = HUNT_FOR_PIXIES;
 	return 0;
@@ -686,23 +697,10 @@ int hunt_pixies_and_undi_roms ( void ) {
 static int undi_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *)dev;
-
-	/* We need to allocate space in base memory for undi_call_info
-	 * and pxs.  This is a hack that will fail when relocation is
-	 * in use.
-	 */
-#ifdef RELOCATE
-#error Need to allocate space in base memory for base_mem_data
-#endif
-	static undi_base_mem_data_t base_mem_data;
+	undi_base_mem_data_t *base_mem_data = NULL;
 
 	/* Zero out global undi structure */
 	memset ( &undi, 0, sizeof(undi) );
-
-	/* Initialise pointers to base memory structures */
-	undi.undi_call_info = &base_mem_data.undi_call_info;
-	undi.pxs = &base_mem_data.pxs;
-	undi.xmit_data = &base_mem_data.xmit;
 
 	/* Store PCI parameters; we will need them to initialize the UNDI
 	 * driver later.
@@ -714,6 +712,20 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 		printf ( "No PnP BIOS found; aborting\n" );
 		return 0;
 	}
+
+	/* Allocate space in base memory.
+	 * Initialise pointers to base memory structures.
+	 */
+	base_mem_data = allot_base_memory ( sizeof(undi_base_mem_data_t) );
+	if ( base_mem_data == NULL ) {
+		printf ( "Failed to allocate base memory\n" );
+		return 0;
+	}
+	memset ( base_mem_data, 0, sizeof(undi_base_mem_data_t) );
+	undi.base_mem_data = base_mem_data;
+	undi.undi_call_info = &base_mem_data->undi_call_info;
+	undi.pxs = &base_mem_data->pxs;
+	undi.xmit_data = &base_mem_data->xmit;
 
 	/* Search thoroughly for UNDI drivers */
 	for ( ; hunt_pixies_and_undi_roms(); undi_full_shutdown() ) {
@@ -746,6 +758,8 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 		nic->transmit = undi_transmit;
 		return 1;
 	}
+	forget_base_memory ( undi.base_mem_data,
+			     sizeof(undi_base_mem_data_t) );
 	return 0;
 }
 
