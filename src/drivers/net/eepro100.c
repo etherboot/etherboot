@@ -665,6 +665,7 @@ PCI_ROM(0x8086, 0x1031, "82801cam", "Intel 82801CAM (ICH3) Chipset Ethernet Cont
 PCI_ROM(0x8086, 0x1038, "id1038",   "Intel(R) PRO/100 VM Network Connection"),
 PCI_ROM(0x8086, 0x1039, "82562et",  "Intel PRO100 VE 82562ET"),
 PCI_ROM(0x8086, 0x103A, "id103a",   "Intel Corporation 82559 InBusiness 10/100"),
+PCI_ROM(0x8086, 0x103B, "82562etb", "Intel PRO100 VE 82562ETB"),
 PCI_ROM(0x8086, 0x1209, "82559er",  "Intel EtherExpressPro100 82559ER"),
 PCI_ROM(0x8086, 0x1229, "eepro100", "Intel EtherExpressPro100"),
 PCI_ROM(0x8086, 0x2449, "82562em",  "Intel EtherExpressPro100 82562EM"),
