@@ -75,6 +75,11 @@ extern struct nic	*eepro100_probe(struct nic *, unsigned short *
 	PCI_ARG(struct pci_device *));
 #endif
 
+#ifdef	INCLUDE_E1000
+extern struct nic	*e1000_probe(struct nic *, unsigned short *
+	PCI_ARG(struct pci_device *));
+#endif
+
 #ifdef	INCLUDE_EPIC100
 extern struct nic	*epic100_probe(struct nic *, unsigned short *
 	PCI_ARG(struct pci_device *));

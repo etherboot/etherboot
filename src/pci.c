@@ -399,7 +399,8 @@ static void scan_bus(struct pci_device *pcidev)
 				for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
 					pcibios_read_config_dword(bus, devfn, reg, &ioaddr);
 
-					if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0 || (ioaddr & PCI_BASE_ADDRESS_SPACE_IO) == 0)
+					/* Intel e1000 need the mem base address */
+					if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0)
 						continue;
 					/* Strip the I/O address out of the returned value */
 					ioaddr &= PCI_BASE_ADDRESS_IO_MASK;
@@ -409,7 +410,7 @@ static void scan_bus(struct pci_device *pcidev)
 					/* Get the ROM base address */
 					pcibios_read_config_dword(bus, devfn, PCI_ROM_ADDRESS, &romaddr);
 					romaddr >>= 10;
-					printf("Found %s at %#hx, ROM address %#hx\n",
+					printf("Found %s at %#x, ROM address %#hx\n",
 						pcidev[i].name, ioaddr, romaddr);
 					/* Take the first one or the one that matches in boot ROM address */
 					if (pci_ioaddr == 0 || romaddr == ((unsigned long) rom.rom_segment << 4)) {

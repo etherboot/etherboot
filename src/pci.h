@@ -25,6 +25,8 @@
 #define PCI_COMMAND_MEM			0x2	/* Enable response in mem space */
 #define PCI_COMMAND_MASTER		0x4	/* Enable bus mastering */
 #define PCI_LATENCY_TIMER		0x0d	/* 8 bits */
+#define PCI_COMMAND_SPECIAL		0x8	/* Enable response to special cycles */
+#define PCI_COMMAND_INVALIDATE		0x10	/* Use memory write and invalidate */
 
 #define PCIBIOS_PCI_FUNCTION_ID         0xb1XX
 #define PCIBIOS_PCI_BIOS_PRESENT        0xb101
@@ -130,6 +132,11 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_INTEL_ID1029	0x1029
 #define PCI_DEVICE_ID_INTEL_ID1030	0x1030
 #define PCI_DEVICE_ID_INTEL_82562	0x2449
+#define PCI_DEVICE_ID_INTEL_82542        	0x1000
+#define PCI_DEVICE_ID_INTEL_82543GC_FIBER  	0x1001
+#define PCI_DEVICE_ID_INTEL_82543GC_COPPER 	0x1004
+#define PCI_DEVICE_ID_INTEL_82544EI_COPPER 	0x1008
+#define PCI_DEVICE_ID_INTEL_82544GC_CREB   	0x100D
 #define PCI_VENDOR_ID_AMD		0x1022
 #define PCI_DEVICE_ID_AMD_LANCE		0x2000
 #define PCI_VENDOR_ID_AMD_HOMEPNA	0x1022
@@ -175,7 +182,7 @@ struct pci_device {
 	unsigned short	vendor, dev_id;
 	const char	*name;
 	unsigned int	membase;
-	unsigned short	ioaddr;
+	unsigned int	ioaddr;
 	unsigned char	devfn;
 	unsigned char	bus;
 };

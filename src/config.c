@@ -9,7 +9,7 @@
 #include	"nic.h"
 
 #undef	INCLUDE_PCI
-#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_TLAN)
+#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_TLAN)
 	/* || others later */
 #define	INCLUDE_PCI
 #include	"pci.h"
@@ -103,6 +103,19 @@ static struct pci_device	pci_nic_list[] = {
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82562,
 		"Intel EtherExpressPro100 82562EM", 0, 0, 0, 0},
 #endif
+#ifdef INCLUDE_E1000
+       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82542,
+               "Intel EtherExpressPro1000", 0, 0, 0, 0},
+       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82543GC_FIBER,
+               "Intel EtherExpressPro1000 82543GC Fiber", 0, 0, 0, 0},
+       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82543GC_COPPER,
+               "Intel EtherExpressPro1000 82543GC Copper", 0, 0, 0, 0},
+       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82544EI_COPPER,
+               "Intel EtherExpressPro1000 82544EI Copper", 0, 0, 0, 0},
+       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82544GC_CREB,
+               "Intel EtherExpressPro1000 82544GC Creb", 0, 0, 0, 0},
+#endif
+
 #ifdef	INCLUDE_EPIC100
 	{ PCI_VENDOR_ID_SMC,		PCI_DEVICE_ID_SMC_EPIC100,
 		"SMC EtherPowerII", 0, 0, 0, 0},
@@ -259,6 +272,10 @@ static const struct dispatch_table	NIC[] =
 #ifdef	INCLUDE_EEPRO100
 	{ "EEPRO100", eepro100_probe, pci_ioaddrs },
 #endif
+#ifdef INCLUDE_E1000
+	{ "E1000", e1000_probe, pci_ioaddrs },
+#endif
+
 #ifdef	INCLUDE_EPIC100
 	{ "EPIC100", epic100_probe, pci_ioaddrs },
 #endif
