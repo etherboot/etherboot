@@ -344,9 +344,11 @@ $(BIN)/%.zdsk: $(BIN)/%.dsk.zprf
 SUFFIXES +=	fd0 zfd0
 %.fd0:	%.dsk
 	dd if=$< bs=512 conv=sync of=/dev/fd0
+	sync
 
 %.zfd0:	%.zdsk
 	dd if=$< bs=512 conv=sync of=/dev/fd0
+	sync
 
 # rules to create raw executable images
 SUFFIXES +=	raw zraw
