@@ -31,7 +31,7 @@
  *					Re-wrote poll and transmit for
  *					better error recovery and heavy
  *					network traffic operation
- * v2.01    5-26-2993 NN Fixed driver alignment issue which
+ * v2.01    5-26-2003 NN Fixed driver alignment issue which
  *                  caused system lockups if driver structures
  *                  not 8-byte aligned.
  *
