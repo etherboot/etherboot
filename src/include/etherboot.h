@@ -248,6 +248,13 @@ extern int url_tftm P((const char *name, int (*fnc)(unsigned char *, unsigned in
 /* config.c */
 extern void print_config(void);
 
+/* isa_probe.c and pci_probe.c */
+struct dev;
+extern void isa_enumerate(void);
+extern int isa_probe(struct dev *, const char *);
+extern void pci_enumerate(void);
+extern int pci_probe(struct dev *, const char *);
+
 /* heap.c */
 extern void init_heap(void);
 extern void *allot(size_t size);
