@@ -1,3 +1,6 @@
+#ifndef	_TFTP_H
+#define	_TFTP_H
+
 #define TFTP_PORT	69
 #define	TFTP_DEFAULTSIZE_PACKET	512
 #define	TFTP_MAX_PACKET		1432 /* 512 */
@@ -57,3 +60,5 @@ struct tftpreq_t {
 };
 
 #define TFTP_MIN_PACKET	(sizeof(struct iphdr) + sizeof(struct udphdr) + 4)
+
+#endif	/* _TFTP_H */

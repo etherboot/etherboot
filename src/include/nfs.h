@@ -1,3 +1,6 @@
+#ifndef	_NFS_H
+#define	_NFS_H
+
 #define SUNRPC_PORT	111
 
 #define PROG_PORTMAP	100000
@@ -56,3 +59,5 @@ struct rpc_t {
 		} reply;
 	} u;
 };
+
+#endif	/* _NFS_H */

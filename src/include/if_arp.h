@@ -1,3 +1,6 @@
+#ifndef	_IF_ARP_H
+#define	_IF_ARP_H
+
 #define ARP_REQUEST	1
 #define ARP_REPLY	2
 
@@ -16,3 +19,5 @@ struct arprequest {
 	uint8_t  thwaddr[6];
 	uint8_t  tipaddr[4];
 };
+
+#endif	/* _IF_ARP_H */

@@ -1,3 +1,6 @@
+#ifndef	_UDP_H
+#define	_UDP_H
+
 struct udp_pseudo_hdr {
 	in_addr  src;
 	in_addr  dest;
@@ -11,3 +14,5 @@ struct udphdr {
 	uint16_t len;
 	uint16_t chksum;
 };
+
+#endif	/* _UDP_H */

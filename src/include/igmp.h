@@ -1,3 +1,6 @@
+#ifndef	_IGMP_H
+#define	_IGMP_H
+
 #define IGMP_QUERY	0x11
 #define IGMPv1_REPORT	0x12
 #define IGMPv2_REPORT	0x16
@@ -16,3 +19,5 @@ struct igmp_ip_t { /* Format of an igmp ip packet */
 	uint8_t router_alert[4]; /* Router alert option */
 	struct igmp igmp;
 };
+
+#endif	/* _IGMP_H */

@@ -371,7 +371,7 @@ extern int elf_start(unsigned long machine, unsigned long entry, unsigned long p
 extern unsigned long currticks P((void));
 extern void exit P((int status));
 
-/* serial.S */
+/* serial.c */
 extern int serial_getc P((void));
 extern void serial_putc P((int));
 extern int serial_ischar P((void));

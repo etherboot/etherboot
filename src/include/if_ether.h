@@ -1,3 +1,6 @@
+#ifndef	_IF_ETHER_H
+#define	_IF_ETHER_H
+
 /*
    I'm moving towards the defined names in linux/if_ether.h for clarity.
    The confusion between 60/64 and 1514/1518 arose because the NS8390
@@ -14,3 +17,5 @@
 #ifndef	ETH_MAX_MTU
 #define	ETH_MAX_MTU		(ETH_FRAME_LEN-ETH_HLEN)
 #endif
+
+#endif	/* _IF_ETHER_H */

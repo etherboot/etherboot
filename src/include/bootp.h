@@ -1,3 +1,6 @@
+#ifndef	_BOOTP_H
+#define	_BOOTP_H
+
 #define BOOTP_SERVER	67
 #define BOOTP_CLIENT	68
 #define BOOTP_REQUEST	1
@@ -132,3 +135,5 @@ struct bootpd_t {
 	struct bootp_t bootp_reply;
 	uint8_t bootp_extension[MAX_BOOTP_EXTLEN];
 };
+
+#endif	/* _BOOTP_H */
