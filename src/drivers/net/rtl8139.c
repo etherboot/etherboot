@@ -113,8 +113,18 @@ enum RTL8139_registers {
 	 * definitions we will probably never need to know about.  */
 };
 
+enum RxEarlyStatusBits {
+	ERGood=0x08, ERBad=0x04, EROVW=0x02, EROK=0x01
+};
+
 enum ChipCmdBits {
 	CmdReset=0x10, CmdRxEnb=0x08, CmdTxEnb=0x04, RxBufEmpty=0x01, };
+
+enum IntrMaskBits {
+	SERR=0x8000, TimeOut=0x4000, LenChg=0x2000,
+	FOVW=0x40, PUN_LinkChg=0x20, RXOVW=0x10,
+	TER=0x08, TOK=0x04, RER=0x02, ROK=0x01
+};
 
 /* Interrupt register bits, using my own meaningful names. */
 enum IntrStatusBits {
@@ -167,8 +177,9 @@ static int read_eeprom(struct nic *nic, int location, int addr_len);
 static void rtl_reset(struct nic *nic);
 static void rtl_transmit(struct nic *nic, const char *destaddr,
 	unsigned int type, unsigned int len, const char *data);
-static int rtl_poll(struct nic *nic);
+static int rtl_poll(struct nic *nic, int retrieve);
 static void rtl_disable(struct dev *);
+static void rtl_irq(struct nic *nic, irq_action_t action);
 
 
 static int rtl8139_probe(struct dev *dev, struct pci_device *pci)
@@ -214,6 +225,7 @@ static int rtl8139_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable  = rtl_disable;
 	nic->poll     = rtl_poll;
 	nic->transmit = rtl_transmit;
+	nic->irq      = rtl_irq;
 
 	return 1;
 }
@@ -408,7 +420,7 @@ static void rtl_transmit(struct nic *nic, const char *destaddr,
 	}
 }
 
-static int rtl_poll(struct nic *nic)
+static int rtl_poll(struct nic *nic, int retrieve)
 {
 	unsigned int status;
 	unsigned int ring_offs;
@@ -417,6 +429,9 @@ static int rtl_poll(struct nic *nic)
 	if (inb(nic->ioaddr + ChipCmd) & RxBufEmpty) {
 		return 0;
 	}
+
+	/* There is a packet ready */
+	if ( ! retrieve ) return 1;
 
 	status = inw(nic->ioaddr + IntrStatus);
 	/* See below for the rest of the interrupt acknowledges.  */
@@ -466,6 +481,32 @@ static int rtl_poll(struct nic *nic)
 	 * usable information, except for a few exception handling rules.  */
 	outw(status & (RxFIFOOver | RxOverflow | RxOK), nic->ioaddr + IntrStatus);
 	return 1;
+}
+
+static void rtl_irq(struct nic *nic, irq_action_t action)
+{
+	unsigned int mask;
+	/* Bit of a guess as to which interrupts we should allow */
+	unsigned int interested = ROK | RER | RXOVW | FOVW | SERR;
+
+	switch ( action ) {
+	case DISABLE :
+	case ENABLE :
+		mask = inw(nic->ioaddr + IntrMask);
+		mask = mask & ~interested;
+		if ( action == ENABLE ) mask = mask | interested;
+		outw(mask, nic->ioaddr + IntrMask);
+		break;
+	case FORCE :
+		/* Apparently writing a 1 to this read-only bit of a
+		 * read-only and otherwise unrelated register will
+		 * force an interrupt.  If you ever want to see how
+		 * not to write a datasheet, read the one for the
+		 * RTL8139...
+		 */
+		outb(EROK, nic->ioaddr + RxEarlyStatus);
+		break;
+	}
 }
 
 static void rtl_disable(struct dev *dev)
