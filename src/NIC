@@ -277,5 +277,9 @@ sk_g16	-	Schneider and Koch G16
 family		smc9000
 smc9000	-	SMC9000
 
+family		sundance
+sundancealta	0x13f0,0x0201	Sundance Alta st201 based 
+dfe530tsx	0x1186,0x1002	D-Link DFE 530TXS
+
 family		tiara
 tiara		-		Tiara, Fujitsu Lancard

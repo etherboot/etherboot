@@ -9,7 +9,7 @@
 #include	"nic.h"
 
 #undef	INCLUDE_PCI
-#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN) || defined(INCLUDE_PRISM2_PLX) || defined(INCLUDE_PRISM2_PCI)
+#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN) || defined(INCLUDE_PRISM2_PLX) || defined(INCLUDE_PRISM2_PCI) || defined(INCLUDE_SUNDANCE)
 	/* || others later */
 #define	INCLUDE_PCI
 #include	"pci.h"
@@ -69,7 +69,9 @@
 #ifdef	INCLUDE_PRISM2_PCI
 #include "prism2_pci_ids.h"
 #endif
-
+#ifdef	INCLUDE_SUNDANCE
+#include "sundance_ids.h"
+#endif
 /* other PCI NICs go here */
 #endif	/* INCLUDE_*PCI */
 
@@ -208,6 +210,9 @@ static const struct dispatch_table	NIC[] =
 #endif
 #ifdef	INCLUDE_PRISM2_PCI
 	PCI_NIC( "Prism2_PCI", prism2_pci_probe, prism2_pci_nics),
+#endif
+#ifdef	INCLUDE_SUNDANCE
+	PCI_NIC( "Sundance", sundance_probe, sundance_nics),
 #endif
 	/* this entry must always be last to mark the end of list */
 #ifdef INCLUDE_PCI
