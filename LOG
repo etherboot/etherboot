@@ -2564,3 +2564,28 @@ ALTERNATE_DHCP_PORTS_1067_1068 switches to ports 1067 and 1068.
 + UNDI driver by Michael Brown.
 
 Released as Etherboot 5.3.3 (development)
+
++ More UNDI improvements by Michael Brown.
+
++ Michael Brown pointed out error in ASK_BOOT behaviour. Make it match
+documentation. < 0 or undefined means no prompt,  = 0 means wait
+forever, > 0 means wait that many seconds.
+
++ Start of PCMCIA subsystem by Anselm Martin Hoffmeister.
+
++ Port to Hyperstone architecture (big-endian) by Yannis Mitsos and
+George Thanos at NTUA, Greece.
+
++ Timothy Legge got the epic100 driver working again, was not working
+when 5.2 released. Also implemented multicasting. Also tentatively
+fixed the tg3 driver.
+
++ Use Perl script to make .z?lilo images.
+
++ Added an .iso Makefile rule. This requires newer BIOSes as it
+uses no floppy emulation mode.
+
++ Guard Kuo sent in a patch for the via-rhine driver not being
+reset properly, Timothy Legge improved it based in the Linux driver.
+
+Released as Etherboot 5.3.4 (development)
