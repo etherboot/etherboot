@@ -1,0 +1,50 @@
+This is a quick Perl hack conceived in a moment of madness. :-)
+
+It's a tftp to http proxy. To the tftp client it looks like a tftp
+server. To the http server it looks like a http client. So you can store
+your boot files on the http server. Or even create them with a CGI
+program. E.g. if you can get dhcpd to send a filename which has strings
+representing attributes of the client, as determined from the DHCP
+request, then you can get the CGI program to parse this and send the
+appropriate image, which might be synthesised.
+
+To run it, you need Perl 5.8.0 or later and all the Perl modules listed
+at the top of the program installed. Edit and install the xinetd config
+file as /etc/xinetd.d/t2hproxy and restart xinetd. The prefix is the
+string that is prepended to all filenames to form the URL requested from
+the http server. Remember you need the trailing / if the filenames don't
+start with /.
+
+This is only a proof-of concept. It has these drawbacks at the moment:
+
++ (I don't consider this a draback, but some may.) It's started from
+xinetd because xinetd handles all the socket listening, IP address
+checking, rate limiting, etc.
+
++ It has no cache. Use a proxy to do the caching (there's a --proxy
+option). This also takes care of fetching from outside a firewall.
+
++ It reads the entire http content into memory before serving. Ideally
+it should stream it from the http server to minimise memory usage. This
+is a serious drawback for booting lots of clients. Each instance of the
+server will consume an amount of memory equal to the size of image
+loaded.
+
++ If the http server is at the end of a slow link there is a delay
+before the first data block is sent.  The client may timeout before
+then.  Another reason for streaming, as this allows the first block to
+be sent sooner.  A local cache primed with the images in advance may
+help. Using the blocksize option helps here because this causes the
+server to send the OACK to the client immediately before the data is
+fetched and this prevents it from starting up another connection.
+
++ The transfer size may not be obtainable from the http headers in all
+cases, e.g. a CGI constructed image. This matters for clients that need
+the tsize extension, which is not supported at the moment.
+
+If I'm feeling masochistic I may write a Java version, which should take
+care of the multi-threading and streaming.
+
+Oh, and this code is GPLed.
+
+Ken Yap, September 2003

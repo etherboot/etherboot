@@ -306,6 +306,9 @@ putchar(int c)
 #ifdef	CONSOLE_FIRMWARE
 	console_putc(c);
 #endif
+#ifdef	CONSOLE_DIRECT_VGA
+	vga_putc(c);
+#endif
 #ifdef	CONSOLE_SERIAL
 	serial_putc(c);
 #endif

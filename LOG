@@ -192,7 +192,7 @@ Major changes from 2.1 to 2.2
   appreciate the possibility to load a fully fledged image from a very basic
   configuration.
 
-+ Optional support for compressing the ROM images. Please read 
++ Optional support for compressing the ROM images. Please read
   doc/COPYING.compressor before using this feature.
 
 + Sync'd our source tree with Gero's netboot-0.5; this means that you now need
@@ -2075,7 +2075,7 @@ Released as Etherboot 5.1.1 (development)
 
 + The rotating bar progress display has been replaced by a sequence of
 dots, one for each transmitted packet. This is kinder to dumb displays,
-e.g. serial terminals, and gives a better feel for how the loading is 
+e.g. serial terminals, and gives a better feel for how the loading is
 going. If you want the rotating bar, use -DBAR_PROGRESS.
 
 + In loader.S change .fill 0x18-(.-_start) to .org 0x18. Might help
@@ -2302,7 +2302,7 @@ Fabio Papa.
 + Philip R. Auld found a block number rollover bug due to promotion to
 signed in main.c.
 
-+ Luigi Rizzo sent in a patch to nfs.c to implement an adaptive timeout. 
++ Luigi Rizzo sent in a patch to nfs.c to implement an adaptive timeout.
 
 + New config files for floppyfw-1.9.19 in contrib/mkffwnb/.
 
@@ -2538,11 +2538,14 @@ and old IDENT format.
 + Cai Qiang fixed the WINCE loader. It needs to handle > 512 byte packets
 and also the buffer has to be static. Also submitted a driver for VGA
 which can be activated by CONSOLE_DIRECT_VGA.
-                                                                                
+
 + Improved tg3 driver by Eric Biederman. New define in etherboot.h:
 VALID_LINK_TIMEOUT.
-                                                                                
-+ Fixed up various ISA drivers to be less noisy when probing, from
-information provided by Paolo Salvan.
+
++ Timothy Legge and I fixed up various ISA drivers to be less noisy
+when probing, from information provided by Paolo Salvan, so that the
+super etherboot image is more useful.
+
++ Proof of concept of a TFTP to HTTP proxy in contrib/t2hproxy/.
 
 Released as Etherboot 5.2.2 (production)
