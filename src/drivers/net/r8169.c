@@ -265,8 +265,8 @@ struct RxDesc {
 };
 
 /* Define the TX Descriptor */
-//static struct TxDesc tx_ring[NUM_TX_DESC];
-//	_attribute__ ((aligned(256)));
+//static struct TxDesc tx_ring[NUM_TX_DESC]
+//	__attribute__ ((aligned(256)));
 
 /* Create a static buffer of size RX_BUF_SZ for each
 TX Descriptor.  All descriptors point to a
@@ -584,7 +584,7 @@ static void r8169_reset(struct nic *nic)
 	u8 diff;
 	u32 TxPhyAddr, RxPhyAddr;
 
-	tpc->TxDescArrays = 
+	tpc->TxDescArrays = // (unsigned char *) &tx_ring; 
 	    allot(NUM_TX_DESC * sizeof(struct TxDesc) + 256);
 	if (tpc->TxDescArrays == 0)
 		printf("Allot Error");
