@@ -115,4 +115,5 @@ decompr_end_n2b:
 .bss
 	.balign 16
 	/* uncompressed data will be written here */
+	.globl uncompressed
 uncompressed:
