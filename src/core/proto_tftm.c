@@ -25,11 +25,12 @@
 *
 *    $Revision$
 *    $Author$
-*    $Date 2003/08/29 $
+*    $Date$
 *
 *    REVISION HISTORY:
 *    ================
-*    v1.0	07-08-2003	timlegge	Initial version, Assumes consecutive blocks
+*    09-07-2003	timlegge	Release Version, Capable of Multicast Booting
+*    08-30-2003	timlegge	Initial version, Assumes consecutive blocks
 *
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -38,6 +39,7 @@
 #include "etherboot.h"
 #include "nic.h"
 
+#define TFTM_DEBUG
 struct tftm_info {
 	in_addr server_ip;
 	in_addr multicast_ip;
@@ -148,8 +150,7 @@ int proto_tftm(struct tftm_info *info)
 #endif
 				udp_transmit(arptable[ARP_SERVER].ipaddr.
 					     s_addr, iport,
-					     oport,
-					     TFTP_MIN_PACKET, &tp);
+					     oport, TFTP_MIN_PACKET, &tp);
 				continue;
 			}
 #endif
@@ -174,19 +175,20 @@ int proto_tftm(struct tftm_info *info)
 			e = p + len;
 			while (*p != '\0' && p < e) {
 				if (!strcasecmp("tsize", p)) {
-					printf("tsize=");
 					p += 6;
 					if ((filesize =
 					     strtoul(p, &p, 10)) > 0)
 						i |= 4;
-					printf("%d\n", filesize);
+#ifdef TFTM_DEBUG
+					printf("\n");
+					printf("tsize=%d\n", filesize);
+#endif
 					while (p < e && *p)
 						p++;
 					if (p < e)
 						p++;
 				} else if (!strcasecmp("blksize", p)) {
 					i |= 2;
-					printf("blksize=");
 					p += 8;
 					state.block_size =
 					    strtoul(p, &p, 10);;
@@ -197,30 +199,41 @@ int proto_tftm(struct tftm_info *info)
 						     TFTM_MIN_PACKET);
 						goto noak;
 					}
-					printf("%d\n", state.block_size);
+#ifdef TFTM_DEBUG
+					printf("blksize=%d\n",
+					       state.block_size);
+#endif
 					while (p < e && *p)
 						p++;
 					if (p < e)
 						p++;
 				} else if (!strncmp(p, "multicast", 10)) {
 					i |= 1;
-					printf("multicast options\n");
 					p += 10;
-					printf("%s\n", p);
+#ifdef TFTM_DEBUG
+					printf("multicast options: %s\n",
+					       p);
+#endif
 					p += 1 + inet_aton(p,
 							   &info->
 							   multicast_ip);
+#ifdef TFTM_DEBUG
 					printf("multicast ip = %@\n",
 					       info->multicast_ip);
+#endif
 					info->multicast_port =
 					    strtoul(p, &p, 10);
 					++p;
+#ifdef TFTM_DEBUG
 					printf("multicast port = %d\n",
 					       info->multicast_port);
+#endif
 					state.ismaster =
 					    (*p == '1' ? 1 : 0);
+#ifdef TFTM_DEBUG
 					printf("multicast ismaster = %d\n",
 					       state.ismaster);
+#endif
 					while (p < e && *p)
 						p++;
 					if (p < e)
@@ -267,8 +280,6 @@ int proto_tftm(struct tftm_info *info)
 					if (!state.image) {
 						state.bitmap =
 						    allot(bitmap_len);
-						printf
-						    ("Allocating Memory\n");
 						state.image =
 						    allot(filesize);
 
@@ -279,8 +290,6 @@ int proto_tftm(struct tftm_info *info)
 							return 0;
 						}
 						memset(state.bitmap, 0,
-						       bitmap_len);
-						printf("bitmap_len: %d",
 						       bitmap_len);
 					}
 
@@ -348,8 +357,9 @@ int proto_tftm(struct tftm_info *info)
 			if (((state.
 			      bitmap[block >> 3] >> (block & 7)) & 1) ==
 			    0) {
-				if(state.received_packets < (state.total_packets
-					- 1) &&block == state.total_packets) 
+				if (state.received_packets <
+				    (state.total_packets - 1)
+				    && block == state.total_packets)
 					continue;
 				/* Non duplicate packet */
 				state.bitmap[block >> 3] |=
@@ -392,7 +402,6 @@ int proto_tftm(struct tftm_info *info)
 				    (state.bitmap[b >> 3] >> (b & 7)) & 1;
 
 				if (value == 0) {
-/*				printf("Block: %d, B: %d, V: %d\n", block, b, value); */
 					tp.u.ack.block = htons(b - 1);	/* Acknowledge the previous block */
 					break;
 				}
@@ -403,14 +412,8 @@ int proto_tftm(struct tftm_info *info)
 			oport = ntohs(tr->udp.src);
 			udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, iport, oport, TFTP_MIN_PACKET, &tp);	/* ack */
 		}
-/*		printf("T=%d", state.total_packets); */
 		if (state.received_packets == state.total_packets) {
 			/* We are done get out */
-			/*      tp.opcode = htons(TFTP_ACK);
-			   tp.u.ack.block = htons(state.total_packets);
-			   oport = ntohs(tr->udp.src);
-			   udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
-			   iport, oport, TFTP_MIN_PACKET, &tp); */
 			forget(state.bitmap);
 			break;
 		}
