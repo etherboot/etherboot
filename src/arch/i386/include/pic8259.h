@@ -8,7 +8,7 @@
 #define PIC8259_H
 
 /* For segoff_t */
-#include <segoff.h>
+#include "segoff.h"
 
 #define IRQ_PIC_CUTOFF (8)
 
@@ -65,17 +65,6 @@ typedef uint8_t irq_t;
 #define IRQ_MAX (15)
 #define IRQ_NONE (0xff)
 
-/* Labels in assembly code (in pcbios.S)
- */
-extern void _trivial_irq_handler_start;
-extern void _trivial_irq_handler ( void );
-extern volatile uint16_t _trivial_irq_trigger_count;
-extern segoff_t _trivial_irq_chain_to;
-extern uint8_t _trivial_irq_chain;
-extern void _trivial_irq_handler_end;
-#define TRIVIAL_IRQ_HANDLER_SIZE \
-	((uint32_t)( &_trivial_irq_handler_end - &_trivial_irq_handler_start ))
-
 /* Function prototypes
  */
 int install_irq_handler ( irq_t irq, segoff_t *handler,
@@ -90,10 +79,18 @@ int trivial_irq_triggered ( irq_t irq );
 int copy_trivial_irq_handler ( void *target, size_t target_size );
 void send_non_specific_eoi ( irq_t irq );
 void send_specific_eoi ( irq_t irq );
+void fake_irq ( irq_t irq );
 #ifdef DEBUG_IRQ
 void dump_irq_status ( void );
 #else
 #define dump_irq_status()
 #endif
+
+/* Other code (e.g. undi.c) needs to know the size of the trivial IRQ
+ * handler code, so we put prototypes and the size macro here.
+ */
+extern void _trivial_irq_handler ( void );
+extern void _trivial_irq_handler_end ( void );
+#define TRIVIAL_IRQ_HANDLER_SIZE FRAGMENT_SIZE(_trivial_irq_handler)
 
 #endif /* PIC8259_H */

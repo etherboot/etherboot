@@ -285,7 +285,6 @@ extern int int15 P((int));
 #ifdef	POWERSAVE
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */
-extern void fake_irq ( uint8_t irq );
 
 /* basemem.c */
 extern uint32_t get_free_base_memory ( void );
@@ -370,6 +369,7 @@ struct Elf_Bhdr *prepare_boot_params(void *header);
 extern int elf_start(unsigned long machine, unsigned long entry, unsigned long params);
 extern unsigned long currticks P((void));
 extern void exit P((int status));
+extern void _stack;
 extern unsigned long image_basemem;
 
 /* serial.c */

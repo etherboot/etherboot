@@ -5,13 +5,39 @@
  */
 
 #include <etherboot.h>
-#include <pic8259.h>
+#include "pic8259.h"
+#include "realmode.h"
 
 #ifdef DEBUG_IRQ
 #define DBG(...) printf ( __VA_ARGS__ )
 #else
 #define DBG(...)
 #endif
+
+/* State of trivial IRQ handler */
+irq_t trivial_irq_installed_on = IRQ_NONE;
+static uint16_t trivial_irq_previous_trigger_count = 0;
+
+/* The actual trivial IRQ handler
+ *
+ * Note: we depend on the C compiler not realising that we're putting
+ * variables in the ".text16" section and therefore not forcing them
+ * back to the ".data" section.  I don't see any reason to expect this
+ * behaviour to change.
+ *
+ * These must *not* be the first variables to appear in this file; the
+ * first variable to appear gets the ".data" directive.
+ */
+BEGIN_RM_FRAGMENT(_trivial_irq_handler);
+__asm__ ( "pushw %bx" );
+__asm__ ( "call  1f\n1:\tpopw %bx" );   /* PIC access to variables */
+__asm__ ( "incw  %cs:(_trivial_irq_trigger_count-1b)(%bx)" );
+__asm__ ( "popw  %bx" );
+__asm__ ( "iret" );
+volatile uint16_t _trivial_irq_trigger_count = 0;
+segoff_t _trivial_irq_chain_to = { 0, 0 };
+uint8_t _trivial_irq_chain = 0;
+END_RM_FRAGMENT(_trivial_irq_handler);
 
 /* Current locations of trivial IRQ handler.  These will change at
  * runtime when relocation is used; the handler needs to be copied to
@@ -21,10 +47,6 @@ void (*trivial_irq_handler)P((void)) = _trivial_irq_handler;
 uint16_t volatile *trivial_irq_trigger_count = &_trivial_irq_trigger_count;
 segoff_t *trivial_irq_chain_to = &_trivial_irq_chain_to;
 uint8_t *trivial_irq_chain = &_trivial_irq_chain;
-irq_t trivial_irq_installed_on = IRQ_NONE;
-
-/* Previous trigger count for trivial IRQ handler */
-static uint16_t trivial_irq_previous_trigger_count = 0;
 
 /* Install a handler for the specified IRQ.  Address of previous
  * handler will be stored in previous_handler.  Enabled/disabled state
@@ -187,7 +209,7 @@ int trivial_irq_triggered ( irq_t irq ) {
 int copy_trivial_irq_handler ( void *target, size_t target_size ) {
 	irq_t currently_installed_on = trivial_irq_installed_on;
 	uint32_t offset = ( target == NULL ? 0 :
-			    target - &_trivial_irq_handler_start );
+			    target - (void*)_trivial_irq_handler );
 
 	if (( target != NULL ) && ( target_size < TRIVIAL_IRQ_HANDLER_SIZE )) {
 		DBG ( "Insufficient space to copy trivial IRQ handler\n" );
@@ -204,7 +226,7 @@ int copy_trivial_irq_handler ( void *target, size_t target_size ) {
 	if ( target != NULL ) {
 		DBG ( "Copying trivial IRQ handler to %hx:%hx\n",
 		      SEGMENT(target), OFFSET(target) );
-		memcpy ( target, &_trivial_irq_handler_start,
+		memcpy ( target, _trivial_irq_handler,
 			 TRIVIAL_IRQ_HANDLER_SIZE );
 	} else {
 		DBG ( "Restoring trivial IRQ handler to original location\n" );
@@ -247,6 +269,36 @@ void send_specific_eoi ( irq_t irq ) {
 		outb ( ICR_EOI_SPECIFIC | ICR_VALUE(CHAINED_IRQ),
 		       ICR_REG(CHAINED_IRQ) );
 	}
+}
+
+/* Fake an IRQ
+ */
+
+void fake_irq ( irq_t irq ) {
+	struct {
+		uint16_t int_number;
+	} PACKED in_stack;
+
+	/* Convert IRQ to INT number:
+	 *
+	 * subb	$0x08,%cl	Invert bit 3, set bits 4-7 iff irq < 8
+	 * xorb	$0x70,%cl	Invert bits 4-6
+	 * andb	$0x7f,%cl	Clear bit 7
+	 *
+	 * No, it's not the most intuitive method, but I was proud to
+	 * get it down to three lines of assembler when this routine
+	 * was originally implemented in pcbios.S.
+	 */
+	in_stack.int_number = ( ( irq - 8 ) ^ 0x70 ) & 0x7f;
+
+	BEGIN_RM_FRAGMENT(rm_fake_irq);
+	__asm__ ( "popw %ax" );		/* %ax = INT number */
+	__asm__ ( "call 1f\n1:\tpop %bx" );
+	__asm__ ( "movb %al, %cs:(2f-1b+1)(%bx)" ); /* Overwrite INT number..*/
+	__asm__ ( "\n2:\tint $0x00" );		    /* ..in this instruction */
+	END_RM_FRAGMENT(rm_fake_irq);
+
+	real_call ( rm_fake_irq, &in_stack, NULL );
 }
 
 /* Dump current 8259 status: enabled IRQs and handler addresses.
