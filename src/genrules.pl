@@ -330,6 +330,7 @@ EOF
 # Generate the Rom rules
 print "# Rules to build the ROM files\n";
 foreach my $family (sort keys %pcient) {
+	next if isaonly($family);
 	my $img = basename($family);
 	print <<EOF;
 ROMTYPE_$img = PCI
