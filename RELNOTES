@@ -1,4 +1,4 @@
-Etherboot 5.1.9
+Etherboot 5.1.10
 
 There is a bug in the Perl supplied with RH9 (and possibly RH8). It
 assumes UTF-8 even with the use bytes pragma. Either get an updated Perl
