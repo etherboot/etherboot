@@ -2692,3 +2692,7 @@ James Pearson, Georg Baum and Marty Connor for help resolving this issue.
 
 + Fix for relocation issue with prism2_pci driver
 
++ Small changes to the html pages
+
+Released as Etherboot 5.2.5 (production)
+
