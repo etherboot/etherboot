@@ -580,7 +580,136 @@ process_ecr_params_done:
 	popl	%ebp
 	ret
 
+/****************************************************************************
+ * _in_call
+ *
+ * Make a call in to Etherboot.  There are two 32-bit entry points:
+ * _in_call and _in_call_far, for near calls and far calls
+ * respectively.  Both should be called with flat physical addresses.
+ * They will result in a call to the C routine in_call(); see there
+ * for API details.
+ ****************************************************************************
+ */
 
+#define IC_OFFSET_FLAGS ( 0 )
+#define IC_OFFSET_REGISTERS ( IC_OFFSET_FLAGS + 4 )
+#define IC_OFFSET_SEG_REGS ( IC_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
+#define IC_OFFSET_GDT ( IC_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
+#define IC_OFFSET_RETADDR ( IC_OFFSET_GDT + 8 )
+	
+	.globl _in_call
+	.globl _in_call_far
+_in_call:
+	pushl	$0			/* Indicate near return address */
+_in_call_far:
+	/* Store the GDT */
+	subl	$8, %esp
+	sgdt	0(%esp)
+	/* Store segment register values */
+	pushw	%cs
+	pushw	%ss
+	pushw	%ds
+	pushw	%es
+	pushw	%fs
+	pushw	%gs
+	/* Store general-purpose register values */
+	pushal
+	/* Store flags */
+	pushfl
+
+	/*
+	 * See where I am running, and compute virt_offset.  Yes,
+	 * we're overwriting a global variable, but if the virt_offset
+	 * really has changed since the last call then we're in
+	 * trouble already.
+	 */
+	call	1f
+1:	popl	%ebp
+	subl	$1b, %ebp
+	movl	%ebp, virt_offset(%ebp)
+	
+	/* Fixup the gdt */
+	leal	_pmcs(%ebp), %eax
+	pushl	%eax
+	pushl	%ebp
+	call	set_seg_base
+	addl	$8, %esp
+
+	/* Fixup gdtarg */
+	leal	_gdt(%ebp), %eax
+	movl	%eax, gdtarg +2(%ebp)
+
+	/* Load the global descriptor table */
+	pushfl				/* Preserve flags */
+	cli				/* Temporarily disable interrupts */
+	lgdt	%cs:gdtarg(%ebp)
+
+	/* reload cs */
+	ljmp	$KERN_CODE_SEG, $1f
+1:
+	/* reload other segment registers */
+	movl	$KERN_DATA_SEG, %eax
+	movl	%eax,%ds
+	movl	%eax,%es
+	movl	%eax,%ss
+	movl	%eax,%fs
+	movl	%eax,%gs
+
+	/* Fixup the stack pointer */
+	subl	%ebp, %esp
+
+	/* Restore interrupt status */
+	popfl
+
+	/* Call to C code */
+	call	in_call
+
+	/* Preserve general-purpose registers and flags to return to
+	 * callee.  Overwrite the structures already on the stack to
+	 * save space (and to ease calculations).
+	 */
+	addl	$( 4 + ( NUM_PUSHA_REGS * 4 ) ), %esp
+	pushal
+	pushfl
+
+	/* Calculate physical continuation address */
+	movl	virt_offset, %ebp
+	movzwl	(IC_OFFSET_SEG_REGS + 10)(%esp), %eax	/* %cs */
+	pushl	%eax			/* Continuation segment */
+	leal	1f(%ebp), %eax
+	pushl	%eax			/* Continuation offset */
+	movw	(IC_OFFSET_SEG_REGS + 8)(%esp), %ax	/* %ss */
+	
+	/* Restore caller's GDT */
+	cli				/* Temporarily disable interrupts */
+	lgdt	(8+IC_OFFSET_GDT)(%esp)
+	movw	%ax, %ss
+	addl	%ebp, %esp
+	lret				/* Reload %cs:eip, flush prefetch */
+	
+1:	/* Reset %ss and adjust %esp */
+
+	/* Restore flags (including revert of interrupt status) */
+	popfl
+	/* Reload general-purpose registers to be returned */
+	popal
+	/* Reload segment registers as passed in from caller */
+	popw	%gs
+	popw	%fs
+	popw	%es
+	popw	%ds
+	addl	$(4+8), %esp	/* Skip %cs, %ss and GDT (already reloaded) */
+	
+	cmpl	$0, 0(%esp)		/* Check for near/far return */
+	je	2f
+1:	/* far return */
+	lret
+2:	/* near return */
+	addl	$4, %esp
+	ret
+
+	
+	
 #ifdef CODE16
 
 	.equ	CR0_PE,1
@@ -598,6 +727,10 @@ process_ecr_params_done:
  * the same base address.  Segment limits should be real-mode
  * compatible, i.e. 0xffff.  This implies that %eip and %esp will
  * already have the top 16 bits cleared when called.
+ * 
+ * Assuming that you intend to return via _real_to_prot, the return
+ * address should be a physical address and the call type should be
+ * far (although the segment of the return address will be ignored).
  *
  * Parameter:
  *	RMCS (word) : (segment base address >> 4), i.e. real-mode %cs value
@@ -782,7 +915,7 @@ hello_world:
 1:	popw	%bp
 	movw	$0x0007, %bx		/* page 0, attribute 7 (normal) */
 	movb	$0x0e, %ah		/* write char, tty mode */
-	leal	(10f-1b)(%bp), %si
+	leaw	(10f-1b)(%bp), %si
 	movw	$(20f-10f), %cx
 2:	lodsb
 	int	$0x10
