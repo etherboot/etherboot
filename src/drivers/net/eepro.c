@@ -325,13 +325,13 @@ static void eepro_reset(struct nic *nic)
 	eepro_sw2bank0(ioaddr);	/* Switch back to bank 0 */
 	eepro_clear_int(ioaddr);
 	/* Initialise RCV */
-	rx_start = phys_to_virt(RCV_LOWER_LIMIT << 8);
+	rx_start = bus_to_virt(RCV_LOWER_LIMIT << 8);
 	outw(RCV_LOWER_LIMIT << 8, ioaddr + RCV_BAR);
 	outw(((RCV_UPPER_LIMIT << 8) | 0xFE), ioaddr + RCV_STOP);
 	/* Intialise XMT */
 	outw((XMT_LOWER_LIMIT << 8), ioaddr + xmt_bar);
 	eepro_sel_reset(ioaddr);
-	tx_start = tx_end = phys_to_virt(XMT_LOWER_LIMIT << 8);
+	tx_start = tx_end = bus_to_virt(XMT_LOWER_LIMIT << 8);
 	tx_last = 0;
 	eepro_en_rx(ioaddr);
 }
@@ -378,7 +378,7 @@ static int eepro_poll(struct nic *nic)
 #endif
 	nic->packetlen = rcv_size;
 	rcv_car = virt_to_bus(rx_start) + RCV_HEADER + rcv_size;
-	rx_start = phys_to_virt(rcv_next_frame << 8);
+	rx_start = bus_to_virt(rcv_next_frame << 8);
 	if (rcv_car == 0)
 		rcv_car = ((RCV_UPPER_LIMIT << 8) | 0xff);
 	outw(rcv_car - 1, ioaddr + RCV_STOP);
@@ -453,7 +453,7 @@ static void eepro_disable(struct dev *dev)
 	eepro_sw2bank0(ioaddr);	/* Switch to bank 0 */
 	/* Flush the Tx and disable Rx */
 	outb(STOP_RCV_CMD, ioaddr);
-	tx_start = tx_end = phys_to_virt(XMT_LOWER_LIMIT << 8);
+	tx_start = tx_end = bus_to_virt(XMT_LOWER_LIMIT << 8);
 	tx_last = 0;
 	/* Reset the 82595 */
 	eepro_full_reset(ioaddr);
