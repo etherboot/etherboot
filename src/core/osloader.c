@@ -97,6 +97,10 @@ static void aout_freebsd_boot(void);
 #include "../arch/i386/core/freebsd_loader.c"
 #endif
 
+#ifdef PXE_IMAGE
+#include "../arch/i386/core/pxe_loader.c"
+#endif
+
 #ifdef SAFEBOOTMODE
 extern void md5_put(unsigned int ch);
 extern void md5_done(char * buf);
@@ -254,48 +258,6 @@ static int prep_segment(unsigned long start, unsigned long mid, unsigned long en
 	return 1;
 }
 
-
-#ifdef RAW_IMAGE
-#warning "image_raw only works for x86 disks currently"
-int bios_disk_dev = 0;
-unsigned long raw_load_addr;
-stattic unsigned long raw_download(
-	unsinged char *data, unsinged int len, int eof);
-static os_download_t raw_probe(unsigned char *data, unsigned int len)
-{
-	printf("(RAW)");
-#warning "image_raw not complete"
-	printf("FIXME image_raw not complete");
-	raw_load_addr = 0x7c00; /* FIXME this varies by platform */
-	return raw_download;
-}
-static unsigned long raw_download(
-	unsigned char *data, unsigned int len, int eof)
-{
-	memcpy(phys_to_virt(raw_load_addr), data, len);
-	raw_load_addr += len;
-	if (!eof) {
-		return 1;
-	}
-	done();
-	gateA20_unset();
-	/* FIXME merge the PXE loader && the X86_BOOTSECTOR_IMAGE
-	 * loader.  They may need a little BIOS context information
-	 * telling them how they booted, but otherwise they
-	 * are essentially the same code.
-	 */
-	/* WARNING I need pxe parameter support... */
-#warning "image_raw needs to pass pxe parameters"
-	/* Set %edx to device number to emulate BIOS
-	   Fortunately %edx is not used after this */
-	__asm__("movl %0,%%edx" : : "g" (bios_disk_dev));
-	xstart16(BOOTSECT, 0, 0);
-	printf("Bootsector returned?");
-	longjmp(restart_etherboot, -2);
-	return 0;
-}
-#endif
-
 /**************************************************************************
 PROBE_IMAGE - Detect image file type
 **************************************************************************/
@@ -320,8 +282,9 @@ os_download_t probe_image(unsigned char *data, unsigned int len)
 #ifdef TAGGED_IMAGE
 	if (!os_download) os_download = tagged_probe(data, len);
 #endif
-#ifdef RAW_IMAGE
-	if (!os_download) os_download = raw_probe(data, len);
+/* PXE_IMAGE must always be last */
+#ifdef PXE_IMAGE
+	if (!os_download) os_download = pxe_probe(data, len);
 #endif
 	return os_download;
 }

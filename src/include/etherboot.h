@@ -235,13 +235,11 @@ void forget(void *ptr);
 extern size_t heap_ptr, heap_top, heap_bot;
 
 /* osloader.c */
-extern int bios_disk_dev;
 /* Be careful with sector_t it is an unsigned long long on x86 */
 typedef uint64_t sector_t;
 typedef sector_t (*os_download_t)(unsigned char *data, unsigned int len, int eof);
 extern os_download_t probe_image(unsigned char *data, unsigned int len);
 extern int load_block P((unsigned char *, unsigned int, unsigned int, int ));
-extern os_download_t pxe_probe P((unsigned char *data, unsigned int len));
 
 /* misc.c */
 extern void twiddle P((void));
@@ -356,6 +354,9 @@ extern struct os_entry_regs os_regs;
 extern struct regs initial_regs;
 extern unsigned long real_mode_stack;
 extern void xstart16 P((unsigned long, unsigned long, unsigned long));
+extern int xstartpxe P((uint32_t entry_segment, uint32_t entry_offset,
+			uint32_t pxe_segment, uint32_t pxe_offset,
+			uint32_t pxenv_segment, uint32_t pxenv_offset ));
 extern int xstart32(unsigned long entry_point, ...);
 extern int xstart_lm(unsigned long entry_point, unsigned long params);
 extern void xend32 P((void));
