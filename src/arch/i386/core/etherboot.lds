@@ -13,6 +13,7 @@ SECTIONS {
 		*(.prefix.data)
 		. = ALIGN(16);
 		_prefix_end = . ;
+		decompress = DEFINED(decompress) ? decompress : 0 ;
 	} = 0x9090
 	_prefix_size = _prefix_end - _prefix_start;
 
@@ -25,9 +26,8 @@ SECTIONS {
 	}	
 	.text.nocompress : {
 		*(.text*.nocompress)
-		_binary_end = . ;
+		_compressed_binary_end = . ;
 	} = 0x9090
-	_binary_size = _binary_end - _binary_start ;
 	.text.compress : {
 		decompress_to = . ;
 		*(.text)
@@ -64,6 +64,9 @@ SECTIONS {
 		*(.data.*)
 	}
 	_edata = . ;
+	_uncompressed_binary_end = . ;
+	_binary_end = decompress ? _compressed_binary_end : _uncompressed_binary_end ;
+	_binary_size = _binary_end - _binary_start ;
 	. = ALIGN(16);
 	.bss.preserve : {
 		*(.bss.preserve)
