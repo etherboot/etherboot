@@ -69,10 +69,19 @@ typedef union pxenv_structure {
 	t_PXENV_UNDI_SHUTDOWN		undi_shutdown;
 	t_PXENV_UNDI_OPEN		undi_open;
 	t_PXENV_UNDI_CLOSE		undi_close;
+	t_PXENV_UNDI_SET_STATION_ADDRESS undi_set_station_address;
 	t_PXENV_UNDI_GET_INFORMATION	undi_get_information;
+	t_PXENV_UNDI_GET_IFACE_INFO	undi_get_iface_info;
 	t_PXENV_STOP_UNDI		stop_undi;
 	t_PXENV_UNLOAD_STACK		unload_stack;
 } pxenv_structure_t;
+
+/* UNDI status codes
+ */
+
+#define PXENV_STATUS_SUCCESS			0x0000
+#define PXENV_STATUS_FAILURE			0x0001
+#define PXENV_STATUS_UNDI_MEDIATEST_FAILED	0x0061
 
 /* BIOS PnP parameter block.  We scan for this so that we can pass it
  * to the UNDI driver.
@@ -163,6 +172,9 @@ typedef struct undi {
 	uint8_t started;	/* pxenv_undi_startup() has been called */
 	uint8_t	initialized;	/* pxenv_undi_initialize() has been called */
 	uint8_t opened;		/* pxenv_undi_open() has been called */
+	/* Parameters that we need to store for future reference
+	 */
+	struct pci_device	pci;
 } undi_t;
 
 /* Constants
