@@ -357,10 +357,10 @@ void test_exclude ( void ) {
 }
 #endif /* TEST_EXCLUDE_ALGORITHM */
 
-#else /* EXPORT_PXE */
+#else /* PXE_EXPORT */
 
 /* Define symbols used by the linker scripts, to prevent link errors */
 __asm__ ( ".globl _pxe_stack_t_size" );
 __asm__ ( ".equ _pxe_stack_t_size, 0" );
 
-#endif /* EXPORT_PXE */
+#endif /* PXE_EXPORT */
