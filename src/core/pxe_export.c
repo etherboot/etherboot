@@ -42,6 +42,8 @@
 #endif
 
 /* Not sure why this isn't a globally-used structure within Etherboot.
+ * (Because I didn't want to use packed to prevent gcc from aligning
+ * source however it liked. Also nstype is a u16, not a uint. - Ken)
  */
 typedef	struct {
 	char dest[ETH_ALEN];

@@ -123,12 +123,6 @@ static int pci_probe(struct dev *dev, const char *type_name)
 		if (state->dev.driver == 0)
 			break;
 		
-#if 0
-		/* FIXME the romaddr code needs a total rethought to be useful */
-		if (state->dev.romaddr != ((unsigned long) rom.rom_segment << 4)) {
-			continue;
-		}
-#endif
 		if (dev->how_probe != PROBE_AWAKE) {
 			dev->type_index++;
 		}
