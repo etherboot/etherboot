@@ -17,7 +17,7 @@ use constant PCI_SIZE_OFF => 0x10;	# bytes from beginning of PCI header
 
 use strict;
 
-use vars qw(%opts $rom);
+use vars qw(%opts);
 
 sub getromsize ($) {
 	my ($romref) = @_;
@@ -40,7 +40,7 @@ sub addident ($) {
 	$s .= "\x00";
 	my $len = length($s);
 	# Put the identifier in only if the space is blank
-	my $pos = length($rom) - $len - 2;
+	my $pos = length($$romref) - $len - 2;
 	return (0) if (substr($$romref, $pos, $len) ne ("\xFF" x $len));
 	substr($$romref, $pos, $len) = $s;
 	return ($pos);
@@ -61,19 +61,28 @@ sub pcipnpheaders ($$) {
 		or substr($$romref, $pnp_hdr_offset, 4) ne '$PnP') {
 		$pci_hdr_offset = $pnp_hdr_offset = 0;
 	} else {
-		printf "PCI header at 0x%x and PnP header at 0x%x\n",
+		printf "PCI header at %#x and PnP header at %#x\n",
 			$pci_hdr_offset, $pnp_hdr_offset;
 	}
 	if ($pci_hdr_offset > 0) {
-		substr($$romref, $pci_hdr_offset + PCI_SIZE_OFF, 2)
-			= pack('v', length($$romref) / 512);
-		my ($pci_vendor_id, $pci_device_id) = split(/,/, $opts{'p'});
-		substr($$romref, $pci_hdr_offset+PCI_VEND_ID_OFF, 2)
-			= pack('v', oct($pci_vendor_id)) if ($pci_vendor_id);
-		substr($$romref, $pci_hdr_offset+PCI_DEV_ID_OFF, 2)
-			= pack('v', oct($pci_device_id)) if ($pci_device_id);
+		my ($pci_vendor_id, $pci_device_id);
+		# if no -p option, just report what's there
+		if (!defined($opts{'p'})) {
+			$pci_vendor_id = unpack('v', substr($$romref, $pci_hdr_offset+PCI_VEND_ID_OFF, 2));
+			$pci_device_id = unpack('v', substr($$romref, $pci_hdr_offset+PCI_DEV_ID_OFF, 2));
+			printf "PCI Vendor ID %#x Device ID %#x\n",
+				$pci_vendor_id, $pci_device_id;
+		} else {
+			substr($$romref, $pci_hdr_offset + PCI_SIZE_OFF, 2)
+				= pack('v', length($$romref) / 512);
+			($pci_vendor_id, $pci_device_id) = split(/,/, $opts{'p'});
+			substr($$romref, $pci_hdr_offset+PCI_VEND_ID_OFF, 2)
+				= pack('v', oct($pci_vendor_id)) if ($pci_vendor_id);
+			substr($$romref, $pci_hdr_offset+PCI_DEV_ID_OFF, 2)
+				= pack('v', oct($pci_device_id)) if ($pci_device_id);
+		}
 	}
-	if ($pnp_hdr_offset > 0) {
+	if ($pnp_hdr_offset > 0 and defined($identoffset)) {
 		# Point to device id string at end of ROM image
 		substr($$romref, $pnp_hdr_offset+PNP_DEVICE_OFF, 2)
 			= pack('v', $identoffset);
@@ -92,48 +101,80 @@ sub writerom ($$) {
 	close(R);
 }
 
-# Main routine
-getopts('3xi:p:s:v', \%opts);
-$ARGV[0] or die "Usage: $0 [-s romsize] [-i ident] [-p vendorid,deviceid] [-x] [-3] rom-file\n";
-open(R, $ARGV[0]) or die "$ARGV[0]: $!\n";
-# Read in the whole ROM in one gulp
-my $filesize = read(R, $rom, MAXROMSIZE+1);
-close(R);
-defined($filesize) and $filesize >= 3 or die "Cannot get first 3 bytes of file\n";
-print "$filesize bytes read\n" if $opts{'v'};
-# If PXE image, just fill the length field and write it out
-if ($opts{'x'}) {
-	substr($rom, 2, 1) = chr((length($rom) + 511) / 512);
+sub checksum ($) {
+	my ($romref) = @_;
+
+	substr($$romref, 5, 1) = "\x00";
+	my $sum = unpack('%8C*', $$romref);
+	substr($$romref, 5, 1) = chr(256 - $sum);
+	# Double check
+	$sum = unpack('%8C*', $$romref);
+	if ($sum != 0) {
+		print "Checksum fails\n"
+	} elsif ($opts{'v'}) {
+		print "Checksum ok\n";
+	}
+}
+
+sub makerom () {
+	my ($rom);
+
+	getopts('3xi:p:s:v', \%opts);
+	$ARGV[0] or die "Usage: $0 [-s romsize] [-i ident] [-p vendorid,deviceid] [-x] [-3] rom-file\n";
+	open(R, $ARGV[0]) or die "$ARGV[0]: $!\n";
+	# Read in the whole ROM in one gulp
+	my $filesize = read(R, $rom, MAXROMSIZE+1);
+	close(R);
+	defined($filesize) and $filesize >= 3 or die "Cannot get first 3 bytes of file\n";
+	print "$filesize bytes read\n" if $opts{'v'};
+	# If PXE image, just fill the length field and write it out
+	if ($opts{'x'}) {
+		substr($rom, 2, 1) = chr((length($rom) + 511) / 512);
+		&writerom($ARGV[0], \$rom);
+		return;
+	}
+	# Don't work out romsize in image if size specified
+	my $romsize = defined($opts{'s'}) ? oct($opts{'s'}) : &getromsize(\$rom);
+	$romsize = MAXROMSIZE if ($romsize <= 0);
+	print STDERR "ROM size of $romsize not big enough for data\n"
+		if ($filesize > $romsize);
+	# Shrink it down to the smallest size that will do
+	for ($romsize = MAXROMSIZE;
+		$romsize > MINROMSIZE and $romsize >= 2*$filesize;
+		$romsize /= 2) { }
+	# Pad with 0xFF to $romsize
+	$rom .= "\xFF" x ($romsize - length($rom));
+	substr($rom, 2, 1) = chr($romsize / 512);
+	print "ROM size is $romsize\n" if $opts{'v'};
+	my $identoffset = &addident(\$rom);
+	&pcipnpheaders(\$rom, $identoffset);
+	# 3c503 requires last two bytes to be 0x80
+	substr($rom, MINROMSIZE-2, 2) = "\x80\x80"
+		if ($opts{'3'} and $romsize == MINROMSIZE);
+	&checksum(\$rom);
 	&writerom($ARGV[0], \$rom);
-	exit(0);
 }
-# Don't work out romsize in image if size specified
-my $romsize = defined($opts{'s'}) ? oct($opts{'s'}) : &getromsize(\$rom);
-$romsize = MAXROMSIZE if ($romsize <= 0);
-print STDERR "ROM size of $romsize not big enough for data\n"
-	if ($filesize > $romsize);
-# Shrink it down to the smallest size that will do
-for ($romsize = MAXROMSIZE;
-	$romsize > MINROMSIZE and $romsize >= 2*$filesize;
-	$romsize /= 2) { }
-# Pad with 0xFF to $romsize
-$rom .= "\xFF" x ($romsize - length($rom));
-substr($rom, 2, 1) = chr($romsize / 512);
-print "ROM size is $romsize\n" if $opts{'v'};
-my $identoffset = &addident(\$rom);
-&pcipnpheaders(\$rom, $identoffset);
-# 3c503 requires last two bytes to be 0x80
-substr($rom, MINROMSIZE-2, 2) = "\x80\x80"
-	if ($opts{'3'} and $romsize == MINROMSIZE);
-substr($rom, 5, 1) = "\x00";
-my $sum = unpack('%8C*', $rom);
-substr($rom, 5, 1) = chr(256 - $sum);
-# Double check
-$sum = unpack('%8C*', $rom);
-if ($sum != 0) {
-	print "Checksum fails\n"
-} elsif ($opts{'v'}) {
-	print "Checksum ok\n";
+
+sub modrom () {
+	my ($rom);
+
+	getopts('p:v', \%opts);
+	$ARGV[0] or die "Usage: $0 [-p vendorid,deviceid] rom-file\n";
+	open(R, $ARGV[0]) or die "$ARGV[0]: $!\n";
+	# Read in the whole ROM in one gulp
+	my $filesize = read(R, $rom, MAXROMSIZE+1);
+	close(R);
+	defined($filesize) and $filesize >= 3 or die "Cannot get first 3 bytes of file\n";
+	print "$filesize bytes read\n" if $opts{'v'};
+	&pcipnpheaders(\$rom);
+	&checksum(\$rom);
+	&writerom($ARGV[0], \$rom);
 }
-&writerom($ARGV[0], \$rom);
+
+# Main routine. See how we were called and behave accordingly
+if ($0 =~ m:modrom(\.pl)?$:) {
+	&modrom();
+} else {
+	&makerom();
+}
 exit(0);
