@@ -1,0 +1,40 @@
+Client
+------
+
+* In tftp_receive_file, if we receive twice the same block, what's happening?
+* Add tab completion.
+* Implement a more complete status reporting, incuding size of the transfer
+  and transfer rate.
+
+Server
+------
+
+* Fixe all possible buffer overflow (strcat, strcpy...)
+* In option negociation, maybe we should only ignore option with invalid
+  value. Currently we reply with an error.
+* Use mmap instead of read/write. This way, we'll benefit from zero copy
+  networking in 2.4.x
+
+Both
+----
+* Support for options (multicasting)
+* Support IPv6
+
+* Add netascii and octet transfer support.
+/*
+ * fill the input buffer, doing ascii conversions if requested
+ * conversions are  lf -> cr,lf  and cr -> cr, nul
+ */
+/*
+ * Output a buffer to a file, converting from netascii if requested.
+ * CR,NUL -> CR  and CR,LF => LF.
+ * Note spec is undefined if we get CR as last byte of file or a
+ * CR followed by anything else.  In this case we leave it alone.
+ */
+
+* Modify logger.c to not duplicate fmt args
+* Decide what to do when we got memory allocation failure
+
+Generic
+-------
+* Add autoconf support

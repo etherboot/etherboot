@@ -1,0 +1,83 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH TFTP 1 "December 27, 2000"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+tftp \- TFTP client (rfc 1350).
+.SH SYNOPSIS
+.B atftp [options] [host [port]]
+
+.SH DESCRIPTION
+.B atftp
+can be used interactively to retrive files from tftp servers. It can be used in
+batch mode too, though it is mainly usefull for testing and debugging of the server.
+When used interactively, a summary of the commands can be  printed by typing 'help'.
+
+.SH OPTIONS
+This program supports both the usual GNU command line syntax, with
+long options starting with two dashes (`-') as well as short
+options. Some options are usable in batch mode only, they have no meaning
+when tftp is use interactiveley. A description of the options is
+included below.
+
+.TP
+.B \-T, \-\-tftp-timeout <value>
+Number of seconds for timeout, client side. Default is 5 seconds. See RFC2349.
+
+.TP
+.B \-t, \-\-timeout <value>
+Number of seconds for timeout, server side. Default is server specific.
+
+.TP
+.B  \-b, \-\-blksize <value>
+Block size for tftp transfer, see RFC2348. Default is 512 bytes, but
+higher values are much more efficient.
+
+.TP
+.B \-t, \-\-tsize
+Use tsize option (RFC2349). Only usefull for debugging purpose. Some
+bootloaders like pxelinux (distributed within syslinux) need that
+option to be suppoorted by the server.
+
+.TP
+.B \-m, \-\-multicast
+Use multicast option (RFC2090). Allow more efficient transfer when several
+clients fetch the same file from the server. ***Not implemented yet.
+
+.TP
+.B \-l, \-\-local-file
+Non interactive invocation only. The client side file name to read or
+write. Must be used in conjonction with \-\-get or \-\-put.
+
+.TP
+.B \-r, \-\-remote-file
+Non interactive invocation only. The server side file name to get or
+put. Must be used in conjonction with \-\-get or \-\-put.
+
+.TP
+.B \-g, \-\-get
+Non interactive invocation only. Instruct tftp to get file.
+
+.TP
+.B \-p, \-\-put
+Non interactive invocation only. Instruct tftp to put file.
+
+.TP
+.B \-h, \-\-help
+Print a sumary of command line arguments.
+
+.TP
+.B \-V, \-\-version
+Print verion.
+
+.SH AUTHOR
+This manual page was written by Remi Lefebvre <remi@debian.org> and
+Jean-Pierre Lefebvre <helix@step.polymtl.ca>.
