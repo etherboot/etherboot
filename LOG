@@ -2561,4 +2561,6 @@ Released as Etherboot 5.3.2 (development)
 + Provide config access to alternate DHCP/BOOTP ports. The macro
 ALTERNATE_DHCP_PORTS_1067_1068 switches to ports 1067 and 1068.
 
++ UNDI driver by Michael Brown.
+
 Released as Etherboot 5.3.3 (development)
