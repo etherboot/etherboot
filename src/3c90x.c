@@ -684,6 +684,7 @@ a3c90x_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci
     unsigned int cfg;
     unsigned int mopt;
     unsigned short linktype;
+#define	HWADDR_OFFSET	10
 
     if (probeaddrs == 0 || probeaddrs[0] == 0)
           return 0;
@@ -767,26 +768,26 @@ a3c90x_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci
            "------------------------\n");
 
     /** Retrieve the Hardware address and print it on the screen. **/
-    INF_3C90X.HWAddr[0] = eeprom[0]>>8;
-    INF_3C90X.HWAddr[1] = eeprom[0]&0xFF;
-    INF_3C90X.HWAddr[2] = eeprom[1]>>8;
-    INF_3C90X.HWAddr[3] = eeprom[1]&0xFF;
-    INF_3C90X.HWAddr[4] = eeprom[2]>>8;
-    INF_3C90X.HWAddr[5] = eeprom[2]&0xFF;
+    INF_3C90X.HWAddr[0] = eeprom[HWADDR_OFFSET + 0]>>8;
+    INF_3C90X.HWAddr[1] = eeprom[HWADDR_OFFSET + 0]&0xFF;
+    INF_3C90X.HWAddr[2] = eeprom[HWADDR_OFFSET + 1]>>8;
+    INF_3C90X.HWAddr[3] = eeprom[HWADDR_OFFSET + 1]&0xFF;
+    INF_3C90X.HWAddr[4] = eeprom[HWADDR_OFFSET + 2]>>8;
+    INF_3C90X.HWAddr[5] = eeprom[HWADDR_OFFSET + 2]&0xFF;
     printf("MAC Address = %!\n", INF_3C90X.HWAddr);
 
     /** Program the MAC address into the station address registers **/
     a3c90x_internal_SetWindow(INF_3C90X.IOAddr, winAddressing2);
-    outw(htons(eeprom[0]), INF_3C90X.IOAddr + regStationAddress_2_3w);
-    outw(htons(eeprom[1]), INF_3C90X.IOAddr + regStationAddress_2_3w+2);
-    outw(htons(eeprom[2]), INF_3C90X.IOAddr + regStationAddress_2_3w+4);
+    outw(htons(eeprom[HWADDR_OFFSET + 0]), INF_3C90X.IOAddr + regStationAddress_2_3w);
+    outw(htons(eeprom[HWADDR_OFFSET + 1]), INF_3C90X.IOAddr + regStationAddress_2_3w+2);
+    outw(htons(eeprom[HWADDR_OFFSET + 2]), INF_3C90X.IOAddr + regStationAddress_2_3w+4);
     outw(0, INF_3C90X.IOAddr + regStationMask_2_3w+0);
     outw(0, INF_3C90X.IOAddr + regStationMask_2_3w+2);
     outw(0, INF_3C90X.IOAddr + regStationMask_2_3w+4);
 
     /** Fill in our entry in the etherboot arp table **/
     for(i=0;i<ETH_ALEN;i++)
-	nic->node_addr[i] = (eeprom[i/2] >> (8*((i&1)^1))) & 0xff;
+	nic->node_addr[i] = (eeprom[HWADDR_OFFSET + i/2] >> (8*((i&1)^1))) & 0xff;
 
     /** Read the media options register, print a message and set default
      ** xcvr.
