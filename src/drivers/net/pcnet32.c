@@ -278,9 +278,10 @@ struct pcnet32_private {
 static struct pcnet32_private *lp;
 
 static int mdio_read(struct nic *nic __unused, int phy_id, int reg_num);
+#if 0
 static void mdio_write(struct nic *nic __unused, int phy_id, int reg_num,
 		       int val);
-
+#endif
 enum pci_flags_bit {
 	PCI_USES_IO = 1, PCI_USES_MEM = 2, PCI_USES_MASTER = 4,
 	PCI_ADDR0 = 0x10 << 0, PCI_ADDR1 = 0x10 << 1, PCI_ADDR2 =
@@ -538,7 +539,7 @@ static void pcnet32_reset(struct nic *nic)
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int pcnet32_poll(struct nic *nic __unused)
+static int pcnet32_poll(struct nic *nic __unused, int retrieve)
 {
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
@@ -552,6 +553,8 @@ static int pcnet32_poll(struct nic *nic __unused)
 
 	if (status < 0)
 		return 0;
+
+	if ( ! retrieve ) return 1;
 
 	if (status == 0x03) {
 		nic->packetlen =
@@ -644,6 +647,21 @@ static void pcnet32_disable(struct dev *dev __unused)
 }
 
 /**************************************************************************
+IRQ - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void pcnet32_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
+/**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 You should omit the last argument struct pci_device * for a non-PCI NIC
 ***************************************************************************/
@@ -665,6 +683,9 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	ioaddr = pci->ioaddr;
 	printf("pcnet32.c: Found %s, Vendor=0x%hX Device=0x%hX\n",
 	       pci->name, pci->vendor, pci->dev_id);
+
+	nic->irqno  = 0;
+	nic->ioaddr = pci->ioaddr & ~3;
 
 	/* reset the chip */
 	pcnet32_wio_reset(ioaddr);
@@ -833,7 +854,7 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	lp->mii = mii;
 	/* FIXME: Fix Options for only one card */
 	if ((cards_found >= MAX_UNITS)
-	    || (options[cards_found] > sizeof(options_mapping)))
+	    || ((unsigned int) options[cards_found] > sizeof(options_mapping)))
 		lp->options = PCNET32_PORT_ASEL;
 	else
 		lp->options = options_mapping[options[cards_found]];
@@ -885,8 +906,9 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	/* point to NIC specific routines */
 	pcnet32_reset(nic);
 	if (1) {
+	        int tmp;
 		int phy, phy_idx = 0;
-		u16 mii_advertise, mii_lpa;
+		u16 mii_lpa;
 		lp->phys[0] = 1;	/* Default Setting */
 		for (phy = 1; phy < 32 && phy_idx < MII_CNT; phy++) {
 			int mii_status = mdio_read(nic, phy, MII_BMSR);
@@ -894,9 +916,12 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 				lp->phys[phy_idx++] = phy;
 				lp->mii_if.advertising =
 				    mdio_read(nic, phy, MII_ADVERTISE);
-				if ((mii_status & 0x0040) == 0)
-					dprintf
-					    (("MII PHY found at address %d, status " "%hX advertising %hX\n", phy, mii_status, lp->mii_if.advertising));
+				if ((mii_status & 0x0040) == 0) {
+				  tmp = phy;
+				  dprintf (("MII PHY found at address %d, status " 
+					    "%hX advertising %hX\n", phy, mii_status, 
+					    lp->mii_if.advertising));
+				}
 			}
 		}
 		if (phy_idx == 0)
@@ -920,9 +945,11 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 			printf("\n");
 	}
 
-	nic->poll = pcnet32_poll;
+	nic->poll     = pcnet32_poll;
 	nic->transmit = pcnet32_transmit;
-	dev->disable = pcnet32_disable;
+	dev->disable  = pcnet32_disable;
+	nic->irq      = pcnet32_irq;
+
 	return 1;
 }
 static int mdio_read(struct nic *nic __unused, int phy_id, int reg_num)
@@ -943,6 +970,7 @@ static int mdio_read(struct nic *nic __unused, int phy_id, int reg_num)
 	return val_out;
 }
 
+#if 0
 static void mdio_write(struct nic *nic __unused, int phy_id, int reg_num,
 		       int val)
 {
@@ -958,6 +986,7 @@ static void mdio_write(struct nic *nic __unused, int phy_id, int reg_num,
 	lp->a.write_bcr(ioaddr, 34, val);
 	lp->a.write_bcr(ioaddr, 33, phyaddr);
 }
+#endif
 
 static struct pci_id pcnet32_nics[] = {
 	PCI_ROM(0x1022, 0x2000, "lancepci", "AMD Lance/PCI"),
