@@ -1,4 +1,4 @@
-VERSION=	5.0.1
+VERSION=	5.0.2
 
 DOCFILES+=	16 COPYING COPYING_compressor userman devman atnetboot compressor
 DOCFILES+=	diskless freebsd old-README security spec sshterminal vendortags

@@ -5,7 +5,7 @@
 <title>Etherboot Developers Manual
 <author>Ken Yap,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/
-<date>v5.0.1, 4 May 2001
+<date>v5.0.2, 23 June 2001
 
 <abstract>
 This document explains the internals of the Etherboot package.  The
@@ -37,6 +37,9 @@ documentation.
 <p>
 
 <descrip>
+
+<tag/5.0.2 2001-06-23/ Released as Etherboot-doc 5.0.2. No significant
+changes from 5.0.1 really.
 
 <tag/5.0.1 2001-05-04/ Released as Etherboot-doc 5.0.1.
 
@@ -824,7 +827,7 @@ Note that you should program the receiver registers to allow broadcast
 Ethernet packets to be received.  This is needed because other IP hosts
 will do an ARP request on the diskless computer when it boots.
 
-<item>A reset routine, that resets the adapter to a known state.
+<item>A reset routine, that resets the adapter to an initial state.
 This is passed a pointer to a `nic' struct.  This can be called from
 the probe routine.
 

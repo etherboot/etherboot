@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/,
 <tt/&lt;markus+etherboot@gutschke.com&gt;/
-<date>v5.0.1, 4 May 2001
+<date>v5.0.2, 23 June 2001
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -40,6 +40,8 @@ documentation.
 <p>
 
 <descrip>
+
+<tag/5.0.2 2001-06-23/ Released as Etherboot-doc 5.0.2.
 
 <tag/5.0.1 2001-05-04/ Released as Etherboot-doc 5.0.1.
 
@@ -169,7 +171,7 @@ listed on the Etherboot home page.</it>
 
 <p>
 
-The following is the current NIC configuration file as of 2001-05-04.
+The following is the current NIC configuration file as of 2001-06-23.
 
 Even if your NIC does not appear in the list, it may still be supported
 if the chip is one of those supported.  Many OEMs use chips from
@@ -248,6 +250,7 @@ strategy is to read the number on the LAN controller chip on the board.
 3c905b-t4	3c90x		0x10b7,0x9056
 3c905b-fx	3c90x		0x10b7,0x905a
 3c905c-tpo	3c90x		0x10b7,0x9200
+3c980		3c90x		0x10b7,0x9800
 # Intel Etherexpress Pro/100
 eepro100	eepro100	0x8086,0x1229
 82559er		eepro100	0x8086,0x1209
@@ -367,6 +370,19 @@ sk_g16
 smc9000
 # Tiara, Fujitsu Lancard
 tiara
+# DP83815, (Netgear FA311/312)
+natsemi		natsemi		0x100B,0x0020
+fa311		natsemi		0x100B,0x0020
+fa312		natsemi		0x100B,0x0020
+dp83815		natsemi		0x100B,0x0020
+
+
+The following drivers have notes in the src directory, please read them:
+
+3c90x.txt
+cs89x0.txt
+sis900.txt
+tulip.txt
 
 </code>
 
@@ -618,6 +634,8 @@ Boot image options:
 -DIMAGE_FREEBSD
 		Add FreeBSD image loading support (requires at least
 		-DAOUT_IMAGE and/or -DELF_IMAGE).
+-DFREEBSD_KERNEL_ENV
+		Pass in FreeBSD kernel environment
 -DDOWNLOAD_PROTO_TFTP
 		If defined, boots by tftp (recommended).
 -DDOWNLOAD_PROTO_NFS
@@ -745,8 +763,8 @@ the setup of the server and are satisfied that diskless booting works.
 
 <p>
 
-In addition, you can generate images with the suffixes .com, .lilo  and
-.lzlilo. Where you would normally say:
+In addition, you can generate images with the suffixes .com, .lilo,
+.lzlilo and .pxe. Where you would normally say:
 
 <code>
 	make bin32/3c509.rom
@@ -758,8 +776,8 @@ you would say
 	make bin32/3c509.com
 </code>
 
-and similarly for .lilo and .lzlilo. These are alternate boot image
-formats.
+and similarly for .lilo, .lzlilo and .pxe. These are alternate boot
+image formats.
 
 <p>
 
@@ -780,6 +798,11 @@ Unfortunately loadlin uses a slightly different method of booting for
 Linux kernels from LILO and SYSLINUX and will not work with these
 images. The difference between .lilo and .lzlilo is compression,
 analogous to the difference between .rom and .lzrom.
+
+<p>
+
+The ones ending in .pxe can be booted by a PXE booter. This is useful to
+chain to Etherboot from PXE.
 
 <p>
 
@@ -955,6 +978,14 @@ Options (Option 43) encloses: Vendor Class Identifier (Option 60 =
 
 <p>
 
+If you have a DHCP server already running for the subnet, you probably
+should specify that your additional ISC DHCPD server is non
+authoritative for the the subnet, or it will veto (NAK) existing client
+IP address allocations, upsetting the status quo. See the ISC DHCPD
+options documentation.
+
+<p>
+
 More information about DHCP can be found at the <url
 url="http://web.syr.edu/&tilde;jmwobus/comfaqs/dhcp.faq.html" name="DHCP FAQ
 Web Page">.
@@ -1007,7 +1038,7 @@ tftp server's address.
 
 <p>
 
-Here is an example of a /etc/bootptab for the bootpd supplied many with
+Here is an example of a /etc/bootptab for the bootpd supplied with many
 Linux distributions and probably many versions of Unix:
 
 <code>
@@ -1053,8 +1084,8 @@ better to use an improved replacement for inetd, such as xinetd.
 Another solution is to run a dedicated tftpd that is not spawned from
 inetd. One such tftpd can be found here at:
 <tt>ftp://nilo.on.openprojects.net/pub/nilo/snapshots</tt> Another
-possible contender is in the directory contrib/atftp in the
-distribution. This one is started from inetd, but thereafter
+possible contender is in the directory atftp at the Etherboot
+web site. This one is started from inetd, but thereafter
 multithreads internally.
 
 <sect>Testing the network booting
@@ -1215,6 +1246,12 @@ Also have a look at the <url
 url="http://atrey.karlin.mff.cuni.cz/&tilde;pavel/nbd/nbd.html" name="NBD">
 Network Block Device web page for swapping over that. This requires a
 2.1 or 2.2 kernel.
+
+<p>
+
+There is also the follow-on project <url name="ENBD"
+url="http://www.it.uc3m.es/~ptb/nbd/">, the Enhanced Network Block
+Driver. I have no experience with this for swapping. Comments welcome.
 
 <sect>Booting DOS
 
@@ -2489,12 +2526,14 @@ in situ.
 <tag/Matt Hortman/ Contributed fix to eepro100 driver that fixes incorrect
 latency setting. Also Makefile rule for .lzfd0.
 
-<tag/Marty Connor/ Contributed new Tulip driver ntulip.c. Reduced RTL8139
-footprint. Added support for Netgear FA310TX (Tulip clone, LC82C168 chip).
-Support for 3Com905C. Romutil for 905C, which have block erase EEPROMs.
-Contributed the development of liloprefix.S through thinguin.org.
-Finally made the ROM images conformant PnP boot ROM images. Wrote the
-SiS900 driver. Made Tulip driver work for many more variants.
+<tag/Marty Connor/ Contributed new Tulip driver ntulip.c. Reduced
+RTL8139 footprint. Added support for Netgear FA310TX (Tulip clone,
+LC82C168 chip).  Support for 3Com905C. Romutil for 905C, which have
+block erase EEPROMs.  Contributed the development of liloprefix.S
+through thinguin.org.  Finally made the ROM images conformant PnP boot
+ROM images. Wrote the SiS900 driver. Made Tulip driver work for many
+more variants. Wrote the National Semiconductor DP83815 driver, under
+funding from <url name="Sicom System" url="http://www.sicompos.com/">.
 
 <tag/Anders Larsen/ contributed mkQNXnbi, for generating tagged images
 from QNX kernels.
@@ -2528,6 +2567,12 @@ NICs.
 
 <tag/Peter K&ouml;gel/ contributed patches to the SiS900 driver to make
 it work for the SiS630e/SiS730s.
+
+<tag/Eric Biederman/ improved the recovery logic of main.c and lots of
+other changes.
+
+<tag/Peter Lister and Vasil Vasilev/ contributed changes to generate
+.pxe image that can be booted using a PXE booter.
 
 </descrip>
 
@@ -2593,6 +2638,7 @@ main.c			BSD
 makerom.c		BSD
 md5.c			GPL
 misc.c			BSD
+natsemi.c		GPL
 nfs.c			GPL
 ni5010.c		GPL
 nic.h			GPL
@@ -2604,6 +2650,7 @@ otulip.c		BSD
 otulip.h		BSD
 pci.c			GPL
 pci.h			GPL
+pxeloader.S		GPL
 rtl8139.c		GPL
 serial.S		Mach
 sis900.c		GPL

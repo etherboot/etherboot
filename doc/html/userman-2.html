@@ -74,7 +74,7 @@ listed on the Etherboot home page.</I>
 </H2>
 
 <P>
-<P>The following is the current NIC configuration file as of 2001-05-04.
+<P>The following is the current NIC configuration file as of 2001-06-23.
 <P>Even if your NIC does not appear in the list, it may still be supported
 if the chip is one of those supported.  Many OEMs use chips from
 foundries. An exhaustive list of brand names is impossible.  The best
@@ -153,6 +153,7 @@ strategy is to read the number on the LAN controller chip on the board.
 3c905b-t4       3c90x           0x10b7,0x9056
 3c905b-fx       3c90x           0x10b7,0x905a
 3c905c-tpo      3c90x           0x10b7,0x9200
+3c980           3c90x           0x10b7,0x9800
 # Intel Etherexpress Pro/100
 eepro100        eepro100        0x8086,0x1229
 82559er         eepro100        0x8086,0x1209
@@ -272,6 +273,19 @@ sk_g16
 smc9000
 # Tiara, Fujitsu Lancard
 tiara
+# DP83815, (Netgear FA311/312)
+natsemi         natsemi         0x100B,0x0020
+fa311           natsemi         0x100B,0x0020
+fa312           natsemi         0x100B,0x0020
+dp83815         natsemi         0x100B,0x0020
+
+
+The following drivers have notes in the src directory, please read them:
+
+3c90x.txt
+cs89x0.txt
+sis900.txt
+tulip.txt
 </PRE>
 <HR>
 <P>

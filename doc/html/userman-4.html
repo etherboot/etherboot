@@ -172,6 +172,13 @@ Options (Option 43) encloses: Vendor Class Identifier (Option 60 =
 0x3c), length 9, value "Etherboot"; End of Options (Option 255 = 0xff).
 <P>
 <P>
+<P>If you have a DHCP server already running for the subnet, you probably
+should specify that your additional ISC DHCPD server is non
+authoritative for the the subnet, or it will veto (NAK) existing client
+IP address allocations, upsetting the status quo. See the ISC DHCPD
+options documentation.
+<P>
+<P>
 <P>More information about DHCP can be found at the 
 <A HREF="http://web.syr.edu/~jmwobus/comfaqs/dhcp.faq.html">DHCP FAQ Web Page</A>.
 <P>
@@ -221,7 +228,7 @@ tftp server's address.
 </OL>
 <P>
 <P>
-<P>Here is an example of a /etc/bootptab for the bootpd supplied many with
+<P>Here is an example of a /etc/bootptab for the bootpd supplied with many
 Linux distributions and probably many versions of Unix:
 <P>
 <HR>
@@ -266,8 +273,8 @@ better to use an improved replacement for inetd, such as xinetd.
 Another solution is to run a dedicated tftpd that is not spawned from
 inetd. One such tftpd can be found here at:
 <CODE>ftp://nilo.on.openprojects.net/pub/nilo/snapshots</CODE> Another
-possible contender is in the directory contrib/atftp in the
-distribution. This one is started from inetd, but thereafter
+possible contender is in the directory atftp at the Etherboot
+web site. This one is started from inetd, but thereafter
 multithreads internally.
 <P>
 <HR>

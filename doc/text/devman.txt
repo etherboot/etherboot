@@ -1,6 +1,6 @@
   Etherboot Developers Manual
   Ken Yap, <ken_yap@users.sourceforge.net>
-  v5.0.1, 4 May 2001
+  v5.0.2, 23 June 2001
 
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
@@ -77,6 +77,11 @@
 
 
 
+     55..00..22 22000011--0066--2233
+        Released as Etherboot-doc 5.0.2. No significant changes from
+        5.0.1 really.
+
+
      55..00..11 22000011--0055--0044
         Released as Etherboot-doc 5.0.1.
 
@@ -125,11 +130,6 @@
 
   All trademarks mentioned in this document belong to their respective
   owners.
-
-
-
-
-
   11..66..  AAcckknnoowwlleeddggeemmeennttss aanndd TThhaannkkss
 
 
@@ -872,8 +872,8 @@
      it boots.
 
 
-  +o  A reset routine, that resets the adapter to a known state.  This is
-     passed a pointer to a `nic' struct.  This can be called from the
+  +o  A reset routine, that resets the adapter to an initial state.  This
+     is passed a pointer to a `nic' struct.  This can be called from the
      probe routine.
 
   +o  A disable routine, which puts the adapter into a disabled state.

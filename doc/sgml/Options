@@ -119,6 +119,8 @@ Boot image options:
 -DIMAGE_FREEBSD
 		Add FreeBSD image loading support (requires at least
 		-DAOUT_IMAGE and/or -DELF_IMAGE).
+-DFREEBSD_KERNEL_ENV
+		Pass in FreeBSD kernel environment
 -DDOWNLOAD_PROTO_TFTP
 		If defined, boots by tftp (recommended).
 -DDOWNLOAD_PROTO_NFS

@@ -41,6 +41,7 @@ main.c			BSD
 makerom.c		BSD
 md5.c			GPL
 misc.c			BSD
+natsemi.c		GPL
 nfs.c			GPL
 ni5010.c		GPL
 nic.h			GPL
@@ -52,6 +53,7 @@ otulip.c		BSD
 otulip.h		BSD
 pci.c			GPL
 pci.h			GPL
+pxeloader.S		GPL
 rtl8139.c		GPL
 serial.S		Mach
 sis900.c		GPL

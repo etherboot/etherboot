@@ -212,6 +212,8 @@ Boot image options:
 -DIMAGE_FREEBSD
                 Add FreeBSD image loading support (requires at least
                 -DAOUT_IMAGE and/or -DELF_IMAGE).
+-DFREEBSD_KERNEL_ENV
+                Pass in FreeBSD kernel environment
 -DDOWNLOAD_PROTO_TFTP
                 If defined, boots by tftp (recommended).
 -DDOWNLOAD_PROTO_NFS
@@ -335,8 +337,8 @@ NFS services, which we will discuss next.
 the setup of the server and are satisfied that diskless booting works.
 <P>
 <P>
-<P>In addition, you can generate images with the suffixes .com, .lilo  and
-.lzlilo. Where you would normally say:
+<P>In addition, you can generate images with the suffixes .com, .lilo,
+.lzlilo and .pxe. Where you would normally say:
 <P>
 <HR>
 <PRE>
@@ -350,8 +352,8 @@ the setup of the server and are satisfied that diskless booting works.
         make bin32/3c509.com
 </PRE>
 <HR>
-<P>and similarly for .lilo and .lzlilo. These are alternate boot image
-formats.
+<P>and similarly for .lilo, .lzlilo and .pxe. These are alternate boot
+image formats.
 <P>
 <P>
 <P>The ones ending in .com are DOS format executables, suitable for
@@ -370,6 +372,10 @@ Unfortunately loadlin uses a slightly different method of booting for
 Linux kernels from LILO and SYSLINUX and will not work with these
 images. The difference between .lilo and .lzlilo is compression,
 analogous to the difference between .rom and .lzrom.
+<P>
+<P>
+<P>The ones ending in .pxe can be booted by a PXE booter. This is useful to
+chain to Etherboot from PXE.
 <P>
 <P>
 <P>In addition you can generate .dsk and .lzdsk images. These are just the

@@ -150,12 +150,15 @@ in situ.
 <DT><B>Matt Hortman</B><DD><P>Contributed fix to eepro100 driver that fixes incorrect
 latency setting. Also Makefile rule for .lzfd0.
 <P>
-<DT><B>Marty Connor</B><DD><P>Contributed new Tulip driver ntulip.c. Reduced RTL8139
-footprint. Added support for Netgear FA310TX (Tulip clone, LC82C168 chip).
-Support for 3Com905C. Romutil for 905C, which have block erase EEPROMs.
-Contributed the development of liloprefix.S through thinguin.org.
-Finally made the ROM images conformant PnP boot ROM images. Wrote the
-SiS900 driver. Made Tulip driver work for many more variants.
+<DT><B>Marty Connor</B><DD><P>Contributed new Tulip driver ntulip.c. Reduced
+RTL8139 footprint. Added support for Netgear FA310TX (Tulip clone,
+LC82C168 chip).  Support for 3Com905C. Romutil for 905C, which have
+block erase EEPROMs.  Contributed the development of liloprefix.S
+through thinguin.org.  Finally made the ROM images conformant PnP boot
+ROM images. Wrote the SiS900 driver. Made Tulip driver work for many
+more variants. Wrote the National Semiconductor DP83815 driver, under
+funding from 
+<A HREF="http://www.sicompos.com/">Sicom System</A>.
 <P>
 <DT><B>Anders Larsen</B><DD><P>contributed mkQNXnbi, for generating tagged images
 from QNX kernels.
@@ -189,6 +192,12 @@ NICs.
 <P>
 <DT><B>Peter K&ouml;gel</B><DD><P>contributed patches to the SiS900 driver to make
 it work for the SiS630e/SiS730s.
+<P>
+<DT><B>Eric Biederman</B><DD><P>improved the recovery logic of main.c and lots of
+other changes.
+<P>
+<DT><B>Peter Lister and Vasil Vasilev</B><DD><P>contributed changes to generate
+.pxe image that can be booted using a PXE booter.
 <P>
 </DL>
 <P>
