@@ -32,6 +32,8 @@
 #include "nic.h"
 #include "pci.h"
 #include "dev.h"
+#include "cpu.h"
+#include "timer.h"
 
 #if TRACE_PXE
 #define DBG(...) printf ( __VA_ARGS__ )
@@ -114,23 +116,6 @@ pxe_stack_t *pxe_stack = NULL;
  * pxe_callbacks.c
  */
 
-/* Dummy PCI driver.  This is used in order to hack the probe
- * mechanism; we need to be able to set dev.driver != NULL to fool it
- * into not starting from the beginning, so we need somewhere to point
- * dev.driver.
- *
- * __pci_driver is deliberately omitted so that this *doesn't* show up
- * in the normal drivers list.
- */
-static struct pci_driver dummy_driver = {
-        .type     = NIC_DRIVER,
-        .name     = "DUMMY",
-        .probe    = NULL,
-        .ids      = NULL,
-        .id_count = 0,
-        .class    = 0,
-};
-
 int pxe_initialise_nic ( void ) {
 	if ( pxe_stack->state >= READY ) return 1;
 
@@ -150,16 +135,20 @@ int pxe_initialise_nic ( void ) {
 	 * PROBE_AWAKE.  If one was specifed via PXENV_START_UNDI, try
 	 * that one first.  Otherwise, set PROBE_FIRST.
 	 */
-	if ( nic.dev.state.pci.dev.driver == &dummy_driver ) {
+	if ( nic.dev.state.pci.dev.use_specified == 1 ) {
 		nic.dev.how_probe = PROBE_NEXT;
+		DBG ( " initialising NIC specified via START_UNDI" );
 	} else if ( nic.dev.state.pci.dev.driver ) {
+		DBG ( " reinitialising NIC" );
 		nic.dev.how_probe = PROBE_AWAKE;
 	} else {
+		DBG ( " probing for any NIC" );
 		nic.dev.how_probe = PROBE_FIRST;
 	}
 	
 	/* Call probe routine to bring up the NIC */
 	if ( eth_probe ( &nic.dev ) != PROBE_WORKED ) {
+		DBG ( " failed" );
 		return 0;
 	}
 	pxe_stack->state = READY;
@@ -214,6 +203,7 @@ int ensure_pxe_state ( pxe_stack_state_t wanted ) {
 PXENV_EXIT_t pxenv_start_undi ( t_PXENV_START_UNDI *start_undi ) {
 	unsigned char bus, devfn;
 	struct pci_probe_state *pci = &nic.dev.state.pci;
+	struct dev *dev = &nic.dev;
 
 	DBG ( "PXENV_START_UNDI" );
 	ENSURE_MIDWAY(start_undi);
@@ -236,8 +226,11 @@ PXENV_EXIT_t pxenv_start_undi ( t_PXENV_START_UNDI *start_undi ) {
 		 */
 		DBG ( " set PCI %hhx:%hhx.%hhx",
 		      bus, PCI_SLOT(devfn), PCI_FUNC(devfn) );
+		dev->type = BOOT_NIC;
+		dev->to_probe = PROBE_PCI;
+		memset ( &dev->state, 0, sizeof(dev->state) );
 		pci->advance = 1;
-		pci->dev.driver = &dummy_driver;
+		pci->dev.use_specified = 1;
 		pci->dev.bus = bus;
 		pci->dev.devfn = devfn;
 	}
@@ -1059,9 +1052,48 @@ PXENV_EXIT_t pxenv_stop_base ( t_PXENV_STOP_BASE *stop_base ) {
  * interface.
  */
 PXENV_EXIT_t pxenv_undi_loader ( undi_loader_t *loader ) {
+	uint32_t loader_phys = virt_to_phys ( loader );
+
 	DBG ( "PXENV_UNDI_LOADER" );
-	loader->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	
+	/* FIXME: These lines are borrowed from main.c.  There should
+	 * probably be a single initialise() function that does all
+	 * this, but it's currently split interestingly between main()
+	 * and main_loop()...
+	 */
+	console_init();
+	cpu_setup();
+	setup_timers();
+	gateA20_set();
+	print_config();
+	get_memsizes();
+	cleanup();
+	relocate();
+	cleanup();
+	console_init();
+	init_heap();
+
+	/* We have relocated; the loader pointer is now invalid */
+	loader = phys_to_virt ( loader_phys );
+
+	/* Set UNDI DS as our real-mode stack */
+	use_undi_ds_for_rm_stack ( loader->undi_ds );
+	/* Install PXE stack to area specified by NBP */
+	install_pxe_stack ( VIRTUAL ( loader->undi_cs, 0 ) );
+	
+	/* Call pxenv_start_undi to set parameters.  Why the hell PXE
+	 * requires these parameters to be provided twice is beyond
+	 * the wit of any sane man.  Don't worry if it fails; the NBP
+	 * should call PXENV_START_UNDI separately anyway.
+	 */
+	pxenv_start_undi ( &loader->start_undi );
+
+	/* Fill in addresses of !PXE and PXENV+ structures */
+	PTR_TO_SEGOFF16 ( &pxe_stack->pxe, loader->pxe_ptr );
+	PTR_TO_SEGOFF16 ( &pxe_stack->pxenv, loader->pxenv_ptr );
+	
+	loader->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* API call dispatcher
