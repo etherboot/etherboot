@@ -37,7 +37,8 @@
 #	the behaviour with Linux drivers to the kernel developers. You are
 #	on your own if you do this. Please read 3c90x.txt to understand
 #	what they do. If you don't understand them, ask for help on the
-#	Etherboot mailing list.
+#	Etherboot mailing list. And please document what you did to the NIC
+#	on the NIC so that people after you won't get nasty surprises.
 #
 #	-DCFG_3C90X_PRESERVE_XCVR - Reset the transceiver type to the value it
 #			  had initially just before the loaded code is started.
