@@ -583,7 +583,7 @@ process_ecr_params_done:
 
 #ifdef CODE16
 
-#define CR0_PE (1)
+	.equ	CR0_PE,1
 		
 /****************************************************************************
  * _prot_to_real
@@ -603,7 +603,7 @@ process_ecr_params_done:
  *	RMCS (word) : (segment base address >> 4), i.e. real-mode %cs value
  ****************************************************************************
  */
-	.section "text16"
+	.section ".text16"
 	.code16
 	.globl _prot_to_real
 	.globl _eprot_to_real
@@ -619,18 +619,18 @@ _prot_to_real:
 	cli
 
 	/* Set up real-mode continuation point */
-	movw	12(%bp), %ax
+	movw	20(%bp), %ax
 	pushw	%ax			/* RM segment */
 	call	1f
-1:	popw	%ax
-	addw	$2f-1b, %ax
-	pushw	%ax			/* RM offset */
+1:	popw	%bx
+	addw	$2f-1b, %bx
+	pushw	%bx			/* RM offset */
 
 	/* Switch to real mode */
 	movl	%cr0, %ebx
-	andb	$~CR0_PE, %bl
+	andb	$0!CR0_PE, %bl
 	movl	%ebx, %cr0
-
+	
 	/* Load real-mode segment value to %ss.  %sp already OK */
 	xorl	%ebx, %ebx		/* delay after rmode switch */
 	movw	%ax, %ss
@@ -638,23 +638,32 @@ _prot_to_real:
 	/* 'ljmp' to reload %cs:ip and flush prefetch queue */	
 	lret
 2:	
+
 	/* Reload other segment registers with real-mode values */
 	movw	%cs, %ax
-	movw	%ax, %ss
 	movw	%ax, %ds
 	movw	%ax, %es
 	movw	%ax, %fs
 	movw	%ax, %gs
 
+	/* Shuffle return address up the stack (i.e. remove our
+	 * parameter, the real-mode segment value, from the parameter
+	 * list.)
+	 */
+	movl	16(%bp), %eax
+	movl	12(%bp), %ebx
+	movl	%eax, 18(%bp)
+	movl	%ebx, 14(%bp)
+	
 	/* Restore registers and interrupt status */
 	popl	%ebx
 	popl	%eax
 	popw	%bp
 	popfw
 
-	/* Skip segment address on stack */
+	/* Adjust stack to point to return address */
 	addw	$2, %sp
-	
+
 	/* fall through to code following trampoline prefix */
 _eprot_to_real:
 	.code32
@@ -669,7 +678,7 @@ _eprot_to_real:
  * physical addresses, preserving all registers, and return to
  * Etherboot.
  */
-	.section "text16"
+	.section ".text16"
 	.code16
 	.globl _real_to_prot
 	.globl _ereal_to_prot
@@ -685,10 +694,15 @@ _real_to_prot:
 
 	/* Calculate 32-bit continuation address and push onto stack */
 	pushl	$0x08			/* PMCS from rtp_gdt */
-	leal	(2f-1b)(%bp), %eax	
-	pushl	%eax
+	xorl	%eax, %eax
+	movw	%cs, %ax
+	shll	$4, %eax
+	leal	(2f-1b)(%bp), %ebx
+	addl	%eax, %ebx
+	pushl	%ebx
 
 	/* Convert %esp to 32-bit physical value */
+	xorl	%eax, %eax
 	movw	%ss, %ax
 	shll	$4, %eax
 	movzwl	%sp, %esp
@@ -721,12 +735,20 @@ _real_to_prot:
 	movw	%ax, %fs
 	movw	%ax, %gs
 
+	/* Force return segment address to 0x08 (i.e. physical).  We
+	 * do this because the GDT may have changed as a result of the
+	 * real-call payload.  A physical offset address for the
+	 * return address is an entry requirement of ours anyway, and
+	 * ext_call() can cope with an altered GDT on return.
+	 */
+	movl	$0x08, 16(%esp)
+	
 	/* Restore registers and interrupt status */
 	popl	%ebx
 	popl	%eax
 	popw	%bp
 	popfw
-	
+
 	/* Return to Etherboot */
 	lret
 rtp_gdt:
@@ -747,11 +769,40 @@ _ereal_to_prot:
 	.code32
 	.previous
 
+
+
+/* Temporary demo payload routine */
+	
+	.section ".text16"
+	.code16
+	.globl hello_world
+	.globl ehello_world
+hello_world:
+	call	1f
+1:	popw	%bp
+	movw	$0x0007, %bx		/* page 0, attribute 7 (normal) */
+	movb	$0x0e, %ah		/* write char, tty mode */
+	leal	(10f-1b)(%bp), %si
+	movw	$(20f-10f), %cx
+2:	lodsb
+	int	$0x10
+	loop	2b
+	jmp	99f
+10:	.ascii "hello world!\r\n"
+20:	
+99:	
+	movw	$0xaaaa, %ax
+ehello_world:
+	.code32
+	.previous
+
+	
 #endif /* CODE16 */
 	
 	
 	.globl demo_extcall
 demo_extcall:
+	
 	movl	%ebx, %ecx
 /*	lret */
 	
@@ -781,4 +832,3 @@ demo_extcall_end:
 get_esp:
 	movl	%esp, %eax
 	ret
-	
