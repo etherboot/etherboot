@@ -97,6 +97,15 @@ int hunt_pixie ( void ) {
 				printf ( "invalid checksum\n..." );
 				continue;
 			}
+			if ( ptr < get_free_base_memory() ) {
+				printf ( "in free base memory!\n\n"
+					 "WARNING: a valid !PXE structure was "
+					 "found in an area of memory marked "
+					 "as free!\n"
+					 "Ignoring and continuing, but this "
+					 "may cause problems later!\n\n" );
+				continue;
+			}
 			printf ( "ok\n" );
 			undi.pxe = pxe;
 			return 1;
