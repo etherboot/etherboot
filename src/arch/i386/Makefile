@@ -323,4 +323,4 @@ SUFFIXES +=	iso
 # rule to make a floppy emulation ISO boot image
 SUFFIXES +=	liso
 %.liso:	util/genliso %.zlilo
-	util/genliso $*.liso $*.zlilo
+	sh util/genliso $*.liso $*.zlilo
