@@ -2688,3 +2688,6 @@ James Pearson, Georg Baum and Marty Connor for help resolving this issue.
 + Backport of the 5.3 Link Aggregation Control Protocol implementation
  provided by Eric Biederman
 
++ Relocation patch from Doug Ambrisko for freebsd_loader
+
+
