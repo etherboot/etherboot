@@ -2418,3 +2418,14 @@ Released as Etherboot 5.1.5 (development)
 + Geert Stappers found a VIA6105 (via-rhine.c) with id 0x3106.
 
 Released as Etherboot 5.1.6 (development)
+
++ Broadcomm TG3 support by Eric Biederman.
+
++ Georg Baum found that the start16.S prefix is still needed for LILO
+and PXE images, those formats were broken. He also migrated the PCI IDs
+into the driver files. Those formats should work again.
+
++ Reworked genrules.pl. Family declarations now in here document inside
+genrules.pl. NIC is now an output file, for use by rom-o-matic.
+
+Released as Etherboot 5.1.7 (development)

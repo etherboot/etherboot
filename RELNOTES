@@ -1,4 +1,4 @@
-Etherboot 5.1.6
+Etherboot 5.1.7
 
 Lots of changes by Eric Biederman. May have breakage. Please test,
 especially for the PCBIOS targets.
