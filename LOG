@@ -2660,8 +2660,25 @@ drivers corrected.
 
 Released as Etherboot 5.3.7 (development)
 
-+ Fixed an issue in the e1000 driver with 82544 and newer devices that
-support port I/O.  Enabled port io for the reset.  Without the patch
-the e1000 could not reliably boot Linux on some cards.  Thanks to
-James Pearson, Georg Baum and Marty Connor for help resolving this issue.
++ Timothy Legge Fixed an issue in the e1000 driver with 82544 and
+  newer devices that support port I/O.  Enabled port io for the reset.
+  Without the patch the e1000 could not reliably boot Linux on some
+  cards.  Thanks to James Pearson, Georg Baum and Marty Connor for
+  help resolving this issue.
+
++ Michael Brown added lots of PXE code to complete implementation. He
+  also did a warnings purge of the core.
+
++ Marty Connor did warnings purge of the network drivers.
+
++ Anselm Martin Hoffmeister contributed DNS resolution code.
+
++ Lots of driver PXEifications and cleanups from Timothy Legge and
+  Marty Connor
+
++ Makefile and genrules fixes from Michael Brown and Marty Connor
+
++ BPBATCH workaround from Timothy Legge and Michael Brown
+
++ Timothy Legge improved image format detection logic.
 
