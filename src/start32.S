@@ -265,7 +265,7 @@ relocate_to:
 /**************************************************************************
 XSTART32 - Transfer control to the kernel just loaded
 **************************************************************************/
-	.globl xstart
+	.globl xstart32
 xstart32:
 	/* Save the callee save registers */
 	movl	%ebp, os_regs + 32
