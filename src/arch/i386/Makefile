@@ -252,10 +252,11 @@ SUFFIXES +=	com
 $(BIN)/%.com.rt: $(BIN)/%.rt.o $(COMEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(COMEXIT)
 
-$(BIN)/%.com.prf: $(BIN)/%.rt.o $(COMENTRY) $(COMEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(COMENTRY) $(PREFIXOBJS) $< $(COMEXIT)
+$(BIN)/%.com.prf: $(BIN)/%.rt.o $(COMENTRY) $(COMEXIT) $(ZPREFIXOBJS) $(BIN)/%.com.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.com.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
+		$(COMENTRY) $(ZPREFIXOBJS) $< $(COMEXIT)
 
-$(BIN)/%.com: $(BIN)/%.com.prf.bin $(BIN)/%.com.rt.bin
+$(BIN)/%.com: $(BIN)/%.com.prf.bin $(BIN)/%.com.rt1.bin $(BIN)/%.com.rt2.zbin
 	cat $^ > $@
 
 # rules to generate a DOS loadable .exe executable
