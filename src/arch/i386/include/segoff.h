@@ -18,9 +18,6 @@ typedef struct {
 	uint16_t segment;
 } segoff_t;
 
-/* For PXE stuff */
-typedef segoff_t SEGOFF16_t;
-
 /* Macros for converting from virtual to segment:offset addresses,
  * when we don't actually care which of the many isomorphic results we
  * get.
