@@ -435,7 +435,8 @@ CFLAGS+=	-Os -ffreestanding
 CFLAGS+=	-Wall -W -Wno-format
 ASFLAGS+=
 LDFLAGS+=
-#LDFLAGS+=	-Map $(BIN)/etherboot.map
+# For debugging
+#LDFLAGS+=	-Map $@.map
 LDBINARY=	--oformat binary	# flag for headerless binary
 
 # Location to place generated binaries, and files
