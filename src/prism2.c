@@ -27,7 +27,7 @@ $Id$
  * Leave blank in order to connect to any available SSID
  */
 
-const char hardcoded_ssid[] = "";
+static const char hardcoded_ssid[] = "";
 
 /*
  * Type of Prism2 interface to support
@@ -118,7 +118,7 @@ typedef struct hfa384x
 } hfa384x_t;
 
 /* The global instance of the hardware (i.e. where we store iobase and membase, in the absence of anywhere better to put them */
-hfa384x_t hw_global = {
+static hfa384x_t hw_global = {
   0, 0, 0, 0, 0, 0, 0, {0,0,0,0,0,0}
 };
 
@@ -134,7 +134,7 @@ typedef struct wlan_llc
   UINT8   ctl                             __WLAN_ATTRIB_PACK__;
 } __WLAN_ATTRIB_PACK__ wlan_llc_t;
 
-const wlan_llc_t wlan_llc_snap = { 0xaa, 0xaa, 0x03 }; /* LLC header indicating SNAP (?) */
+static const wlan_llc_t wlan_llc_snap = { 0xaa, 0xaa, 0x03 }; /* LLC header indicating SNAP (?) */
 
 #define WLAN_IEEE_OUI_LEN 3
 typedef struct wlan_snap
@@ -153,8 +153,8 @@ typedef struct wlan_80211hdr
  * Function prototypes
  */
 
-int prism2_find_plx ( hfa384x_t *hw, struct pci_device *p );
-int prism2_find_pci ( hfa384x_t *hw, struct pci_device *p );
+static int prism2_find_plx ( hfa384x_t *hw, struct pci_device *p );
+static int prism2_find_pci ( hfa384x_t *hw, struct pci_device *p );
 
 /*
  * Hardware-level hfa384x functions
@@ -218,7 +218,7 @@ static inline void hfa384x_setreg_noswap( hfa384x_t *hw, UINT16 val, UINT reg )
  *       >0              command indicated error, Status and Resp0-2 are
  *                       in hw structure.
  */
-int hfa384x_docmd_wait( hfa384x_t *hw, UINT16 cmd, UINT16 parm0, UINT16 parm1, UINT16 parm2)
+static int hfa384x_docmd_wait( hfa384x_t *hw, UINT16 cmd, UINT16 parm0, UINT16 parm1, UINT16 parm2)
 {
   UINT16 reg = 0;
   UINT16 counter = 0;
@@ -280,7 +280,7 @@ int hfa384x_docmd_wait( hfa384x_t *hw, UINT16 cmd, UINT16 parm0, UINT16 parm1, U
  * Returns: 
  *	0		success
  */
-int hfa384x_prepare_bap(hfa384x_t *hw, UINT16 id, UINT16 offset)
+static int hfa384x_prepare_bap(hfa384x_t *hw, UINT16 id, UINT16 offset)
 {
   int result = 0;
   UINT16 reg;
@@ -324,7 +324,7 @@ int hfa384x_prepare_bap(hfa384x_t *hw, UINT16 id, UINT16 offset)
  * Returns: 
  *	0		success
  */
-int hfa384x_copy_from_bap(hfa384x_t *hw, UINT16 id, UINT16 offset,
+static int hfa384x_copy_from_bap(hfa384x_t *hw, UINT16 id, UINT16 offset,
 			  void *buf, UINT len)
 {
   int result = 0;
@@ -363,7 +363,7 @@ int hfa384x_copy_from_bap(hfa384x_t *hw, UINT16 id, UINT16 offset,
  * Returns: 
  *	0		success
  */
-int hfa384x_copy_to_bap(hfa384x_t *hw, UINT16 id, UINT16 offset,
+static int hfa384x_copy_to_bap(hfa384x_t *hw, UINT16 id, UINT16 offset,
 			void *buf, UINT len)
 {
   int result = 0;
@@ -426,7 +426,7 @@ static inline int hfa384x_cmd_access(hfa384x_t *hw, UINT16 write, UINT16 rid)
  * Returns: 
  *	0		success
  */
-int hfa384x_drvr_getconfig(hfa384x_t *hw, UINT16 rid, void *buf, UINT16 len)
+static int hfa384x_drvr_getconfig(hfa384x_t *hw, UINT16 rid, void *buf, UINT16 len)
 {
   int result = 0;
   hfa384x_rec_t	rec;
@@ -464,7 +464,7 @@ int hfa384x_drvr_getconfig(hfa384x_t *hw, UINT16 rid, void *buf, UINT16 len)
  * Returns: 
  *	0		success
  */
-int hfa384x_drvr_getconfig16(hfa384x_t *hw, UINT16 rid, void *val)
+static int hfa384x_drvr_getconfig16(hfa384x_t *hw, UINT16 rid, void *val)
 {
   int result = 0;
   result = hfa384x_drvr_getconfig(hw, rid, val, sizeof(UINT16));
@@ -473,7 +473,7 @@ int hfa384x_drvr_getconfig16(hfa384x_t *hw, UINT16 rid, void *val)
   }
   return result;
 }
-int hfa384x_drvr_getconfig32(hfa384x_t *hw, UINT16 rid, void *val)
+static int hfa384x_drvr_getconfig32(hfa384x_t *hw, UINT16 rid, void *val)
 {
   int result = 0;
   result = hfa384x_drvr_getconfig(hw, rid, val, sizeof(UINT32));
@@ -495,7 +495,7 @@ int hfa384x_drvr_getconfig32(hfa384x_t *hw, UINT16 rid, void *val)
  * Returns: 
  *	0		success
  */
-int hfa384x_drvr_setconfig(hfa384x_t *hw, UINT16 rid, void *buf, UINT16 len)
+static int hfa384x_drvr_setconfig(hfa384x_t *hw, UINT16 rid, void *buf, UINT16 len)
 {
   int result = 0;
   hfa384x_rec_t	rec;
@@ -532,13 +532,13 @@ int hfa384x_drvr_setconfig(hfa384x_t *hw, UINT16 rid, void *buf, UINT16 len)
  * Returns: 
  *	0		success
  */
-int hfa384x_drvr_setconfig16(hfa384x_t *hw, UINT16 rid, UINT16 *val)
+static int hfa384x_drvr_setconfig16(hfa384x_t *hw, UINT16 rid, UINT16 *val)
 {
   UINT16 value;
   value = host2hfa384x_16(*val);
   return hfa384x_drvr_setconfig(hw, rid, &value, sizeof(UINT16));
 }
-int hfa384x_drvr_setconfig32(hfa384x_t *hw, UINT16 rid, UINT32 *val)
+static int hfa384x_drvr_setconfig32(hfa384x_t *hw, UINT16 rid, UINT32 *val)
 {
   UINT32 value;
   value = host2hfa384x_32(*val);
@@ -560,7 +560,7 @@ int hfa384x_drvr_setconfig32(hfa384x_t *hw, UINT16 rid, UINT32 *val)
  * Returns: 
  *      value of EVSTAT register, or 0 on failure 
  */
-int hfa384x_wait_for_event(hfa384x_t *hw, UINT16 event_mask, int wait, int timeout, const char *descr)
+static int hfa384x_wait_for_event(hfa384x_t *hw, UINT16 event_mask, int wait, int timeout, const char *descr)
 {
   UINT16 reg;
   int count = 0;
@@ -722,8 +722,13 @@ static void prism2_disable(struct nic *nic)
 PROBE - Look for an adapter, this routine's visible to the outside
 You should omit the last argument struct pci_device * for a non-PCI NIC
 ***************************************************************************/
-struct nic *prism2_probe(struct nic *nic, unsigned short *probe_addrs,
+#if (WLAN_HOSTIF == WLAN_PLX)
+struct nic *prism2_plx_probe(struct nic *nic, unsigned short *probe_addrs,
 			 struct pci_device *p)
+#elif (WLAN_HOSTIF == WLAN_PCI)
+struct nic *prism2_pci_probe(struct nic *nic, unsigned short *probe_addrs,
+			 struct pci_device *p)
+#endif
 {
   int found = 0;
   hfa384x_t *hw = &hw_global;
@@ -828,7 +833,7 @@ struct nic *prism2_probe(struct nic *nic, unsigned short *probe_addrs,
  * Returns:
  *      1               Success
  */
-int prism2_find_plx ( hfa384x_t *hw, struct pci_device *p )
+static int prism2_find_plx ( hfa384x_t *hw, struct pci_device *p )
 {
   int found = 0;
   unsigned char *plx_lcr  = NULL; /* PLX9052 Local Configuration Register Base (I/O) */
@@ -884,7 +889,7 @@ int prism2_find_plx ( hfa384x_t *hw, struct pci_device *p )
  * Returns:
  *      1               Success
  */
-int prism2_find_pci ( hfa384x_t *hw, struct pci_device *p )
+static int prism2_find_pci ( hfa384x_t *hw, struct pci_device *p )
 {
   unsigned char *membase = NULL; /* Prism2.5 Memory Base */
   pcibios_read_config_dword( p->bus, p->devfn, PRISM2_PCI_MEM_BASE, (unsigned int *)(&membase) );

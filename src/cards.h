@@ -190,8 +190,13 @@ extern struct nic	*tlan_probe(struct nic *, unsigned short *
         PCI_ARG(struct pci_device *));
 #endif
 
-#ifdef	INCLUDE_PRISM2
-extern struct nic	*prism2_probe(struct nic *, unsigned short *
+#ifdef	INCLUDE_PRISM2_PLX
+extern struct nic	*prism2_plx_probe(struct nic *, unsigned short *
+        PCI_ARG(struct pci_device *));
+#endif
+
+#ifdef	INCLUDE_PRISM2_PCI
+extern struct nic	*prism2_pci_probe(struct nic *, unsigned short *
         PCI_ARG(struct pci_device *));
 #endif
 
