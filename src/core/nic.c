@@ -172,6 +172,8 @@ struct nic	nic =
 	arptable[ARP_CLIENT].node,		/* node_addr */
 	packet + ETH_DATA_ALIGN,		/* packet */
 	0,					/* packetlen */
+	0,					/* ioaddr */
+	0,					/* irqno */
 	0,					/* priv_data */
 };
 

@@ -109,6 +109,9 @@
 
 #define PCI_CAPABILITY_LIST	0x34	/* Offset of first capability list entry */
 
+#define PCI_INTERRUPT_LINE	0x3c	/* IRQ number (0-15) */
+#define PCI_INTERRUPT_PIN	0x3d	/* IRQ pin on PCI bus (A-D) */
+
 /* Header type 1 (PCI-to-PCI bridges) */
 #define PCI_PRIMARY_BUS		0x18	/* Primary bus number */
 #define PCI_SECONDARY_BUS	0x19	/* Secondary bus number */
@@ -270,6 +273,7 @@ struct pci_device {
 	unsigned int		membase;
 	unsigned int		ioaddr;
 	unsigned int		romaddr;
+	unsigned char		irq;
 	unsigned char		devfn;
 	unsigned char		bus;
 	const struct pci_driver	*driver;

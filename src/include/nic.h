@@ -25,6 +25,8 @@ struct nic
 	unsigned char	*node_addr;
 	unsigned char	*packet;
 	unsigned int	packetlen;
+	unsigned int	ioaddr;
+	unsigned char	irqno;
 	void		*priv_data;	/* driver can hang private data here */
 };
 
