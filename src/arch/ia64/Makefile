@@ -1,6 +1,6 @@
 ARCH_FORMAT=	elf64-ia64-little
 
-LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES)
+LCONFIG+=	-DRELOC=$(RELOCADDR)
 
 
 BUILD_EFIS=	$(patsubst %.img, %.efi, $(IMGS)) $(patsubst %.img, %.zefi, $(IMGS))
