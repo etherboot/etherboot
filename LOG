@@ -2371,6 +2371,13 @@ send fixed binary structure instead of variable length string.
 first test catches too many revisions. Changed to match the Linux
 driver.
 
++ Fotis Andritsopoulos found a small bug in cs89x0.h, TX_AFTER_ALL
+should be 0x0C0.
+
++ Brilliant idea by Eric Biederman. Ignore DHCP offers with zero server
+IP, or null filename unless DEFAULT_BOOTFILE is defined. This will
+ignore most Windows DHCP servers.
+
 + (5.1.2) Multicast support by Eric Biederman.
 
 + (5.1.2) Builtin menuing has been removed.

@@ -28,11 +28,9 @@ Author: Martin Renters
 #define	DEFAULT_KERNELPATH	"/tftpboot/kernel.%@"
 #endif
 
-/* Edit this to change the default fallback kernel image.
+/* Uncomment this and maybe edit to have a default fallback kernel image.
    This is used if bootp/dhcp-server doesn't provide the kernel path */
-#ifndef	DEFAULT_BOOTFILE
-#define DEFAULT_BOOTFILE	"/tftpboot/kernel"
-#endif
+/*#define DEFAULT_BOOTFILE	"/tftpboot/kernel"*/
 
 #ifdef FREEBSD_PXEEMU
 #undef DEFAULT_BOOTFILE
