@@ -61,7 +61,6 @@ void print_config(void)
 	for(driver = isa_drivers; driver < isa_drivers_end; driver++) {
 		printf("[%s]", driver->name);
 	}
-
 }
 #endif	
 	putchar('\n');

@@ -558,12 +558,12 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 #ifdef EMBEDDED
 		/* Retrieve and print the ethernet address. */
 		{
-		unsigned char MAC_HW_ADDR[6]={MAC_HW_ADDR_DRV};
-		memcpy(nic->node_addr, MAC_HW_ADDR, 6);
+			unsigned char MAC_HW_ADDR[6]={MAC_HW_ADDR_DRV};
+			memcpy(nic->node_addr, MAC_HW_ADDR, 6);
 		}
 		printf("\n%!\n", nic->node_addr);
 
-	    eth_adapter_cnf = A_CNF_10B_T | A_CNF_MEDIA_10B_T;
+		eth_adapter_cnf = A_CNF_10B_T | A_CNF_MEDIA_10B_T;
 		eth_auto_neg_cnf = EE_AUTO_NEG_ENABLE | IMM_BIT;
 #endif
 #ifndef EMBEDDED 

@@ -10,7 +10,8 @@
 #ifdef DEBUG_IRQ
 #define DBG(...) printf ( __VA_ARGS__ )
 #else
-#define DBG(...)
+static inline int dbg(const char *format, ...) { return 0; }
+#define DBG dbg
 #endif
 
 /* Current locations of trivial IRQ handler.  These will change at

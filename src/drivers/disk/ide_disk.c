@@ -657,7 +657,7 @@ static int init_controller(struct controller *ctrl, int basedrive, unsigned char
 	 * 
 	 */
 #if !BSY_SET_DURING_SPINUP
-	if (await_ide(timeout, ctrl, IDE_TIMEOUT) < 0) {
+	if (await_ide(timeout, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
 #endif
