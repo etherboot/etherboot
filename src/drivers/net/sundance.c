@@ -196,7 +196,7 @@ static struct netdev_desc tx_ring[TX_RING_SIZE]
 /* Create a static buffer of size PKT_BUF_SZ for each
 TX Descriptor.  All descriptors point to a
 part of this buffer */
-static unsigned char txb[PKT_BUF_SZ * TX_RING_SIZE];
+static unsigned char txb[PKT_BUF_SZ * TX_RING_SIZE]
     __attribute__ ((aligned(8)));
 
 
@@ -207,7 +207,7 @@ static struct netdev_desc rx_ring[RX_RING_SIZE]
 /* Create a static buffer of size PKT_BUF_SZ for each
 RX Descriptor   All descriptors point to a
 part of this buffer */
-static unsigned char rxb[RX_RING_SIZE * PKT_BUF_SZ];
+static unsigned char rxb[RX_RING_SIZE * PKT_BUF_SZ]
     __attribute__ ((aligned(8)));
 
 
@@ -273,7 +273,7 @@ struct sundance_private {
     int link_status;
     u16 advertizing;		/* NWay media advertizing */
     unsigned char phys[2];
-
+	int budget;
 
     int saved_if_port;
 } sdx;
@@ -290,13 +290,14 @@ static int mdio_read(struct nic *nic, int phy_id, unsigned int location);
 static void mdio_write(struct nic *nic, int phy_id, unsigned int location,
 		       int value);
 static void set_rx_mode(struct nic *nic);
+static void refill_rx (struct nic *nic);
 
 static void check_duplex(struct nic *nic)
 {
     int mii_reg5 = mdio_read(nic, sdc->phys[0], 5);
     int negociated = mii_reg5 & sdc->advertizing;
     int duplex;
-    
+
     if (sdc->duplex_lock || mii_reg5 == 0xffff)
 	return;
     duplex = (negociated & 0x0100) || (negociated & 0x01C0) == 0x0040;
@@ -390,8 +391,8 @@ static void sundance_reset(struct nic *nic)
 
 
     /* Enable interupts by setting the interrupt mask */
-  outw(IntrRxDMADone | IntrPCIErr | IntrDrvRqst | IntrTxDone
-	 | StatsMax | LinkChange, BASE + IntrEnable);
+/*  outw(IntrRxDMADone | IntrPCIErr | IntrDrvRqst | IntrTxDone
+	 | StatsMax | LinkChange, BASE + IntrEnable);*/
     outw(StatsEnable | RxEnable | TxEnable, BASE + MACCtrl1);
 
     /* Construct a perfect filter frame with the mac address as first match
@@ -422,49 +423,73 @@ static int sundance_poll(struct nic *nic)
     /* return true if there's an ethernet packet ready to read */
     /* nic->packet should contain data on return */
     /* nic->packetlen should contain length of data */
-    u32 frame_status;
-    struct netdev_desc *desc;
-/*	int intr_status = inw(BASE + IntrStatus);
+	int entry = sdc->cur_rx % RX_RING_SIZE;
+	int boguscnt = 32;
+	int received = 0;
+/*	if(sdc->budget < 0)
+		sdc->budget = 32; */
+/*	while(1) { */
+    		struct netdev_desc *desc = &(rx_ring[entry]);
+		u32 frame_status = le32_to_cpu(desc->status);
+		int pkt_len=0;
 
-	if((intr_status & ~IntrRxDone) == 0 || intr_status == 0xffff)
-		return 0;
+		if (--boguscnt < 0 ) {
+			goto not_done;
+		}
+		if (!(frame_status & DescOwn))
+			return 0;
+    		pkt_len = frame_status & 0x1fff;
+    		if (frame_status & 0x001f4000) {
+			printf("There was an error\n");
+		} else {
+			if (pkt_len < rx_copybreak) { 
+				printf("Problem");
+			} else {
+				nic->packetlen = pkt_len;
+    				memcpy(nic->packet, rxb +
+						(sdc->cur_rx * PKT_BUF_SZ),
+						nic->packetlen);
 
-	outw(intr_status & (IntrRxDMADone ), BASE + IntrStatus);
+			}
+/*			else
+				printf("doing something else"); */
+		} 
+		entry = (entry + 1) % RX_RING_SIZE;
+		received++;
+/*	} */
+	sdc->cur_rx = entry;
+	refill_rx(nic);
+	sdc->budget -=received;
+ 	return 1;
 
-	if(!(intr_status & IntrRxDMADone))
-		return 0;
-*/
-    if (!(sdc->rx_head_desc->status & cpu_to_le32(DescOwn)))
+not_done:
+	sdc->cur_rx = entry;
+	refill_rx(nic);
+	if(!received)
+		received=1;
+	sdc->budget -= received;
+	if (sdc->budget <= 0)
+		sdc->budget =32;
+	printf("Not Done\n");
 	return 0;
-
-    (struct netdev_desc *) desc = sdc->rx_head_desc;
-    frame_status = le32_to_cpu(desc->status);
-    nic->packetlen = (frame_status & 0x1fff);
-
-    /* Throw away a corrupted packet and move on */
-    if (frame_status & 0x001f4000) {
-	/* return the descriptor buffer to receive ring */
-	rx_ring[sdc->cur_rx].status = 0x00000000;
-	sdc->cur_rx = (++sdc->cur_rx) % RX_RING_SIZE;
-	return 0;
-    }
-
-    /* Copy the packet to working buffer */
-    memcpy(nic->packet, rxb + (sdc->cur_rx * PKT_BUF_SZ), nic->packetlen);
-
-    desc->status = 0x00000000;
-    /* return the descriptor and buffer to receive ring */
-    rx_ring[sdc->cur_rx].length = cpu_to_le32(sdc->rx_buf_sz | LastFrag);
-    rx_ring[sdc->cur_rx].status = 0;
-
-    sdc->cur_rx = (++sdc->cur_rx) % RX_RING_SIZE;
-    sdc->rx_head_desc = &rx_ring[sdc->cur_rx];
-    outw(0x100, BASE + DMACtrl);
-
-    return 1;
 
 }
+static void refill_rx (struct nic *nic) {
+	int entry;
+	int cnt = 0;
 
+	/* Refill the Rx ring buffers. */
+	for (; (sdc->cur_rx - sdc->dirty_rx + RX_RING_SIZE) % RX_RING_SIZE > 0;
+		sdc->dirty_rx = (sdc->dirty_rx + 1) % RX_RING_SIZE) {
+		entry = sdc->dirty_rx % RX_RING_SIZE;
+		/* Perhaps we need not reset this field. */
+		rx_ring[entry].length =
+			cpu_to_le32(sdc->rx_buf_sz | LastFrag);
+		rx_ring[entry].status = 0;
+		cnt++;
+	}
+	return;
+}
 
 /**************************************************************************
 TRANSMIT - Transmit a frame
