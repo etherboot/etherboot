@@ -184,8 +184,8 @@ bin32/$key.tmp:	bin32/$key.o bin32/config-$key.o bin32/pci.o \$(STDDEPS32)
 	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$key.o bin32/$key.o bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
-bin32/$key.elf:	bin32/$key.o bin32/config-$key.o bin32/pci.o \$(UBE_DEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(UBE_START32) bin32/config-$key.o bin32/$key.o bin32/pci.o \$(LIBS32)
+bin32/$key.elf:	bin32/$key.o bin32/config-$key.o bin32/pci.o \$(ELF_DEPS32)
+	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$key.o bin32/$key.o bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
 bin32/$key.img:	bin32/$key.o bin32/$key.tmp bin32/config-$key.o bin32/pci.o \$(STDDEPS32)

@@ -161,7 +161,7 @@ COMPREFIX=	bin/comprefix.bin
 LILOPREFIX=	bin/liloprefix.bin
 
 START32=	bin32/start32.o bin32/memsizes.o
-UBE_START32=	bin32/ube_start32.o bin32/ube.o
+ELF_START32=	bin32/start32.o bin32/linuxbios.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/misc.o
 BOBJS32+=	bin32/ansiesc.o bin32/bootmenu.o bin32/md5.o bin32/floppy.o
@@ -170,7 +170,7 @@ BLIB32=		bin32/bootlib.a
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf
 STDDEPS32=	$(START32) $(BLIB32) $(UTILS)
-UBE_DEPS32=	$(UBE_START32) $(BLIB32)
+ELF_DEPS32=	$(ELF_START32) $(BLIB32)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
 # If you are confident that gcc 2.96 works for you, you can delete gcccheck
 # from the next line

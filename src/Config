@@ -172,6 +172,11 @@
 #
 #	BIOS interface options:
 #
+#	-DPCBIOS
+#			Compile in support for the normal pcbios
+#	-DLINUXBIOS
+#			Compile in support for LinuxBIOS
+#
 #	-DBBS_BUT_NOT_PNP_COMPLIANT
 #			Some BIOSes claim to be PNP but they don't conform
 #			to the BBS spec which specifies that ES:DI must
@@ -237,6 +242,9 @@
 # These default settings compile Etherboot with a small number of options.
 # You may wish to enable more of the features if the size of your ROM allows.
 
+# BIOS select don't change unless you know what you are doing
+CFLAGS32+=	-DPCBIOS
+
 # For prompting and default on timeout
 CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
 # If you prefer the old style rotating bar progress display
@@ -272,7 +280,7 @@ CFLAGS32+=	-DTAGGED_IMAGE -DELF_IMAGE
 # CFLAGS32+=	-DDOWNLOAD_PROTO_NFS
 
 # Options to make a version of Etherboot that will work under linuxBIOS.
-#CFLAGS32+= -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCONSPEED=115200 -DCONFIG_PCI_DIRECT -DELF_IMAGE -DIMAGE_MULTIBOOT
+#CFLAGS32+= -DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE 
 
 # These options affect the loader that is prepended to the Etherboot image
 LCONFIG+=	-DMOVEROM

@@ -258,7 +258,7 @@ int getdec(char **ptr)
 enum { Disable_A20 = 0x2400, Enable_A20 = 0x2401, Query_A20_Status = 0x2402,
 	Query_A20_Support = 0x2403 } Int0x15Arg;
 
-#ifndef	IBM_L40
+#if defined(PCBIOS) && !defined(IBM_L40)
 static void empty_8042(void)
 {
 	unsigned long time;
@@ -272,6 +272,7 @@ static void empty_8042(void)
 }
 #endif	/* IBM_L40 */
 
+#if defined(PCBIOS)
 /*
  * Gate A20 for high memory
  */
@@ -291,8 +292,9 @@ void gateA20_set(void)
 	empty_8042();
 #endif	/* IBM_L40 */
 }
+#endif
 
-#if	defined(TAGGED_IMAGE) || defined(CAN_BOOT_DISK)
+#if defined(PCBIOS) && (defined(TAGGED_IMAGE) || defined(CAN_BOOT_DISK))
 /*
  * Unset Gate A20 for high memory - some operating systems (mainly old 16 bit
  * ones) don't expect it to be set by the boot loader.
@@ -347,7 +349,7 @@ int getchar(void)
 	int c = 256;
 
 	do {
-#ifdef	POWERSAVE
+#if defined(PCBIOS) && defined(POWERSAVE)
 		/* Doze for a while (until the next interrupt).  This works
 		 * fine, because the keyboard is interrupt-driven, and the
 		 * timer interrupt (approx. every 50msec) takes care of the

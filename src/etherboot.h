@@ -534,8 +534,13 @@ extern int getdec P((char **));
 extern void printf P((const char *, ...));
 extern int sprintf P((char *, const char *, ...));
 extern int inet_aton P((char *p, in_addr *i));
+#ifdef PCBIOS
 extern void gateA20_set P((void));
 extern void gateA20_unset P((void));
+#else
+#define gateA20_set()
+#define gateA20_unset()
+#endif
 extern void putchar P((int));
 extern int getchar P((void));
 extern int iskey P((void));
