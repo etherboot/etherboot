@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 /* Sever states.
  *
@@ -55,12 +56,17 @@
 #define MAX_HDR (7 + 7 + 7) /* transaction, total size, block size */
 #define MIN_HDR (1 + 1 + 1) /* transaction, total size, block size */
 
+#define MAX_DATA_HDR (MAX_HDR + 7) /* header, packet # */
+#define MIN_DATA_HDR (MAX_HDR + 1) /* header, packet # */
+
 /* ETH_MAX_MTU 1500 - sizeof(iphdr) 20  - sizeof(udphdr) 8 = 1472 */
 #define SLAM_MAX_NACK		(1500 - (20 + 8))
 /* ETH_MAX_MTU 1500 - sizeof(iphdr) 20  - sizeof(udphdr) 8 - MAX_HDR = 1451 */
 #define SLAM_BLOCK_SIZE		(1500 - (20 + 8 + MAX_HDR))
 
 
+
+#define DEBUG 1
 
 static int slam_encode(
 	unsigned char **ptr, unsigned char *end, unsigned long value)
@@ -166,6 +172,7 @@ void next_client(struct sockaddr_in *next)
 	/* Find the next client we want to ping next */
 	if (!clients) {
 		next->sin_family = AF_UNSPEC;
+		return;
 	}
 	/* Return the first client */
 	memcpy(next, &client[0], sizeof(*next));
@@ -177,7 +184,7 @@ int main(int argc, char **argv)
 	int nack_len;
 	uint8_t request_packet[MAX_HDR];
 	int request_len;
-	uint8_t data_packet[MAX_HDR +  SLAM_BLOCK_SIZE];
+	uint8_t data_packet[MAX_DATA_HDR +  SLAM_BLOCK_SIZE];
 	int data_len;
 	uint8_t *ptr, *end;
 	struct sockaddr_in master_client;
@@ -270,9 +277,6 @@ int main(int argc, char **argv)
 	slam_encode(&ptr, end, SLAM_BLOCK_SIZE);
 	request_len = ptr - request_packet;
 
-	/* Fill in the data packet header */
-	memcpy(data_packet, request_packet, request_len);
-
 	clients = 0;
 	master_client.sin_family = AF_UNSPEC;
 	state = STATE_WAITING;
@@ -289,6 +293,12 @@ int main(int argc, char **argv)
 			if (master_client.sin_family == AF_UNSPEC) {
 				break;
 			}
+#if DEBUG
+			printf("Pinging %s:%d\n", 
+				inet_ntoa(master_client.sin_addr),
+				ntohs(master_client.sin_port));
+			fflush(stdout);
+#endif
 			result = sendto(sockfd, request_packet, request_len, 0,
 				&master_client, sizeof(master_client));
 			/* Forget the client I just asked, when the reply
@@ -317,14 +327,39 @@ int main(int argc, char **argv)
 					&master_client, &from_len);
 				if (result < 0)
 					break;
+				nack_len = result;
+#if DEBUG
+				printf("Received Nack from %s:%d\n",
+					inet_ntoa(master_client.sin_addr),
+					ntohs(master_client.sin_port));
+				fflush(stdout);
+#endif
+#if DEBUG
+				{
+					ptr = nack_packet;
+					end = ptr + result;
+					packet = 0;
+					result = 0;
+					while(ptr < end) {
+						packet += slam_decode(&ptr, end, &result);
+						if (result < 0) break;
+						packet_count = slam_decode(&ptr, end, &result);
+						if (result < 0) break;
+						printf("%d-%d ",
+							packet, packet + packet_count -1);
+					}
+					printf("\n");
+					fflush(stdout);
+				}
+#endif
 				/* Forget this client temporarily.
 				 * If the packet appears good they will be
 				 * readded.
 				 */
 				del_client(&master_client);
-				nack_len = result;
 				ptr = nack_packet;
 				end = ptr + nack_len;
+				result = 0;
 				packet = slam_decode(&ptr, end, &result);
 				if (result < 0)
 					break;
@@ -356,6 +391,10 @@ int main(int argc, char **argv)
 				&from, &from_len);
 			if (result <= 0)
 				break;
+#if DEBUG				
+			printf("Received Nack\n");
+			fflush(stdout);
+#endif
 			/* Receive packets until I don't get any more */
 			state = STATE_RECEIVING;
 			/* Process a  packet */
@@ -376,6 +415,7 @@ int main(int argc, char **argv)
 			off_t off;
 			off_t offset;
 			ssize_t bytes;
+			uint8_t *ptr2, *end2;
 			
 			/* Find the packet to transmit */
 			offset = packet * SLAM_BLOCK_SIZE;
@@ -387,8 +427,16 @@ int main(int argc, char **argv)
 					argv[1], strerror(errno));
 				exit(EXIT_FAILURE);
 			}
+			/* Encode the packet header */
+			ptr2 = data_packet;
+			end2 = data_packet + sizeof(data_packet);
+			slam_encode(&ptr2, end2, transaction);
+			slam_encode(&ptr2, end2, size);
+			slam_encode(&ptr2, end2, SLAM_BLOCK_SIZE);
+			slam_encode(&ptr2, end2, packet);
+			data_len = ptr2 - data_packet;
+			
 			/* Read in the data */
-			data_len = request_len;
 			bytes = read(filefd, &data_packet[data_len], 
 				SLAM_BLOCK_SIZE);
 			if (bytes <= 0) {
@@ -406,7 +454,11 @@ int main(int argc, char **argv)
 					strerror(errno));
 				exit(EXIT_FAILURE);
 			}
-			/* Ccompute the next packet */
+#if DEBUG > 1
+			printf("Transmitted: %d\n", packet);
+			fflush(stdout);
+#endif
+			/* Compute the next packet */
 			packet++;
 			packet_count--;
 			if (packet_count == 0) {
