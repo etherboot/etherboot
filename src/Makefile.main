@@ -285,11 +285,11 @@ $(BIN)/%.z:	$(BIN)/%.img $(BIN)/nrv2b $(MAKEDEPS)
 clean:
 	$(RM) $(BIN)/*
 
-../index.html:	../index.xhtml
-	(cd ..; m4 -P -DHOSTSITE=SOURCEFORGE index.xhtml > index.html)
+../index.html:	../doc/html/template ../index.xhtml
+	(cd ..; m4 -P -DHTML_INCLUDE=index.xhtml -DHOSTSITE=SOURCEFORGE doc/html/template > index.html)
 
-../index-berlios.html:	../index.xhtml
-	(cd ..; m4 -P -DHOSTSITE=BERLIOS index.xhtml > index-berlios.html)
+../index-berlios.html:	../doc/html/template ../index.xhtml
+	(cd ..; m4 -P -DHTML_INCLUDE=index.xhtml -DHOSTSITE=BERLIOS doc/html/template > index-berlios.html)
 
 tarball: ../index.html ../index-berlios.html
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
