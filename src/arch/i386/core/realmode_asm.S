@@ -702,30 +702,55 @@ _pxe_hide_memory:
 	.long	0,0			/* Etherboot text (base,length) */
 	.long	0,0			/* Heap (base,length) */
 _pxe_hide_memory_end:
-	
+
+/****************************************************************************
+ * Intercept INT 15 memory calls and remove the hidden memory ranges
+ * from the resulting memory map.
+ ****************************************************************************
+ */
+	.globl	_pxe_intercept_int15
+_pxe_intercept_int15:
+	/* Preserve registers */
+	pushw	%bp
+	/* Store %ax for future reference */
+	pushw	%ax
+	/* Make INT-style call to old INT15 routine */
+	call	1f
+1:	popw	%bp
+	pushfw
+	lcall	%cs:*(_pxe_intercepted_int15-1b)(%bp)
+	/* Preserve flags returned by original E820 routine */
+	pushfw
+	/* Check for valid INT15 routine */
+	jc	pxe_intercept_int15_exit
+	/* Check for a routine we want to intercept */
+	movw	%sp, %bp
+	cmpw	$0xe820, 2(%bp)
+	je	pxe_intercept_e820
+	cmpw	$0xe801, 2(%bp)
+	je	pxe_intercept_e801
+	cmpb	$0x88, 3(%bp)
+	je	pxe_intercept_88
+pxe_intercept_int15_exit:
+	/* Restore registers and return */
+	popfw
+	popw	%bp			/* discard original %ax */
+	popw	%bp
+	lret	$2			/* 'iret' - flags already loaded */
+
+	.globl	_pxe_intercepted_int15
+_pxe_intercepted_int15:	.word 0,0
+		
 /****************************************************************************
  * Intercept INT 15,E820 calls and remove the hidden memory ranges
  * from the resulting memory map.
  ****************************************************************************
  */
 #define SMAP ( 0x534d4150 )
-	.globl	_pxe_intercept_e820
-_pxe_intercept_e820:
-	/* Call to original E820 routine */
-	pushw	%bp
-	call	1f
-1:	popw	%bp
-	/* Make INT-style call to old E820 routine */
-	pushfw
-	lcall	%cs:*(_pxe_intercepted_e820-1b)(%bp)
-	/* Preserve registers and flags returned by original E820 routine */
-	pushfw
-	pushl	%eax
-	pushl	%ecx
+pxe_intercept_e820:
 	/* Check for valid E820 routine */
-	jc	99f
 	cmpl	$SMAP, %eax
-	jne	99f
+	jne	pxe_intercept_int15_exit
 	/* If base address isn't in the low 4GB, return unaltered
 	 * (since we never claim memory above 4GB).  WARNING: we cheat
 	 * by assuming that no E820 region will straddle the 4GB
@@ -733,7 +758,11 @@ _pxe_intercept_e820:
 	 * will probably break.
 	 */
 	cmpl	$0, %es:4(%di)
-	jne	99f
+	jne	pxe_intercept_int15_exit
+	/* Preserve registers */
+	pushl	%eax
+	pushl	%ecx
+	/* Update returned memory range */
 	movl	%es:0(%di), %eax	/* Base */
 	movl	%es:8(%di), %ecx	/* Length */
 	pushw	%di
@@ -742,19 +771,67 @@ _pxe_intercept_e820:
 	popw	%di
 	movl	%eax, %es:0(%di)	/* Store updated base */
 	movl	%ecx, %es:8(%di)	/* Store updated length */
-99:	/* Restore registers and return */
+	/* Restore registers and return */
 	popl	%ecx
 	popl	%eax
-	popfw
-	popw	%bp
-	lret	$2			/* 'iret' - flags already loaded */
-	.globl	_pxe_intercepted_e820
-_pxe_intercepted_e820:	.word 0,0
+	jmp	pxe_intercept_int15_exit
 
-
-
+/****************************************************************************
+ * Intercept INT 15,E801 calls and remove the hidden memory ranges
+ * from the resulting memory map.
+ ****************************************************************************
+ */
+pxe_intercept_e801:
+	/* Adjust return values */
+	call	e801_adjust
+	xchgw	%ax, %cx
+	xchgw	%bx, %dx
+	call	e801_adjust
+	xchgw	%ax, %cx
+	xchgw	%bx, %dx
+	jmp	pxe_intercept_int15_exit
 	
+	/* %ax = #KB from 1MB+, %bx = #64KB from 16MB+
+	 * Return with modified values in %ax, %bx.  Preserver other regs.
+	 */
+e801_adjust:
+	pushw	%di
+	pushl	%ecx
+	pushl	%eax
+	movw	$1, %di			/* "truncate only high end" flag */
+
+	/* Truncate #64KB from 16MB+ as appropriate */
+	movw	%bx, %cx		/* (no need to zero high word) */
+	shll	$16, %ecx		/* %ecx = length in bytes */
+	movl	$(1<<24), %eax		/* 16MB start address */
+	call	_exclude_hidden_memory_ranges
+	shrl	$16, %ecx		/* %cx = updated length in 64KB */
+	movw	%cx, %bx		/* Return in %bx */
 	
+	/* Truncate #KB from 1MB+ as appropriate */
+	popw	%cx			/* Orig. %ax (high word already 0) */
+	shll	$10, %ecx		/* %ecx = length in bytes */
+	shrl	$4, %eax		/* 1MB start address */
+	call	_exclude_hidden_memory_ranges
+	shrl	$10, %ecx		/* %cx = updated length in KB */
+	pushw	%cx			/* Will be picked up in %eax */
+	
+	popl	%eax
+	popl	%ecx
+	popw	%di
+	ret
+
+/****************************************************************************
+ * Intercept INT 15,88 calls and remove the hidden memory ranges
+ * from the resulting memory map.
+ ****************************************************************************
+ */
+pxe_intercept_88:
+	pushw	%bx			/* E801 adjust, ignore %bx */
+	call	e801_adjust
+	popw	%bx
+	jmp	pxe_intercept_int15_exit
+		
 pxe_rm_in_call:	
 pxe_attach_rm:
 	/* rm_callback_interface must be appended here */
