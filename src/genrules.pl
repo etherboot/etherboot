@@ -197,6 +197,9 @@ family		drivers/net/pcnet32
 #ne2100		-		Novell NE2100, NE1500
 #ni6510		-		Racal-Interlan NI6510
 
+# National Semiconductor ns83820 (Gigabit) family
+family		drivers/net/ns83820
+
 family		drivers/net/tulip
 
 family		drivers/net/davicom
