@@ -106,5 +106,6 @@ SECTIONS {
 	 */
 	_pxe_stack_size = _pxe_stack_t_size
 		+ _pxe_callback_interface_size
-		+ _rm_callback_interface_size;
+		+ _rm_callback_interface_size
+		+ _e820mangler_size + 15 ;
 }
