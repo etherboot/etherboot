@@ -33,7 +33,9 @@ uint32_t get_free_base_memory ( void ) {
 
 /* Start of our image in base memory.
  */
-uint32_t image_basemem __attribute__ ((section (".text16.nocompress"))) = 0;
+#define __text16_nocompress __attribute__ ((section (".text16.nocompress")))
+uint32_t image_basemem __text16_nocompress = 0;
+uint32_t image_basemem_size __text16_nocompress = 0;
 
 /* Allot/free the real-mode stack
  */
@@ -232,8 +234,16 @@ void free_unused_base_memory ( void ) {
  * Etherboot by arch_main().
  */
 void forget_prefix_base_memory ( void ) {
-	/* text_start_kb is _text rounded down to a physical KB boundary */
+	/* runtime_start_kb is _text rounded down to a physical kB boundary */
 	uint32_t runtime_start_kb = virt_to_phys(_text) & ~0x3ff;
+	/* prefix_size_kb is the prefix size excluding any portion
+	 * that overlaps into the first kB used by the runtime image
+	 */
+	uint32_t prefix_size_kb = runtime_start_kb - image_basemem;
+
+#ifdef DEBUG_BASEMEM
+	printf ( "Attempting to free base memory used by prefix\n" );
+#endif
 
 	/* If the decompressor is in allocated base memory
 	 * *and* the Etherboot text is in base
@@ -243,11 +253,12 @@ void forget_prefix_base_memory ( void ) {
 	     ( runtime_start_kb >= FREE_BASE_MEMORY ) &&
 	     ( runtime_start_kb <= ( BASE_MEMORY_MAX << 10 ) ) ) {
 		forget_base_memory ( phys_to_virt ( image_basemem ),
-				     runtime_start_kb - image_basemem );
-		/* Update image_basemem to indicate that our
-		 * allocation now starts with _text
+				     prefix_size_kb );
+		/* Update image_basemem and image_basemem_size to
+		 * indicate that our allocation now starts with _text
 		 */
 		image_basemem = runtime_start_kb;
+		image_basemem_size -= prefix_size_kb;
 	}
 }
 
@@ -258,15 +269,17 @@ void forget_runtime_base_memory ( uint32_t old_addr ) {
 	/* text_start_kb is old _text rounded down to a physical KB boundary */
 	uint32_t old_text_start_kb = old_addr & ~0x3ff;
 
+#ifdef DEBUG_BASEMEM
+	printf ( "Attempting to free base memory used by runtime image\n" );
+#endif
+
 	if ( ( image_basemem >= FREE_BASE_MEMORY ) &&
 	     ( image_basemem == old_text_start_kb ) ) {
-		/* Length of basemem segment is length of text plus
-		 * remainder between KB boundary and start of text.
-		 */
 		forget_base_memory ( phys_to_virt ( image_basemem ),
-				     ( old_addr & 0x3ff ) + ( _end - _text ) );
+				     image_basemem_size );
 		/* Update image_basemem to show no longer in use */
 		image_basemem = 0;
+		image_basemem_size = 0;
 	}
 }
 

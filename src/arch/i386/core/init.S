@@ -254,12 +254,17 @@ prelocate:
 	cld
 	popal				/* Restore 32-bit registers */
 
-	/* Store (%bx<<4) as image_basemem to be picked up by basemem.c */
+	/* Store (%bx<<4) as image_basemem to be picked up by
+	 * basemem.c.  Also store image_size, since there's no other
+	 * way that we can later know how much memory we allocated.
+	 * (_zfile_size is unavailable when rt2 is linked).
+	 */
 	pushl	%eax
 	xorl	%eax, %eax
 	movw	%bx, %ax
 	shll	$4, %eax
 	movl	%eax, %es:image_basemem
+	movl	$_image_size, %es:image_basemem_size
 	popl	%eax
 
 	/* Expand original near return address into far return to new
