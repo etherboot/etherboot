@@ -36,6 +36,7 @@
 *    REVISION HISTORY:
 *    ================
 *    v1.0	01-31-2004	timlegge	Initial port of Linux driver
+*    v1.1	02-03-2004	timlegge	Large Clean up, first release 
 *    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -48,9 +49,16 @@
 #include "pci.h"
 /* Include timer support functions */
 #include "timer.h"
-#define drv_version "v1.5"
-#define drv_date "01-17-2004"
 
+#define drv_version "v1.1"
+#define drv_date "02-03-2004"
+
+//#define TFTM_DEBUG
+#ifdef TFTM_DEBUG
+#define dprintf(x) printf x
+#else
+#define dprintf(x)
+#endif
 
 typedef unsigned char u8;
 typedef signed char s8;
@@ -76,7 +84,7 @@ unsigned long BASE;
 #define DEV_IRQMASK_2		0x0004
 #define DEV_NEED_TIMERIRQ	0x0008
 
-enum  {
+enum {
 	NvRegIrqStatus = 0x000,
 #define NVREG_IRQSTAT_MIIEVENT	0040
 #define NVREG_IRQSTAT_MASK		0x1ff
@@ -261,8 +269,8 @@ enum  {
 #define NV_WATCHDOG_TIMEO	(2*HZ)
 #define DEFAULT_MTU		1500	/* also maximum supported, at least for now */
 
-#define RX_RING		256
-#define TX_RING		12
+#define RX_RING		4
+#define TX_RING		2
 /* limited to 1 packet until we understand NV_TX_LASTPACKET */
 #define TX_LIMIT_STOP	10
 #define TX_LIMIT_START	5
@@ -281,7 +289,6 @@ struct ring_desc {
 	u16 Flags;
 };
 
-static struct ring_desc rx_ring[RX_RING];
 
 /* Define the TX Descriptor */
 static struct ring_desc tx_ring[TX_RING];
@@ -291,17 +298,13 @@ TX Descriptor.  All descriptors point to a
 part of this buffer */
 static unsigned char txb[TX_RING * RX_NIC_BUFSIZE];
 
-/* Define the RX Descriptor */
-//static u8 rx_ring[RX_RING];
-// __attribute__ ((aligned()));
+/* Define the TX Descriptor */
+static struct ring_desc rx_ring[RX_RING];
 
 /* Create a static buffer of size RX_BUF_SZ for each
 RX Descriptor   All descriptors point to a
 part of this buffer */
 static unsigned char rxb[RX_RING * RX_NIC_BUFSIZE];
-
-
-
 
 /* Private Storage for the NIC */
 struct forcedeth_private {
@@ -342,8 +345,8 @@ static inline void pci_push(u8 * base)
 	/* force out pending posted writes */
 	readl(base);
 }
-static int reg_delay(struct nic *nic __unused, int offset, u32 mask, u32 target,
-				int delay, int delaymax, const char *msg)
+static int reg_delay(int offset, u32 mask,
+		     u32 target, int delay, int delaymax, const char *msg)
 {
 	u8 *base = (u8 *) BASE;
 
@@ -361,32 +364,33 @@ static int reg_delay(struct nic *nic __unused, int offset, u32 mask, u32 target,
 }
 
 #define MII_READ	(-1)
-#define MII_PHYSID1         0x02        /* PHYS ID 1                   */
-#define MII_PHYSID2         0x03        /* PHYS ID 2                   */
-#define MII_BMCR            0x00        /* Basic mode control register */
-#define MII_BMSR            0x01        /* Basic mode status register  */
-#define MII_ADVERTISE       0x04        /* Advertisement control reg   */
-#define MII_LPA             0x05        /* Link partner ability reg    */
+#define MII_PHYSID1         0x02	/* PHYS ID 1                   */
+#define MII_PHYSID2         0x03	/* PHYS ID 2                   */
+#define MII_BMCR            0x00	/* Basic mode control register */
+#define MII_BMSR            0x01	/* Basic mode status register  */
+#define MII_ADVERTISE       0x04	/* Advertisement control reg   */
+#define MII_LPA             0x05	/* Link partner ability reg    */
 
-#define BMSR_ANEGCOMPLETE       0x0020  /* Auto-negotiation complete   */
+#define BMSR_ANEGCOMPLETE       0x0020	/* Auto-negotiation complete   */
 
 /* Link partner ability register. */
-#define LPA_SLCT                0x001f  /* Same as advertise selector  */
-#define LPA_10HALF              0x0020  /* Can do 10mbps half-duplex   */
-#define LPA_10FULL              0x0040  /* Can do 10mbps full-duplex   */
-#define LPA_100HALF             0x0080  /* Can do 100mbps half-duplex  */
-#define LPA_100FULL             0x0100  /* Can do 100mbps full-duplex  */
-#define LPA_100BASE4            0x0200  /* Can do 100mbps 4k packets   */
-#define LPA_RESV                0x1c00  /* Unused...                   */
-#define LPA_RFAULT              0x2000  /* Link partner faulted        */
-#define LPA_LPACK               0x4000  /* Link partner acked us       */
-#define LPA_NPAGE               0x8000  /* Next page bit               */
+#define LPA_SLCT                0x001f	/* Same as advertise selector  */
+#define LPA_10HALF              0x0020	/* Can do 10mbps half-duplex   */
+#define LPA_10FULL              0x0040	/* Can do 10mbps full-duplex   */
+#define LPA_100HALF             0x0080	/* Can do 100mbps half-duplex  */
+#define LPA_100FULL             0x0100	/* Can do 100mbps full-duplex  */
+#define LPA_100BASE4            0x0200	/* Can do 100mbps 4k packets   */
+#define LPA_RESV                0x1c00	/* Unused...                   */
+#define LPA_RFAULT              0x2000	/* Link partner faulted        */
+#define LPA_LPACK               0x4000	/* Link partner acked us       */
+#define LPA_NPAGE               0x8000	/* Next page bit               */
 
 /* mii_rw: read/write a register on the PHY.
  *
  * Caller must guarantee serialization
  */
-static int mii_rw(struct nic *nic, int addr, int miireg, int value)
+static int mii_rw(struct nic *nic __unused, int addr, int miireg,
+		  int value)
 {
 	u8 *base = (u8 *) BASE;
 	int was_running;
@@ -398,7 +402,8 @@ static int mii_rw(struct nic *nic, int addr, int miireg, int value)
 	reg = readl(base + NvRegAdapterControl);
 	if (reg & NVREG_ADAPTCTL_RUNNING) {
 		was_running = 1;
-		writel(reg & ~NVREG_ADAPTCTL_RUNNING, base + NvRegAdapterControl);
+		writel(reg & ~NVREG_ADAPTCTL_RUNNING,
+		       base + NvRegAdapterControl);
 	}
 	reg = readl(base + NvRegMIIControl);
 	if (reg & NVREG_MIICTL_INUSE) {
@@ -406,37 +411,39 @@ static int mii_rw(struct nic *nic, int addr, int miireg, int value)
 		udelay(NV_MIIBUSY_DELAY);
 	}
 
-	reg = NVREG_MIICTL_INUSE | (addr << NVREG_MIICTL_ADDRSHIFT) | miireg;
+	reg =
+	    NVREG_MIICTL_INUSE | (addr << NVREG_MIICTL_ADDRSHIFT) | miireg;
 	if (value != MII_READ) {
 		writel(value, base + NvRegMIIData);
 		reg |= NVREG_MIICTL_WRITE;
 	}
 	writel(reg, base + NvRegMIIControl);
 
-	if (reg_delay(nic, NvRegMIIControl, NVREG_MIICTL_INUSE, 0,
-			NV_MIIPHY_DELAY, NV_MIIPHY_DELAYMAX, NULL)) {
-		printf("mii_rw of reg %d at PHY %d timed out.\n",
-				miireg, addr);
+	if (reg_delay(NvRegMIIControl, NVREG_MIICTL_INUSE, 0,
+		      NV_MIIPHY_DELAY, NV_MIIPHY_DELAYMAX, NULL)) {
+		dprintf(("mii_rw of reg %d at PHY %d timed out.\n",
+			 miireg, addr));
 		retval = -1;
 	} else if (value != MII_READ) {
 		/* it was a write operation - fewer failures are detectable */
-		printf("mii_rw wrote 0x%x to reg %d at PHY %d\n",
-				value, miireg, addr);
+		dprintf(("mii_rw wrote 0x%x to reg %d at PHY %d\n",
+			 value, miireg, addr));
 		retval = 0;
 	} else if (readl(base + NvRegMIIStatus) & NVREG_MIISTAT_ERROR) {
-		printf("mii_rw of reg %d at PHY %d failed.\n",
-				miireg, addr);
+		dprintf(("mii_rw of reg %d at PHY %d failed.\n",
+			 miireg, addr));
 		retval = -1;
 	} else {
 		/* FIXME: why is that required? */
 		udelay(50);
 		retval = readl(base + NvRegMIIData);
-		printf("mii_rw read from reg %d at PHY %d: 0x%x.\n",
-				miireg, addr, retval);
+		dprintf(("mii_rw read from reg %d at PHY %d: 0x%x.\n",
+			 miireg, addr, retval));
 	}
 	if (was_running) {
 		reg = readl(base + NvRegAdapterControl);
-		writel(reg | NVREG_ADAPTCTL_RUNNING, base + NvRegAdapterControl);
+		writel(reg | NVREG_ADAPTCTL_RUNNING,
+		       base + NvRegAdapterControl);
 	}
 	return retval;
 }
@@ -445,7 +452,7 @@ static void start_rx(struct nic *nic __unused)
 {
 	u8 *base = (u8 *) BASE;
 
-	printf("start_rx\n");
+	dprintf(("start_rx\n"));
 	/* Already running? Stop it. */
 	if (readl(base + NvRegReceiverControl) & NVREG_RCVCTL_START) {
 		writel(0, base + NvRegReceiverControl);
@@ -457,15 +464,15 @@ static void start_rx(struct nic *nic __unused)
 	pci_push(base);
 }
 
-static void stop_rx(struct nic *nic )
+static void stop_rx(void)
 {
 	u8 *base = (u8 *) BASE;
 
-	//printf("stop_rx\n");
+	dprintf(("stop_rx\n"));
 	writel(0, base + NvRegReceiverControl);
-	reg_delay(nic, NvRegReceiverStatus, NVREG_RCVSTAT_BUSY, 0,
-		       NV_RXSTOP_DELAY1, NV_RXSTOP_DELAY1MAX,
-		       "stop_rx: ReceiverStatus remained busy");
+	reg_delay(NvRegReceiverStatus, NVREG_RCVSTAT_BUSY, 0,
+		  NV_RXSTOP_DELAY1, NV_RXSTOP_DELAY1MAX,
+		  "stop_rx: ReceiverStatus remained busy");
 
 	udelay(NV_RXSTOP_DELAY2);
 	writel(0, base + NvRegLinkSpeed);
@@ -475,20 +482,20 @@ static void start_tx(struct nic *nic __unused)
 {
 	u8 *base = (u8 *) BASE;
 
-	//printf("start_tx\n");
+	dprintf(("start_tx\n"));
 	writel(NVREG_XMITCTL_START, base + NvRegTransmitterControl);
 	pci_push(base);
 }
 
-static void stop_tx(struct nic *nic)
+static void stop_tx(void)
 {
 	u8 *base = (u8 *) BASE;
 
-	printf("stop_tx\n");
+	dprintf(("stop_tx\n"));
 	writel(0, base + NvRegTransmitterControl);
-	reg_delay(nic, NvRegTransmitterStatus, NVREG_XMITSTAT_BUSY, 0,
-		       NV_TXSTOP_DELAY1, NV_TXSTOP_DELAY1MAX,
-		       "stop_tx: TransmitterStatus remained busy");
+	reg_delay(NvRegTransmitterStatus, NVREG_XMITSTAT_BUSY, 0,
+		  NV_TXSTOP_DELAY1, NV_TXSTOP_DELAY1MAX,
+		  "stop_tx: TransmitterStatus remained busy");
 
 	udelay(NV_TXSTOP_DELAY2);
 	writel(0, base + NvRegUnknownTransmitterReg);
@@ -499,8 +506,9 @@ static void txrx_reset(struct nic *nic __unused)
 {
 	u8 *base = (u8 *) BASE;
 
-	printf("%s: txrx_reset\n");
-	writel(NVREG_TXRXCTL_BIT2 | NVREG_TXRXCTL_RESET, base + NvRegTxRxControl);
+	dprintf(("txrx_reset\n"));
+	writel(NVREG_TXRXCTL_BIT2 | NVREG_TXRXCTL_RESET,
+	       base + NvRegTxRxControl);
 	pci_push(base);
 	udelay(NV_TXRX_RESET_DELAY);
 	writel(NVREG_TXRXCTL_BIT2, base + NvRegTxRxControl);
@@ -514,18 +522,18 @@ static void txrx_reset(struct nic *nic __unused)
  */
 static int alloc_rx(struct nic *nic __unused)
 {
-//	struct fe_priv *np = get_nvpriv(dev);
 	unsigned int refill_rx = np->refill_rx;
 	int i;
 	//while (np->cur_rx != refill_rx) {
-	for(i=0;i<RX_RING;i++){
+	for (i = 0; i < RX_RING; i++) {
 		//int nr = refill_rx % RX_RING;
-		rx_ring[i].PacketBuffer = virt_to_le32desc(&rxb[i * RX_NIC_BUFSIZE]);
+		rx_ring[i].PacketBuffer =
+		    virt_to_le32desc(&rxb[i * RX_NIC_BUFSIZE]);
 		rx_ring[i].Length = cpu_to_le16(RX_NIC_BUFSIZE);
 		wmb();
 		rx_ring[i].Flags = cpu_to_le16(NV_RX_AVAIL);
-	/*	printf("alloc_rx: Packet  %d marked as Available\n",
-					refill_rx);*/
+		/*      printf("alloc_rx: Packet  %d marked as Available\n",
+		   refill_rx); */
 		refill_rx++;
 	}
 	np->refill_rx = refill_rx;
@@ -536,30 +544,30 @@ static int alloc_rx(struct nic *nic __unused)
 
 static int update_linkspeed(struct nic *nic)
 {
-	int adv, lpa, newls, newdup;
-
+	int adv, lpa, newdup;
+	u32 newls;
 	adv = mii_rw(nic, np->phyaddr, MII_ADVERTISE, MII_READ);
 	lpa = mii_rw(nic, np->phyaddr, MII_LPA, MII_READ);
-	printf("update_linkspeed: PHY advertises 0x%hX, lpa 0x%hX.\n",
-				adv, lpa);
+	dprintf(("update_linkspeed: PHY advertises 0x%hX, lpa 0x%hX.\n",
+		 adv, lpa));
 
 	/* FIXME: handle parallel detection properly, handle gigabit ethernet */
 	lpa = lpa & adv;
-	if (lpa  & LPA_100FULL) {
-		newls = NVREG_LINKSPEED_FORCE|NVREG_LINKSPEED_100;
+	if (lpa & LPA_100FULL) {
+		newls = NVREG_LINKSPEED_FORCE | NVREG_LINKSPEED_100;
 		newdup = 1;
 	} else if (lpa & LPA_100HALF) {
-		newls = NVREG_LINKSPEED_FORCE|NVREG_LINKSPEED_100;
+		newls = NVREG_LINKSPEED_FORCE | NVREG_LINKSPEED_100;
 		newdup = 0;
 	} else if (lpa & LPA_10FULL) {
-		newls = NVREG_LINKSPEED_FORCE|NVREG_LINKSPEED_10;
+		newls = NVREG_LINKSPEED_FORCE | NVREG_LINKSPEED_10;
 		newdup = 1;
 	} else if (lpa & LPA_10HALF) {
-		newls = NVREG_LINKSPEED_FORCE|NVREG_LINKSPEED_10;
+		newls = NVREG_LINKSPEED_FORCE | NVREG_LINKSPEED_10;
 		newdup = 0;
 	} else {
 		printf("bad ability %hX - falling back to 10HD.\n", lpa);
-		newls = NVREG_LINKSPEED_FORCE|NVREG_LINKSPEED_10;
+		newls = NVREG_LINKSPEED_FORCE | NVREG_LINKSPEED_10;
 		newdup = 0;
 	}
 	if (np->duplex != newdup || np->linkspeed != newls) {
@@ -574,7 +582,6 @@ static int update_linkspeed(struct nic *nic)
 
 static int init_ring(struct nic *nic)
 {
-//	struct fe_priv *np = get_nvpriv(nic);
 	int i;
 
 	np->next_tx = np->nic_tx = 0;
@@ -589,6 +596,7 @@ static int init_ring(struct nic *nic)
 	}
 	return alloc_rx(nic);
 }
+
 /**************************************************************************
 RESET - Reset the NIC to prepare for use
 ***************************************************************************/
@@ -597,7 +605,7 @@ static int forcedeth_reset(struct nic *nic)
 	u8 *base = (u8 *) BASE;
 	int ret, oom, i;
 	ret = 0;
-	printf("forcedeth: open\n");
+	dprintf(("forcedeth: open\n"));
 
 	/* 1) erase previous misconfiguration */
 	/* 4.1-1: stop adapter: ignored, 4.3 seems to be overkill */
@@ -620,29 +628,32 @@ static int forcedeth_reset(struct nic *nic)
 	{
 		u32 mac[2];
 
-		mac[0] = (nic->node_addr[0] <<  0) + (nic->node_addr[1] <<  8) +
-				(nic->node_addr[2] << 16) + (nic->node_addr[3] << 24);
-		mac[1] = (nic->node_addr[4] << 0) + (nic->node_addr[5] << 8);
+		mac[0] =
+		    (nic->node_addr[0] << 0) + (nic->node_addr[1] << 8) +
+		    (nic->node_addr[2] << 16) + (nic->node_addr[3] << 24);
+		mac[1] =
+		    (nic->node_addr[4] << 0) + (nic->node_addr[5] << 8);
 
 		writel(mac[0], base + NvRegMacAddrA);
 		writel(mac[1], base + NvRegMacAddrB);
 	}
 
 	/* 4) continue setup */
-	np->linkspeed = NVREG_LINKSPEED_FORCE|NVREG_LINKSPEED_10;
+	np->linkspeed = NVREG_LINKSPEED_FORCE | NVREG_LINKSPEED_10;
 	np->duplex = 0;
 	writel(NVREG_UNKSETUP3_VAL1, base + NvRegUnknownSetupReg3);
 	writel(0, base + NvRegTxRxControl);
 	pci_push(base);
 	writel(NVREG_TXRXCTL_BIT1, base + NvRegTxRxControl);
 
-	reg_delay(nic, NvRegUnknownSetupReg5, NVREG_UNKSETUP5_BIT31, NVREG_UNKSETUP5_BIT31,
-			NV_SETUP5_DELAY, NV_SETUP5_DELAYMAX,
-			"open: SetupReg5, Bit 31 remained off\n");
+	reg_delay(NvRegUnknownSetupReg5, NVREG_UNKSETUP5_BIT31,
+		  NVREG_UNKSETUP5_BIT31, NV_SETUP5_DELAY,
+		  NV_SETUP5_DELAYMAX,
+		  "open: SetupReg5, Bit 31 remained off\n");
 	writel(0, base + NvRegUnknownSetupReg4);
 
 	/* 5) Find a suitable PHY */
-	writel(NVREG_MIISPEED_BIT8|NVREG_MIIDELAY, base + NvRegMIISpeed);
+	writel(NVREG_MIISPEED_BIT8 | NVREG_MIIDELAY, base + NvRegMIISpeed);
 	for (i = 1; i < 32; i++) {
 		int id1, id2;
 
@@ -652,8 +663,8 @@ static int forcedeth_reset(struct nic *nic)
 		id2 = mii_rw(nic, i, MII_PHYSID2, MII_READ);
 		if (id2 < 0)
 			continue;
-		printf("open: Found PHY %04x:%04x at address %d.\n",
-				id1, id2, i);
+		dprintf(("open: Found PHY %04x:%04x at address %d.\n",
+			 id1, id2, i));
 		np->phyaddr = i;
 
 		update_linkspeed(nic);
@@ -666,43 +677,54 @@ static int forcedeth_reset(struct nic *nic)
 		goto out_drain;
 	}
 
-	printf("%d-Mbs Link, %s-Duplex\n", np->linkspeed & NVREG_LINKSPEED_10 ? 10: 100, np->duplex ? "Full" : "Half");
+	printf("%d-Mbs Link, %s-Duplex\n",
+	       np->linkspeed & NVREG_LINKSPEED_10 ? 10 : 100,
+	       np->duplex ? "Full" : "Half");
 	/* 6) continue setup */
-	writel(NVREG_MISC1_FORCE | ( np->duplex ? 0 : NVREG_MISC1_HD),
-				base + NvRegMisc1);
-	writel(readl(base + NvRegTransmitterStatus), base + NvRegTransmitterStatus);
+	writel(NVREG_MISC1_FORCE | (np->duplex ? 0 : NVREG_MISC1_HD),
+	       base + NvRegMisc1);
+	writel(readl(base + NvRegTransmitterStatus),
+	       base + NvRegTransmitterStatus);
 	writel(NVREG_PFF_ALWAYS, base + NvRegPacketFilterFlags);
 	writel(NVREG_OFFLOAD_NORMAL, base + NvRegOffloadConfig);
 
-	writel(readl(base + NvRegReceiverStatus), base + NvRegReceiverStatus);
+	writel(readl(base + NvRegReceiverStatus),
+	       base + NvRegReceiverStatus);
 
 	/* FIXME: I cheated and used the calculator to get a random number */
 	i = 75963081;
-	writel(NVREG_RNDSEED_FORCE | (i&NVREG_RNDSEED_MASK), base + NvRegRandomSeed);
+	writel(NVREG_RNDSEED_FORCE | (i & NVREG_RNDSEED_MASK),
+	       base + NvRegRandomSeed);
 	writel(NVREG_UNKSETUP1_VAL, base + NvRegUnknownSetupReg1);
 	writel(NVREG_UNKSETUP2_VAL, base + NvRegUnknownSetupReg2);
 	writel(NVREG_POLL_DEFAULT, base + NvRegPollingInterval);
 	writel(NVREG_UNKSETUP6_VAL, base + NvRegUnknownSetupReg6);
-	writel((np->phyaddr << NVREG_ADAPTCTL_PHYSHIFT)|NVREG_ADAPTCTL_PHYVALID,
-			base + NvRegAdapterControl);
+	writel((np->
+		phyaddr << NVREG_ADAPTCTL_PHYSHIFT) |
+	       NVREG_ADAPTCTL_PHYVALID, base + NvRegAdapterControl);
 	writel(NVREG_UNKSETUP4_VAL, base + NvRegUnknownSetupReg4);
 	writel(NVREG_WAKEUPFLAGS_VAL, base + NvRegWakeUpFlags);
 
 	/* 7) start packet processing */
-	writel((u32) virt_to_le32desc(&rx_ring[0]), base + NvRegRxRingPhysAddr);
-	writel((u32) virt_to_le32desc(&tx_ring[0]) , base + NvRegTxRingPhysAddr);
+	writel((u32) virt_to_le32desc(&rx_ring[0]),
+	       base + NvRegRxRingPhysAddr);
+	writel((u32) virt_to_le32desc(&tx_ring[0]),
+	       base + NvRegTxRingPhysAddr);
 
 
-	writel( ((RX_RING-1) << NVREG_RINGSZ_RXSHIFT) + ((TX_RING-1) << NVREG_RINGSZ_TXSHIFT),
-			base + NvRegRingSizes);
+	writel(((RX_RING - 1) << NVREG_RINGSZ_RXSHIFT) +
+	       ((TX_RING - 1) << NVREG_RINGSZ_TXSHIFT),
+	       base + NvRegRingSizes);
 
 	i = readl(base + NvRegPowerState);
-	if ( (i & NVREG_POWERSTATE_POWEREDUP) == 0) {
-		writel(NVREG_POWERSTATE_POWEREDUP|i, base + NvRegPowerState);
+	if ((i & NVREG_POWERSTATE_POWEREDUP) == 0) {
+		writel(NVREG_POWERSTATE_POWEREDUP | i,
+		       base + NvRegPowerState);
 	}
 	pci_push(base);
 	udelay(10);
-	writel(readl(base + NvRegPowerState) | NVREG_POWERSTATE_VALID, base + NvRegPowerState);
+	writel(readl(base + NvRegPowerState) | NVREG_POWERSTATE_VALID,
+	       base + NvRegPowerState);
 	writel(NVREG_ADAPTCTL_RUNNING, base + NvRegAdapterControl);
 
 	writel(0, base + NvRegIrqMask);
@@ -719,24 +741,24 @@ static int forcedeth_reset(struct nic *nic)
 	writel(0, base + NvRegMulticastAddrB);
 	writel(0, base + NvRegMulticastMaskA);
 	writel(0, base + NvRegMulticastMaskB);
-	writel(NVREG_PFF_ALWAYS|NVREG_PFF_MYADDR, base + NvRegPacketFilterFlags);
+	writel(NVREG_PFF_ALWAYS | NVREG_PFF_MYADDR,
+	       base + NvRegPacketFilterFlags);
 
 	start_rx(nic);
 	start_tx(nic);
 
-	if (!(mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ) & BMSR_ANEGCOMPLETE)) {
+	if (!
+	    (mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ) &
+	     BMSR_ANEGCOMPLETE)) {
 		printf("no link during initialization.\n");
-		//netif_carrier_off(dev);
 	}
 
 	udelay(10000);
-
-
-out_drain:
-//	drain_ring(nic);
+      out_drain:
 	return ret;
 }
-extern void hex_dump ( const char *data, const unsigned int len );
+
+//extern void hex_dump(const char *data, const unsigned int len);
 
 /**************************************************************************
 POLL - Wait for a frame
@@ -750,50 +772,35 @@ static int forcedeth_poll(struct nic *nic)
 	struct ring_desc *prd;
 	int len;
 	int i;
-	u8 *base = (u8 *) BASE;
-//u32 events;
-	//if (np->cur_rx - np->refill_rx >= RX_RING)
-	//	break;	/* we scanned the whole ring - do not continue */
-	
+
 	i = np->cur_rx % RX_RING;
 	prd = &rx_ring[i];
-//printf("p");
+
 	if (prd->Flags & cpu_to_le16(NV_RX_DESCRIPTORVALID)) {
-		
-		//	printf("P");
-		//		return 0; //break;	/* still owned by hardware, */
-
-		len = cpu_to_le16(prd->Length);
-
- 		nic->packetlen = len;
-		//hex_dump(rxb + (i * RX_NIC_BUFSIZE), len);
-		//printf("S%d", len);
 		/* got a valid packet - forward it to the network core */
+		len = cpu_to_le16(prd->Length);
+		nic->packetlen = len;
+		//hex_dump(rxb + (i * RX_NIC_BUFSIZE), len);
 		memcpy(nic->packet, rxb +
-	       (i * RX_NIC_BUFSIZE), nic->packetlen);
+		       (i * RX_NIC_BUFSIZE), nic->packetlen);
 
 		wmb();
-		//rx_ring[i].Flags = cpu_to_le16(NV_RX_AVAIL);
-		//printf(" %d ", i);
 		np->cur_rx++;
 		alloc_rx(nic);
 		return 1;
 	}
-
-	return 0;	/* initially as this is called to flush the input */
+	return 0;		/* initially as this is called to flush the input */
 }
 
 
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
-static void forcedeth_transmit(
-	struct nic *nic,
-	const char *d,			/* Destination */
-	unsigned int t,			/* Type */
-	unsigned int s,			/* size */
-	const char *p)			/* Packet */
-{
+static void forcedeth_transmit(struct nic *nic, const char *d,	/* Destination */
+			       unsigned int t,	/* Type */
+			       unsigned int s,	/* size */
+			       const char *p)
+{				/* Packet */
 	/* send the packet to destination */
 	u8 *ptxb;
 	u16 nstype;
@@ -801,7 +808,6 @@ static void forcedeth_transmit(
 	u8 *base = (u8 *) BASE;
 	int nr = np->next_tx % TX_RING;
 
-	//printf("ST");
 	/* point to the current txb incase multiple tx_rings are used */
 	ptxb = txb + (nr * RX_NIC_BUFSIZE);
 	//np->tx_skbuff[nr] = ptxb;
@@ -817,45 +823,16 @@ static void forcedeth_transmit(
 	while (s < ETH_ZLEN)	/* pad to min length */
 		ptxb[s++] = '\0';
 
-	//hex_dump(ptxb, s);
-
 	tx_ring[nr].PacketBuffer = (u32) virt_to_le32desc(ptxb);
-	tx_ring[nr].Length = cpu_to_le16(s-1);
+	tx_ring[nr].Length = cpu_to_le16(s - 1);
 
 	wmb();
 	tx_ring[nr].Flags = np->tx_flags;
-	//start_tx(nic);
-	/*printf("start_xmit: packet packet %d queued for transmission.\n",
-				np->next_tx); */
-	/*{
-		int j;
-		for (j=0; j<64; j++) {
-			if ((j%16) == 0)
-				//printf("\n%hX:", j);
-			//printf(" %hX", (unsigned char*) ptxb);
-		}
-		//printf("\n");
-	}
-*/
-	
-	writel(NVREG_TXRXCTL_KICK,  base + NvRegTxRxControl);
-	pci_push(base);
-	//udelay(10);
-	/*while(1) {
-		if ((tx_ring[nr].Flags & cpu_to_le16(NV_TX_VALID)) != NV_TX_VALID)
-			break;
-		}
-	
-		printf("Got here\n");
-	*/
-	//printf(" %d ", nr);
 
-	//stop_tx(nic);
+	writel(NVREG_TXRXCTL_KICK, base + NvRegTxRxControl);
+	pci_push(base);
 	tx_ring[nr].Flags = np->tx_flags;
 	np->next_tx++;
-	//printf("FT");
-	
-
 }
 
 /**************************************************************************
@@ -873,6 +850,21 @@ static void forcedeth_disable(struct dev *dev __unused)
 	 * This allows etherboot to reinitialize the interface
 	 *  if something is something goes wrong.
 	 */
+	u8 *base = (u8 *) BASE;
+	np->in_shutdown = 1;
+	stop_tx();
+	stop_rx();
+
+	/* disable interrupts on the nic or we will lock up */
+	writel(0, base + NvRegIrqMask);
+	pci_push(base);
+	dprintf(("Irqmask is zero again\n"));
+
+	/* specia op:o write back the misordered MAC address - otherwise
+	 * the next probe_nic would see a wrong address.
+	 */
+	writel(np->orig_mac[0], base + NvRegMacAddrA);
+	writel(np->orig_mac[1], base + NvRegMacAddrB);
 }
 
 /**************************************************************************
@@ -883,114 +875,109 @@ PROBE - Look for an adapter, this routine's visible to the outside
 #define valid_link 0
 static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 {
-	struct nic *nic = (struct nic *)dev;
-
+	struct nic *nic = (struct nic *) dev;
 	unsigned long addr;
 	int sz;
 	u8 *base;
-	//int err, i;
 
 	if (pci->ioaddr == 0)
 		return 0;
 
-	/* BASE is used throughout to address the card */
-	printf("\n");
-	printf
-	    ("forcedeth.c: %s, %s\n", drv_version, drv_date);
-	printf("%s: Probing for Vendor=%hX   Device=%hX, %s\n", pci->name,
-	       pci->vendor, pci->dev_id);
+	printf("forcedeth.c: Found %s, vendor=0x%hX, device=0x%hX\n",
+	       pci->name, pci->vendor, pci->dev_id);
 
 	/* point to private storage */
 	np = &npx;
 
-	adjust_pci_device(pci); 
+	adjust_pci_device(pci);
 
-	addr = pci_bar_start(pci,  PCI_BASE_ADDRESS_0);
+	addr = pci_bar_start(pci, PCI_BASE_ADDRESS_0);
 	sz = pci_bar_size(pci, PCI_BASE_ADDRESS_0);
 
+	/* BASE is used throughout to address the card */
 	BASE = (unsigned long) ioremap(addr, sz);
 	if (!BASE)
 		return 0;
-	//np->ring_addr = ring_addr;
 	//rx_ring[0] = rx_ring;
 	//tx_ring[0] = tx_ring; 
 
-
 	/* read the mac address */
-	base = (u8 *) BASE; 
+	base = (u8 *) BASE;
 	np->orig_mac[0] = readl(base + NvRegMacAddrA);
 	np->orig_mac[1] = readl(base + NvRegMacAddrB);
 
-	nic->node_addr[0] = (np->orig_mac[1] >>  8) & 0xff;
-	nic->node_addr[1] = (np->orig_mac[1] >>  0) & 0xff;
+	nic->node_addr[0] = (np->orig_mac[1] >> 8) & 0xff;
+	nic->node_addr[1] = (np->orig_mac[1] >> 0) & 0xff;
 	nic->node_addr[2] = (np->orig_mac[0] >> 24) & 0xff;
 	nic->node_addr[3] = (np->orig_mac[0] >> 16) & 0xff;
-	nic->node_addr[4] = (np->orig_mac[0] >>  8) & 0xff;
-	nic->node_addr[5] = (np->orig_mac[0] >>  0) & 0xff;
+	nic->node_addr[4] = (np->orig_mac[0] >> 8) & 0xff;
+	nic->node_addr[5] = (np->orig_mac[0] >> 0) & 0xff;
 #ifdef LINUX
 	if (!is_valid_ether_addr(dev->dev_addr)) {
 		/*
 		 * Bad mac address. At least one bios sets the mac address
 		 * to 01:23:45:67:89:ab
 		 */
-		printk(KERN_ERR "%s: Invalid Mac address detected: %02x:%02x:%02x:%02x:%02x:%02x\n",
-			pci_name(pci_dev),
-			dev->dev_addr[0], dev->dev_addr[1], dev->dev_addr[2],
-			dev->dev_addr[3], dev->dev_addr[4], dev->dev_addr[5]);
-		printk(KERN_ERR "Please complain to your hardware vendor. Switching to a random MAC.\n");
+		printk(KERN_ERR
+		       "%s: Invalid Mac address detected: %02x:%02x:%02x:%02x:%02x:%02x\n",
+		       pci_name(pci_dev), dev->dev_addr[0],
+		       dev->dev_addr[1], dev->dev_addr[2],
+		       dev->dev_addr[3], dev->dev_addr[4],
+		       dev->dev_addr[5]);
+		printk(KERN_ERR
+		       "Please complain to your hardware vendor. Switching to a random MAC.\n");
 		dev->dev_addr[0] = 0x00;
 		dev->dev_addr[1] = 0x00;
 		dev->dev_addr[2] = 0x6c;
 		get_random_bytes(&dev->dev_addr[3], 3);
 	}
 #endif
-	printf("%s: MAC Address %!\n", pci->name, nic->node_addr);
+	printf("%s: MAC Address %!, ", pci->name, nic->node_addr);
 
-	np->tx_flags = cpu_to_le16(NV_TX_LASTPACKET|NV_TX_LASTPACKET1|NV_TX_VALID);
-/*	if (id->driver_data & DEV_NEED_LASTPACKET1)DEV_NEED_LASTPACKET1 */
-		np->tx_flags |= cpu_to_le16(NV_TX_LASTPACKET1);
-/*	if (id->driver_data & DEV_IRQMASK_1)
-		np->irqmask = NVREG_IRQMASK_WANTED_1;
-	if (id->driver_data & DEV_IRQMASK_2) */
+	np->tx_flags =
+	    cpu_to_le16(NV_TX_LASTPACKET | NV_TX_LASTPACKET1 |
+			NV_TX_VALID);
+	switch (pci->dev_id) {
+	case 0x01C3:		// nforce
 		np->irqmask = NVREG_IRQMASK_WANTED_2;
-//	if (id->driver_data & DEV_NEED_TIMERIRQ)
+		np->irqmask |= NVREG_IRQ_TIMER;
+		break;
+	case 0x0066:		// nforce2
+		np->tx_flags |= cpu_to_le16(NV_TX_LASTPACKET1);
+		np->irqmask = NVREG_IRQMASK_WANTED_2;
+		np->irqmask |= NVREG_IRQ_TIMER;
+		break;
+	case 0x00D6:		// nforce3
+		np->tx_flags |= cpu_to_le16(NV_TX_LASTPACKET1);
+		np->irqmask = NVREG_IRQMASK_WANTED_2;
 		np->irqmask |= NVREG_IRQ_TIMER;
 
-	printf("%s: forcedeth.c: subsystem: %hX:hX bound to %s\n",
-			pci->name, pci->vendor, pci->dev_id,
-			pci->name);
-
+	}
+	dprintf(("%s: forcedeth.c: subsystem: %hX:%hX bound to %s\n",
+		 pci->name, pci->vendor, pci->dev_id, pci->name));
 
 	forcedeth_reset(nic);
-//	if (board_found && valid_link)
-//	{
-		/* point to NIC specific routines */
-		dev->disable  = forcedeth_disable;
-		nic->poll     = forcedeth_poll;
-		nic->transmit = forcedeth_transmit;
-		return 1;
-//	}
+//      if (board_found && valid_link)
+	/* point to NIC specific routines */
+	dev->disable = forcedeth_disable;
+	nic->poll = forcedeth_poll;
+	nic->transmit = forcedeth_transmit;
+	return 1;
+//      }
 	/* else */
 }
-/*static struct nic_data forcedeth_data = {
-	driver_data
-}
-		.driver_data = DEV_IRQMASK_1|DEV_NEED_TIMERIRQ,
-		.driver_data = DEV_NEED_LASTPACKET1|DEV_IRQMASK_2|DEV_NEED_TIMERIRQ,
-		.driver_data = DEV_NEED_LASTPACKET1|DEV_IRQMASK_2|DEV_NEED_TIMERIRQ,
-*/
+
 static struct pci_id forcedeth_nics[] = {
-PCI_ROM(0x10de, 0x01C3, "nforce", "nForce Ethernet Controller"),
-PCI_ROM(0x10de, 0x0066, "nforce2", "nForce2 Ethernet Controller"),
-PCI_ROM(0x10de, 0x00D6, "nforce3", "nForce3 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x01C3, "nforce", "nForce Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0066, "nforce2", "nForce2 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x00D6, "nforce3", "nForce3 Ethernet Controller"),
 };
 
 static struct pci_driver forcedeth_driver __pci_driver = {
-	.type     = NIC_DRIVER,
-	.name     = "forcedeth",
-	.probe    = forcedeth_probe,
-	.ids      = forcedeth_nics,
-	.id_count = sizeof(forcedeth_nics)/sizeof(forcedeth_nics[0]),
-	.class    = 0,
+	.type = NIC_DRIVER,
+	.name = "forcedeth",
+	.probe = forcedeth_probe,
+	.ids = forcedeth_nics,
+	.id_count = sizeof(forcedeth_nics) / sizeof(forcedeth_nics[0]),
+	.class = 0,
 };
-
