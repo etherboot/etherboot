@@ -58,28 +58,18 @@ ne2100		-		Novell NE2100, NE1500
 ni6510		-		Racal-Interlan NI6510
 
 family		drivers/net/tulip
-ds21140a	0x1011,0x0009
-ds21143		0x1011,0x0019	Tulip 21143
-# Netgear FA310TX and similar Tulip clones
-kne110tx	0x11ad,0x0002
-# Macronix 987x5 Tulip clones
-mx98725		0x10d9,0x0531
-ax88141		0x125b,0x1400
 
 family		drivers/net/davicom
 
 family		drivers/net/rtl8139
 
 family		drivers/net/via-rhine
-via-rhine	0x1106,0x3065	VIA 6102
 
 family		drivers/net/w89c840
 
 family		drivers/net/sis900
 
 family		drivers/net/natsemi
-fa311		0x100B,0x0020	Netgear FA311/312
-fa312		0x100B,0x0020	Netgear FA311/312
 
 family		drivers/net/fa311
 
@@ -123,7 +113,6 @@ family		drivers/net/smc9000
 smc9000		-		SMC9000
 
 family		drivers/net/sundance
-sundance	-		Sundande ST201 Alta
 
 family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
