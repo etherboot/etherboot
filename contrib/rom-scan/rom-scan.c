@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #ifndef	__TURBOC__
 #include <sys/mman.h>
 #include <sys/stat.h>
