@@ -744,7 +744,7 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 /* Read the EEPROM and MII Management Data I/O (MDIO) interfaces. */
 static int eeprom_read(long ioaddr, int location)
 {
-	int boguscnt = 2000;	/* Typical 190 ticks */
+	int boguscnt = 10000;	/* Typical 1900 ticks */
 	outw(0x0200 | (location & 0xff), ioaddr + EECtrl);
 	do {
 		if (!(inw(ioaddr + EECtrl) & 0x8000)) {
