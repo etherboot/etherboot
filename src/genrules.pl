@@ -263,9 +263,6 @@ family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
 
 family		drivers/disk/pc_floppy
-
-family		arch/i386/drivers/net/undi
-undi		-
 EOF
 
 $curfam = '';
@@ -344,7 +341,7 @@ print "PCIOBJS\t:=\n";
 foreach my $pci (reverse sort keys %pcient) {
 	my $img = basename($pci);
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
-	print "PCIOBJS\t+= \$(BIN)/$img.o\n";
+	print "PCIOBJS\t+= \$(BIN)/$img.o\n" unless isaonly($pci);
 	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg\n";
 }
 foreach my $img (sort keys %buildent) {
@@ -368,7 +365,7 @@ foreach my $isa (sort keys %isalist) {
 print "\n# Rules to build the driver object files\n";
 foreach my $pci (sort keys %drivers) {
 	# For ISA the rule for .o will generated later
-	next if &isaonly($pci);
+	next if isaonly($pci);
 	# PCI drivers are compiled only once for all ROMs
 	(my $macro = basename($pci)) =~ tr/\-/_/;
 	my $obj = basename($pci);
