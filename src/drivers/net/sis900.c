@@ -178,6 +178,50 @@ static int sis900_get_mac_addr(struct pci_device * pci_dev __unused, struct nic 
 }
 
 /**
+ *	sis96x_get_mac_addr: - Get MAC address for SiS962 or SiS963 model
+ *	@pci_dev: the sis900 pci device
+ *	@net_dev: the net device to get address for 
+ *
+ *	SiS962 or SiS963 model, use EEPROM to store MAC address. And EEPROM 
+ *	is shared by
+ *	LAN and 1394. When access EEPROM, send EEREQ signal to hardware first 
+ *	and wait for EEGNT. If EEGNT is ON, EEPROM is permitted to be access 
+ *	by LAN, otherwise is not. After MAC address is read from EEPROM, send
+ *	EEDONE signal to refuse EEPROM access by LAN. 
+ *	The EEPROM map of SiS962 or SiS963 is different to SiS900. 
+ *	The signature field in SiS962 or SiS963 spec is meaningless. 
+ *	MAC address is read into @net_dev->dev_addr.
+ */
+
+static int sis96x_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
+{
+/* 	long ioaddr = net_dev->base_addr; */
+	long ee_addr = ioaddr + mear;
+	u32 waittime = 0;
+	int i;
+	
+	printf("Alternate function\n");
+
+	outl(EEREQ, ee_addr);
+	while(waittime < 2000) {
+		if(inl(ee_addr) & EEGNT) {
+
+			/* get MAC address from EEPROM */
+			for (i = 0; i < 3; i++)
+			        ((u16 *)(nic->node_addr))[i] = sis900_read_eeprom(i+EEPROMMACAddr);
+
+			outl(EEDONE, ee_addr);
+			return 1;
+		} else {
+			udelay(1);	
+			waittime ++;
+		}
+	}
+	outl(EEDONE, ee_addr);
+	return 0;
+}
+
+/**
  *	sis630e_get_mac_addr: - Get MAC address for SiS630E model
  *	@pci_dev: the sis900 pci device
  *	@net_dev: the net device to get address for
@@ -297,6 +341,8 @@ static int sis900_probe(struct dev *dev, struct pci_device *pci)
         ret = sis630e_get_mac_addr(pci, nic);
     else if ((revision > 0x81) && (revision <= 0x90))
         ret = sis635_get_mac_addr(pci, nic);
+    else if (revision == SIS96x_900_REV)
+	ret = sis96x_get_mac_addr(pci, nic);
     else
         ret = sis900_get_mac_addr(pci, nic);
 
