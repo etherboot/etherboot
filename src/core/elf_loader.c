@@ -159,6 +159,7 @@ static inline os_download_t elf32_probe(unsigned char *data, unsigned int len)
 	}
 	printf("(ELF");
 	elf_freebsd_probe();
+	multiboot_probe(data, len);
 	printf(")... ");
 	phdr_size = estate.e.elf32.e_phnum * estate.e.elf32.e_phentsize;
 	if (estate.e.elf32.e_phoff + phdr_size > len) {

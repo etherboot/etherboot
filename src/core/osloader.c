@@ -68,6 +68,7 @@ static void aout_freebsd_boot(void);
 #ifdef	IMAGE_MULTIBOOT
 #include "../arch/i386/core/multiboot_loader.c"
 #else
+#define multiboot_probe(data, len) do {} while(0)
 #define multiboot_boot(entry) do {} while(0)
 #endif
 
