@@ -747,6 +747,11 @@ PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
 	/* Fill in request structure */
 	request.name = tftp_open->FileName;
 	request.port = ntohs(tftp_open->TFTPPort);
+#ifdef WORK_AROUND_BPBATCH_BUG        
+	/* Force use of port 69; BpBatch tries to use port 4 for some         
+	* bizarre reason.         */        
+	request.port = TFTP_PORT;
+#endif
 	request.blksize = tftp_open->PacketSize;
 	DBG ( " %@:%d/%s (%d)", tftp_open->ServerIPAddress,
 	      request.port, request.name, request.blksize );
