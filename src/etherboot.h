@@ -529,6 +529,8 @@ struct ebinfo {
 External prototypes
 ***************************************************************************/
 /* main.c */
+extern int loadkernel P((const char *fname));
+/* nic.c */
 extern void rx_qdrain P((void));
 extern int tftp P((const char *name, int (*)(unsigned char *, unsigned int, unsigned int, int)));
 extern int ip_transmit P((int len, const void *buf));
@@ -581,6 +583,7 @@ extern os_download_t pxe_probe P((unsigned char *data, unsigned int len));
 extern void twiddle P((void));
 extern void sleep P((int secs));
 extern void interruptible_sleep P((int secs));
+extern void poll_interruptions P((void));
 extern int strcasecmp P((const char *a, const char *b));
 extern char *substr P((const char *a, const char *b));
 extern unsigned long strtoul P((const char *p, const char **, int base));
@@ -688,6 +691,7 @@ extern int serial_getc P((void));
 extern void serial_putc P((int));
 extern int serial_ischar P((void));
 extern int serial_init P((void));
+extern void serial_fini P((void));
 
 /* floppy.c */
 extern int bootdisk P((int dev,int part));

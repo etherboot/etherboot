@@ -1431,7 +1431,7 @@ elf_startkernel:
 
 			}
 			if (ip_checksum != sum) {
-				printf("Image checksum: %hx != computed checksum: %hx\n",
+				printf("\nImage checksum: %hx != computed checksum: %hx\n",
 					ip_checksum, sum);
 				longjmp(restart_etherboot, -2);
 			}

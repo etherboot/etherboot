@@ -47,6 +47,21 @@ long random(void)
 }
 
 /**************************************************************************
+POLL INTERRUPTIONS
+**************************************************************************/
+void poll_interruptions(void)
+{
+#ifdef FREEBSD_PXEEMU
+	if (pxeemu_nbp_active)
+		return;
+#endif
+	/* If an interruption has occured restart etherboot */
+	if (iskey() && (getchar() == ESC)) {
+		longjmp(restart_etherboot, -1);
+	}
+}
+
+/**************************************************************************
 SLEEP
 **************************************************************************/
 void sleep(int secs)
@@ -62,13 +77,8 @@ INTERRUPTIBLE SLEEP
 **************************************************************************/
 void interruptible_sleep(int secs)
 {
-	unsigned long tmo;
-
 	printf("<sleep>\n");
-	for (tmo = currticks()+secs*TICKS_PER_SEC; currticks() < tmo; ) {
-		if (iskey() && (getchar() == ESC))
-			longjmp(restart_etherboot, -1);
-	}
+	return sleep(secs);
 }
 
 /**************************************************************************

@@ -207,4 +207,22 @@ int serial_init(void)
 	found = initialized;
 	return initialized;
 }
+
+/*
+ * void serial_fini(void);
+ *	Cleanup our use of the serial port, in particular flush the
+ *	output buffer so we don't accidentially loose characters.
+ */
+void serial_fini(void)
+{
+	int i, status;
+	/* Flush the output buffer to avoid dropping characters,
+	 * if we are reinitializing the serial port.
+	 */
+	i = 10000; /* timeout */
+	do {
+		status = inb(COMCONSOLE + UART_LSR);
+	} while((--i > 0) || (!(status & (1 << 6))));
+	found = 0;
+}
 #endif

@@ -239,10 +239,8 @@ static int wait_til_ready(void)
 	int counter, status;
 	for (counter = 0; counter < 10000; counter++) {
 #if 1
-		if (iskey() && (getchar() == ESC))
-			longjmp(restart_etherboot, -1);
+		poll_interruptions();
 #endif
-
 		status = inb(FD_STATUS);		
 		if (status & STATUS_READY) {
 			return status;
@@ -881,8 +879,7 @@ static int floppy_read_sectors(
 	/* The execution stage begins when STATUS_READY&STATUS_NON_DMA is set */
 	do {
 #if 1
-		if (iskey() && (getchar() == ESC))
-			longjmp(restart_etherboot, -1);
+		poll_interruptions();
 #endif
 		status = inb(FD_STATUS);
 		status &= STATUS_READY | STATUS_NON_DMA;

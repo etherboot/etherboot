@@ -631,6 +631,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	 */
 	if (!(mdio_read(eeprom[6] & 0x1f, 1) & (1 << 2))) {
 		printf("Valid link not established\n");
+		eepro100_disable(dev);
 		return 0;
 	}
 

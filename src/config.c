@@ -157,14 +157,25 @@ static int isa_probe(struct dev *dev)
 #define isa_probe(d) (PROBE_FAILED)
 #endif
 
+static const char *driver_name[] = {
+	"nic", 
+	"disk", 
+	"floppy",
+};
 int probe(struct dev *dev)
 {
+	char *to_probe;
+	to_probe = "";
+	if ((dev->to_probe >= 0) && 
+		(dev->to_probe < sizeof(driver_name)/sizeof(driver_name[0]))) {
+		to_probe = driver_name[dev->to_probe];
+	}
 	if (dev->how_probe == PROBE_FIRST) {
 		dev->to_probe = PROBE_PCI;
 		memset(&dev->state, 0, sizeof(dev->state));
 	}
 	if (dev->to_probe == PROBE_PCI) {
-		printf("Probing pci...");
+		printf("Probing pci %s...\n", to_probe);
 		dev->how_probe = pci_probe(dev);
 		printf("\n");
 		if (dev->how_probe == PROBE_FAILED) {
@@ -172,7 +183,7 @@ int probe(struct dev *dev)
 		}
 	}
 	if (dev->to_probe == PROBE_ISA) {
-		printf("Probing isa...");
+		printf("Probing isa %s...\n", to_probe);
 		dev->how_probe = isa_probe(dev);
 		printf("\n");
 		if (dev->how_probe == PROBE_FAILED) {

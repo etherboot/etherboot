@@ -6,9 +6,7 @@
 
 struct meminfo meminfo;
 static int lb_failsafe = 1;
-static unsigned long lb_boot_first = BOOT_NOTHING;
-static unsigned long lb_boot_second;
-static unsigned long lb_boot_third;
+static struct cmos_entries lb_boot[MAX_BOOT_ENTRIES];
 
 #undef DEBUG_LINUXBIOS
 
@@ -99,6 +97,7 @@ static void read_lb_memory(
 		}
 	}
 }
+
 static unsigned cmos_read(unsigned offset, unsigned int size)
 {
 	unsigned addr, old_addr;
@@ -117,15 +116,36 @@ static unsigned cmos_read(unsigned offset, unsigned int size)
 	return value;
 }
 
+static void cmos_write(unsigned offset, unsigned int size, unsigned setting)
+{
+	unsigned addr, old_addr;
+	unsigned value, mask, shift;
+	
+	addr = offset/8;
+	
+	shift = offset & 0x7;
+	mask = ((1 << size) - 1) << shift;
+	setting = (setting << shift) & mask;
+
+	old_addr = inb(0x70);
+
+	outb(addr | (old_addr &0x80), 0x70);
+	value = inb(0x71);
+	value &= ~mask;
+	value |= setting;
+	outb(value, 0x71);
+
+	outb(old_addr, 0x70);
+
+	return;
+}
+
 static void read_linuxbios_values(struct meminfo *info,
 	struct lb_header *head)
 {
 	/* Read linuxbios tables... */
 	struct lb_record *rec;
-	lb_boot_first  = BOOT_NOTHING;
-	lb_boot_second = BOOT_NOTHING;
-	lb_boot_third  = BOOT_NOTHING;
-
+	memset(lb_boot, 0, sizeof(lb_boot));
 	for_each_lbrec(head, rec) {
 		switch(rec->tag) {
 		case LB_TAG_MEMORY:
@@ -157,13 +177,13 @@ static void read_linuxbios_values(struct meminfo *info,
 				if (entry->config != 'e')
 					continue;
 				if (memcmp(entry->name, "boot_first", 11) == 0) {
-					lb_boot_first = cmos_read(entry->bit, entry->length);
+					lb_boot[0] = *entry;
 				}
 				else if (memcmp(entry->name, "boot_second", 12) == 0) {
-					lb_boot_second = cmos_read(entry->bit, entry->length);
+					lb_boot[1] = *entry;
 				}
 				else if (memcmp(entry->name, "boot_third", 11) == 0) {
-					lb_boot_third = cmos_read(entry->bit, entry->length);
+					lb_boot[2] = *entry;
 				}
 			}
 			break;
@@ -270,11 +290,28 @@ void get_memsizes(void)
 
 unsigned long get_boot_order(unsigned long order)
 {
-	if (!lb_failsafe && (lb_boot_first != BOOT_NOTHING)) {
-		order =	(lb_boot_first  << (0*BOOT_BITS)) |
-			(lb_boot_second << (1*BOOT_BITS)) |
-			(lb_boot_third  << (2*BOOT_BITS)) |
-			0;
+	int i;
+	for(i = 0; i < MAX_BOOT_ENTRIES; i++) {
+		unsigned long boot;
+		boot = order >> (i*BOOT_BITS) & BOOT_MASK;
+		if (!lb_failsafe && (lb_boot[i].bit > 0)) {
+			boot = cmos_read(lb_boot[i].bit, lb_boot[i].length);
+			if ((boot & BOOT_TYPE_MASK) >= BOOT_NOTHING) {
+				boot = BOOT_NOTHING;
+			} else {
+#if 0
+				/* FIXME update the cmos checksum before changing anything */
+				
+				/* Set the failsafe bit on all of 
+				 * the boot entries... 
+				 */
+				cmos_write(lb_boot[i].bit, lb_boot[i].length,
+					boot | BOOT_FAILSAFE);
+#endif
+			}
+		}
+		order &= ~(BOOT_MASK << (i * BOOT_BITS));
+		order |= (boot << (i*BOOT_BITS));
 	}
 	return order;
 }

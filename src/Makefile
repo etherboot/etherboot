@@ -376,6 +376,9 @@ bin/%.o:	bin/%.s
 bin/%.bin:	bin/%.o
 	$(LD32) -Ttext 0x10000 $(LDBINARY32) -o $@ $<
 
+bin32/%.bin:	bin32/%.o
+	$(LD32) -Ttext 0x10000 $(LDBINARY32) -o $@ $<
+
 # Rule for the super etherboot image.
 bin32/etherboot.o: $(DOBJS)
 	$(LD32) -r $(DOBJS) -o $@
@@ -450,6 +453,9 @@ bin32/%.nrv2belf:	bin32/%.nrv2bimgo $(ELFPREFIX) $(MAKEDEPS)
 	cat $(DISKLOADER) $< > /dev/fd0
 
 %.lzfd0:	%.lzrom $(DISKLOADER)
+	cat $(DISKLOADER) $< > /dev/fd0
+
+%.nrv2bfd0:	%.nrv2brom $(DISKLOADER)
 	cat $(DISKLOADER) $< > /dev/fd0
 
 # rules to generate a .com executable

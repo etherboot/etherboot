@@ -77,8 +77,8 @@
 
 
 /* Define how many debug messages you want 
- * 0 - sparse but useful
- * 1 - everything
+ * 1 - sparse but useful
+ * 2 - everything
  */
 #ifndef DEBUG
 #define DEBUG 0
@@ -222,8 +222,13 @@ int main(int argc, char **argv)
 	uint64_t transaction;
 	unsigned long packet;
 	unsigned long packet_count;
+	unsigned slam_port, slam_multicast_port;
+	struct in_addr slam_multicast_ip;
 
-
+	slam_port = SLAM_PORT;
+	slam_multicast_port = SLAM_MULTICAST_PORT;
+	slam_multicast_ip.s_addr = htonl(SLAM_MULTICAST_IP);
+	
 	if (argc != 2) {
 		fprintf(stderr, "Bad argument count\n");
 		fprintf(stderr, "Usage: mini-slamd filename\n");
@@ -242,7 +247,7 @@ int main(int argc, char **argv)
 	}
 	memset(&sa_src, 0, sizeof(sa_src));
 	sa_src.sin_family = AF_INET;
-	sa_src.sin_port = htons(SLAM_PORT);
+	sa_src.sin_port = htons(slam_port);
 	sa_src.sin_addr.s_addr = INADDR_ANY;
 
 	result = bind(sockfd, &sa_src, sizeof(sa_src));
@@ -255,8 +260,8 @@ int main(int argc, char **argv)
 	/* Setup the multicast transmission address */
 	memset(&sa_mcast, 0, sizeof(sa_mcast));
 	sa_mcast.sin_family = AF_INET;
-	sa_mcast.sin_port = htons(SLAM_MULTICAST_PORT);
-	sa_mcast.sin_addr.s_addr = htonl(SLAM_MULTICAST_IP);
+	sa_mcast.sin_port = htons(slam_multicast_port);
+	sa_mcast.sin_addr.s_addr = slam_multicast_ip.s_addr;
 	if (!IN_MULTICAST(ntohl(sa_mcast.sin_addr.s_addr))) {
 		fprintf(stderr, "Not a multicast ip\n");
 		exit(EXIT_FAILURE);

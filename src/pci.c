@@ -424,7 +424,6 @@ static void scan_bus(int type, struct pci_device *dev)
 
 			pcibios_read_config_dword(bus, devfn, PCI_REVISION, &l);
 			class = (l >> 8) & 0xffffff;
-
 #if	DEBUG
 		{
 			int i;
@@ -480,8 +479,10 @@ static void scan_bus(int type, struct pci_device *dev)
 				/* Take the first one or the one that matches in boot ROM address */
 				dev->ioaddr = ioaddr;
 			}
+#if 0
 			printf("Found %s ROM address %#hx\n",
 				dev->name, romaddr);
+#endif
 			return;
 		}
 		first_devfn = 0;
@@ -526,4 +527,44 @@ void adjust_pci_device(struct pci_device *p)
 		pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
 	}
 }
+
+/*
+ * Find the start of a pci resource.
+ */
+unsigned long pci_bar_start(struct pci_device *dev, unsigned int bar)
+{
+	uint32_t start;
+	pci_read_config_dword(dev, bar, &start);
+	if (start & PCI_BASE_ADDRESS_SPACE_IO) {
+		start &= PCI_BASE_ADDRESS_IO_MASK;
+	} else {
+		start &= PCI_BASE_ADDRESS_MEM_MASK;
+	}
+	return start;
+}
+
+/*
+ * Find the size of a pci resource.
+ */
+unsigned long pci_bar_size(struct pci_device *dev, unsigned int bar)
+{
+	uint32_t start, size;
+	/* Save the original bar */
+	pci_read_config_dword(dev, bar, &start);
+	/* Compute which bits can be set */
+	pci_write_config_dword(dev, bar, ~0);
+	pci_read_config_dword(dev, bar, &size);
+	/* Restore the original size */
+	pci_write_config_dword(dev, bar, start);
+	/* Find the significant bits */
+	if (start & PCI_BASE_ADDRESS_SPACE_IO) {
+		size &= PCI_BASE_ADDRESS_IO_MASK;
+	} else {
+		size &= PCI_BASE_ADDRESS_MEM_MASK;
+	}
+	/* Find the lowest bit set */
+	size = size & ~(size - 1);
+	return size;
+}
+
 #endif /* CONFIG_PCI */

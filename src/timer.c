@@ -194,6 +194,7 @@ void mdelay(unsigned int msecs)
 	int i;
 	for(i = 0; i < msecs; i++) {
 		udelay(1000);
+		poll_interruptions();
 	}
 }
 
@@ -201,8 +202,6 @@ void waiton_timer2(unsigned int ticks)
 {
 	load_timer2(ticks);
 	while(timer2_running()) {
-		if (iskey() && (getchar() == ESC)) {
-			longjmp(restart_etherboot, -1);
-		}
+		poll_interruptions();
 	}
 }

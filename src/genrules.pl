@@ -112,7 +112,7 @@ print "IMG3S2\t:=\n";
 print "DOBJS\t:=\n";
 foreach my $img (sort keys %buildent) {
 	print "DOBJS\t+= bin32/$img.o\n";
-	print "IMGS32\t+= bin32/$img.img bin32/$img.lzimg\n"
+	print "IMGS32\t+= bin32/$img.img bin32/$img.lzimg bin32/$img.nrv2bimg\n"
 }
 
 print "ROMS32\t:=\n";
@@ -120,11 +120,11 @@ foreach my $family (sort keys %pcient) {
 	my $aref = $pcient{$family};
 	foreach my $entry (@$aref) {
 		my $rom = $entry->[0];
-		print "ROMS32\t+= bin32/$rom.rom bin32/$rom.lzrom\n";
+		print "ROMS32\t+= bin32/$rom.rom bin32/$rom.lzrom bin32/$rom.nrv2brom\n";
 	}
 }
 foreach my $isa (sort keys %isaent) {
-	print "ROMS32\t+= bin32/$isa.rom bin32/$isa.lzrom\n";
+	print "ROMS32\t+= bin32/$isa.rom bin32/$isa.lzrom bin32/$isa.nrv2brom\n";
 }
 
 # Generate the *.o rules
@@ -181,6 +181,15 @@ bin32/$rom.lzrom:	bin32/$family.lzimg \$(PRLOADER) \$(START16)
 	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
 bin32/$rom--%.lzrom:	bin32/$family--%.huf \$(PRLOADER) \$(START16)
+	cat \$(PRLOADER) \$(START16) \$< > \$@
+	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+
+
+bin32/$rom.nrv2brom:	bin32/$family.nrv2bimg \$(PRLOADER) \$(START16)
+	cat \$(PRLOADER) \$(START16) \$< > \$@
+	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+
+bin32/$rom--%.nrv2brom:	bin32/$family--%.nrv2bimg \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 

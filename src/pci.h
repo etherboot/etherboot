@@ -47,10 +47,17 @@
 #define PCI_COMMAND             0x04    /* 16 bits */
 
 #define PCI_REVISION            0x08    /* 8 bits  */
+#define PCI_REVISION_ID         0x08    /* 8 bits  */
 #define PCI_CLASS_REVISION      0x08    /* 32 bits  */
 #define PCI_CLASS_CODE          0x0b    /* 8 bits */
 #define PCI_SUBCLASS_CODE       0x0a    /* 8 bits */
 #define PCI_HEADER_TYPE         0x0e    /* 8 bits */
+
+
+/* Header type 0 (normal devices) */
+#define PCI_CARDBUS_CIS		0x28
+#define PCI_SUBSYSTEM_VENDOR_ID	0x2c
+#define PCI_SUBSYSTEM_ID	0x2e  
 
 #define PCI_BASE_ADDRESS_0      0x10    /* 32 bits */
 #define PCI_BASE_ADDRESS_1      0x14    /* 32 bits */
@@ -121,6 +128,41 @@ extern int pcibios_read_config_dword(unsigned int bus, unsigned int device_fn, u
 extern int pcibios_write_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, uint32_t value);
 void adjust_pci_device(struct pci_device *p);
 
+
+static inline int 
+pci_read_config_byte(struct pci_device *dev, unsigned int where, uint8_t *value)
+{
+	return pcibios_read_config_byte(dev->bus, dev->devfn, where, value);
+}
+static inline int 
+pci_write_config_byte(struct pci_device *dev, unsigned int where, uint8_t value)
+{
+	return pcibios_write_config_byte(dev->bus, dev->devfn, where, value);
+}
+static inline int 
+pci_read_config_word(struct pci_device *dev, unsigned int where, uint16_t *value)
+{
+	return pcibios_read_config_word(dev->bus, dev->devfn, where, value);
+}
+static inline int 
+pci_write_config_word(struct pci_device *dev, unsigned int where, uint16_t value)
+{
+	return pcibios_write_config_word(dev->bus, dev->devfn, where, value);
+}
+static inline int 
+pci_read_config_dword(struct pci_device *dev, unsigned int where, uint32_t *value)
+{
+	return pcibios_read_config_dword(dev->bus, dev->devfn, where, value);
+}
+static inline int 
+pci_write_config_dword(struct pci_device *dev, unsigned int where, uint32_t value)
+{
+	return pcibios_write_config_dword(dev->bus, dev->devfn, where, value);
+}
+
+/* Helper functions to find the size of a pci bar */
+extern unsigned long pci_bar_start(struct pci_device *dev, unsigned int bar);
+extern unsigned long pci_bar_size(struct pci_device *dev, unsigned int bar);
 
 struct pci_id {
 	unsigned short vendor, dev_id;

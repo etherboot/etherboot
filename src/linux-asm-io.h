@@ -8,7 +8,7 @@ extern unsigned long virt_offset;
 /* Don't require identity mapped physical memory,
  * osloader.c is the only valid user at the moment.
  */
-static inline unsigned long virt_to_phys(volatile void *virt_addr)
+static inline unsigned long virt_to_phys(volatile const void *virt_addr)
 {
 	return ((unsigned long)virt_addr) + virt_offset;
 }

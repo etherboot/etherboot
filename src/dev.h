@@ -99,4 +99,5 @@ extern void disable(struct dev *dev);
 #define BOOT_MASK      ((1 << (BOOT_BITS)) - 1)
 #define BOOT_TYPE_MASK ((1 << (BOOT_BITS - 1)) - 1)
 
+#define MAX_BOOT_ENTRIES 3
 #endif /* DEV_H */

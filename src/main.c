@@ -83,7 +83,6 @@ done:
 		}
 		break;
 	}
- out:
 	putchar('\n');
 #endif /* ASK_BOOT */
 	return order;
@@ -115,6 +114,9 @@ static void console_init(void)
 
 static void console_fini(void)
 {
+#ifdef	CONSOLE_SERIAL
+	(void)serial_fini();
+#endif
 }
 
 static struct class_operations {
@@ -171,6 +173,7 @@ int main(void)
 	   1:   retry tftp with possibly modified bootp reply
 	   2:   retry bootp and tftp
 	   3:   retry probe bootp and tftp
+	   4:   start with the next device and retry from there...
 	   255: exit Etherboot
 	*/
 	state = setjmp(restart_etherboot);
@@ -188,6 +191,7 @@ int main(void)
 			heap_base = allot(0);
 			i = -1;
 			state = 4;
+			dev = 0;
 
 			/* We just called setjmp ... */
 			order = ask_boot();
@@ -195,28 +199,39 @@ int main(void)
 			break;
 		case 4:
 			cleanup();
+			console_init();
 			forget(heap_base);
-			i += 1;
-			boot = (order >> (i * BOOT_BITS)) & BOOT_MASK;
-			type = boot & BOOT_TYPE_MASK;
-			failsafe = (boot & BOOT_FAILSAFE) != 0;
-			if ((i == 0) && (type == BOOT_NOTHING)) {
-				/* Return to caller */
-				exit(0);
+			/* Find a dev entry to probe with */
+			if (!dev) {
+				/* Advance to the next device type */
+				i += 1;
+				boot = (order >> (i * BOOT_BITS)) & BOOT_MASK;
+				type = boot & BOOT_TYPE_MASK;
+				failsafe = (boot & BOOT_FAILSAFE) != 0;
+				if (i >= MAX_BOOT_ENTRIES) {
+					type = BOOT_NOTHING;
+				}
+				if ((i == 0) && (type == BOOT_NOTHING)) {
+					/* Return to caller */
+					exit(0);
+				}
+				if (type >= BOOT_NOTHING) {
+					printf("No adapter found\n");
+					interruptible_sleep(2);
+					state = 0;
+					break;
+				}
+				ops = &operations[type];
+				dev = ops->dev;
+				dev->how_probe = PROBE_FIRST;
+				dev->type = type;
+				dev->failsafe = failsafe;
+			} else {
+				/* Advance to the next device of the same type */
+				dev->how_probe = PROBE_NEXT;
 			}
-			if (type >= BOOT_NOTHING) {
-				printf("No adapter found\n");
-				interruptible_sleep(2);
-				state = 0;
-				break;
-			}
-			ops = &operations[type];
-			dev = ops->dev;
-			dev->how_probe = PROBE_FIRST;
-			dev->type = type;
-			dev->failsafe = failsafe;
 			state = 3;
-				break;
+			break;
 		case 3:
 			state = -1;
 			heap_base = allot(0);
@@ -225,6 +240,7 @@ int main(void)
 #endif
 			dev->how_probe = ops->probe(dev);
 			if (dev->how_probe == PROBE_FAILED) {
+				dev = 0;
 				state = 4;
 			} else {
 				state = 2;
@@ -250,7 +266,6 @@ int main(void)
 #ifdef EMERGENCYDISKBOOT
 			exit(0);
 #endif
-			interruptible_sleep(2);
 			state = 4;
 			break;
 		}

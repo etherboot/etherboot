@@ -164,8 +164,11 @@ struct nic	nic =
  *	declarations, but in this case I like to see main() as the first
  *	routine.
  */
-static int bootp(void);
+#ifdef RARP_NOT_BOOTP
 static int rarp(void);
+#else
+static int bootp(void);
+#endif
 static unsigned short udpchksum(struct iphdr *packet);
 
 
@@ -193,7 +196,7 @@ void eth_disable(void)
 /*
  * Find out what our boot parameters are
  */
-int eth_load_configuration(struct dev *dev)
+int eth_load_configuration(struct dev *dev __unused)
 {
 	int server_found;
 	/* Find a server to get BOOTP reply from */
@@ -216,13 +219,14 @@ int eth_load_configuration(struct dev *dev)
 		printf("No Server found\n");
 		longjmp(restart_etherboot, -1);
 	}
+	return 0;
 }
 
 
 /**************************************************************************
 LOAD - Try to get booted
 **************************************************************************/
-int eth_load(struct dev *dev)
+int eth_load(struct dev *dev __unused)
 {
 	const char	*kernel;
 	printf("Me: %@, Server: %@",
@@ -443,7 +447,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned in
 {
 	int             retry = 0;
 	static unsigned short iport = 2000;
-	unsigned short  oport;
+	unsigned short  oport = 0;
 	unsigned short  len, block = 0, prevblock = 0;
 	int		bcounter = 0;
 	struct tftp_t  *tr;
@@ -814,7 +818,6 @@ static inline void dosum(unsigned short *start, unsigned int len, unsigned short
  */
 static unsigned short udpchksum(struct iphdr *packet)
 {
-	char *ptr = (char *) packet;
 	int len = ntohs(packet->len);
 	unsigned short rval;
 
@@ -882,12 +885,7 @@ int await_reply(int (*reply)(int ival, void *ptr,
 			 * as long as we have something to process, don't
 			 * assume that something failed.  It is unlikely that
 			 * we have no processing time left between packets.  */
-			if (
-#ifdef FREEBSD_PXEEMU
-			    pxeemu_nbp_active == 0 &&
-#endif
-			    iskey() && (getchar() == ESC))
-				longjmp(restart_etherboot, -1);
+			poll_interruptions();
 			/* Do the timeout after at least a full queue walk.  */
 			if ((timeout == 0) || (currticks() > time)) {
 				break;

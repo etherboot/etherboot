@@ -2,195 +2,204 @@
 IMG3S2	:=
 DOBJS	:=
 DOBJS	+= bin32/3c503.o
-IMGS32	+= bin32/3c503.img bin32/3c503.lzimg
+IMGS32	+= bin32/3c503.img bin32/3c503.lzimg bin32/3c503.nrv2bimg
 DOBJS	+= bin32/3c507.o
-IMGS32	+= bin32/3c507.img bin32/3c507.lzimg
+IMGS32	+= bin32/3c507.img bin32/3c507.lzimg bin32/3c507.nrv2bimg
 DOBJS	+= bin32/3c509.o
-IMGS32	+= bin32/3c509.img bin32/3c509.lzimg
+IMGS32	+= bin32/3c509.img bin32/3c509.lzimg bin32/3c509.nrv2bimg
 DOBJS	+= bin32/3c515.o
-IMGS32	+= bin32/3c515.img bin32/3c515.lzimg
+IMGS32	+= bin32/3c515.img bin32/3c515.lzimg bin32/3c515.nrv2bimg
 DOBJS	+= bin32/3c529.o
-IMGS32	+= bin32/3c529.img bin32/3c529.lzimg
+IMGS32	+= bin32/3c529.img bin32/3c529.lzimg bin32/3c529.nrv2bimg
 DOBJS	+= bin32/3c595.o
-IMGS32	+= bin32/3c595.img bin32/3c595.lzimg
+IMGS32	+= bin32/3c595.img bin32/3c595.lzimg bin32/3c595.nrv2bimg
 DOBJS	+= bin32/3c90x.o
-IMGS32	+= bin32/3c90x.img bin32/3c90x.lzimg
+IMGS32	+= bin32/3c90x.img bin32/3c90x.lzimg bin32/3c90x.nrv2bimg
 DOBJS	+= bin32/cs89x0.o
-IMGS32	+= bin32/cs89x0.img bin32/cs89x0.lzimg
+IMGS32	+= bin32/cs89x0.img bin32/cs89x0.lzimg bin32/cs89x0.nrv2bimg
 DOBJS	+= bin32/davicom.o
-IMGS32	+= bin32/davicom.img bin32/davicom.lzimg
+IMGS32	+= bin32/davicom.img bin32/davicom.lzimg bin32/davicom.nrv2bimg
 DOBJS	+= bin32/depca.o
-IMGS32	+= bin32/depca.img bin32/depca.lzimg
+IMGS32	+= bin32/depca.img bin32/depca.lzimg bin32/depca.nrv2bimg
 DOBJS	+= bin32/e1000.o
-IMGS32	+= bin32/e1000.img bin32/e1000.lzimg
+IMGS32	+= bin32/e1000.img bin32/e1000.lzimg bin32/e1000.nrv2bimg
 DOBJS	+= bin32/eepro.o
-IMGS32	+= bin32/eepro.img bin32/eepro.lzimg
+IMGS32	+= bin32/eepro.img bin32/eepro.lzimg bin32/eepro.nrv2bimg
 DOBJS	+= bin32/eepro100.o
-IMGS32	+= bin32/eepro100.img bin32/eepro100.lzimg
+IMGS32	+= bin32/eepro100.img bin32/eepro100.lzimg bin32/eepro100.nrv2bimg
 DOBJS	+= bin32/epic100.o
-IMGS32	+= bin32/epic100.img bin32/epic100.lzimg
+IMGS32	+= bin32/epic100.img bin32/epic100.lzimg bin32/epic100.nrv2bimg
 DOBJS	+= bin32/exos205.o
-IMGS32	+= bin32/exos205.img bin32/exos205.lzimg
+IMGS32	+= bin32/exos205.img bin32/exos205.lzimg bin32/exos205.nrv2bimg
 DOBJS	+= bin32/fa311.o
-IMGS32	+= bin32/fa311.img bin32/fa311.lzimg
+IMGS32	+= bin32/fa311.img bin32/fa311.lzimg bin32/fa311.nrv2bimg
 DOBJS	+= bin32/ide_disk.o
-IMGS32	+= bin32/ide_disk.img bin32/ide_disk.lzimg
+IMGS32	+= bin32/ide_disk.img bin32/ide_disk.lzimg bin32/ide_disk.nrv2bimg
 DOBJS	+= bin32/lance.o
-IMGS32	+= bin32/lance.img bin32/lance.lzimg
+IMGS32	+= bin32/lance.img bin32/lance.lzimg bin32/lance.nrv2bimg
 DOBJS	+= bin32/natsemi.o
-IMGS32	+= bin32/natsemi.img bin32/natsemi.lzimg
+IMGS32	+= bin32/natsemi.img bin32/natsemi.lzimg bin32/natsemi.nrv2bimg
 DOBJS	+= bin32/ne.o
-IMGS32	+= bin32/ne.img bin32/ne.lzimg
+IMGS32	+= bin32/ne.img bin32/ne.lzimg bin32/ne.nrv2bimg
 DOBJS	+= bin32/ne2100.o
-IMGS32	+= bin32/ne2100.img bin32/ne2100.lzimg
+IMGS32	+= bin32/ne2100.img bin32/ne2100.lzimg bin32/ne2100.nrv2bimg
 DOBJS	+= bin32/ni5010.o
-IMGS32	+= bin32/ni5010.img bin32/ni5010.lzimg
+IMGS32	+= bin32/ni5010.img bin32/ni5010.lzimg bin32/ni5010.nrv2bimg
 DOBJS	+= bin32/ni5210.o
-IMGS32	+= bin32/ni5210.img bin32/ni5210.lzimg
+IMGS32	+= bin32/ni5210.img bin32/ni5210.lzimg bin32/ni5210.nrv2bimg
 DOBJS	+= bin32/ni6510.o
-IMGS32	+= bin32/ni6510.img bin32/ni6510.lzimg
+IMGS32	+= bin32/ni6510.img bin32/ni6510.lzimg bin32/ni6510.nrv2bimg
 DOBJS	+= bin32/ns8390.o
-IMGS32	+= bin32/ns8390.img bin32/ns8390.lzimg
+IMGS32	+= bin32/ns8390.img bin32/ns8390.lzimg bin32/ns8390.nrv2bimg
 DOBJS	+= bin32/pc_floppy.o
-IMGS32	+= bin32/pc_floppy.img bin32/pc_floppy.lzimg
+IMGS32	+= bin32/pc_floppy.img bin32/pc_floppy.lzimg bin32/pc_floppy.nrv2bimg
 DOBJS	+= bin32/prism2_pci.o
-IMGS32	+= bin32/prism2_pci.img bin32/prism2_pci.lzimg
+IMGS32	+= bin32/prism2_pci.img bin32/prism2_pci.lzimg bin32/prism2_pci.nrv2bimg
 DOBJS	+= bin32/prism2_plx.o
-IMGS32	+= bin32/prism2_plx.img bin32/prism2_plx.lzimg
+IMGS32	+= bin32/prism2_plx.img bin32/prism2_plx.lzimg bin32/prism2_plx.nrv2bimg
 DOBJS	+= bin32/rtl8139.o
-IMGS32	+= bin32/rtl8139.img bin32/rtl8139.lzimg
+IMGS32	+= bin32/rtl8139.img bin32/rtl8139.lzimg bin32/rtl8139.nrv2bimg
 DOBJS	+= bin32/sis900.o
-IMGS32	+= bin32/sis900.img bin32/sis900.lzimg
+IMGS32	+= bin32/sis900.img bin32/sis900.lzimg bin32/sis900.nrv2bimg
 DOBJS	+= bin32/sk_g16.o
-IMGS32	+= bin32/sk_g16.img bin32/sk_g16.lzimg
+IMGS32	+= bin32/sk_g16.img bin32/sk_g16.lzimg bin32/sk_g16.nrv2bimg
 DOBJS	+= bin32/smc9000.o
-IMGS32	+= bin32/smc9000.img bin32/smc9000.lzimg
+IMGS32	+= bin32/smc9000.img bin32/smc9000.lzimg bin32/smc9000.nrv2bimg
 DOBJS	+= bin32/tiara.o
-IMGS32	+= bin32/tiara.img bin32/tiara.lzimg
+IMGS32	+= bin32/tiara.img bin32/tiara.lzimg bin32/tiara.nrv2bimg
 DOBJS	+= bin32/tulip.o
-IMGS32	+= bin32/tulip.img bin32/tulip.lzimg
+IMGS32	+= bin32/tulip.img bin32/tulip.lzimg bin32/tulip.nrv2bimg
 DOBJS	+= bin32/via-rhine.o
-IMGS32	+= bin32/via-rhine.img bin32/via-rhine.lzimg
+IMGS32	+= bin32/via-rhine.img bin32/via-rhine.lzimg bin32/via-rhine.nrv2bimg
 DOBJS	+= bin32/w89c840.o
-IMGS32	+= bin32/w89c840.img bin32/w89c840.lzimg
+IMGS32	+= bin32/w89c840.img bin32/w89c840.lzimg bin32/w89c840.nrv2bimg
 DOBJS	+= bin32/wd.o
-IMGS32	+= bin32/wd.img bin32/wd.lzimg
+IMGS32	+= bin32/wd.img bin32/wd.lzimg bin32/wd.nrv2bimg
 ROMS32	:=
-ROMS32	+= bin32/3c590.rom bin32/3c590.lzrom
-ROMS32	+= bin32/3c595.rom bin32/3c595.lzrom
-ROMS32	+= bin32/3c595-1.rom bin32/3c595-1.lzrom
-ROMS32	+= bin32/3c595-2.rom bin32/3c595-2.lzrom
-ROMS32	+= bin32/3c900-tpo.rom bin32/3c900-tpo.lzrom
-ROMS32	+= bin32/3c900-t4.rom bin32/3c900-t4.lzrom
-ROMS32	+= bin32/3c900b-tpo.rom bin32/3c900b-tpo.lzrom
-ROMS32	+= bin32/3c900b-combo.rom bin32/3c900b-combo.lzrom
-ROMS32	+= bin32/3c900b-tpb2.rom bin32/3c900b-tpb2.lzrom
-ROMS32	+= bin32/3c900b-fl.rom bin32/3c900b-fl.lzrom
-ROMS32	+= bin32/3c905-tpo.rom bin32/3c905-tpo.lzrom
-ROMS32	+= bin32/3c905-t4.rom bin32/3c905-t4.lzrom
-ROMS32	+= bin32/3c905-tpo100.rom bin32/3c905-tpo100.lzrom
-ROMS32	+= bin32/3c905-combo.rom bin32/3c905-combo.lzrom
-ROMS32	+= bin32/3c905b-tpo.rom bin32/3c905b-tpo.lzrom
-ROMS32	+= bin32/3c905b-combo.rom bin32/3c905b-combo.lzrom
-ROMS32	+= bin32/3c905b-tpb2.rom bin32/3c905b-tpb2.lzrom
-ROMS32	+= bin32/3c905b-fl.rom bin32/3c905b-fl.lzrom
-ROMS32	+= bin32/3c905b-tpo100.rom bin32/3c905b-tpo100.lzrom
-ROMS32	+= bin32/3c905b-t4.rom bin32/3c905b-t4.lzrom
-ROMS32	+= bin32/3c905b-9058.rom bin32/3c905b-9058.lzrom
-ROMS32	+= bin32/3c905b-fx.rom bin32/3c905b-fx.lzrom
-ROMS32	+= bin32/3c905c-tpo.rom bin32/3c905c-tpo.lzrom
-ROMS32	+= bin32/3c980.rom bin32/3c980.lzrom
-ROMS32	+= bin32/3c9805.rom bin32/3c9805.lzrom
-ROMS32	+= bin32/3csoho100-tx.rom bin32/3csoho100-tx.lzrom
-ROMS32	+= bin32/davicom9102.rom bin32/davicom9102.lzrom
-ROMS32	+= bin32/davicom9009.rom bin32/davicom9009.lzrom
-ROMS32	+= bin32/e1000.rom bin32/e1000.lzrom
-ROMS32	+= bin32/e1000-fib.rom bin32/e1000-fib.lzrom
-ROMS32	+= bin32/e1000-cop.rom bin32/e1000-cop.lzrom
-ROMS32	+= bin32/e1000-ecop.rom bin32/e1000-ecop.lzrom
-ROMS32	+= bin32/e1000-creb.rom bin32/e1000-creb.lzrom
-ROMS32	+= bin32/eepro100.rom bin32/eepro100.lzrom
-ROMS32	+= bin32/82559er.rom bin32/82559er.lzrom
-ROMS32	+= bin32/id1029.rom bin32/id1029.lzrom
-ROMS32	+= bin32/id1030.rom bin32/id1030.lzrom
-ROMS32	+= bin32/id1038.rom bin32/id1038.lzrom
-ROMS32	+= bin32/82562et.rom bin32/82562et.lzrom
-ROMS32	+= bin32/82562em.rom bin32/82562em.lzrom
-ROMS32	+= bin32/epic100.rom bin32/epic100.lzrom
-ROMS32	+= bin32/fa311too.rom bin32/fa311too.lzrom
-ROMS32	+= bin32/ide_disk.rom bin32/ide_disk.lzrom
-ROMS32	+= bin32/lancepci.rom bin32/lancepci.lzrom
-ROMS32	+= bin32/pcnetfastiii.rom bin32/pcnetfastiii.lzrom
-ROMS32	+= bin32/amdhomepna.rom bin32/amdhomepna.lzrom
-ROMS32	+= bin32/fa311.rom bin32/fa311.lzrom
-ROMS32	+= bin32/fa312.rom bin32/fa312.lzrom
-ROMS32	+= bin32/dp83815.rom bin32/dp83815.lzrom
-ROMS32	+= bin32/rtl8029.rom bin32/rtl8029.lzrom
-ROMS32	+= bin32/dlink-528.rom bin32/dlink-528.lzrom
-ROMS32	+= bin32/winbond940.rom bin32/winbond940.lzrom
-ROMS32	+= bin32/compexrl2000.rom bin32/compexrl2000.lzrom
-ROMS32	+= bin32/ktiet32p2.rom bin32/ktiet32p2.lzrom
-ROMS32	+= bin32/nv5000sc.rom bin32/nv5000sc.lzrom
-ROMS32	+= bin32/holtek80232.rom bin32/holtek80232.lzrom
-ROMS32	+= bin32/prism2_pci.rom bin32/prism2_pci.lzrom
-ROMS32	+= bin32/hwp01170.rom bin32/hwp01170.lzrom
-ROMS32	+= bin32/dwl520.rom bin32/dwl520.lzrom
-ROMS32	+= bin32/ma301.rom bin32/ma301.lzrom
-ROMS32	+= bin32/rtl8129.rom bin32/rtl8129.lzrom
-ROMS32	+= bin32/rtl8139.rom bin32/rtl8139.lzrom
-ROMS32	+= bin32/smc1211.rom bin32/smc1211.lzrom
-ROMS32	+= bin32/dfe538.rom bin32/dfe538.lzrom
-ROMS32	+= bin32/sis900.rom bin32/sis900.lzrom
-ROMS32	+= bin32/sis7016.rom bin32/sis7016.lzrom
-ROMS32	+= bin32/dc21040.rom bin32/dc21040.lzrom
-ROMS32	+= bin32/dc21041.rom bin32/dc21041.lzrom
-ROMS32	+= bin32/ds21140.rom bin32/ds21140.lzrom
-ROMS32	+= bin32/ds21140a.rom bin32/ds21140a.lzrom
-ROMS32	+= bin32/ds21142.rom bin32/ds21142.lzrom
-ROMS32	+= bin32/ds21143.rom bin32/ds21143.lzrom
-ROMS32	+= bin32/82c168.rom bin32/82c168.lzrom
-ROMS32	+= bin32/kne110tx.rom bin32/kne110tx.lzrom
-ROMS32	+= bin32/lc82c115.rom bin32/lc82c115.lzrom
-ROMS32	+= bin32/mx98713.rom bin32/mx98713.lzrom
-ROMS32	+= bin32/mx98715.rom bin32/mx98715.lzrom
-ROMS32	+= bin32/mx98725.rom bin32/mx98725.lzrom
-ROMS32	+= bin32/mxic-98715.rom bin32/mxic-98715.lzrom
-ROMS32	+= bin32/an981.rom bin32/an981.lzrom
-ROMS32	+= bin32/an983.rom bin32/an983.lzrom
-ROMS32	+= bin32/centaur-p.rom bin32/centaur-p.lzrom
-ROMS32	+= bin32/centaur-c.rom bin32/centaur-c.lzrom
-ROMS32	+= bin32/ax88140.rom bin32/ax88140.lzrom
-ROMS32	+= bin32/ax88141.rom bin32/ax88141.lzrom
-ROMS32	+= bin32/dm9100.rom bin32/dm9100.lzrom
-ROMS32	+= bin32/dm9102.rom bin32/dm9102.lzrom
-ROMS32	+= bin32/intel21145.rom bin32/intel21145.lzrom
-ROMS32	+= bin32/rl100tx.rom bin32/rl100tx.lzrom
-ROMS32	+= bin32/xircomtulip.rom bin32/xircomtulip.lzrom
-ROMS32	+= bin32/dlink-530tx-old.rom bin32/dlink-530tx-old.lzrom
-ROMS32	+= bin32/dlink-530tx.rom bin32/dlink-530tx.lzrom
-ROMS32	+= bin32/via-rhine-old.rom bin32/via-rhine-old.lzrom
-ROMS32	+= bin32/via-rhine.rom bin32/via-rhine.lzrom
-ROMS32	+= bin32/winbond840.rom bin32/winbond840.lzrom
-ROMS32	+= bin32/compexrl100atx.rom bin32/compexrl100atx.lzrom
-ROMS32	+= bin32/3c503.rom bin32/3c503.lzrom
-ROMS32	+= bin32/3c507.rom bin32/3c507.lzrom
-ROMS32	+= bin32/3c509.rom bin32/3c509.lzrom
-ROMS32	+= bin32/3c515.rom bin32/3c515.lzrom
-ROMS32	+= bin32/3c529.rom bin32/3c529.lzrom
-ROMS32	+= bin32/cs89x0.rom bin32/cs89x0.lzrom
-ROMS32	+= bin32/depca.rom bin32/depca.lzrom
-ROMS32	+= bin32/eepro.rom bin32/eepro.lzrom
-ROMS32	+= bin32/exos205.rom bin32/exos205.lzrom
-ROMS32	+= bin32/ne.rom bin32/ne.lzrom
-ROMS32	+= bin32/ne2100.rom bin32/ne2100.lzrom
-ROMS32	+= bin32/ni5010.rom bin32/ni5010.lzrom
-ROMS32	+= bin32/ni5210.rom bin32/ni5210.lzrom
-ROMS32	+= bin32/ni6510.rom bin32/ni6510.lzrom
-ROMS32	+= bin32/pc_floppy.rom bin32/pc_floppy.lzrom
-ROMS32	+= bin32/sk_g16.rom bin32/sk_g16.lzrom
-ROMS32	+= bin32/smc9000.rom bin32/smc9000.lzrom
-ROMS32	+= bin32/tiara.rom bin32/tiara.lzrom
-ROMS32	+= bin32/wd.rom bin32/wd.lzrom
+ROMS32	+= bin32/3c590.rom bin32/3c590.lzrom bin32/3c590.nrv2brom
+ROMS32	+= bin32/3c595.rom bin32/3c595.lzrom bin32/3c595.nrv2brom
+ROMS32	+= bin32/3c595-1.rom bin32/3c595-1.lzrom bin32/3c595-1.nrv2brom
+ROMS32	+= bin32/3c595-2.rom bin32/3c595-2.lzrom bin32/3c595-2.nrv2brom
+ROMS32	+= bin32/3c900-tpo.rom bin32/3c900-tpo.lzrom bin32/3c900-tpo.nrv2brom
+ROMS32	+= bin32/3c900-t4.rom bin32/3c900-t4.lzrom bin32/3c900-t4.nrv2brom
+ROMS32	+= bin32/3c900b-tpo.rom bin32/3c900b-tpo.lzrom bin32/3c900b-tpo.nrv2brom
+ROMS32	+= bin32/3c900b-combo.rom bin32/3c900b-combo.lzrom bin32/3c900b-combo.nrv2brom
+ROMS32	+= bin32/3c900b-tpb2.rom bin32/3c900b-tpb2.lzrom bin32/3c900b-tpb2.nrv2brom
+ROMS32	+= bin32/3c900b-fl.rom bin32/3c900b-fl.lzrom bin32/3c900b-fl.nrv2brom
+ROMS32	+= bin32/3c905-tpo.rom bin32/3c905-tpo.lzrom bin32/3c905-tpo.nrv2brom
+ROMS32	+= bin32/3c905-t4.rom bin32/3c905-t4.lzrom bin32/3c905-t4.nrv2brom
+ROMS32	+= bin32/3c905-tpo100.rom bin32/3c905-tpo100.lzrom bin32/3c905-tpo100.nrv2brom
+ROMS32	+= bin32/3c905-combo.rom bin32/3c905-combo.lzrom bin32/3c905-combo.nrv2brom
+ROMS32	+= bin32/3c905b-tpo.rom bin32/3c905b-tpo.lzrom bin32/3c905b-tpo.nrv2brom
+ROMS32	+= bin32/3c905b-combo.rom bin32/3c905b-combo.lzrom bin32/3c905b-combo.nrv2brom
+ROMS32	+= bin32/3c905b-tpb2.rom bin32/3c905b-tpb2.lzrom bin32/3c905b-tpb2.nrv2brom
+ROMS32	+= bin32/3c905b-fl.rom bin32/3c905b-fl.lzrom bin32/3c905b-fl.nrv2brom
+ROMS32	+= bin32/3c905b-tpo100.rom bin32/3c905b-tpo100.lzrom bin32/3c905b-tpo100.nrv2brom
+ROMS32	+= bin32/3c905b-t4.rom bin32/3c905b-t4.lzrom bin32/3c905b-t4.nrv2brom
+ROMS32	+= bin32/3c905b-9058.rom bin32/3c905b-9058.lzrom bin32/3c905b-9058.nrv2brom
+ROMS32	+= bin32/3c905b-fx.rom bin32/3c905b-fx.lzrom bin32/3c905b-fx.nrv2brom
+ROMS32	+= bin32/3c905c-tpo.rom bin32/3c905c-tpo.lzrom bin32/3c905c-tpo.nrv2brom
+ROMS32	+= bin32/3c980.rom bin32/3c980.lzrom bin32/3c980.nrv2brom
+ROMS32	+= bin32/3c9805.rom bin32/3c9805.lzrom bin32/3c9805.nrv2brom
+ROMS32	+= bin32/3csoho100-tx.rom bin32/3csoho100-tx.lzrom bin32/3csoho100-tx.nrv2brom
+ROMS32	+= bin32/davicom9102.rom bin32/davicom9102.lzrom bin32/davicom9102.nrv2brom
+ROMS32	+= bin32/davicom9009.rom bin32/davicom9009.lzrom bin32/davicom9009.nrv2brom
+ROMS32	+= bin32/e1000.rom bin32/e1000.lzrom bin32/e1000.nrv2brom
+ROMS32	+= bin32/e1000-82542.rom bin32/e1000-82542.lzrom bin32/e1000-82542.nrv2brom
+ROMS32	+= bin32/e1000-82543gc-fiber.rom bin32/e1000-82543gc-fiber.lzrom bin32/e1000-82543gc-fiber.nrv2brom
+ROMS32	+= bin32/e1000-82543gc-copper.rom bin32/e1000-82543gc-copper.lzrom bin32/e1000-82543gc-copper.nrv2brom
+ROMS32	+= bin32/e1000-82544ei-copper.rom bin32/e1000-82544ei-copper.lzrom bin32/e1000-82544ei-copper.nrv2brom
+ROMS32	+= bin32/e1000-82544ei-fiber.rom bin32/e1000-82544ei-fiber.lzrom bin32/e1000-82544ei-fiber.nrv2brom
+ROMS32	+= bin32/e1000-82544gc-copper.rom bin32/e1000-82544gc-copper.lzrom bin32/e1000-82544gc-copper.nrv2brom
+ROMS32	+= bin32/e1000-82544gc-lom.rom bin32/e1000-82544gc-lom.lzrom bin32/e1000-82544gc-lom.nrv2brom
+ROMS32	+= bin32/e1000-82540em.rom bin32/e1000-82540em.lzrom bin32/e1000-82540em.nrv2brom
+ROMS32	+= bin32/e1000-82545em-copper.rom bin32/e1000-82545em-copper.lzrom bin32/e1000-82545em-copper.nrv2brom
+ROMS32	+= bin32/e1000-82546eb-copper.rom bin32/e1000-82546eb-copper.lzrom bin32/e1000-82546eb-copper.nrv2brom
+ROMS32	+= bin32/e1000-82545em-fiber.rom bin32/e1000-82545em-fiber.lzrom bin32/e1000-82545em-fiber.nrv2brom
+ROMS32	+= bin32/e1000-82546eb-fiber.rom bin32/e1000-82546eb-fiber.lzrom bin32/e1000-82546eb-fiber.nrv2brom
+ROMS32	+= bin32/e1000-82540em-lom.rom bin32/e1000-82540em-lom.lzrom bin32/e1000-82540em-lom.nrv2brom
+ROMS32	+= bin32/eepro100.rom bin32/eepro100.lzrom bin32/eepro100.nrv2brom
+ROMS32	+= bin32/82559er.rom bin32/82559er.lzrom bin32/82559er.nrv2brom
+ROMS32	+= bin32/id1029.rom bin32/id1029.lzrom bin32/id1029.nrv2brom
+ROMS32	+= bin32/id1030.rom bin32/id1030.lzrom bin32/id1030.nrv2brom
+ROMS32	+= bin32/id1038.rom bin32/id1038.lzrom bin32/id1038.nrv2brom
+ROMS32	+= bin32/82562et.rom bin32/82562et.lzrom bin32/82562et.nrv2brom
+ROMS32	+= bin32/82562em.rom bin32/82562em.lzrom bin32/82562em.nrv2brom
+ROMS32	+= bin32/epic100.rom bin32/epic100.lzrom bin32/epic100.nrv2brom
+ROMS32	+= bin32/fa311too.rom bin32/fa311too.lzrom bin32/fa311too.nrv2brom
+ROMS32	+= bin32/ide_disk.rom bin32/ide_disk.lzrom bin32/ide_disk.nrv2brom
+ROMS32	+= bin32/lancepci.rom bin32/lancepci.lzrom bin32/lancepci.nrv2brom
+ROMS32	+= bin32/pcnetfastiii.rom bin32/pcnetfastiii.lzrom bin32/pcnetfastiii.nrv2brom
+ROMS32	+= bin32/amdhomepna.rom bin32/amdhomepna.lzrom bin32/amdhomepna.nrv2brom
+ROMS32	+= bin32/fa311.rom bin32/fa311.lzrom bin32/fa311.nrv2brom
+ROMS32	+= bin32/fa312.rom bin32/fa312.lzrom bin32/fa312.nrv2brom
+ROMS32	+= bin32/dp83815.rom bin32/dp83815.lzrom bin32/dp83815.nrv2brom
+ROMS32	+= bin32/rtl8029.rom bin32/rtl8029.lzrom bin32/rtl8029.nrv2brom
+ROMS32	+= bin32/dlink-528.rom bin32/dlink-528.lzrom bin32/dlink-528.nrv2brom
+ROMS32	+= bin32/winbond940.rom bin32/winbond940.lzrom bin32/winbond940.nrv2brom
+ROMS32	+= bin32/compexrl2000.rom bin32/compexrl2000.lzrom bin32/compexrl2000.nrv2brom
+ROMS32	+= bin32/ktiet32p2.rom bin32/ktiet32p2.lzrom bin32/ktiet32p2.nrv2brom
+ROMS32	+= bin32/nv5000sc.rom bin32/nv5000sc.lzrom bin32/nv5000sc.nrv2brom
+ROMS32	+= bin32/holtek80232.rom bin32/holtek80232.lzrom bin32/holtek80232.nrv2brom
+ROMS32	+= bin32/prism2_pci.rom bin32/prism2_pci.lzrom bin32/prism2_pci.nrv2brom
+ROMS32	+= bin32/hwp01170.rom bin32/hwp01170.lzrom bin32/hwp01170.nrv2brom
+ROMS32	+= bin32/dwl520.rom bin32/dwl520.lzrom bin32/dwl520.nrv2brom
+ROMS32	+= bin32/ma301.rom bin32/ma301.lzrom bin32/ma301.nrv2brom
+ROMS32	+= bin32/rtl8129.rom bin32/rtl8129.lzrom bin32/rtl8129.nrv2brom
+ROMS32	+= bin32/rtl8139.rom bin32/rtl8139.lzrom bin32/rtl8139.nrv2brom
+ROMS32	+= bin32/smc1211.rom bin32/smc1211.lzrom bin32/smc1211.nrv2brom
+ROMS32	+= bin32/dfe538.rom bin32/dfe538.lzrom bin32/dfe538.nrv2brom
+ROMS32	+= bin32/sis900.rom bin32/sis900.lzrom bin32/sis900.nrv2brom
+ROMS32	+= bin32/sis7016.rom bin32/sis7016.lzrom bin32/sis7016.nrv2brom
+ROMS32	+= bin32/dc21040.rom bin32/dc21040.lzrom bin32/dc21040.nrv2brom
+ROMS32	+= bin32/dc21041.rom bin32/dc21041.lzrom bin32/dc21041.nrv2brom
+ROMS32	+= bin32/ds21140.rom bin32/ds21140.lzrom bin32/ds21140.nrv2brom
+ROMS32	+= bin32/ds21140a.rom bin32/ds21140a.lzrom bin32/ds21140a.nrv2brom
+ROMS32	+= bin32/ds21142.rom bin32/ds21142.lzrom bin32/ds21142.nrv2brom
+ROMS32	+= bin32/ds21143.rom bin32/ds21143.lzrom bin32/ds21143.nrv2brom
+ROMS32	+= bin32/82c168.rom bin32/82c168.lzrom bin32/82c168.nrv2brom
+ROMS32	+= bin32/kne110tx.rom bin32/kne110tx.lzrom bin32/kne110tx.nrv2brom
+ROMS32	+= bin32/lc82c115.rom bin32/lc82c115.lzrom bin32/lc82c115.nrv2brom
+ROMS32	+= bin32/mx98713.rom bin32/mx98713.lzrom bin32/mx98713.nrv2brom
+ROMS32	+= bin32/mx98715.rom bin32/mx98715.lzrom bin32/mx98715.nrv2brom
+ROMS32	+= bin32/mx98725.rom bin32/mx98725.lzrom bin32/mx98725.nrv2brom
+ROMS32	+= bin32/mxic-98715.rom bin32/mxic-98715.lzrom bin32/mxic-98715.nrv2brom
+ROMS32	+= bin32/an981.rom bin32/an981.lzrom bin32/an981.nrv2brom
+ROMS32	+= bin32/an983.rom bin32/an983.lzrom bin32/an983.nrv2brom
+ROMS32	+= bin32/centaur-p.rom bin32/centaur-p.lzrom bin32/centaur-p.nrv2brom
+ROMS32	+= bin32/centaur-c.rom bin32/centaur-c.lzrom bin32/centaur-c.nrv2brom
+ROMS32	+= bin32/ax88140.rom bin32/ax88140.lzrom bin32/ax88140.nrv2brom
+ROMS32	+= bin32/ax88141.rom bin32/ax88141.lzrom bin32/ax88141.nrv2brom
+ROMS32	+= bin32/dm9100.rom bin32/dm9100.lzrom bin32/dm9100.nrv2brom
+ROMS32	+= bin32/dm9102.rom bin32/dm9102.lzrom bin32/dm9102.nrv2brom
+ROMS32	+= bin32/intel21145.rom bin32/intel21145.lzrom bin32/intel21145.nrv2brom
+ROMS32	+= bin32/rl100tx.rom bin32/rl100tx.lzrom bin32/rl100tx.nrv2brom
+ROMS32	+= bin32/xircomtulip.rom bin32/xircomtulip.lzrom bin32/xircomtulip.nrv2brom
+ROMS32	+= bin32/dlink-530tx-old.rom bin32/dlink-530tx-old.lzrom bin32/dlink-530tx-old.nrv2brom
+ROMS32	+= bin32/dlink-530tx.rom bin32/dlink-530tx.lzrom bin32/dlink-530tx.nrv2brom
+ROMS32	+= bin32/via-rhine-old.rom bin32/via-rhine-old.lzrom bin32/via-rhine-old.nrv2brom
+ROMS32	+= bin32/via-rhine.rom bin32/via-rhine.lzrom bin32/via-rhine.nrv2brom
+ROMS32	+= bin32/winbond840.rom bin32/winbond840.lzrom bin32/winbond840.nrv2brom
+ROMS32	+= bin32/compexrl100atx.rom bin32/compexrl100atx.lzrom bin32/compexrl100atx.nrv2brom
+ROMS32	+= bin32/3c503.rom bin32/3c503.lzrom bin32/3c503.nrv2brom
+ROMS32	+= bin32/3c507.rom bin32/3c507.lzrom bin32/3c507.nrv2brom
+ROMS32	+= bin32/3c509.rom bin32/3c509.lzrom bin32/3c509.nrv2brom
+ROMS32	+= bin32/3c515.rom bin32/3c515.lzrom bin32/3c515.nrv2brom
+ROMS32	+= bin32/3c529.rom bin32/3c529.lzrom bin32/3c529.nrv2brom
+ROMS32	+= bin32/cs89x0.rom bin32/cs89x0.lzrom bin32/cs89x0.nrv2brom
+ROMS32	+= bin32/depca.rom bin32/depca.lzrom bin32/depca.nrv2brom
+ROMS32	+= bin32/eepro.rom bin32/eepro.lzrom bin32/eepro.nrv2brom
+ROMS32	+= bin32/exos205.rom bin32/exos205.lzrom bin32/exos205.nrv2brom
+ROMS32	+= bin32/ne.rom bin32/ne.lzrom bin32/ne.nrv2brom
+ROMS32	+= bin32/ne2100.rom bin32/ne2100.lzrom bin32/ne2100.nrv2brom
+ROMS32	+= bin32/ni5010.rom bin32/ni5010.lzrom bin32/ni5010.nrv2brom
+ROMS32	+= bin32/ni5210.rom bin32/ni5210.lzrom bin32/ni5210.nrv2brom
+ROMS32	+= bin32/ni6510.rom bin32/ni6510.lzrom bin32/ni6510.nrv2brom
+ROMS32	+= bin32/pc_floppy.rom bin32/pc_floppy.lzrom bin32/pc_floppy.nrv2brom
+ROMS32	+= bin32/sk_g16.rom bin32/sk_g16.lzrom bin32/sk_g16.nrv2brom
+ROMS32	+= bin32/smc9000.rom bin32/smc9000.lzrom bin32/smc9000.nrv2brom
+ROMS32	+= bin32/tiara.rom bin32/tiara.lzrom bin32/tiara.nrv2brom
+ROMS32	+= bin32/wd.rom bin32/wd.lzrom bin32/wd.nrv2brom
 
 # Rules to build the driver object files
 
@@ -215,7 +224,7 @@ bin32/davicom--%.o:	bin32/%.o bin32/davicom.o $(MAKEDEPS)
 	$(LD32) -r bin32/davicom.o $< -o $@
 
 
-bin32/e1000.o:	e1000.c $(MAKEDEPS) pci.h dev.h e1000.h e1000_fxhw.c e1000_fxhw.h e1000_phy.c e1000_phy.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/e1000.o:	e1000.c $(MAKEDEPS) pci.h dev.h e1000_hw.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(E1000FLAGS) -o $@ -c $<
 
 bin32/e1000--%.o:	bin32/%.o bin32/e1000.o $(MAKEDEPS)
@@ -431,6 +440,15 @@ bin32/3c590--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5900 -i$(IDENT32) $@
 
+
+bin32/3c590.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5900 -i$(IDENT32) $@
+
+bin32/3c590--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5900 -i$(IDENT32) $@
+
 bin32/3c595.rom:	bin32/3c595.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5950 -i$(IDENT32) $@
@@ -444,6 +462,15 @@ bin32/3c595.lzrom:	bin32/3c595.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5950 -i$(IDENT32) $@
 
 bin32/3c595--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5950 -i$(IDENT32) $@
+
+
+bin32/3c595.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5950 -i$(IDENT32) $@
+
+bin32/3c595--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5950 -i$(IDENT32) $@
 
@@ -463,6 +490,15 @@ bin32/3c595-1--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5951 -i$(IDENT32) $@
 
+
+bin32/3c595-1.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5951 -i$(IDENT32) $@
+
+bin32/3c595-1--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5951 -i$(IDENT32) $@
+
 bin32/3c595-2.rom:	bin32/3c595.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5952 -i$(IDENT32) $@
@@ -476,6 +512,15 @@ bin32/3c595-2.lzrom:	bin32/3c595.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5952 -i$(IDENT32) $@
 
 bin32/3c595-2--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5952 -i$(IDENT32) $@
+
+
+bin32/3c595-2.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5952 -i$(IDENT32) $@
+
+bin32/3c595-2--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x5952 -i$(IDENT32) $@
 
@@ -495,6 +540,15 @@ bin32/3c900-tpo--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9000 -i$(IDENT32) $@
 
+
+bin32/3c900-tpo.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9000 -i$(IDENT32) $@
+
+bin32/3c900-tpo--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9000 -i$(IDENT32) $@
+
 bin32/3c900-t4.rom:	bin32/3c595.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
@@ -508,6 +562,15 @@ bin32/3c900-t4.lzrom:	bin32/3c595.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
 
 bin32/3c900-t4--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
+
+
+bin32/3c900-t4.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
+
+bin32/3c900-t4--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
 
@@ -527,6 +590,15 @@ bin32/3c900b-tpo--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9004 -i$(IDENT32) $@
 
+
+bin32/3c900b-tpo.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9004 -i$(IDENT32) $@
+
+bin32/3c900b-tpo--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9004 -i$(IDENT32) $@
+
 bin32/3c900b-combo.rom:	bin32/3c595.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
@@ -540,6 +612,15 @@ bin32/3c900b-combo.lzrom:	bin32/3c595.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
 
 bin32/3c900b-combo--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
+
+
+bin32/3c900b-combo.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
+
+bin32/3c900b-combo--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
 
@@ -559,6 +640,15 @@ bin32/3c900b-tpb2--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9006 -i$(IDENT32) $@
 
+
+bin32/3c900b-tpb2.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9006 -i$(IDENT32) $@
+
+bin32/3c900b-tpb2--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9006 -i$(IDENT32) $@
+
 bin32/3c900b-fl.rom:	bin32/3c595.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
@@ -572,6 +662,15 @@ bin32/3c900b-fl.lzrom:	bin32/3c595.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
 
 bin32/3c900b-fl--%.lzrom:	bin32/3c595--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
+
+
+bin32/3c900b-fl.nrv2brom:	bin32/3c595.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
+
+bin32/3c900b-fl--%.nrv2brom:	bin32/3c595--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
 
@@ -591,6 +690,15 @@ bin32/3c905-tpo--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9000 -i$(IDENT32) $@
 
+
+bin32/3c905-tpo.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9000 -i$(IDENT32) $@
+
+bin32/3c905-tpo--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9000 -i$(IDENT32) $@
+
 bin32/3c905-t4.rom:	bin32/3c90x.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
@@ -604,6 +712,15 @@ bin32/3c905-t4.lzrom:	bin32/3c90x.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
 
 bin32/3c905-t4--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
+
+
+bin32/3c905-t4.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
+
+bin32/3c905-t4--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9001 -i$(IDENT32) $@
 
@@ -623,6 +740,15 @@ bin32/3c905-tpo100--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9050 -i$(IDENT32) $@
 
+
+bin32/3c905-tpo100.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9050 -i$(IDENT32) $@
+
+bin32/3c905-tpo100--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9050 -i$(IDENT32) $@
+
 bin32/3c905-combo.rom:	bin32/3c90x.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9051 -i$(IDENT32) $@
@@ -636,6 +762,15 @@ bin32/3c905-combo.lzrom:	bin32/3c90x.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9051 -i$(IDENT32) $@
 
 bin32/3c905-combo--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9051 -i$(IDENT32) $@
+
+
+bin32/3c905-combo.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9051 -i$(IDENT32) $@
+
+bin32/3c905-combo--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9051 -i$(IDENT32) $@
 
@@ -655,6 +790,15 @@ bin32/3c905b-tpo--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9004 -i$(IDENT32) $@
 
+
+bin32/3c905b-tpo.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9004 -i$(IDENT32) $@
+
+bin32/3c905b-tpo--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9004 -i$(IDENT32) $@
+
 bin32/3c905b-combo.rom:	bin32/3c90x.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
@@ -668,6 +812,15 @@ bin32/3c905b-combo.lzrom:	bin32/3c90x.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
 
 bin32/3c905b-combo--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
+
+
+bin32/3c905b-combo.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
+
+bin32/3c905b-combo--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9005 -i$(IDENT32) $@
 
@@ -687,6 +840,15 @@ bin32/3c905b-tpb2--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9006 -i$(IDENT32) $@
 
+
+bin32/3c905b-tpb2.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9006 -i$(IDENT32) $@
+
+bin32/3c905b-tpb2--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9006 -i$(IDENT32) $@
+
 bin32/3c905b-fl.rom:	bin32/3c90x.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
@@ -700,6 +862,15 @@ bin32/3c905b-fl.lzrom:	bin32/3c90x.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
 
 bin32/3c905b-fl--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
+
+
+bin32/3c905b-fl.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
+
+bin32/3c905b-fl--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x900a -i$(IDENT32) $@
 
@@ -719,6 +890,15 @@ bin32/3c905b-tpo100--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9055 -i$(IDENT32) $@
 
+
+bin32/3c905b-tpo100.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9055 -i$(IDENT32) $@
+
+bin32/3c905b-tpo100--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9055 -i$(IDENT32) $@
+
 bin32/3c905b-t4.rom:	bin32/3c90x.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9056 -i$(IDENT32) $@
@@ -732,6 +912,15 @@ bin32/3c905b-t4.lzrom:	bin32/3c90x.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9056 -i$(IDENT32) $@
 
 bin32/3c905b-t4--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9056 -i$(IDENT32) $@
+
+
+bin32/3c905b-t4.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9056 -i$(IDENT32) $@
+
+bin32/3c905b-t4--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9056 -i$(IDENT32) $@
 
@@ -751,6 +940,15 @@ bin32/3c905b-9058--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9058 -i$(IDENT32) $@
 
+
+bin32/3c905b-9058.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9058 -i$(IDENT32) $@
+
+bin32/3c905b-9058--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9058 -i$(IDENT32) $@
+
 bin32/3c905b-fx.rom:	bin32/3c90x.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x905a -i$(IDENT32) $@
@@ -764,6 +962,15 @@ bin32/3c905b-fx.lzrom:	bin32/3c90x.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x905a -i$(IDENT32) $@
 
 bin32/3c905b-fx--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x905a -i$(IDENT32) $@
+
+
+bin32/3c905b-fx.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x905a -i$(IDENT32) $@
+
+bin32/3c905b-fx--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x905a -i$(IDENT32) $@
 
@@ -783,6 +990,15 @@ bin32/3c905c-tpo--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9200 -i$(IDENT32) $@
 
+
+bin32/3c905c-tpo.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9200 -i$(IDENT32) $@
+
+bin32/3c905c-tpo--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9200 -i$(IDENT32) $@
+
 bin32/3c980.rom:	bin32/3c90x.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9800 -i$(IDENT32) $@
@@ -796,6 +1012,15 @@ bin32/3c980.lzrom:	bin32/3c90x.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9800 -i$(IDENT32) $@
 
 bin32/3c980--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9800 -i$(IDENT32) $@
+
+
+bin32/3c980.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9800 -i$(IDENT32) $@
+
+bin32/3c980--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9800 -i$(IDENT32) $@
 
@@ -815,6 +1040,15 @@ bin32/3c9805--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9805 -i$(IDENT32) $@
 
+
+bin32/3c9805.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9805 -i$(IDENT32) $@
+
+bin32/3c9805--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x9805 -i$(IDENT32) $@
+
 bin32/3csoho100-tx.rom:	bin32/3c90x.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
@@ -828,6 +1062,15 @@ bin32/3csoho100-tx.lzrom:	bin32/3c90x.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
 
 bin32/3csoho100-tx--%.lzrom:	bin32/3c90x--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
+
+
+bin32/3csoho100-tx.nrv2brom:	bin32/3c90x.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
+
+bin32/3csoho100-tx--%.nrv2brom:	bin32/3c90x--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b7,0x7646 -i$(IDENT32) $@
 
@@ -847,6 +1090,15 @@ bin32/davicom9102--%.lzrom:	bin32/davicom--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9102 -i$(IDENT32) $@
 
+
+bin32/davicom9102.nrv2brom:	bin32/davicom.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9102 -i$(IDENT32) $@
+
+bin32/davicom9102--%.nrv2brom:	bin32/davicom--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9102 -i$(IDENT32) $@
+
 bin32/davicom9009.rom:	bin32/davicom.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9009 -i$(IDENT32) $@
@@ -860,6 +1112,15 @@ bin32/davicom9009.lzrom:	bin32/davicom.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9009 -i$(IDENT32) $@
 
 bin32/davicom9009--%.lzrom:	bin32/davicom--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9009 -i$(IDENT32) $@
+
+
+bin32/davicom9009.nrv2brom:	bin32/davicom.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9009 -i$(IDENT32) $@
+
+bin32/davicom9009--%.nrv2brom:	bin32/davicom--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9009 -i$(IDENT32) $@
 
@@ -879,69 +1140,339 @@ bin32/e1000--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
 
-bin32/e1000-fib.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+
+bin32/e1000.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000-82542.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000-82542--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000-82542.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000-82542--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+
+bin32/e1000-82542.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000-82542--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1000 -i$(IDENT32) $@
+
+bin32/e1000-82543gc-fiber.rom:	bin32/e1000.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
 
-bin32/e1000-fib--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+bin32/e1000-82543gc-fiber--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
 
-bin32/e1000-fib.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+bin32/e1000-82543gc-fiber.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
 
-bin32/e1000-fib--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+bin32/e1000-82543gc-fiber--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
 
-bin32/e1000-cop.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+
+bin32/e1000-82543gc-fiber.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
+
+bin32/e1000-82543gc-fiber--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1001 -i$(IDENT32) $@
+
+bin32/e1000-82543gc-copper.rom:	bin32/e1000.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
 
-bin32/e1000-cop--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+bin32/e1000-82543gc-copper--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
 
-bin32/e1000-cop.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+bin32/e1000-82543gc-copper.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
 
-bin32/e1000-cop--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+bin32/e1000-82543gc-copper--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
 
-bin32/e1000-ecop.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+
+bin32/e1000-82543gc-copper.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
+
+bin32/e1000-82543gc-copper--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1004 -i$(IDENT32) $@
+
+bin32/e1000-82544ei-copper.rom:	bin32/e1000.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
 
-bin32/e1000-ecop--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+bin32/e1000-82544ei-copper--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
 
-bin32/e1000-ecop.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+bin32/e1000-82544ei-copper.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
 
-bin32/e1000-ecop--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+bin32/e1000-82544ei-copper--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
 
-bin32/e1000-creb.rom:	bin32/e1000.img $(PRLOADER) $(START16)
-	cat $(PRLOADER) $(START16) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100d -i$(IDENT32) $@
 
-bin32/e1000-creb--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+bin32/e1000-82544ei-copper.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100d -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
 
-bin32/e1000-creb.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+bin32/e1000-82544ei-copper--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100d -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1008 -i$(IDENT32) $@
 
-bin32/e1000-creb--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+bin32/e1000-82544ei-fiber.rom:	bin32/e1000.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100d -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1009 -i$(IDENT32) $@
+
+bin32/e1000-82544ei-fiber--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1009 -i$(IDENT32) $@
+
+bin32/e1000-82544ei-fiber.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1009 -i$(IDENT32) $@
+
+bin32/e1000-82544ei-fiber--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1009 -i$(IDENT32) $@
+
+
+bin32/e1000-82544ei-fiber.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1009 -i$(IDENT32) $@
+
+bin32/e1000-82544ei-fiber--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1009 -i$(IDENT32) $@
+
+bin32/e1000-82544gc-copper.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100C -i$(IDENT32) $@
+
+bin32/e1000-82544gc-copper--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100C -i$(IDENT32) $@
+
+bin32/e1000-82544gc-copper.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100C -i$(IDENT32) $@
+
+bin32/e1000-82544gc-copper--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100C -i$(IDENT32) $@
+
+
+bin32/e1000-82544gc-copper.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100C -i$(IDENT32) $@
+
+bin32/e1000-82544gc-copper--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100C -i$(IDENT32) $@
+
+bin32/e1000-82544gc-lom.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100D -i$(IDENT32) $@
+
+bin32/e1000-82544gc-lom--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100D -i$(IDENT32) $@
+
+bin32/e1000-82544gc-lom.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100D -i$(IDENT32) $@
+
+bin32/e1000-82544gc-lom--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100D -i$(IDENT32) $@
+
+
+bin32/e1000-82544gc-lom.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100D -i$(IDENT32) $@
+
+bin32/e1000-82544gc-lom--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100D -i$(IDENT32) $@
+
+bin32/e1000-82540em.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100E -i$(IDENT32) $@
+
+bin32/e1000-82540em--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100E -i$(IDENT32) $@
+
+bin32/e1000-82540em.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100E -i$(IDENT32) $@
+
+bin32/e1000-82540em--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100E -i$(IDENT32) $@
+
+
+bin32/e1000-82540em.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100E -i$(IDENT32) $@
+
+bin32/e1000-82540em--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100E -i$(IDENT32) $@
+
+bin32/e1000-82545em-copper.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100F -i$(IDENT32) $@
+
+bin32/e1000-82545em-copper--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100F -i$(IDENT32) $@
+
+bin32/e1000-82545em-copper.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100F -i$(IDENT32) $@
+
+bin32/e1000-82545em-copper--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100F -i$(IDENT32) $@
+
+
+bin32/e1000-82545em-copper.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100F -i$(IDENT32) $@
+
+bin32/e1000-82545em-copper--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x100F -i$(IDENT32) $@
+
+bin32/e1000-82546eb-copper.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1010 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-copper--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1010 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-copper.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1010 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-copper--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1010 -i$(IDENT32) $@
+
+
+bin32/e1000-82546eb-copper.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1010 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-copper--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1010 -i$(IDENT32) $@
+
+bin32/e1000-82545em-fiber.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1011 -i$(IDENT32) $@
+
+bin32/e1000-82545em-fiber--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1011 -i$(IDENT32) $@
+
+bin32/e1000-82545em-fiber.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1011 -i$(IDENT32) $@
+
+bin32/e1000-82545em-fiber--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1011 -i$(IDENT32) $@
+
+
+bin32/e1000-82545em-fiber.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1011 -i$(IDENT32) $@
+
+bin32/e1000-82545em-fiber--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1011 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-fiber.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1012 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-fiber--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1012 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-fiber.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1012 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-fiber--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1012 -i$(IDENT32) $@
+
+
+bin32/e1000-82546eb-fiber.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1012 -i$(IDENT32) $@
+
+bin32/e1000-82546eb-fiber--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1012 -i$(IDENT32) $@
+
+bin32/e1000-82540em-lom.rom:	bin32/e1000.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1015 -i$(IDENT32) $@
+
+bin32/e1000-82540em-lom--%.rom:	bin32/e1000--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1015 -i$(IDENT32) $@
+
+bin32/e1000-82540em-lom.lzrom:	bin32/e1000.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1015 -i$(IDENT32) $@
+
+bin32/e1000-82540em-lom--%.lzrom:	bin32/e1000--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1015 -i$(IDENT32) $@
+
+
+bin32/e1000-82540em-lom.nrv2brom:	bin32/e1000.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1015 -i$(IDENT32) $@
+
+bin32/e1000-82540em-lom--%.nrv2brom:	bin32/e1000--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1015 -i$(IDENT32) $@
 
 bin32/eepro100.rom:	bin32/eepro100.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
@@ -956,6 +1487,15 @@ bin32/eepro100.lzrom:	bin32/eepro100.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1229 -i$(IDENT32) $@
 
 bin32/eepro100--%.lzrom:	bin32/eepro100--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1229 -i$(IDENT32) $@
+
+
+bin32/eepro100.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1229 -i$(IDENT32) $@
+
+bin32/eepro100--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1229 -i$(IDENT32) $@
 
@@ -975,6 +1515,15 @@ bin32/82559er--%.lzrom:	bin32/eepro100--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1209 -i$(IDENT32) $@
 
+
+bin32/82559er.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1209 -i$(IDENT32) $@
+
+bin32/82559er--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1209 -i$(IDENT32) $@
+
 bin32/id1029.rom:	bin32/eepro100.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1029 -i$(IDENT32) $@
@@ -988,6 +1537,15 @@ bin32/id1029.lzrom:	bin32/eepro100.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1029 -i$(IDENT32) $@
 
 bin32/id1029--%.lzrom:	bin32/eepro100--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1029 -i$(IDENT32) $@
+
+
+bin32/id1029.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1029 -i$(IDENT32) $@
+
+bin32/id1029--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1029 -i$(IDENT32) $@
 
@@ -1007,6 +1565,15 @@ bin32/id1030--%.lzrom:	bin32/eepro100--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1030 -i$(IDENT32) $@
 
+
+bin32/id1030.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1030 -i$(IDENT32) $@
+
+bin32/id1030--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1030 -i$(IDENT32) $@
+
 bin32/id1038.rom:	bin32/eepro100.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1038 -i$(IDENT32) $@
@@ -1020,6 +1587,15 @@ bin32/id1038.lzrom:	bin32/eepro100.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1038 -i$(IDENT32) $@
 
 bin32/id1038--%.lzrom:	bin32/eepro100--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1038 -i$(IDENT32) $@
+
+
+bin32/id1038.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1038 -i$(IDENT32) $@
+
+bin32/id1038--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1038 -i$(IDENT32) $@
 
@@ -1039,6 +1615,15 @@ bin32/82562et--%.lzrom:	bin32/eepro100--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
 
+
+bin32/82562et.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
 bin32/82562em.rom:	bin32/eepro100.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x2449 -i$(IDENT32) $@
@@ -1052,6 +1637,15 @@ bin32/82562em.lzrom:	bin32/eepro100.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x2449 -i$(IDENT32) $@
 
 bin32/82562em--%.lzrom:	bin32/eepro100--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x2449 -i$(IDENT32) $@
+
+
+bin32/82562em.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x2449 -i$(IDENT32) $@
+
+bin32/82562em--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x2449 -i$(IDENT32) $@
 
@@ -1071,6 +1665,15 @@ bin32/epic100--%.lzrom:	bin32/epic100--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10b8,0x0005 -i$(IDENT32) $@
 
+
+bin32/epic100.nrv2brom:	bin32/epic100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b8,0x0005 -i$(IDENT32) $@
+
+bin32/epic100--%.nrv2brom:	bin32/epic100--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10b8,0x0005 -i$(IDENT32) $@
+
 bin32/fa311too.rom:	bin32/fa311.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
@@ -1084,6 +1687,15 @@ bin32/fa311too.lzrom:	bin32/fa311.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
 bin32/fa311too--%.lzrom:	bin32/fa311--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+
+bin32/fa311too.nrv2brom:	bin32/fa311.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/fa311too--%.nrv2brom:	bin32/fa311--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
@@ -1103,6 +1715,15 @@ bin32/ide_disk--%.lzrom:	bin32/ide_disk--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x0000,0x0000 -i$(IDENT32) $@
 
+
+bin32/ide_disk.nrv2brom:	bin32/ide_disk.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x0000,0x0000 -i$(IDENT32) $@
+
+bin32/ide_disk--%.nrv2brom:	bin32/ide_disk--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x0000,0x0000 -i$(IDENT32) $@
+
 bin32/lancepci.rom:	bin32/lance.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2000 -i$(IDENT32) $@
@@ -1116,6 +1737,15 @@ bin32/lancepci.lzrom:	bin32/lance.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2000 -i$(IDENT32) $@
 
 bin32/lancepci--%.lzrom:	bin32/lance--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2000 -i$(IDENT32) $@
+
+
+bin32/lancepci.nrv2brom:	bin32/lance.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2000 -i$(IDENT32) $@
+
+bin32/lancepci--%.nrv2brom:	bin32/lance--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2000 -i$(IDENT32) $@
 
@@ -1135,6 +1765,15 @@ bin32/pcnetfastiii--%.lzrom:	bin32/lance--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2625 -i$(IDENT32) $@
 
+
+bin32/pcnetfastiii.nrv2brom:	bin32/lance.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2625 -i$(IDENT32) $@
+
+bin32/pcnetfastiii--%.nrv2brom:	bin32/lance--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2625 -i$(IDENT32) $@
+
 bin32/amdhomepna.rom:	bin32/lance.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2001 -i$(IDENT32) $@
@@ -1148,6 +1787,15 @@ bin32/amdhomepna.lzrom:	bin32/lance.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2001 -i$(IDENT32) $@
 
 bin32/amdhomepna--%.lzrom:	bin32/lance--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2001 -i$(IDENT32) $@
+
+
+bin32/amdhomepna.nrv2brom:	bin32/lance.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2001 -i$(IDENT32) $@
+
+bin32/amdhomepna--%.nrv2brom:	bin32/lance--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1022,0x2001 -i$(IDENT32) $@
 
@@ -1167,6 +1815,15 @@ bin32/fa311--%.lzrom:	bin32/natsemi--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
+
+bin32/fa311.nrv2brom:	bin32/natsemi.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/fa311--%.nrv2brom:	bin32/natsemi--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
 bin32/fa312.rom:	bin32/natsemi.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
@@ -1180,6 +1837,15 @@ bin32/fa312.lzrom:	bin32/natsemi.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
 bin32/fa312--%.lzrom:	bin32/natsemi--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+
+bin32/fa312.nrv2brom:	bin32/natsemi.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/fa312--%.nrv2brom:	bin32/natsemi--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
@@ -1199,6 +1865,15 @@ bin32/dp83815--%.lzrom:	bin32/natsemi--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
 
+
+bin32/dp83815.nrv2brom:	bin32/natsemi.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/dp83815--%.nrv2brom:	bin32/natsemi--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
 bin32/rtl8029.rom:	bin32/ns8390.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8029 -i$(IDENT32) $@
@@ -1212,6 +1887,15 @@ bin32/rtl8029.lzrom:	bin32/ns8390.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8029 -i$(IDENT32) $@
 
 bin32/rtl8029--%.lzrom:	bin32/ns8390--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8029 -i$(IDENT32) $@
+
+
+bin32/rtl8029.nrv2brom:	bin32/ns8390.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8029 -i$(IDENT32) $@
+
+bin32/rtl8029--%.nrv2brom:	bin32/ns8390--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8029 -i$(IDENT32) $@
 
@@ -1231,6 +1915,15 @@ bin32/dlink-528--%.lzrom:	bin32/ns8390--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1186,0x0300 -i$(IDENT32) $@
 
+
+bin32/dlink-528.nrv2brom:	bin32/ns8390.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1186,0x0300 -i$(IDENT32) $@
+
+bin32/dlink-528--%.nrv2brom:	bin32/ns8390--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1186,0x0300 -i$(IDENT32) $@
+
 bin32/winbond940.rom:	bin32/ns8390.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1050,0x0940 -i$(IDENT32) $@
@@ -1244,6 +1937,15 @@ bin32/winbond940.lzrom:	bin32/ns8390.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1050,0x0940 -i$(IDENT32) $@
 
 bin32/winbond940--%.lzrom:	bin32/ns8390--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1050,0x0940 -i$(IDENT32) $@
+
+
+bin32/winbond940.nrv2brom:	bin32/ns8390.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1050,0x0940 -i$(IDENT32) $@
+
+bin32/winbond940--%.nrv2brom:	bin32/ns8390--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1050,0x0940 -i$(IDENT32) $@
 
@@ -1263,6 +1965,15 @@ bin32/compexrl2000--%.lzrom:	bin32/ns8390--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x1401 -i$(IDENT32) $@
 
+
+bin32/compexrl2000.nrv2brom:	bin32/ns8390.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x1401 -i$(IDENT32) $@
+
+bin32/compexrl2000--%.nrv2brom:	bin32/ns8390--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x1401 -i$(IDENT32) $@
+
 bin32/ktiet32p2.rom:	bin32/ns8390.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8e2e,0x3000 -i$(IDENT32) $@
@@ -1276,6 +1987,15 @@ bin32/ktiet32p2.lzrom:	bin32/ns8390.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8e2e,0x3000 -i$(IDENT32) $@
 
 bin32/ktiet32p2--%.lzrom:	bin32/ns8390--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8e2e,0x3000 -i$(IDENT32) $@
+
+
+bin32/ktiet32p2.nrv2brom:	bin32/ns8390.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8e2e,0x3000 -i$(IDENT32) $@
+
+bin32/ktiet32p2--%.nrv2brom:	bin32/ns8390--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8e2e,0x3000 -i$(IDENT32) $@
 
@@ -1295,6 +2015,15 @@ bin32/nv5000sc--%.lzrom:	bin32/ns8390--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x4a14,0x5000 -i$(IDENT32) $@
 
+
+bin32/nv5000sc.nrv2brom:	bin32/ns8390.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x4a14,0x5000 -i$(IDENT32) $@
+
+bin32/nv5000sc--%.nrv2brom:	bin32/ns8390--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x4a14,0x5000 -i$(IDENT32) $@
+
 bin32/holtek80232.rom:	bin32/ns8390.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
@@ -1308,6 +2037,15 @@ bin32/holtek80232.lzrom:	bin32/ns8390.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
 
 bin32/holtek80232--%.lzrom:	bin32/ns8390--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
+
+
+bin32/holtek80232.nrv2brom:	bin32/ns8390.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
+
+bin32/holtek80232--%.nrv2brom:	bin32/ns8390--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x12c3,0x0058 -i$(IDENT32) $@
 
@@ -1327,6 +2065,15 @@ bin32/prism2_pci--%.lzrom:	bin32/prism2_pci--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
 
+
+bin32/prism2_pci.nrv2brom:	bin32/prism2_pci.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
+bin32/prism2_pci--%.nrv2brom:	bin32/prism2_pci--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
 bin32/hwp01170.rom:	bin32/prism2_pci.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
@@ -1340,6 +2087,15 @@ bin32/hwp01170.lzrom:	bin32/prism2_pci.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
 
 bin32/hwp01170--%.lzrom:	bin32/prism2_pci--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
+
+bin32/hwp01170.nrv2brom:	bin32/prism2_pci.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
+bin32/hwp01170--%.nrv2brom:	bin32/prism2_pci--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
 
@@ -1359,6 +2115,15 @@ bin32/dwl520--%.lzrom:	bin32/prism2_pci--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
 
+
+bin32/dwl520.nrv2brom:	bin32/prism2_pci.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
+bin32/dwl520--%.nrv2brom:	bin32/prism2_pci--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
 bin32/ma301.rom:	bin32/prism2_plx.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1385,0x4100 -i$(IDENT32) $@
@@ -1372,6 +2137,15 @@ bin32/ma301.lzrom:	bin32/prism2_plx.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1385,0x4100 -i$(IDENT32) $@
 
 bin32/ma301--%.lzrom:	bin32/prism2_plx--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1385,0x4100 -i$(IDENT32) $@
+
+
+bin32/ma301.nrv2brom:	bin32/prism2_plx.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1385,0x4100 -i$(IDENT32) $@
+
+bin32/ma301--%.nrv2brom:	bin32/prism2_plx--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1385,0x4100 -i$(IDENT32) $@
 
@@ -1391,6 +2165,15 @@ bin32/rtl8129--%.lzrom:	bin32/rtl8139--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
 
+
+bin32/rtl8129.nrv2brom:	bin32/rtl8139.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129--%.nrv2brom:	bin32/rtl8139--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
 bin32/rtl8139.rom:	bin32/rtl8139.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8139 -i$(IDENT32) $@
@@ -1404,6 +2187,15 @@ bin32/rtl8139.lzrom:	bin32/rtl8139.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8139 -i$(IDENT32) $@
 
 bin32/rtl8139--%.lzrom:	bin32/rtl8139--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8139 -i$(IDENT32) $@
+
+
+bin32/rtl8139.nrv2brom:	bin32/rtl8139.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8139 -i$(IDENT32) $@
+
+bin32/rtl8139--%.nrv2brom:	bin32/rtl8139--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10ec,0x8139 -i$(IDENT32) $@
 
@@ -1423,6 +2215,15 @@ bin32/smc1211--%.lzrom:	bin32/rtl8139--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1112,0x1211 -i$(IDENT32) $@
 
+
+bin32/smc1211.nrv2brom:	bin32/rtl8139.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1112,0x1211 -i$(IDENT32) $@
+
+bin32/smc1211--%.nrv2brom:	bin32/rtl8139--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1112,0x1211 -i$(IDENT32) $@
+
 bin32/dfe538.rom:	bin32/rtl8139.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
@@ -1436,6 +2237,15 @@ bin32/dfe538.lzrom:	bin32/rtl8139.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
 bin32/dfe538--%.lzrom:	bin32/rtl8139--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
+
+
+bin32/dfe538.nrv2brom:	bin32/rtl8139.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
+
+bin32/dfe538--%.nrv2brom:	bin32/rtl8139--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
@@ -1455,6 +2265,15 @@ bin32/sis900--%.lzrom:	bin32/sis900--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1039,0x0900 -i$(IDENT32) $@
 
+
+bin32/sis900.nrv2brom:	bin32/sis900.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1039,0x0900 -i$(IDENT32) $@
+
+bin32/sis900--%.nrv2brom:	bin32/sis900--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1039,0x0900 -i$(IDENT32) $@
+
 bin32/sis7016.rom:	bin32/sis900.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1039,0x7016 -i$(IDENT32) $@
@@ -1468,6 +2287,15 @@ bin32/sis7016.lzrom:	bin32/sis900.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1039,0x7016 -i$(IDENT32) $@
 
 bin32/sis7016--%.lzrom:	bin32/sis900--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1039,0x7016 -i$(IDENT32) $@
+
+
+bin32/sis7016.nrv2brom:	bin32/sis900.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1039,0x7016 -i$(IDENT32) $@
+
+bin32/sis7016--%.nrv2brom:	bin32/sis900--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1039,0x7016 -i$(IDENT32) $@
 
@@ -1487,6 +2315,15 @@ bin32/dc21040--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
 
+
+bin32/dc21040.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
+
+bin32/dc21040--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
+
 bin32/dc21041.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0014 -i$(IDENT32) $@
@@ -1500,6 +2337,15 @@ bin32/dc21041.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0014 -i$(IDENT32) $@
 
 bin32/dc21041--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0014 -i$(IDENT32) $@
+
+
+bin32/dc21041.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0014 -i$(IDENT32) $@
+
+bin32/dc21041--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0014 -i$(IDENT32) $@
 
@@ -1519,6 +2365,15 @@ bin32/ds21140--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
 
+
+bin32/ds21140.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
+
+bin32/ds21140--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
+
 bin32/ds21140a.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
@@ -1532,6 +2387,15 @@ bin32/ds21140a.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
 
 bin32/ds21140a--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
+
+
+bin32/ds21140a.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
+
+bin32/ds21140a--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0009 -i$(IDENT32) $@
 
@@ -1551,6 +2415,15 @@ bin32/ds21142--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
 
+
+bin32/ds21142.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
+
+bin32/ds21142--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
+
 bin32/ds21143.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
@@ -1564,6 +2437,15 @@ bin32/ds21143.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
 
 bin32/ds21143--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
+
+
+bin32/ds21143.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
+
+bin32/ds21143--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1011,0x0019 -i$(IDENT32) $@
 
@@ -1583,6 +2465,15 @@ bin32/82c168--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
 
+
+bin32/82c168.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
+
+bin32/82c168--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
+
 bin32/kne110tx.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
@@ -1596,6 +2487,15 @@ bin32/kne110tx.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
 
 bin32/kne110tx--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
+
+
+bin32/kne110tx.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
+
+bin32/kne110tx--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
 
@@ -1615,6 +2515,15 @@ bin32/lc82c115--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0xc115 -i$(IDENT32) $@
 
+
+bin32/lc82c115.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0xc115 -i$(IDENT32) $@
+
+bin32/lc82c115--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11ad,0xc115 -i$(IDENT32) $@
+
 bin32/mx98713.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
@@ -1628,6 +2537,15 @@ bin32/mx98713.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
 
 bin32/mx98713--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
+
+
+bin32/mx98713.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
+
+bin32/mx98713--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
 
@@ -1647,6 +2565,15 @@ bin32/mx98715--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
 
+
+bin32/mx98715.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
+
+bin32/mx98715--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
+
 bin32/mx98725.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
@@ -1660,6 +2587,15 @@ bin32/mx98725.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
 
 bin32/mx98725--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
+
+
+bin32/mx98725.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
+
+bin32/mx98725--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
 
@@ -1679,6 +2615,15 @@ bin32/mxic-98715--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1113,0x1217 -i$(IDENT32) $@
 
+
+bin32/mxic-98715.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1113,0x1217 -i$(IDENT32) $@
+
+bin32/mxic-98715--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1113,0x1217 -i$(IDENT32) $@
+
 bin32/an981.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0981 -i$(IDENT32) $@
@@ -1692,6 +2637,15 @@ bin32/an981.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0981 -i$(IDENT32) $@
 
 bin32/an981--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0981 -i$(IDENT32) $@
+
+
+bin32/an981.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0981 -i$(IDENT32) $@
+
+bin32/an981--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0981 -i$(IDENT32) $@
 
@@ -1711,6 +2665,15 @@ bin32/an983--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
 
+
+bin32/an983.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
 bin32/centaur-p.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0985 -i$(IDENT32) $@
@@ -1724,6 +2687,15 @@ bin32/centaur-p.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0985 -i$(IDENT32) $@
 
 bin32/centaur-p--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0985 -i$(IDENT32) $@
+
+
+bin32/centaur-p.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0985 -i$(IDENT32) $@
+
+bin32/centaur-p--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x0985 -i$(IDENT32) $@
 
@@ -1743,6 +2715,15 @@ bin32/centaur-c--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x1985 -i$(IDENT32) $@
 
+
+bin32/centaur-c.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x1985 -i$(IDENT32) $@
+
+bin32/centaur-c--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1317,0x1985 -i$(IDENT32) $@
+
 bin32/ax88140.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
@@ -1756,6 +2737,15 @@ bin32/ax88140.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
 
 bin32/ax88140--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
+
+
+bin32/ax88140.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
+
+bin32/ax88140--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
 
@@ -1775,6 +2765,15 @@ bin32/ax88141--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
 
+
+bin32/ax88141.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
+
+bin32/ax88141--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x125b,0x1400 -i$(IDENT32) $@
+
 bin32/dm9100.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9100 -i$(IDENT32) $@
@@ -1788,6 +2787,15 @@ bin32/dm9100.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9100 -i$(IDENT32) $@
 
 bin32/dm9100--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9100 -i$(IDENT32) $@
+
+
+bin32/dm9100.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9100 -i$(IDENT32) $@
+
+bin32/dm9100--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9100 -i$(IDENT32) $@
 
@@ -1807,6 +2815,15 @@ bin32/dm9102--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9102 -i$(IDENT32) $@
 
+
+bin32/dm9102.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9102 -i$(IDENT32) $@
+
+bin32/dm9102--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1282,0x9102 -i$(IDENT32) $@
+
 bin32/intel21145.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x0039 -i$(IDENT32) $@
@@ -1820,6 +2837,15 @@ bin32/intel21145.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x0039 -i$(IDENT32) $@
 
 bin32/intel21145--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x0039 -i$(IDENT32) $@
+
+
+bin32/intel21145.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x0039 -i$(IDENT32) $@
+
+bin32/intel21145--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x0039 -i$(IDENT32) $@
 
@@ -1839,6 +2865,15 @@ bin32/rl100tx--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x9881 -i$(IDENT32) $@
 
+
+bin32/rl100tx.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x9881 -i$(IDENT32) $@
+
+bin32/rl100tx--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x9881 -i$(IDENT32) $@
+
 bin32/xircomtulip.rom:	bin32/tulip.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x115d,0x0003 -i$(IDENT32) $@
@@ -1852,6 +2887,15 @@ bin32/xircomtulip.lzrom:	bin32/tulip.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x115d,0x0003 -i$(IDENT32) $@
 
 bin32/xircomtulip--%.lzrom:	bin32/tulip--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x115d,0x0003 -i$(IDENT32) $@
+
+
+bin32/xircomtulip.nrv2brom:	bin32/tulip.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x115d,0x0003 -i$(IDENT32) $@
+
+bin32/xircomtulip--%.nrv2brom:	bin32/tulip--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x115d,0x0003 -i$(IDENT32) $@
 
@@ -1871,6 +2915,15 @@ bin32/dlink-530tx-old--%.lzrom:	bin32/via-rhine--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3043 -i$(IDENT32) $@
 
+
+bin32/dlink-530tx-old.nrv2brom:	bin32/via-rhine.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3043 -i$(IDENT32) $@
+
+bin32/dlink-530tx-old--%.nrv2brom:	bin32/via-rhine--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3043 -i$(IDENT32) $@
+
 bin32/dlink-530tx.rom:	bin32/via-rhine.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
@@ -1884,6 +2937,15 @@ bin32/dlink-530tx.lzrom:	bin32/via-rhine.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
 
 bin32/dlink-530tx--%.lzrom:	bin32/via-rhine--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
+
+
+bin32/dlink-530tx.nrv2brom:	bin32/via-rhine.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
+
+bin32/dlink-530tx--%.nrv2brom:	bin32/via-rhine--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
 
@@ -1903,6 +2965,15 @@ bin32/via-rhine-old--%.lzrom:	bin32/via-rhine--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x6100 -i$(IDENT32) $@
 
+
+bin32/via-rhine-old.nrv2brom:	bin32/via-rhine.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x6100 -i$(IDENT32) $@
+
+bin32/via-rhine-old--%.nrv2brom:	bin32/via-rhine--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x6100 -i$(IDENT32) $@
+
 bin32/via-rhine.rom:	bin32/via-rhine.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
@@ -1916,6 +2987,15 @@ bin32/via-rhine.lzrom:	bin32/via-rhine.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
 
 bin32/via-rhine--%.lzrom:	bin32/via-rhine--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
+
+
+bin32/via-rhine.nrv2brom:	bin32/via-rhine.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
+
+bin32/via-rhine--%.nrv2brom:	bin32/via-rhine--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1106,0x3065 -i$(IDENT32) $@
 
@@ -1935,6 +3015,15 @@ bin32/winbond840--%.lzrom:	bin32/w89c840--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x1050,0x0840 -i$(IDENT32) $@
 
+
+bin32/winbond840.nrv2brom:	bin32/w89c840.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1050,0x0840 -i$(IDENT32) $@
+
+bin32/winbond840--%.nrv2brom:	bin32/w89c840--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x1050,0x0840 -i$(IDENT32) $@
+
 bin32/compexrl100atx.rom:	bin32/w89c840.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x2011 -i$(IDENT32) $@
@@ -1948,6 +3037,15 @@ bin32/compexrl100atx.lzrom:	bin32/w89c840.lzimg $(PRLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x2011 -i$(IDENT32) $@
 
 bin32/compexrl100atx--%.lzrom:	bin32/w89c840--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x2011 -i$(IDENT32) $@
+
+
+bin32/compexrl100atx.nrv2brom:	bin32/w89c840.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x2011 -i$(IDENT32) $@
+
+bin32/compexrl100atx--%.nrv2brom:	bin32/w89c840--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x11f6,0x2011 -i$(IDENT32) $@
 

@@ -152,6 +152,7 @@ int disk_load_configuration(struct dev *dev)
 	struct disk *disk = (struct disk *)dev;
 	disk->direction = (dev->failsafe)?-1:1;
 	disk->disk_offset = 0;
+	return 0;
 }
 
 int disk_load(struct dev *dev)

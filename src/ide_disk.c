@@ -213,9 +213,7 @@ static int await_ide(int (*done)(struct controller *ctrl),
 		if (result) {
 			return 0;
 		}
-		if (iskey() && (getchar() == ESC)) {
-			longjmp(restart_etherboot, -1);
-		}
+		poll_interruptions();
 		if ((timeout == 0) || (currticks() > timeout)) {
 			break;
 		}
