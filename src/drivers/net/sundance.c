@@ -555,7 +555,7 @@ static void sundance_transmit(struct nic *nic, const char *d,	/* Destination */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void sundance_disable(struct dev *dev)
+static void sundance_disable(struct dev *dev __unused)
 {
 	/* put the card in its initial state */
 	/* This function serves 3 purposes.

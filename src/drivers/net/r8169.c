@@ -84,12 +84,16 @@ static u32 ioaddr;
 */
 static int media = -1;
 
+#if 0
 /* Maximum events (Rx packets, etc.) to handle at each interrupt. */
 static int max_interrupt_work = 20;
+#endif
 
+#if 0
 /* Maximum number of multicast addresses to filter (vs. Rx-all-multicast).
    The RTL chips use a 64 element hash table based on the Ethernet CRC.  */
 static int multicast_filter_limit = 32;
+#endif
 
 /* MAC address length*/
 #define MAC_ADDR_LEN	6
@@ -412,7 +416,7 @@ static int rtl8169_init_board(struct pci_device *pdev)
 /**************************************************************************
 IRQ - Wait for a frame
 ***************************************************************************/
-void r8169_irq ( struct nic *nic, irq_action_t action ) {
+void r8169_irq ( struct nic *nic __unused, irq_action_t action ) {
 	int intr_status = 0;
 	int interested = RxUnderrun | RxOverflow | RxFIFOOver | RxErr | RxOK;
  
