@@ -1,3 +1,4 @@
+#ifdef CONFIG_ISA
 /**************************************************************************
 *
 *    isapnp.c -- Etherboot isapnp support for the 3Com 3c515
@@ -378,3 +379,4 @@ static int isapnp_isolate_rdp_select(void)
 	udelay(1000);
 	return 0;
 }
+#endif  /* CONFIG_ISA */
