@@ -749,11 +749,11 @@ static int bootp(void)
 	unsigned long  starttime;
 	unsigned char *bp_vend;
 
-	dhcp_machine_info[3] = nic.dev.devid.bus_type;
-	dhcp_machine_info[4] = nic.dev.devid.vendor_id & 0xff;
-	dhcp_machine_info[5] = ((nic.dev.devid.vendor_id) >> 8) & 0xff;
-	dhcp_machine_info[6] = nic.dev.devid.device_id & 0xff;
-	dhcp_machine_info[7] = ((nic.dev.devid.device_id) >> 8) & 0xff;
+	dhcp_machine_info[4] = nic.dev.devid.bus_type;
+	dhcp_machine_info[5] = nic.dev.devid.vendor_id & 0xff;
+	dhcp_machine_info[6] = ((nic.dev.devid.vendor_id) >> 8) & 0xff;
+	dhcp_machine_info[7] = nic.dev.devid.device_id & 0xff;
+	dhcp_machine_info[8] = ((nic.dev.devid.device_id) >> 8) & 0xff;
 	memset(&ip, 0, sizeof(struct bootpip_t));
 	ip.bp.bp_op = BOOTP_REQUEST;
 	ip.bp.bp_htype = 1;
@@ -1246,7 +1246,7 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 		}
 #endif
 		else {
-#if	0
+#if 0
 			unsigned char *q;
 			printf("Unknown RFC1533-tag ");
 			for(q=p;q<p+2+TAG_LEN(p);q++)
