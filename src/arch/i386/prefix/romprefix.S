@@ -248,30 +248,42 @@ prefix_exit_end:
 #define PXENV_UNDI_LOADER		0x104d
 
 	.section ".prefix"
-	/* Placeholder UNDI loader routine: just print out a message
-	 * and return failure.
-	 */
-loadermsg:	.ascii "Dummy UNDI loader called\r\n"
-loadermsg_end:	
 UNDILoader:
-	/* Shuffle stack into looking like a normal PXE API call */
-	pushw	%ax			/* padding */
+	/* Loader API is different to the usual PXE API; there is no
+	 * opcode on the stack.  We arrange the stack to look like a
+	 * normal PXE API call; this makes the Etherboot internals
+	 * cleaner and avoids adding an extra API type just for the
+	 * PXE loader.
+	 */
+	pushw	%bx
+	movw	%sp, %ax		/* Store original %ss:sp */
+	pushw	%ss
+	pushw	%ax
+	pushl	%eax			/* Space for loader structure ptr */
 	pushw	%bp
 	movw	%sp, %bp
-	movw	$PXENV_UNDI_LOADER, %ax	/* PXE 'opcode' */
-	xchgw	%ax, 6(%bp)
-	xchgw	%ax, 4(%bp)
-	xchgw	%ax, 2(%bp)
+	movw	16(%bp), %ax		/* Copy loader structure ptr */
+	movw	%ax, 2(%bp)
+	movw	18(%bp), %ax
+	movw	%ax, 4(%bp)
 	popw	%bp
+	pushw	$PXENV_UNDI_LOADER	/* PXE 'opcode' */
+	pushl	%eax			/* dummy return address */
+	/* Stack now looks like a normal PXE API call */
 	/* Unpack Etherboot into temporarily claimed base memory */
-	pushw	$-1			/* Do not switch stacks */
+	pushw	$14			/* Dummy ret, PXE params, orig ss:sp */
 	call	prelocate
 	addw	$2, %sp			/* discard */
 	/* Make PXE API call to Etherboot */
 	pushl	$0x201			/* PXE API version */
-	pushl	$EB_OPCODE_PXE		/* This is a PXE API call */
+	/* Need to USE_INTERNAL_STACK, since we will call relocate() */
+	pushl	$(EB_OPCODE_PXE|EB_USE_INTERNAL_STACK) /* PXE API call type */
 	call	_entry
-	addw	$8, %sp		/* discard */
+	addw	$18, %sp		/* discard */
+	popw	%bx			/* Restore original %ss:sp */
+	popw	%ss
+	movw	%bx, %sp
+	popw	%bx
 	call	deprelocate
 	lret	$2			/* Skip our PXE 'opcode' */
 #endif	/* PXE_EXPORT */
