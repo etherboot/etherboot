@@ -867,14 +867,26 @@ typedef union {
 	t_PXENV_STOP_BASE		stop_base;
 } t_PXENV_ANY;
 
+/* PXE stack status indicator.  See pxe_export.c for further
+ * explanation.
+ */
+typedef enum {
+	CAN_UNLOAD = 0,
+	MIDWAY,
+	READY
+} pxe_stack_state_t;
+
 /* Data structures installed as part of a PXE stack.  Architectures
  * will have extra information to append to the end of this.
  */
 typedef struct {
 	pxe_t		pxe	__attribute__ ((aligned(16)));
 	pxenv_t		pxenv	__attribute__ ((aligned(16)));
-	BOOTPLAYER	cached_info;
-	uint8_t		active;
+	pxe_stack_state_t state;
+	union {
+		BOOTPLAYER	cached_info;
+		char		packet[ETH_FRAME_LEN];
+	};
 	struct {}	arch_data __attribute__ ((aligned(16)));
 } pxe_stack_t;
 

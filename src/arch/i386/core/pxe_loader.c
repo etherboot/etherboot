@@ -55,10 +55,13 @@ static sector_t pxe_download ( unsigned char *data,
 
 	/* Install and activate a PXE stack */
 	pxe_stack = install_pxe_stack ( NULL );
-	activate_pxe_stack();
-
-	/* Invoke the NBP */
-	nbp_exit = xstartpxe();
+	if ( ensure_pxe_state ( READY ) ) {
+		/* Invoke the NBP */
+		nbp_exit = xstartpxe();
+	} else {
+		/* Fake success so we tear down the stack */
+		nbp_exit = PXENV_STATUS_SUCCESS;
+	}
 
 	/* NBP has three exit codes:
 	 *   PXENV_STATUS_KEEP_UNDI : keep UNDI and boot next device

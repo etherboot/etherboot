@@ -7,6 +7,8 @@
 #include "pxe.h"
 
 /* Function prototypes */
+extern int ensure_pxe_state ( pxe_stack_state_t wanted );
+
 extern PXENV_EXIT_t pxenv_start_undi ( t_PXENV_START_UNDI * );
 extern PXENV_EXIT_t pxenv_undi_startup ( t_PXENV_UNDI_STARTUP * );
 extern PXENV_EXIT_t pxenv_undi_cleanup ( t_PXENV_UNDI_CLEANUP * );

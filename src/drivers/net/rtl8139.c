@@ -113,8 +113,18 @@ enum RTL8139_registers {
 	 * definitions we will probably never need to know about.  */
 };
 
+enum RxEarlyStatusBits {
+	ERGood=0x08, ERBad=0x04, EROVW=0x02, EROK=0x01
+};
+
 enum ChipCmdBits {
 	CmdReset=0x10, CmdRxEnb=0x08, CmdTxEnb=0x04, RxBufEmpty=0x01, };
+
+enum IntrMaskBits {
+	SERR=0x8000, TimeOut=0x4000, LenChg=0x2000,
+	FOVW=0x40, PUN_LinkChg=0x20, RXOVW=0x10,
+	TER=0x08, TOK=0x04, RER=0x02, ROK=0x01
+};
 
 /* Interrupt register bits, using my own meaningful names. */
 enum IntrStatusBits {
@@ -156,7 +166,6 @@ enum rx_mode_bits {
 	AcceptMulticast=0x04, AcceptMyPhys=0x02, AcceptAllPhys=0x01,
 };
 
-static int ioaddr;
 static unsigned int cur_rx,cur_tx;
 
 /* The RTL8139 can only transmit from a contiguous, aligned memory block.  */
@@ -164,12 +173,13 @@ static unsigned char tx_buffer[TX_BUF_SIZE] __attribute__((aligned(4)));
 static unsigned char rx_ring[RX_BUF_LEN+16] __attribute__((aligned(4)));
 
 static int rtl8139_probe(struct dev *dev, struct pci_device *pci);
-static int read_eeprom(int location, int addr_len);
+static int read_eeprom(struct nic *nic, int location, int addr_len);
 static void rtl_reset(struct nic *nic);
 static void rtl_transmit(struct nic *nic, const char *destaddr,
 	unsigned int type, unsigned int len, const char *data);
-static int rtl_poll(struct nic *nic);
+static int rtl_poll(struct nic *nic, int retrieve);
 static void rtl_disable(struct dev *);
+static void rtl_irq(struct nic *nic, irq_action_t action);
 
 
 static int rtl8139_probe(struct dev *dev, struct pci_device *pci)
@@ -185,26 +195,29 @@ static int rtl8139_probe(struct dev *dev, struct pci_device *pci)
 	printf(" - ");
 
 	/* Mask the bit that says "this is an io addr" */
-	ioaddr = pci->ioaddr & ~3;
+	nic->ioaddr = pci->ioaddr & ~3;
+
+	/* Copy IRQ from PCI information */
+	nic->irqno = pci->irq;
 
 	adjust_pci_device(pci);
 
 	/* Bring the chip out of low-power mode. */
-	outb(0x00, ioaddr + Config1);
+	outb(0x00, nic->ioaddr + Config1);
 
-	addr_len = read_eeprom(0,8) == 0x8129 ? 8 : 6;
+	addr_len = read_eeprom(nic,0,8) == 0x8129 ? 8 : 6;
 	for (i = 0; i < 3; i++)
-	  *ap++ = read_eeprom(i + 7,addr_len);
+	  *ap++ = read_eeprom(nic,i + 7,addr_len);
 
-	speed10 = inb(ioaddr + MediaStatus) & MSRSpeed10;
-	fullduplex = inw(ioaddr + MII_BMCR) & BMCRDuplex;
-	printf("ioaddr %#hX, addr %! %sMbps %s-duplex\n", ioaddr,
-		nic->node_addr,  speed10 ? "10" : "100",
-		fullduplex ? "full" : "half");
+	speed10 = inb(nic->ioaddr + MediaStatus) & MSRSpeed10;
+	fullduplex = inw(nic->ioaddr + MII_BMCR) & BMCRDuplex;
+	printf("ioaddr %#hX, irq %d, addr %! %sMbps %s-duplex\n", nic->ioaddr,
+	       nic->irqno, nic->node_addr,  speed10 ? "10" : "100",
+	       fullduplex ? "full" : "half");
 
 	rtl_reset(nic);
 
-	if (inb(ioaddr + MediaStatus) & MSRLinkFail) {
+	if (inb(nic->ioaddr + MediaStatus) & MSRLinkFail) {
 		printf("Cable not connected or other link failure\n");
 		return(0);
 	}
@@ -212,6 +225,7 @@ static int rtl8139_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable  = rtl_disable;
 	nic->poll     = rtl_poll;
 	nic->transmit = rtl_transmit;
+	nic->irq      = rtl_irq;
 
 	return 1;
 }
@@ -239,11 +253,11 @@ static int rtl8139_probe(struct dev *dev, struct pci_device *pci)
 #define EE_READ_CMD     (6)
 #define EE_ERASE_CMD    (7)
 
-static int read_eeprom(int location, int addr_len)
+static int read_eeprom(struct nic *nic, int location, int addr_len)
 {
 	int i;
 	unsigned int retval = 0;
-	long ee_addr = ioaddr + Cfg9346;
+	long ee_addr = nic->ioaddr + Cfg9346;
 	int read_cmd = location | (EE_READ_CMD << addr_len);
 
 	outb(EE_ENB & ~EE_CS, ee_addr);
@@ -287,34 +301,35 @@ static void set_rx_mode(struct nic *nic) {
 	rx_mode = AcceptBroadcast | AcceptMulticast | AcceptMyPhys;
 	mc_filter[1] = mc_filter[0] = 0xffffffff;
 
-	outl(rtl8139_rx_config | rx_mode, ioaddr + RxConfig);
+	outl(rtl8139_rx_config | rx_mode, nic->ioaddr + RxConfig);
 
-	outl(mc_filter[0], ioaddr + MAR0 + 0);
-	outl(mc_filter[1], ioaddr + MAR0 + 4);
+	outl(mc_filter[0], nic->ioaddr + MAR0 + 0);
+	outl(mc_filter[1], nic->ioaddr + MAR0 + 4);
 }
 	
 static void rtl_reset(struct nic* nic)
 {
 	int i;
 
-	outb(CmdReset, ioaddr + ChipCmd);
+	outb(CmdReset, nic->ioaddr + ChipCmd);
 
 	cur_rx = 0;
 	cur_tx = 0;
 
 	/* Give the chip 10ms to finish the reset. */
 	load_timer2(10*TICKS_PER_MS);
-	while ((inb(ioaddr + ChipCmd) & CmdReset) != 0 && timer2_running())
+	while ((inb(nic->ioaddr + ChipCmd) & CmdReset) != 0 &&
+	       timer2_running())
 		/* wait */;
 
 	for (i = 0; i < ETH_ALEN; i++)
-		outb(nic->node_addr[i], ioaddr + MAC0 + i);
+		outb(nic->node_addr[i], nic->ioaddr + MAC0 + i);
 
 	/* Must enable Tx/Rx before setting transfer thresholds! */
-	outb(CmdRxEnb | CmdTxEnb, ioaddr + ChipCmd);
+	outb(CmdRxEnb | CmdTxEnb, nic->ioaddr + ChipCmd);
 	outl((RX_FIFO_THRESH<<13) | (RX_BUF_LEN_IDX<<11) | (RX_DMA_BURST<<8),
-		ioaddr + RxConfig);		/* accept no frames yet!  */
-	outl((TX_DMA_BURST<<8)|0x03000000, ioaddr + TxConfig);
+		nic->ioaddr + RxConfig);	  /* accept no frames yet!  */
+	outl((TX_DMA_BURST<<8)|0x03000000, nic->ioaddr + TxConfig);
 
 	/* The Linux driver changes Config1 here to use a different LED pattern
 	 * for half duplex or full/autodetect duplex (for full/autodetect, the
@@ -327,7 +342,7 @@ static void rtl_reset(struct nic* nic)
 #ifdef	DEBUG_RX
 	printf("rx ring address is %X\n",(unsigned long)rx_ring);
 #endif
-	outl((unsigned long)virt_to_bus(rx_ring), ioaddr + RxBuf);
+	outl((unsigned long)virt_to_bus(rx_ring), nic->ioaddr + RxBuf);
 
 
 
@@ -335,18 +350,18 @@ static void rtl_reset(struct nic* nic)
 	 * initialized to 0xffffffffffffffff (two 32 bit accesses).  Etherboot
 	 * only needs broadcast (for ARP/RARP/BOOTP/DHCP) and unicast.  */
 
-	outb(CmdRxEnb | CmdTxEnb, ioaddr + ChipCmd);
+	outb(CmdRxEnb | CmdTxEnb, nic->ioaddr + ChipCmd);
 	
-	outl(rtl8139_rx_config, ioaddr + RxConfig);
+	outl(rtl8139_rx_config, nic->ioaddr + RxConfig);
 	
 	/* Start the chip's Tx and Rx process. */
-	outl(0, ioaddr + RxMissed);
+	outl(0, nic->ioaddr + RxMissed);
 
 	/* set_rx_mode */
 	set_rx_mode(nic);
 	
 	/* Disable all known interrupts by setting the interrupt mask. */
-	outw(0, ioaddr + IntrMask);
+	outw(0, nic->ioaddr + IntrMask);
 }
 
 static void rtl_transmit(struct nic *nic, const char *destaddr,
@@ -373,22 +388,22 @@ static void rtl_transmit(struct nic *nic, const char *destaddr,
 		tx_buffer[len++] = '\0';
 	}
 
-	outl((unsigned long)virt_to_bus(tx_buffer), ioaddr + TxAddr0 + cur_tx*4);
+	outl((unsigned long)virt_to_bus(tx_buffer), nic->ioaddr + TxAddr0 + cur_tx*4);
 	outl(((TX_FIFO_THRESH<<11) & 0x003f0000) | len,
-		ioaddr + TxStatus0 + cur_tx*4);
+		nic->ioaddr + TxStatus0 + cur_tx*4);
 
 	to = currticks() + RTL_TIMEOUT;
 
 	do {
-		status = inw(ioaddr + IntrStatus);
+		status = inw(nic->ioaddr + IntrStatus);
 		/* Only acknlowledge interrupt sources we can properly handle
 		 * here - the RxOverflow/RxFIFOOver MUST be handled in the
 		 * rtl_poll() function.  */
-		outw(status & (TxOK | TxErr | PCIErr), ioaddr + IntrStatus);
+		outw(status & (TxOK | TxErr | PCIErr), nic->ioaddr + IntrStatus);
 		if ((status & (TxOK | TxErr | PCIErr)) != 0) break;
 	} while (currticks() < to);
 
-	txstatus = inl(ioaddr+ TxStatus0 + cur_tx*4);
+	txstatus = inl(nic->ioaddr+ TxStatus0 + cur_tx*4);
 
 	if (status & TxOK) {
 		cur_tx = (cur_tx + 1) % NUM_TX_DESC;
@@ -405,19 +420,22 @@ static void rtl_transmit(struct nic *nic, const char *destaddr,
 	}
 }
 
-static int rtl_poll(struct nic *nic)
+static int rtl_poll(struct nic *nic, int retrieve)
 {
 	unsigned int status;
 	unsigned int ring_offs;
 	unsigned int rx_size, rx_status;
 
-	if (inb(ioaddr + ChipCmd) & RxBufEmpty) {
+	if (inb(nic->ioaddr + ChipCmd) & RxBufEmpty) {
 		return 0;
 	}
 
-	status = inw(ioaddr + IntrStatus);
+	/* There is a packet ready */
+	if ( ! retrieve ) return 1;
+
+	status = inw(nic->ioaddr + IntrStatus);
 	/* See below for the rest of the interrupt acknowledges.  */
-	outw(status & ~(RxFIFOOver | RxOverflow | RxOK), ioaddr + IntrStatus);
+	outw(status & ~(RxFIFOOver | RxOverflow | RxOK), nic->ioaddr + IntrStatus);
 
 #ifdef	DEBUG_RX
 	printf("rtl_poll: int %hX ", status);
@@ -457,12 +475,38 @@ static int rtl_poll(struct nic *nic)
 		nic->packet[12], nic->packet[13], rx_status);
 #endif
 	cur_rx = (cur_rx + rx_size + 4 + 3) & ~3;
-	outw(cur_rx - 16, ioaddr + RxBufPtr);
+	outw(cur_rx - 16, nic->ioaddr + RxBufPtr);
 	/* See RTL8139 Programming Guide V0.1 for the official handling of
 	 * Rx overflow situations.  The document itself contains basically no
 	 * usable information, except for a few exception handling rules.  */
-	outw(status & (RxFIFOOver | RxOverflow | RxOK), ioaddr + IntrStatus);
+	outw(status & (RxFIFOOver | RxOverflow | RxOK), nic->ioaddr + IntrStatus);
 	return 1;
+}
+
+static void rtl_irq(struct nic *nic, irq_action_t action)
+{
+	unsigned int mask;
+	/* Bit of a guess as to which interrupts we should allow */
+	unsigned int interested = ROK | RER | RXOVW | FOVW | SERR;
+
+	switch ( action ) {
+	case DISABLE :
+	case ENABLE :
+		mask = inw(nic->ioaddr + IntrMask);
+		mask = mask & ~interested;
+		if ( action == ENABLE ) mask = mask | interested;
+		outw(mask, nic->ioaddr + IntrMask);
+		break;
+	case FORCE :
+		/* Apparently writing a 1 to this read-only bit of a
+		 * read-only and otherwise unrelated register will
+		 * force an interrupt.  If you ever want to see how
+		 * not to write a datasheet, read the one for the
+		 * RTL8139...
+		 */
+		outb(EROK, nic->ioaddr + RxEarlyStatus);
+		break;
+	}
 }
 
 static void rtl_disable(struct dev *dev)
@@ -472,11 +516,11 @@ static void rtl_disable(struct dev *dev)
 	rtl_reset(nic);
 
 	/* reset the chip */
-	outb(CmdReset, ioaddr + ChipCmd);
+	outb(CmdReset, nic->ioaddr + ChipCmd);
 
 	/* 10 ms timeout */
 	load_timer2(10*TICKS_PER_MS);
-	while ((inb(ioaddr + ChipCmd) & CmdReset) != 0 && timer2_running())
+	while ((inb(nic->ioaddr + ChipCmd) & CmdReset) != 0 && timer2_running())
 		/* wait */;
 }
 

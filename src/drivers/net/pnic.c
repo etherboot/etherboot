@@ -23,7 +23,6 @@ Bochs Pseudo NIC driver for Etherboot
 #include "pnic_api.h"
 
 /* NIC specific static variables go here */
-static uint16_t ioaddr;
 static uint8_t rx_tx_buffer[ETH_FRAME_LEN];
 uint8_t *rx_buffer = rx_tx_buffer;
 uint8_t *tx_buffer = rx_tx_buffer;
@@ -40,7 +39,7 @@ uint8_t *tx_buffer = rx_tx_buffer;
  * of data).
  */
 
-uint16_t pnic_command_quiet ( uint16_t command,
+uint16_t pnic_command_quiet ( struct nic *nic, uint16_t command,
 			      void *input, uint16_t input_length,
 			      void *output, uint16_t output_max_length,
 			      uint16_t *output_length ) {
@@ -50,18 +49,18 @@ uint16_t pnic_command_quiet ( uint16_t command,
 
 	if ( input != NULL ) {
 		/* Write input length */
-		outw ( input_length, ioaddr + PNIC_REG_LEN );
+		outw ( input_length, nic->ioaddr + PNIC_REG_LEN );
 		/* Write input data */
 		for ( i = 0; i < input_length; i++ ) {
-			outb ( ((char*)input)[i], ioaddr + PNIC_REG_DATA );
+			outb( ((char*)input)[i], nic->ioaddr + PNIC_REG_DATA );
 		}
 	}
 	/* Write command */
-	outw ( command, ioaddr + PNIC_REG_CMD );
+	outw ( command, nic->ioaddr + PNIC_REG_CMD );
 	/* Retrieve status */
-	status = inw ( ioaddr + PNIC_REG_STAT );
+	status = inw ( nic->ioaddr + PNIC_REG_STAT );
 	/* Retrieve output length */
-	_output_length = inw ( ioaddr + PNIC_REG_LEN );
+	_output_length = inw ( nic->ioaddr + PNIC_REG_LEN );
 	if ( output_length == NULL ) {
 		if ( _output_length != output_max_length ) {
 			printf ( "pnic_command %#hx: wrong data length "
@@ -80,17 +79,19 @@ uint16_t pnic_command_quiet ( uint16_t command,
 		}
 		/* Retrieve output data */
 		for ( i = 0; i < _output_length; i++ ) {
-			((char*)output)[i] = inb ( ioaddr + PNIC_REG_DATA );
+			((char*)output)[i] =
+				inb ( nic->ioaddr + PNIC_REG_DATA );
 		}
 	}
 	return status;
 }
 
-uint16_t pnic_command ( uint16_t command,
+uint16_t pnic_command ( struct nic *nic, uint16_t command,
 			void *input, uint16_t input_length,
 			void *output, uint16_t output_max_length,
 			uint16_t *output_length ) {
-	uint16_t status = pnic_command_quiet ( command, input, input_length,
+	uint16_t status = pnic_command_quiet ( nic, command,
+					       input, input_length,
 					       output, output_max_length,
 					       output_length );
 	if ( status == PNIC_STATUS_OK ) return status;
@@ -102,17 +103,27 @@ uint16_t pnic_command ( uint16_t command,
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int pnic_poll(struct nic *nic)
+static int pnic_poll(struct nic *nic, int retrieve)
 {
 	uint16_t length;
+	uint16_t qlen;
 
-	if ( pnic_command ( PNIC_CMD_RECV, NULL, 0,
+	/* Check receive queue length to see if there's anything to
+	 * get.  Necessary since once we've called PNIC_CMD_RECV we
+	 * have to read out the packet, otherwise it's lost forever.
+	 */
+	if ( pnic_command ( nic, PNIC_CMD_RECV_QLEN, NULL, 0,
+			    &qlen, sizeof(qlen), NULL )
+	     != PNIC_STATUS_OK ) return ( 0 );
+	if ( qlen == 0 ) return ( 0 );
+
+	/* There is a packet ready.  Return 1 if we're only checking. */
+	if ( ! retrieve ) return ( 1 );
+
+	/* Retrieve the packet */
+	if ( pnic_command ( nic, PNIC_CMD_RECV, NULL, 0,
 			    nic->packet, ETH_FRAME_LEN, &length )
 	     != PNIC_STATUS_OK ) return ( 0 );
-
-	/* Length 0 => no packet */
-	if ( length == 0 ) return ( 0 );
-
 	nic->packetlen = length;
 	return ( 1 );
 }
@@ -140,16 +151,38 @@ static void pnic_transmit(
 	memcpy ( tx_buffer + 2 * ETH_ALEN, &nstype, 2 );
 	memcpy ( tx_buffer + ETH_HLEN, data, size );
 
-	pnic_command ( PNIC_CMD_XMIT, tx_buffer, ETH_HLEN + size,
+	pnic_command ( nic, PNIC_CMD_XMIT, tx_buffer, ETH_HLEN + size,
 		       NULL, 0, NULL );
 }
 
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void pnic_disable(struct dev *dev __unused)
+static void pnic_disable(struct dev *dev)
 {
-	pnic_command ( PNIC_CMD_RESET, NULL, 0, NULL, 0, NULL );
+	struct nic *nic = (struct nic *)dev;
+	pnic_command ( nic, PNIC_CMD_RESET, NULL, 0, NULL, 0, NULL );
+}
+
+/**************************************************************************
+IRQ - Handle card interrupt status
+***************************************************************************/
+static void pnic_irq ( struct nic *nic, irq_action_t action )
+{
+	uint8_t enabled;
+
+	switch ( action ) {
+	case DISABLE :
+	case ENABLE :
+		enabled = ( action == ENABLE ? 1 : 0 );
+		pnic_command ( nic, PNIC_CMD_MASK_IRQ,
+			       &enabled, sizeof(enabled), NULL, 0, NULL );
+		break;
+	case FORCE :
+		pnic_command ( nic, PNIC_CMD_FORCE_IRQ,
+			       NULL, 0, NULL, 0, NULL );
+		break;
+	}
 }
 
 /**************************************************************************
@@ -165,21 +198,23 @@ static int pnic_probe(struct dev *dev, struct pci_device *pci)
 	printf(" - ");
 
 	/* Mask the bit that says "this is an io addr" */
-	ioaddr = pci->ioaddr & ~3;
+	nic->ioaddr = pci->ioaddr & ~3;
+	nic->irqno = pci->irq;
 	/* Not sure what this does, but the rtl8139 driver does it */
 	adjust_pci_device(pci);
 
-	status = pnic_command_quiet( PNIC_CMD_API_VER, NULL, 0,
+	status = pnic_command_quiet( nic, PNIC_CMD_API_VER, NULL, 0,
 				     &api_version, sizeof(api_version), NULL );
 	if ( status != PNIC_STATUS_OK ) {
 		printf ( "PNIC failed installation check, code %#hx\n",
 			 status );
 		return 0;
 	}
-	status = pnic_command ( PNIC_CMD_READ_MAC, NULL, 0,
+	status = pnic_command ( nic, PNIC_CMD_READ_MAC, NULL, 0,
 				nic->node_addr, ETH_ALEN, NULL );
 	printf ( "Detected Bochs Pseudo NIC MAC %! (API v%d.%d) at %#hx\n",
-		 nic->node_addr, api_version>>8, api_version&0xff, ioaddr );
+		 nic->node_addr, api_version>>8, api_version&0xff,
+		 nic->ioaddr );
 	if ( api_version != PNIC_API_VERSION ) {
 		printf ( "Warning: API version mismatch! "
 			 "(NIC's is %d.%d, ours is %d.%d)\n",
@@ -191,6 +226,7 @@ static int pnic_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable  = pnic_disable;
 	nic->poll     = pnic_poll;
 	nic->transmit = pnic_transmit;
+	nic->irq      = pnic_irq;
 	return 1;
 }
 

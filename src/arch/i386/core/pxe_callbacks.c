@@ -47,6 +47,10 @@ uint8_t byte_checksum ( void *address, size_t size ) {
 /* install_pxe_stack(): install PXE stack.
  * 
  * Use base = NULL for auto-allocation of base memory
+ *
+ * IMPORTANT: no further allocation of base memory should take place
+ * before the PXE stack is removed.  This is to work around a small
+ * but important deficiency in the PXE specification.
  */
 pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxe_t *pxe;
@@ -70,6 +74,8 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	/* Round address up to 16-byte physical alignment */
 	pxe_stack = (pxe_stack_t *)
 		( phys_to_virt ( ( virt_to_phys(base) + 0xf ) & ~0xf ) );
+	/* Zero out allocated stack */
+	memset ( pxe_stack, 0, sizeof(*pxe_stack) );
 	
 	/* Calculate addresses for portions of the stack */
 	pxe = &(pxe_stack->pxe);
@@ -103,14 +109,14 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxe->reserved_2 = 0;
 	pxe->SegDescCn = 7;
 	pxe->FirstSelector = 0;
-	/* Currently we use caller's stack */
-	pxe->Stack.Seg_Addr = 0;
-	pxe->Stack.Phy_Addr = 0;
-	pxe->Stack.Seg_Size = 0;
-	/* We specify that code and data segments are the same, for now */
-	pxe->UNDIData.Seg_Addr = SEGMENT(pxe_stack);
-	pxe->UNDIData.Phy_Addr = virt_to_phys(pxe_stack);
-	pxe->UNDIData.Seg_Size = end - (void*)pxe_stack;
+	/* PXE specification doesn't say anything about when the stack
+	 * space should get freed.  We work around this by claiming it
+	 * as our data segment as well.
+	 */
+	pxe->Stack.Seg_Addr = pxe->UNDIData.Seg_Addr = real_mode_stack >> 4;
+	pxe->Stack.Phy_Addr = pxe->UNDIData.Phy_Addr = real_mode_stack;
+	pxe->Stack.Seg_Size = pxe->UNDIData.Seg_Size = real_mode_stack_size;
+	/* Code segment has to be the one containing the data structures... */
 	pxe->UNDICode.Seg_Addr = SEGMENT(pxe_stack);
 	pxe->UNDICode.Phy_Addr = virt_to_phys(pxe_stack);
 	pxe->UNDICode.Seg_Size = end - (void*)pxe_stack;
@@ -134,14 +140,13 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxenv->RMEntry.offset = (void*)pxenv_in_call_far - (void*)pxe_stack;
 	pxenv->PMOffset = 0; /* "Do not use" says the PXE spec */
 	pxenv->PMSelector = 0; /* "Do not use" says the PXE spec */
-	pxenv->StackSeg = SEGMENT ( phys_to_virt ( real_mode_stack ) );
-	pxenv->StackSize = real_mode_stack_size;
+	pxenv->StackSeg = pxenv->UNDIDataSeg = real_mode_stack >> 4;
+	pxenv->StackSize = pxenv->UNDIDataSize = real_mode_stack_size;
 	pxenv->BC_CodeSeg = 0;
 	pxenv->BC_CodeSize = 0;
 	pxenv->BC_DataSeg = 0;
 	pxenv->BC_DataSize = 0;
-	pxenv->UNDIDataSeg = SEGMENT(pxe_stack);
-	pxenv->UNDIDataSize = end - (void*)pxe_stack;
+	/* UNDIData{Seg,Size} set above */
 	pxenv->UNDICodeSeg = SEGMENT(pxe_stack);
 	pxenv->UNDICodeSize = end - (void*)pxe_stack;
 	pxenv->PXEPtr.segment = SEGMENT(pxe);
@@ -149,7 +154,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxenv->Checksum -= byte_checksum ( pxenv, sizeof(*pxenv) );
 
 	/* Mark stack as inactive */
-	pxe_stack->active = 0;
+	pxe_stack->state = CAN_UNLOAD;
 
 	/* Install PXE and RM callback code */
 	memcpy ( pxe_callback_code, &pxe_callback_interface,
@@ -162,9 +167,9 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 /* Activate PXE stack (i.e. hook interrupt vectors).  The PXE stack
  * *can* be used before it is activated, but it really shoudln't.
  */
-void activate_pxe_stack ( void ) {
-	if ( pxe_stack == NULL ) return;
-	if ( pxe_stack->active ) return;
+int hook_pxe_stack ( void ) {
+	if ( pxe_stack == NULL ) return 0;
+	if ( pxe_stack->state >= MIDWAY ) return 1;
 
 	/* Hook INT15 handler */
 	*pxe_intercepted_int15 = *INT15_VECTOR;
@@ -195,14 +200,15 @@ void activate_pxe_stack ( void ) {
 		- (void*)&pxe_stack->arch_data;
 
 	/* Mark stack as active */
-	pxe_stack->active = 1;
+	pxe_stack->state = MIDWAY;
+	return 1;
 }
 
 /* Deactivate the PXE stack (i.e. unhook interrupt vectors).
  */
-void deactivate_pxe_stack ( void ) {
-	if ( pxe_stack == NULL ) return;
-	if ( ! pxe_stack->active ) return;
+int unhook_pxe_stack ( void ) {
+	if ( pxe_stack == NULL ) return 0;
+	if ( pxe_stack->state <= CAN_UNLOAD ) return 1;
 
 	/* Restore original INT15 and INT1A handlers
 	 *
@@ -214,16 +220,20 @@ void deactivate_pxe_stack ( void ) {
 	*INT1A_VECTOR = *pxe_intercepted_int1a;
 
 	/* Mark stack as inactive */
-	pxe_stack->active = 0;
+	pxe_stack->state = CAN_UNLOAD;
+	return 1;
 }
 
 /* remove_pxe_stack(): remove PXE stack installed by install_pxe_stack()
  */
 void remove_pxe_stack ( void ) {
 	/* Ensure stack is deactivated, then free up the memory */
-	deactivate_pxe_stack();
-	forget_base_memory ( pxe_stack, pxe_stack_size() );
-	pxe_stack = NULL;
+	if ( ensure_pxe_state ( CAN_UNLOAD ) ) {
+		forget_base_memory ( pxe_stack, pxe_stack_size() );
+		pxe_stack = NULL;
+	} else {
+		printf ( "Cannot remove PXE stack!\n" );
+	}
 }
 
 /* xstartpxe(): start up a PXE image

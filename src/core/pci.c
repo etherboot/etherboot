@@ -73,6 +73,7 @@ void scan_pci_bus(int type, struct pci_device *dev)
 	uint32_t class;
 	uint16_t vendor, device;
 	uint32_t l, membase, ioaddr, romaddr;
+	uint8_t irq;
 	int reg;
 
 	first_bus    = 0;
@@ -116,9 +117,9 @@ void scan_pci_bus(int type, struct pci_device *dev)
 #if	DEBUG
 		{
 			int i;
-			printf("%hhx:%hhx.%hhx [%hX/%hX]\n",
+			printf("%hhx:%hhx.%hhx [%hX/%hX] Class %hX\n",
 				bus, PCI_SLOT(devfn), PCI_FUNC(devfn),
-				vendor, device);
+				vendor, device, class >> 8);
 #if	DEBUG > 1
 			for(i = 0; i < 256; i++) {
 				unsigned char byte;
@@ -170,6 +171,15 @@ void scan_pci_bus(int type, struct pci_device *dev)
 				/* Take the first one or the one that matches in boot ROM address */
 				dev->ioaddr = ioaddr;
 			}
+
+			/* Get the irq */
+			pci_read_config_byte(dev, PCI_INTERRUPT_PIN, &irq);
+			if (irq) {
+				pci_read_config_byte(dev, PCI_INTERRUPT_LINE,
+						     &irq);
+			}
+			dev->irq = irq;
+
 #if DEBUG > 2
 			printf("Found %s ROM address %#hx\n",
 				dev->name, romaddr);

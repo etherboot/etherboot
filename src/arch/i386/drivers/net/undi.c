@@ -33,7 +33,7 @@ $Id$
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL,
 		       NULL, NULL, 0, NULL, 0, NULL,
 		       0, 0, 0, 0,
-		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL },
+		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, 0, NULL },
 		       IRQ_NONE };
 
 /* Function prototypes */
@@ -43,6 +43,28 @@ int eb_pxenv_undi_shutdown ( void );
 int eb_pxenv_stop_undi ( void );
 int undi_unload_base_code ( void );
 int undi_full_shutdown ( void );
+
+/* Trivial/nontrivial IRQ handler selection */
+#ifdef UNDI_NONTRIVIAL_IRQ
+void nontrivial_irq_handler ( void );
+void nontrivial_irq_handler_end ( void );
+int install_nontrivial_irq_handler ( irq_t irq );
+int remove_nontrivial_irq_handler ( irq_t irq );
+int nontrivial_irq_triggered ( irq_t irq );
+int copy_nontrivial_irq_handler ( void *target, size_t target_size );
+#define NONTRIVIAL_IRQ_HANDLER_SIZE FRAGMENT_SIZE(nontrivial_irq_handler)
+#define install_undi_irq_handler(irq) install_nontrivial_irq_handler(irq)
+#define remove_undi_irq_handler(irq) remove_nontrivial_irq_handler(irq)
+#define undi_irq_triggered(irq) nontrivial_irq_triggered(irq)
+#define UNDI_IRQ_HANDLER_SIZE NONTRIVIAL_IRQ_HANDLER_SIZE
+#define copy_undi_irq_handler(dest,size) copy_nontrivial_irq_handler(dest,size)
+#else
+#define install_undi_irq_handler(irq) install_trivial_irq_handler(irq)
+#define remove_undi_irq_handler(irq) remove_trivial_irq_handler(irq)
+#define undi_irq_triggered(irq) trivial_irq_triggered(irq)
+#define UNDI_IRQ_HANDLER_SIZE TRIVIAL_IRQ_HANDLER_SIZE
+#define copy_undi_irq_handler(dest,size) copy_trivial_irq_handler(dest,size)
+#endif /* UNDI_NONTRIVIAL_IRQ */
 
 /**************************************************************************
  * Utility functions
@@ -84,7 +106,7 @@ int allocate_base_mem_data ( void ) {
 	if ( undi.base_mem_data == NULL ) {
 		undi.base_mem_data =
 			allot_base_memory ( sizeof(undi_base_mem_data_t) +
-					    TRIVIAL_IRQ_HANDLER_SIZE );
+					    UNDI_IRQ_HANDLER_SIZE );
 		if ( undi.base_mem_data == NULL ) {
 			printf ( "Failed to allocate base memory\n" );
 			free_base_mem_data();
@@ -94,8 +116,8 @@ int allocate_base_mem_data ( void ) {
 		undi.pxs = &undi.base_mem_data->pxs;
 		undi.xmit_data = &undi.base_mem_data->xmit_data;
 		undi.xmit_buffer = undi.base_mem_data->xmit_buffer;
-		copy_trivial_irq_handler ( undi.base_mem_data->irq_handler,
-					   TRIVIAL_IRQ_HANDLER_SIZE );
+		copy_undi_irq_handler ( undi.base_mem_data->irq_handler,
+					UNDI_IRQ_HANDLER_SIZE );
 	}
 	return 1;
 }
@@ -104,12 +126,12 @@ int free_base_mem_data ( void ) {
 	if ( undi.base_mem_data != NULL ) {
 		forget_base_memory ( undi.base_mem_data,
 				     sizeof(undi_base_mem_data_t) +
-				     TRIVIAL_IRQ_HANDLER_SIZE );
+				     UNDI_IRQ_HANDLER_SIZE );
 		undi.base_mem_data = NULL;
 		undi.pxs = NULL;
 		undi.xmit_data = NULL;
 		undi.xmit_buffer = NULL;
-		copy_trivial_irq_handler ( NULL, 0 );
+		copy_undi_irq_handler ( NULL, 0 );
 	}
 	return 1;
 }
@@ -424,6 +446,127 @@ int undi_call ( uint16_t opcode ) {
 	return 0;
 }
 
+#ifdef UNDI_NONTRIVIAL_IRQ
+/* IRQ handler that actually calls PXENV_UNDI_ISR.  It's probably
+ * better to use the trivial IRQ handler, since this seems to work for
+ * just about all known NICs and doesn't involve making a PXE API call
+ * in interrupt context.
+ *
+ * This routine is mainly used for testing the Etherboot PXE stack's
+ * ability to be called in interrupt context.  It is not compiled in
+ * by default.
+ *
+ * This code has fewer safety checks than those in the
+ * trivial_irq_handler routines.  These are omitted because this code
+ * is not intended for mainstream use.
+ */
+
+uint16_t nontrivial_irq_previous_trigger_count = 0;
+uint8_t nontrivial_irq_chain = 0;
+segoff_t nontrivial_irq_chain_to = { 0, 0 };
+
+int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused ) {
+	BEGIN_RM_FRAGMENT(nontrivial_irq_handler);
+	/* Will be installed on a paragraph boundary, so access variables
+	 * using %cs:(xxx-irqstart)
+	 */
+	__asm__ ( "\nirqstart:" );
+	/* Fields here must match those in undi_irq_handler_t */
+	__asm__ ( "\nentry:\t.word 0,0" );
+	__asm__ ( "\ncount:\t.word 0" );
+	__asm__ ( "\nundi_isr:" );
+	__asm__ ( "\nundi_isr_Status:\t.word 0" );
+	__asm__ ( "\nundi_isr_FuncFlag:\t.word 0" );
+	__asm__ ( "\nundi_isr_others:\t.word 0,0,0,0,0,0" );
+	__asm__ ( "\nhandler:" );
+	/* Assume that PXE stack will corrupt everything */
+	__asm__ ( "pushal" );
+	__asm__ ( "push %ds" );
+	__asm__ ( "push %es" );
+	__asm__ ( "push %fs" );
+	__asm__ ( "push %gs" );
+	/* Set up parameters for call */
+	__asm__ ( "movw %0, %%cs:(undi_isr_FuncFlag-irqstart)"
+		  : : "i" ( PXENV_UNDI_ISR_IN_START ) );
+	__asm__ ( "pushw %cs" );
+	__asm__ ( "popw %es" );
+	__asm__ ( "movw $(undi_isr-irqstart), %di" );
+	__asm__ ( "movw %0, %%bx" : : "i" ( PXENV_UNDI_ISR ) );
+	__asm__ ( "pushw %es" );    /* Registers for PXENV+, stack for !PXE */
+	__asm__ ( "pushw %di" );
+	__asm__ ( "pushw %bx" );
+	/* Make PXE API call */
+	__asm__ ( "lcall *%cs:(entry-irqstart)" );
+	__asm__ ( "addw $6, %sp" );
+	/* Check return status to see if it's one of our interrupts */
+	__asm__ ( "cmpw %0, %%cs:(undi_isr_Status-irqstart)"
+		  : : "i" ( PXENV_STATUS_SUCCESS ) );
+	__asm__ ( "jne 1f" );
+	__asm__ ( "cmpw %0, %%cs:(undi_isr_FuncFlag-irqstart) "
+		  : : "i" ( PXENV_UNDI_ISR_OUT_OURS ) );
+	__asm__ ( "jne 1f" );
+	/* Increment counter if so */
+	__asm__ ( "incw %cs:(count-irqstart)" );
+	__asm__ ( "\n1:" );
+	/* Restore registers and return */
+	__asm__ ( "popw %gs" );
+	__asm__ ( "popw %fs" );
+	__asm__ ( "popw %es" );
+	__asm__ ( "popw %ds" );
+	__asm__ ( "popal" );
+	__asm__ ( "iret" );
+	END_RM_FRAGMENT(nontrivial_irq_handler);
+
+	/* Copy handler */
+	memcpy ( target, nontrivial_irq_handler, NONTRIVIAL_IRQ_HANDLER_SIZE );
+
+	return 1;
+}
+
+int install_nontrivial_irq_handler ( irq_t irq ) {
+	undi_irq_handler_t *handler = 
+		&undi.base_mem_data->nontrivial_irq_handler;
+	segoff_t isr_segoff;
+
+	printf ( "WARNING: using non-trivial IRQ handler [EXPERIMENTAL]\n" );
+	
+	disable_irq ( irq );
+	handler->count = 0;
+	handler->entry = undi.pxe->EntryPointSP;
+	nontrivial_irq_previous_trigger_count = 0;
+	isr_segoff.segment = SEGMENT(handler);
+	isr_segoff.offset = (void*)&handler->code - (void*)handler;
+	install_irq_handler ( irq, &isr_segoff, &nontrivial_irq_chain,
+			      &nontrivial_irq_chain_to );
+	enable_irq ( irq );
+	return 1;
+}
+
+int remove_nontrivial_irq_handler ( irq_t irq ) {
+	undi_irq_handler_t *handler = 
+		&undi.base_mem_data->nontrivial_irq_handler;
+	segoff_t isr_segoff;
+
+	isr_segoff.segment = SEGMENT(handler);
+	isr_segoff.offset = (void*)&handler->code - (void*)handler;
+	remove_irq_handler ( irq, &isr_segoff, &nontrivial_irq_chain,
+			     &nontrivial_irq_chain_to );
+	return 1;
+}
+
+int nontrivial_irq_triggered ( irq_t irq __unused ) {
+	undi_irq_handler_t *handler = 
+		&undi.base_mem_data->nontrivial_irq_handler;
+	uint16_t nontrivial_irq_this_trigger_count = handler->count;
+	int triggered = ( nontrivial_irq_this_trigger_count -
+			  nontrivial_irq_previous_trigger_count );
+
+	nontrivial_irq_previous_trigger_count =
+		nontrivial_irq_this_trigger_count;
+	return triggered ? 1 : 0;
+}
+#endif /* UNDI_NONTRIVIAL_IRQ */
+	
 /**************************************************************************
  * High-level UNDI API call wrappers
  **************************************************************************/
@@ -444,8 +587,14 @@ int undi_loader ( void ) {
 	/* ES:DI points to PnP BIOS' $PnP structure
 	 * (BIOS boot specification)
 	 */
-	undi.pxs->loader.es = 0xf000;
-	undi.pxs->loader.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
+	if ( undi.pnp_bios ) {
+		undi.pxs->loader.es = 0xf000;
+		undi.pxs->loader.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
+	} else {
+		/* Set to a NULL pointer and hope that we don't need it */
+		undi.pxs->loader.es = 0x0000;
+		undi.pxs->loader.di = 0x0000;
+	}
 
 	/* Allocate space for UNDI driver's code and data segments */
 	undi.driver_code_size = undi.undi_rom_id->code_size;
@@ -505,8 +654,15 @@ int eb_pxenv_start_undi ( void ) {
 	/* ES:DI points to PnP BIOS' $PnP structure
 	 * (BIOS boot specification)
 	 */
-	undi.pxs->start_undi.es = 0xf000;
-	undi.pxs->start_undi.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
+	if ( undi.pnp_bios ) {
+		undi.pxs->start_undi.es = 0xf000;
+		undi.pxs->start_undi.di =
+			virt_to_phys ( undi.pnp_bios ) - 0xf0000;
+	} else {
+		/* Set to a NULL pointer and hope that we don't need it */
+		undi.pxs->start_undi.es = 0x0000;
+		undi.pxs->start_undi.di = 0x0000;
+	}
 
 	DBG ( "PXENV_START_UNDI => AX=%hx BX=%hx DX=%hx ES:DI=%hx:%hx\n",
 	      undi.pxs->start_undi.ax,
@@ -832,7 +988,7 @@ int undi_full_startup ( void ) {
 	if ( ! eb_pxenv_undi_initialize() ) return 0;
 	if ( ! eb_pxenv_undi_get_information() ) return 0;
 	undi.irq = undi.pxs->undi_get_information.IntNumber;
-	if ( ! install_trivial_irq_handler ( undi.irq ) ) {
+	if ( ! install_undi_irq_handler ( undi.irq ) ) {
 		undi.irq = IRQ_NONE;
 		return 0;
 	}
@@ -883,7 +1039,7 @@ int undi_full_shutdown ( void ) {
 			eb_pxenv_undi_shutdown();
 		}
 		if ( undi.irq != IRQ_NONE ) {
-			remove_trivial_irq_handler ( undi.irq );
+			remove_undi_irq_handler ( undi.irq );
 			undi.irq = IRQ_NONE;
 		}
 		undi_unload_base_code();
@@ -925,7 +1081,7 @@ int undi_full_shutdown ( void ) {
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int undi_poll(struct nic *nic)
+static int undi_poll(struct nic *nic, int retrieve)
 {
 	/* Fun, fun, fun.  UNDI drivers don't use polling; they use
 	 * interrupts.  We therefore cheat and pretend that an
@@ -948,8 +1104,22 @@ static int undi_poll(struct nic *nic)
 
 	/* See if a hardware interrupt has occurred since the last poll().
 	 */
-	if ( ! trivial_irq_triggered ( undi.irq ) ) return 0;
+	if ( ! undi_irq_triggered ( undi.irq ) ) return 0;
 
+	/* Given the frailty of PXE stacks, it's probably not safe to
+	 * risk calling PXENV_UNDI_ISR with
+	 * FuncFlag=PXENV_UNDI_ISR_START twice for the same interrupt,
+	 * so we cheat slightly and assume that there is something
+	 * ready to retrieve as long as an interrupt has occurred.
+	 */
+	if ( ! retrieve ) return 1;
+
+#ifdef UNDI_NONTRIVIAL_IRQ
+	/* With the nontrivial IRQ handler, we have already called
+	 * PXENV_UNDI_ISR with PXENV_UNDI_ISR_IN_START and determined
+	 * that it is one of ours.
+	 */
+#else
 	/* Ask the UNDI driver if this is "our" interrupt.
 	 */
 	undi.pxs->undi_isr.FuncFlag = PXENV_UNDI_ISR_IN_START;
@@ -958,8 +1128,18 @@ static int undi_poll(struct nic *nic)
 		/* "Not our interrupt" translates to "no packet ready
 		 * to read".
 		 */
+		/* FIXME: Technically, we shouldn't be the one sending
+		 * EOI.  However, since our IRQ handlers don't yet
+		 * support chaining, nothing else gets the chance to.
+		 * One nice side-effect of doing this is that it means
+		 * we can cheat and claim the timer interrupt as our
+		 * NIC interrupt; it will be inefficient but will
+		 * work.
+		 */
+		send_specific_eoi ( undi.irq );
 		return 0;
 	}
+#endif
 
 	/* At this stage, the device should have cleared its interrupt
 	 * line so we can send EOI to the 8259.
@@ -1101,8 +1281,16 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 
 	/* Find the BIOS' $PnP structure */
 	if ( ! hunt_pnp_bios() ) {
-		printf ( "No PnP BIOS found; aborting\n" );
-		return 0;
+		/* Not all PXE stacks actually insist on a PnP BIOS.
+		 * In particular, an Etherboot PXE stack will work
+		 * just fine without one.
+		 *
+		 * We used to make this a fatal error, but now we just
+		 * warn and continue.  Note that this is necessary in
+		 * order to be able to debug the Etherboot PXE stack
+		 * under Bochs, since Bochs' BIOS is non-PnP.
+		 */
+		printf ( "WARNING: No PnP BIOS found\n" );
 	}
 
 	/* Allocate base memory data structures */

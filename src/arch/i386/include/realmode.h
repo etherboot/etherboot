@@ -27,12 +27,12 @@ typedef union {
 #define _append_end(x) x ## _end
 #define BEGIN_RM_FRAGMENT(name) \
 	void name ( void ); \
+	void _append_end(name) ( void ); \
 	__asm__ ( ".section \".text16\"" ); \
 	__asm__ ( ".code16" ); \
 	__asm__ ( ".globl " #name ); \
 	__asm__ ( "\n" #name ":" );
 #define END_RM_FRAGMENT(name) \
-	void _append_end(name) ( void ); \
 	__asm__ ( ".globl " #name "_end" ); \
 	__asm__ ( "\n" #name "_end:" ); \
 	__asm__ ( ".code32" ); \

@@ -24,12 +24,34 @@ Skeleton NIC driver for Etherboot
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int skel_poll(struct nic *nic)
+static int skel_poll(struct nic *nic, int retrieve)
 {
-	/* return true if there's an ethernet packet ready to read */
-	/* nic->packet should contain data on return */
-	/* nic->packetlen should contain length of data */
-	return (0);	/* initially as this is called to flush the input */
+	/* Work out whether or not there's an ethernet packet ready to
+	 * read.  Return 0 if not.
+	 */
+	/* 
+	   if ( ! <packet_ready> ) return 0;
+	*/
+
+	/* retrieve==0 indicates that we are just checking for the
+	 * presence of a packet but don't want to read it just yet.
+	 */
+	/*
+	  if ( ! retrieve ) return 1;
+	*/
+
+	/* Copy data to nic->packet.  Data should include the
+	 * link-layer header (dest MAC, source MAC, type).
+	 * Store length of data in nic->packetlen.
+	 * Return true to indicate a packet has been read.
+	 */
+	/* 
+	   nic->packetlen = <packet_length>;
+	   memcpy ( nic->packet, <packet_data>, <packet_length> );
+	   return 1;
+	*/
+
+	return 0;	/* Remove this line once this method is implemented */
 }
 
 /**************************************************************************
@@ -37,12 +59,23 @@ TRANSMIT - Transmit a frame
 ***************************************************************************/
 static void skel_transmit(
 	struct nic *nic,
-	const char *d,			/* Destination */
-	unsigned int t,			/* Type */
-	unsigned int s,			/* size */
-	const char *p)			/* Packet */
+	const char *dest,		/* Destination */
+	unsigned int type,		/* Type */
+	unsigned int size,		/* size */
+	const char *packet)		/* Packet */
 {
-	/* send the packet to destination */
+	/* Transmit packet to dest MAC address.  You will need to
+	 * construct the link-layer header (dest MAC, source MAC,
+	 * type).
+	 */
+	/*
+	  unsigned int nstype = htons ( type );
+	  memcpy ( <tx_buffer>, dest, ETH_ALEN );
+	  memcpy ( <tx_buffer> + ETH_ALEN, nic->node_addr, ETH_ALEN );
+	  memcpy ( <tx_buffer> + 2 * ETH_ALEN, &nstype, 2 );
+	  memcpy ( <tx_buffer> + ETH_HLEN, data, size );
+	  <transmit_data> ( <tx_buffer>, size + ETH_HLEN );
+	 */
 }
 
 /**************************************************************************
@@ -63,6 +96,39 @@ static void skel_disable(struct dev *dev)
 }
 
 /**************************************************************************
+IRQ - handle interrupts
+***************************************************************************/
+static void skel_irq(struct nic *nic, irq_action_t action)
+{
+	/* This routine is somewhat optional.  Etherboot itself
+	 * doesn't use interrupts, but they are required under some
+	 * circumstances when we're acting as a PXE stack.
+	 *
+	 * If you don't implement this routine, the only effect will
+	 * be that your driver cannot be used via Etherboot's UNDI
+	 * API.  This won't affect programs that use only the UDP
+	 * portion of the PXE API, such as pxelinux.
+	 */
+       
+	switch ( action ) {
+	case DISABLE :
+	case ENABLE :
+		/* Set receive interrupt enabled/disabled state */
+		/*
+		  outb ( action == ENABLE ? IntrMaskEnabled : IntrMaskDisabled,
+		  	 nic->ioaddr + IntrMaskRegister );
+		 */
+		break;
+	case FORCE :
+		/* Force NIC to generate a receive interrupt */
+		/*
+		  outb ( ForceInterrupt, nic->ioaddr + IntrForceRegister );
+		 */
+		break;
+	}
+}
+
+/**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 
@@ -71,12 +137,17 @@ PROBE - Look for an adapter, this routine's visible to the outside
 static int skel_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *)dev;
+
 	if (board_found && valid_link)
 	{
+		/* store NIC parameters */
+		nic->ioaddr = pci->ioaddr & ~3;
+		nic->irqno = pci->irq;
 		/* point to NIC specific routines */
 		dev->disable  = skel_disable;
 		nic->poll     = skel_poll;
 		nic->transmit = skel_transmit;
+		nic->irq      = skel_irq;
 		return 1;
 	}
 	/* else */
