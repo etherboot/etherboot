@@ -22,6 +22,7 @@ Literature dealing with the network protocols:
 #include "disk.h"
 #include "timer.h"
 #include "cpu.h"
+#include <stdarg.h>
 
 jmp_buf	restart_etherboot;
 int	url_port;		
@@ -34,6 +35,51 @@ char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 #ifdef FREEBSD_PXEEMU
 extern char		pxeemu_nbp_active;
 #endif	/* FREEBSD_PXEBOOT */
+
+/* in_call(): the entry point to Etherboot.  Generally called from
+ * arch_in_call(), which in turn will have been invoked from
+ * platform-specific assembly code.
+ */
+int in_call ( uint32_t opcode, va_list params, in_call_data_t *data ) {
+	int ret = 0;
+
+	/* NOTE: params will cease to be valid if we relocate, since
+	 * it represents a virtual address
+	 */
+	switch ( EB_OPCODE(opcode) ) {
+		
+	case EB_OPCODE_CHECK:
+		/* Installation check
+		 */
+		ret = EB_CHECK_RESULT;
+		break;
+	case EB_OPCODE_MAIN:
+		/* Start up Etherboot as a standalone program.  To
+		 * maintain backwards compatibility with architectures
+		 * that don't yet implement callbacks, we don't just
+		 * pass the va_list to main().
+		 */
+		{
+			struct Elf_Bhdr *ptr;
+			ptr = va_arg ( params, typeof(ptr) );
+			ret = main ( ptr );
+		}
+		break;
+#ifdef PXE_EXPORT
+	case EB_OPCODE_PXE:
+		/* !PXE API call */
+		ret = pxe_in_call ( params, data );
+		break;
+#endif
+	default:
+		printf ( "Unsupported API \"%c%c\"\n",
+			 EB_OPCODE(opcode) >> 8, EB_OPCODE(opcode) & 0xff );
+		ret = -1;
+		break;
+	}
+
+	return ret;
+}
 
 static inline unsigned long ask_boot(unsigned *index)
 {
