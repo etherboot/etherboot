@@ -1,3 +1,4 @@
+/* Uses lance chip, not fixed for relocation */
 #ifdef ALLMULTI
 #error multicast support is not yet implemented
 #endif
