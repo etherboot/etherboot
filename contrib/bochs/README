@@ -48,7 +48,11 @@ need to set up a suitable pty).
 
 Packet forwarding/masquerading - document what must be set up.
 
-DHCPD configured to hand out lease for virtual NIC.
+DHCPD configured to hand out lease for virtual NIC - just add subnet
+declaration:
+subnet 10.254.254.0 netmask 255.255.255.252 {
+       range dynamic-bootp 10.254.254.1 10.254.254.1;
+}
 
 Mention possibility of using RFB as the display device - in
 conjunction with the serial console, gives you a test facility that
