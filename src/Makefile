@@ -106,7 +106,7 @@ OBJCOPY=	objcopy
 MAKEROM=	./makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	0
-VERSION_PATCH=	10
+VERSION_PATCH=	11
 EXTRAVERSION=
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
@@ -240,6 +240,12 @@ gcccheck:	Makefile Config
 		exit 1; \
 	else \
 		touch gcccheck; \
+	fi; \
+	if [ `perl -e 'use bytes; print chr(255)' | wc -c` = 2 ]; \
+	then \
+		echo 'Your Perl version has a Unicode handling bug'; \
+		echo 'To workaround, execute this before compiling Etherboot:'; \
+		echo 'export LANG=$${LANG%.UTF-8}'; \
 	fi
 
 include Roms
