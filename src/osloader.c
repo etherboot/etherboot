@@ -536,6 +536,8 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 			return 0;
 	}
 	do {
+		if (len == 0) /* Detect truncated files */
+			eof = 0;
 		while (tctx.seglen == 0) {
 			struct segheader	sh;
 			if (tctx.segflags & 0x04) {
