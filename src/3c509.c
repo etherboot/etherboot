@@ -541,14 +541,14 @@ struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
 
 #ifdef	INCLUDE_3C529
 	if (mcafound) {
-		printf("%s board found on MCA at %#hX IRQ %d -",
+		printf("%s board found on MCA at %#hx IRQ %d -",
 		       mcafound->name, eth_nic_base, mca_irq);
 	} else {
 #endif
 		if(eth_nic_base >= EP_EISA_START)
-			printf("3C5x9 board on EISA at %#hX - ",eth_nic_base);
+			printf("3C5x9 board on EISA at %#hx - ",eth_nic_base);
 		else
-			printf("3C5x9 board on ISA at %#hX - ",eth_nic_base);
+			printf("3C5x9 board on ISA at %#hx - ",eth_nic_base);
 #ifdef	INCLUDE_3C529
 	}
 #endif

@@ -214,7 +214,7 @@ int main(void)
 #endif
 
 	rom = *(struct rom_info *)ROM_INFO_LOCATION;
-	printf("ROM segment %#hX length %#hX reloc %#hX\n", rom.rom_segment,
+	printf("ROM segment %#hx length %#hx reloc %#hx\n", rom.rom_segment,
 		rom.rom_length << 1, ((unsigned long)_start) >> 4);
 
 	gateA20_set();

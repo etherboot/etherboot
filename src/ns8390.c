@@ -564,7 +564,7 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 	for (brd = wd_boards; brd->name; brd++)
 		if (brd->id == c) break;
 	if (!brd->name) {
-		printf("Unknown WD/SMC NIC type %hX\n", c);
+		printf("Unknown WD/SMC NIC type %hx\n", c);
 		return (0);	/* Unknown type */
 	}
 	eth_flags = brd->flags;
@@ -592,7 +592,7 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 	for (i=0; i<ETH_ALEN; i++) {
 		nic->node_addr[i] = inb(i+eth_asic_base+WD_LAR);
 	}
-	printf("\n%s base %#hX, memory %#hX, addr %!\n",
+	printf("\n%s base %#hx, memory %#hx, addr %!\n",
 		brd->name, eth_asic_base, eth_bmem, nic->node_addr);
 	if (eth_flags & FLAG_790) {
 		outb(WD_MSR_MENB, eth_asic_base+WD_MSR);
@@ -708,11 +708,11 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
         /* Get our ethernet address */
 
                 outb(_3COM_CR_EALO | _3COM_CR_XSEL, eth_asic_base + _3COM_CR);
-                printf("\n3Com 3c503 base %#hX, ", eth_nic_base);
+                printf("\n3Com 3c503 base %#hx, ", eth_nic_base);
                 if (eth_flags & FLAG_PIO)
 			printf("PIO mode");
                 else
-			printf("memory %#hX", eth_bmem);
+			printf("memory %#hx", eth_bmem);
                 for (i=0; i<ETH_ALEN; i++) {
                         nic->node_addr[i] = inb(eth_nic_base+i);
                 }
@@ -810,7 +810,7 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 		for (i=0; i<ETH_ALEN; i++) {
 			nic->node_addr[i] = romdata[i + ((eth_flags & FLAG_16BIT) ? i : 0)];
 		}
-		printf("\nNE%c000 base %#hX, addr %!\n",
+		printf("\nNE%c000 base %#hx, addr %!\n",
 			(eth_flags & FLAG_16BIT) ? '2' : '1', eth_nic_base,
 			nic->node_addr);
 	}
