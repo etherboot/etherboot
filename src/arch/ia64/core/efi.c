@@ -484,10 +484,17 @@ static void *efi_get_fpswa(void)
 /* Exported functions */
 
 
-void arch_main(struct Elf_Bhdr *bhdr)
+void arch_main(in_call_data_t *data, va_list params)
 {
 	EFI_STATUS status;
 	unsigned char *note, *end;
+
+	/* IA64 doesn't have an in_call() implementation; start.S
+	 * passes in this parameter directly on the stack instead of
+	 * as part of the in_call_data_t structure or the parameter
+	 * list.  params is unusable: don't attempt to access it.
+	 */
+	struct Elf_Bhdr *ptr = (struct Elf_Bhdr *)data;
 
 	memset(&efi_info, 0, sizeof(efi_info));
 	note = ((char *)bhdr) + sizeof(*bhdr);

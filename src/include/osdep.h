@@ -3,6 +3,7 @@
 
 #define __unused __attribute__((unused))
 #define __aligned __attribute__((aligned(16)))
+#define PACKED __attribute__((packed))
 
 /* Optimization barrier */
 /* The "volatile" is due to gcc bugs */
@@ -16,17 +17,8 @@
 #include "byteswap.h"
 #include "setjmp.h"
 #include "latch.h"
+#include "callbacks.h"
 #include "hooks.h"
-
-/* We should not depend on any system header files except possibly
- * compiler supplied std c headers.  Copy headers if you need them.
- */
-#if defined(FREEBSD_PXEEMU) && 0
-#include "/sys/boot/i386/libi386/pxe.h"
-#include "/sys/boot/i386/btx/lib/btxv86.h"
-#endif
-
-
 
 /* within 1MB of 4GB is too close. 
  * MAX_ADDR is the maximum address we can easily do DMA to.

@@ -143,8 +143,6 @@
 #define ENCAP_OPT
 #endif
 
-#define PACKED __attribute__((packed))
-
 #include	"if_arp.h"
 #include	"ip.h"
 #include	"udp.h"
@@ -179,8 +177,6 @@ extern inline int rom_address_ok(struct rom_info *rom, int assigned_rom_segment)
 		|| assigned_rom_segment == rom->rom_segment);
 }
 
-#include	"callbacks.h"
-
 /* Define a type for passing info to a loaded program */
 struct ebinfo {
 	uint8_t  major, minor;	/* Version */
@@ -192,8 +188,8 @@ External prototypes
 ***************************************************************************/
 /* main.c */
 struct Elf_Bhdr;
-extern int in_call(uint32_t opcode, va_list params, in_call_data_t *data);
-extern int main(struct Elf_Bhdr *ptr);
+extern int in_call(in_call_data_t *data, uint32_t opcode, va_list params);
+extern int main(in_call_data_t *data, va_list params);
 extern int loadkernel P((const char *fname));
 /* nic.c */
 extern void rx_qdrain P((void));
@@ -387,7 +383,7 @@ extern void serial_fini P((void));
 extern int bootdisk P((int dev,int part));
 
 /* pxe_callbacks.c */
-extern int pxe_in_call ( va_list params, in_call_data_t *in_call_data );
+extern int pxe_in_call ( in_call_data_t *in_call_data, va_list params );
 
 /***************************************************************************
 External variables

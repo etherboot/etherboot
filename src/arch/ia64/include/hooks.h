@@ -1,8 +1,9 @@
 #ifndef ETHERBOOT_IA64_HOOKS_H
 #define ETHERBOOT_IA64_HOOKS_H
 
-struct Elf_Bhdr;
-void arch_main(struct Elf_Bhdr *ptr);
+#include <stdarg.h>
+
+void arch_main(in_call_data_t *data, va_list params);
 void arch_on_exit(int status);
 void arch_relocate_to(unsigned long addr);
 #define arch_relocated_from(old_addr)

@@ -41,7 +41,7 @@ extern char		pxeemu_nbp_active;
  * arch_in_call(), which in turn will have been invoked from
  * platform-specific assembly code.
  */
-int in_call ( uint32_t opcode, va_list params, in_call_data_t *data ) {
+int in_call ( in_call_data_t *data, uint32_t opcode, va_list params ) {
 	int ret = 0;
 
 	/* NOTE: params will cease to be valid if we relocate, since
@@ -55,21 +55,13 @@ int in_call ( uint32_t opcode, va_list params, in_call_data_t *data ) {
 		ret = EB_CHECK_RESULT;
 		break;
 	case EB_OPCODE_MAIN:
-		/* Start up Etherboot as a standalone program.  To
-		 * maintain backwards compatibility with architectures
-		 * that don't yet implement callbacks, we don't just
-		 * pass the va_list to main().
-		 */
-		{
-			struct Elf_Bhdr *ptr;
-			ptr = va_arg ( params, typeof(ptr) );
-			ret = main ( ptr );
-		}
+		/* Start up Etherboot as a standalone program. */
+		ret = main ( data, params );
 		break;
 #ifdef PXE_EXPORT
 	case EB_OPCODE_PXE:
 		/* !PXE API call */
-		ret = pxe_in_call ( params, data );
+		ret = pxe_in_call ( data, params );
 		break;
 #endif
 	default:
@@ -196,7 +188,7 @@ static int initialized;
 /**************************************************************************
 MAIN - Kick off routine
 **************************************************************************/
-int main(struct Elf_Bhdr *ptr)
+int main(in_call_data_t *data, va_list params)
 {
 	char *p;
 	int state;
@@ -205,7 +197,7 @@ int main(struct Elf_Bhdr *ptr)
 		*p = 0;	/* Zero BSS */
 
 	console_init();
-	arch_main(ptr);
+	arch_main(data,params);
 
 	cpu_setup();
 	setup_timers();

@@ -1,6 +1,8 @@
 #include "etherboot.h"
+#include "callbacks.h"
+#include <stdarg.h>
 
-void arch_main ( struct Elf_Bhdr *bhdr __unused ) {
+void arch_main ( in_call_data_t *data, va_list params ) {
 
 #ifdef PCBIOS
 	/* Deallocate base memory used for the decompressor, if applicable

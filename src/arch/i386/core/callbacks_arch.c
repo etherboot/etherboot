@@ -34,7 +34,7 @@ uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
 	}
 	
 	/* Hand off to main in_call() routine */
-	return in_call ( opcode, ap, &in_call_data );
+	return in_call ( &in_call_data, opcode, ap );
 }
 
 /* install_rm_callback_interface(): install real-mode callback

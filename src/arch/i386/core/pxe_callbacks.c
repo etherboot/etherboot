@@ -213,7 +213,7 @@ int xstartpxe ( void ) {
 	return nbp_exit;
 }
 
-int pxe_in_call ( va_list params, in_call_data_t *in_call_data ) {
+int pxe_in_call ( in_call_data_t *in_call_data, va_list params ) {
 	/* i386 calling conventions; the only two defined by Intel's
 	 * PXE spec.
 	 *
