@@ -97,7 +97,6 @@ BOBJS+=		$(BIN)/pic8259.o
 # Prepended loaders
 $(BIN)/rloader.bin:	$(BIN)/rloader.o
 $(BIN)/prloader.bin:	$(BIN)/prloader.o
-$(BIN)/start16.bin:	$(BIN)/rloader.o
 $(BIN)/floppyload.bin:	$(BIN)/floppyload.o
 $(BIN)/comprefix.bin:   $(BIN)/comprefix.o
 $(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
@@ -180,6 +179,17 @@ $(BIN)/%.o:	arch/i386/prefix/%.S $(MAKEDEPS)
 # general rule for 16bit .o, may be overridden
 $(BIN)/%.o:	$(BIN)/%.s
 	$(AS) $(ASFLAGS) -o $@ $<
+
+# Rules for linking start16 to the compressed or uncompressed images.  These are done
+# using the linker rather than cat, because we now want to be able to use symbols from
+# the %.sym files and symbols derived from the size of the image with a linker script.
+$(BIN)/%.bin:	$(BIN)/%.img $(BIN)/%.sym $(BIN)/start16.o arch/i386/prefix/start16.lds
+	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16.lds \
+		--oformat binary -o $@ $(BIN)/start16.o $(BIN)/$*.sym -b binary $<
+
+$(BIN)/%.zbin:	$(BIN)/%.zimg $(BIN)/%.sym $(BIN)/start16.o arch/i386/prefix/start16.lds
+	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16.lds \
+		--oformat binary -o $@ $(BIN)/start16.o $(BIN)/$*.sym -b binary $<
 
 # general rule for .bin (plain binary loader code), may be overridden
 $(BIN)/%.bin:	$(BIN)/%.o
