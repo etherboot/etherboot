@@ -235,7 +235,8 @@ all:	$(UTILS) $(BUILD_LIBS) allbins
 gcccheck:	Makefile Config
 	@if $(CC32) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
 	then \
-		echo 'gcc 2.96 is unsuitable for compiling Etherboot, edit Config to use kgcc instead'; \
+		echo 'gcc 2.96 is unsuitable for compiling Etherboot'; \
+		echo 'Use gcc 2.95 or gcc 3.x instead'; \
 		exit 1; \
 	else \
 		touch gcccheck; \
@@ -417,7 +418,7 @@ bin32/%.lzpxe:	bin32/%.huf $(PXEZLOADER)
 # Housekeeping
 
 clean:
-	$(RM) $(UTILS) bin/*.s bin/*.bin
+	$(RM) $(UTILS) bin/*.s bin/*.bin Roms
 	$(RM) $(BLIB32)
 	$(RM) bin32/*.o bin32/*.tmp
 	$(RM) bin32/*.img bin32/*.huf

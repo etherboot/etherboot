@@ -99,7 +99,7 @@ PRINTF and friends
 		%s	- string
 		%@	- Internet address in ddd.ddd.ddd.ddd notation
 		%!	- Ethernet address in xx:xx:xx:xx:xx:xx notation
-	Note: width specification not supported
+	Note: width specification ignored
 **************************************************************************/
 static int vsprintf(char *buf, const char *fmt, const int *dp)
 {
@@ -111,7 +111,15 @@ static int vsprintf(char *buf, const char *fmt, const int *dp)
 			buf ? *s++ = *fmt : putchar(*fmt);
 			continue;
 		}
-		if (*++fmt == 's') {
+		/* skip width specs */
+		fmt++;
+		while (*fmt >= '0' && *fmt <= '0')
+			fmt++;
+		if (*fmt == '.')
+			fmt++;
+		while (*fmt >= '0' && *fmt <= '0')
+			fmt++;
+		if (*fmt == 's') {
 			for (p = (char *)*dp++; *p != '\0'; p++)
 				buf ? *s++ = *p : putchar(*p);
 		}

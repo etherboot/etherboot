@@ -124,7 +124,6 @@ while(<>) {
 		&addrom($_);
 	}
 }
-close(STDIN);
 
 # Generate the assignments to DOBJS and BINS
 print "# Driver object files and ROM image files\n";
@@ -324,3 +323,4 @@ bin32/$isa.img:	bin32/$isa.o bin32/$isa.tmp bin32/config-$isa.o \$(STDDEPS32)
 
 EOF
 }
+close(STDIN);
