@@ -2613,7 +2613,25 @@ using DOWNLOAD_PROTO_NFS in 5.0 for NFS booting.
 + New PCI IDs for 3c90x and tulip drivers. Typos in 3c90x and tg3
 drivers corrected.
 
++ Georg Baum fixed the 3c503 
+
++ Fixed Typos which caused compiling with RARP_NOT_BOOTP to fail
+
++ Fixed IMAGE_FREEBSD bugs
+
++ Cleanup of driver output (pcnet32, r8169, sundance, tlan)
+
++ Minor updates to the Config file comments
+
++ arch/i386/prefix/boot1a.S is no longer maintained
+
++ Added make rule for a floppy emulation ISO boot image
+
++ Timothy Legge updated proto_tftm to make it easier to maintain and fix some issues
+
 + Timothy Legge contributed a forcedeth driver for the NVidia Force
 NIC.
+
++ Timothy Legge contributed a ns83820 driver for National Semiconductor 83820 based NICS
 
 Released as Etherboot 5.2.4 (production)
