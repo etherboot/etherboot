@@ -83,12 +83,8 @@ static int skel_probe(struct dev *dev, struct pci_device *pci)
 	return 0;
 }
 
-#define PCI_VENDOR_ID_SKEL 0
-#define PCI_DEVICE_ID_SKEL_1234 0
-
 static struct pci_id skel_nics[] = {
-	{ PCI_VENDOR_ID_SKEL,		PCI_DEVICE_ID_SKEL_1234,
-		"Skeleton PCI Adaptor" },
+PCI_ROM(0x0000, 0x0000, "skel-pci", "Skeleton PCI Adaptor"),
 };
 
 static struct pci_driver skel_driver __pci_driver = {
@@ -122,6 +118,7 @@ static int skel_isa_probe(struct dev *dev, unsigned short *probe_addrs)
 	return 0;
 }
 
+ISA_ROM("skel-isa", "Skeleton ISA driver")
 static struct isa_driver skel_isa_driver __isa_driver = {
 	.type    = NIC_DRIVER,
 	.name    = "SKELETON/ISA",

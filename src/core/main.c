@@ -163,6 +163,7 @@ int main(struct Elf_Bhdr *ptr)
 		rom.rom_length << 1, (unsigned long)_text);
 
 	cpu_setup();
+	setup_timers();
 	gateA20_set();
 	print_config();
 	get_memsizes();
@@ -230,7 +231,6 @@ static int main_loop(int state)
 			relocate();
 			cleanup();
 			console_init();
-			setup_timers();
 			init_heap();
 
 			firsttime = 0;

@@ -129,7 +129,7 @@ static void process_elf_notes(unsigned char *header,
 		note = next;
 	}
 	if (program && version) {
-		printf("Loading %s version: %s\n", program, version);
+		printf("\nLoading %s version: %s\n", program, version);
 	}
 }
 #endif

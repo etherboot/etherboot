@@ -14,7 +14,8 @@
 #include "mii.h"
 #include "tg3.h"
 
-#define REALLY_TEST_DMA    1
+
+#define REALLY_TEST_DMA    0
 #define SUPPORT_COPPER_PHY 1
 #define SUPPORT_FIBER_PHY  1
 #define SUPPORT_PARTNO_STR 1
@@ -78,8 +79,7 @@ struct tg3 tg3;
 #define TG3_TX_RING_BYTES	(sizeof(struct tg3_tx_buffer_desc) * TG3_TX_RING_SIZE)
 #define NEXT_TX(N)		(((N) + 1) & (TG3_TX_RING_SIZE - 1))
 
-#define MAX_RX_PKT_BUF_SZ	(1536 + 2 + 64)
-#define RX_PKT_BUF_SZ		(1536 + tp->rx_offset + 64)
+#define RX_PKT_BUF_SZ		(1536 + 2 + 64)
 
 static void tg3_write_indirect_reg32(struct tg3 *tp, uint32_t off, uint32_t val)
 {
@@ -547,10 +547,7 @@ static int tg3_setup_copper_phy(struct tg3 *tp)
 	tg3_readphy(tp, MII_TG3_ISTAT, &dummy);
 	tg3_readphy(tp, MII_TG3_ISTAT, &dummy);
 
-	if (tp->tg3_flags & TG3_FLAG_USE_MI_INTERRUPT)
-		tg3_writephy(tp, MII_TG3_IMASK, ~MII_TG3_INT_LINKCHG);
-	else
-		tg3_writephy(tp, MII_TG3_IMASK, ~0);
+	tg3_writephy(tp, MII_TG3_IMASK, ~0);
 
 	if (tp->led_mode == led_mode_three_link)
 		tg3_writephy(tp, MII_TG3_EXT_CTRL,
@@ -674,14 +671,8 @@ static int tg3_setup_copper_phy(struct tg3 *tp)
 	tr32(MAC_MODE);
 	udelay(40);
 
-	if (tp->tg3_flags &
-	    (TG3_FLAG_USE_LINKCHG_REG |
-	     TG3_FLAG_POLL_SERDES)) {
-		/* Polled via timer. */
-		tw32(MAC_EVENT, 0);
-	} else {
-		tw32(MAC_EVENT, MAC_EVENT_LNKSTATE_CHANGED);
-	}
+	/* Link change polled. */
+	tw32(MAC_EVENT, 0);
 	tr32(MAC_EVENT);
 	udelay(40);
 
@@ -1059,9 +1050,7 @@ static int tg3_setup_fiber_phy(struct tg3 *tp)
 		tg3_writephy(tp, MII_BMCR, BMCR_RESET);
 
 		/* Wait for reset to complete. */
-		/* XXX schedule_timeout() ... */
-		for (i = 0; i < 500; i++)
-			udelay(10);
+		mdelay(5);
 
 		/* Config mode; select PMA/Ch 1 regs. */
 		tg3_writephy(tp, 0x10, 0x8411);
@@ -1090,11 +1079,8 @@ static int tg3_setup_fiber_phy(struct tg3 *tp)
 		tg3_writephy(tp, 0x10, 0x8011);
 	}
 
-	/* Enable link change interrupt unless serdes polling.  */
-	if (!(tp->tg3_flags & TG3_FLAG_POLL_SERDES))
-		tw32(MAC_EVENT, MAC_EVENT_LNKSTATE_CHANGED);
-	else
-		tw32(MAC_EVENT, 0);
+	/* Disable link change interrupt.  */
+	tw32(MAC_EVENT, 0);
 	tr32(MAC_EVENT);
 	udelay(40);
 
@@ -1278,7 +1264,7 @@ static int tg3_setup_phy(struct tg3 *tp)
  */
 static void tg3_init_rings(struct tg3 *tp)
 {
-	static unsigned char buf[TG3_DEF_RX_RING_PENDING][MAX_RX_PKT_BUF_SZ];
+	static unsigned char buf[TG3_DEF_RX_RING_PENDING][RX_PKT_BUF_SZ];
 	uint32_t i;
 
 	/* Zero out all descriptors. */
@@ -1295,7 +1281,7 @@ static void tg3_init_rings(struct tg3 *tp)
 		struct tg3_rx_buffer_desc *rxd;
 
 		rxd = &tp->rx_std[i];
-		rxd->idx_len = (RX_PKT_BUF_SZ - tp->rx_offset - 64)
+		rxd->idx_len = (RX_PKT_BUF_SZ - 2 - 64)
 			<< RXD_LEN_SHIFT;
 		rxd->type_flags = (RXD_FLAG_END << RXD_FLAGS_SHIFT);
 		rxd->opaque = (RXD_OPAQUE_RING_STD |
@@ -1303,7 +1289,7 @@ static void tg3_init_rings(struct tg3 *tp)
 
 		/* Note where the receive buffer for the ring is placed */
 		rxd->addr_hi = 0;
-		rxd->addr_lo = virt_to_bus(&buf[i%TG3_DEF_RX_RING_PENDING]);
+		rxd->addr_lo = virt_to_bus(&buf[i%TG3_DEF_RX_RING_PENDING][2]);
 	}
 }
 
@@ -1771,12 +1757,10 @@ static int tg3_reset_hw(struct tg3 *tp)
 		NIC_SRAM_RX_BUFFER_DESC);
 
 	/* Disable the mini frame rx ring */
-	tw32(RCVDBDI_MINI_BD + TG3_BDINFO_MAXLEN_FLAGS,
-		BDINFO_FLAGS_DISABLED);
+	tw32(RCVDBDI_MINI_BD + TG3_BDINFO_MAXLEN_FLAGS,	BDINFO_FLAGS_DISABLED);
 
 	/* Disable the jumbo frame rx ring */
-	tw32(RCVDBDI_JUMBO_BD + TG3_BDINFO_MAXLEN_FLAGS,
-		BDINFO_FLAGS_DISABLED);
+	tw32(RCVDBDI_JUMBO_BD + TG3_BDINFO_MAXLEN_FLAGS, BDINFO_FLAGS_DISABLED);
 
 	/* Setup replenish thresholds. */
 	tw32(RCVBDI_STD_THRESH, tp->rx_pending / 8);
@@ -1791,10 +1775,10 @@ static int tg3_reset_hw(struct tg3 *tp)
 	tw32_mailbox(MAILBOX_SNDNIC_PROD_IDX_0 + TG3_64BIT_REG_LOW, 0);
 	tr32(MAILBOX_SNDNIC_PROD_IDX_0 + TG3_64BIT_REG_LOW);
 
-	tg3_set_bdinfo(tp, NIC_SRAM_SEND_RCB,
+	tg3_set_bdinfo(
+		tp, NIC_SRAM_SEND_RCB,
 		tp->tx_desc_mapping,
-		(TG3_TX_RING_SIZE <<
-			BDINFO_FLAGS_MAXLEN_SHIFT),
+		(TG3_TX_RING_SIZE << BDINFO_FLAGS_MAXLEN_SHIFT),
 		NIC_SRAM_TX_BUFFER_DESC);
 
 	for (i = NIC_SRAM_RCV_RET_RCB; i < NIC_SRAM_STATS_BLK; i += TG3_BDINFO_SIZE) {
@@ -1806,11 +1790,11 @@ static int tg3_reset_hw(struct tg3 *tp)
 	tw32_mailbox(MAILBOX_RCVRET_CON_IDX_0 + TG3_64BIT_REG_LOW, 0);
 	tr32(MAILBOX_RCVRET_CON_IDX_0 + TG3_64BIT_REG_LOW);
 
-	tg3_set_bdinfo(tp, NIC_SRAM_RCV_RET_RCB,
-		       tp->rx_rcb_mapping,
-		       (TG3_RX_RCB_RING_SIZE <<
-			BDINFO_FLAGS_MAXLEN_SHIFT),
-		       0);
+	tg3_set_bdinfo(
+		tp, NIC_SRAM_RCV_RET_RCB,
+		tp->rx_rcb_mapping,
+		(TG3_RX_RCB_RING_SIZE << BDINFO_FLAGS_MAXLEN_SHIFT),
+		0);
 
 	tp->rx_std_ptr = tp->rx_pending;
 	tw32_mailbox(MAILBOX_RCV_STD_PROD_IDX + TG3_64BIT_REG_LOW,
@@ -2312,7 +2296,6 @@ static void tg3_nvram_init(struct tg3 *tp)
 	      (EEPROM_DEFAULT_CLOCK_PERIOD <<
 	       EEPROM_ADDR_CLKPERD_SHIFT)));
 
-	/* XXX schedule_timeout() ... */
 	mdelay(1);
 
 	/* Enable seeprom accesses. */
@@ -2617,7 +2600,10 @@ static int tg3_phy_probe(struct tg3 *tp)
 	}
 
 	/* Determine the PHY led mode. */
-	if (tp->subsystem_vendor == PCI_VENDOR_ID_DELL) {
+	if (tp->phy_id == PHY_ID_SERDES) {
+		tp->led_mode = led_mode_three_link;
+	}
+	else if (tp->subsystem_vendor == PCI_VENDOR_ID_DELL) {
 		tp->led_mode = led_mode_link10;
 	} else {
 		tp->led_mode = led_mode_three_link;
@@ -2745,11 +2731,9 @@ static int tg3_get_invariants(struct tg3 *tp)
 	 * critical that the PCI-X hw workaround situation is decided
 	 * before that as well.
 	 */
-	pci_read_config_dword(tp->pdev, TG3PCI_MISC_HOST_CTRL,
-			      &misc_ctrl_reg);
+	pci_read_config_dword(tp->pdev, TG3PCI_MISC_HOST_CTRL, &misc_ctrl_reg);
 
-	tp->pci_chip_rev_id = (misc_ctrl_reg >>
-			       MISC_HOST_CTRL_CHIPREV_SHIFT);
+	tp->pci_chip_rev_id = (misc_ctrl_reg >> MISC_HOST_CTRL_CHIPREV_SHIFT);
 
 	/* Initialize misc host control in PCI block. */
 	tp->misc_host_ctrl |= (misc_ctrl_reg &
@@ -2778,8 +2762,7 @@ static int tg3_get_invariants(struct tg3 *tp)
 				       cacheline_sz_reg);
 	}
 
-	pci_read_config_dword(tp->pdev, TG3PCI_PCISTATE,
-			      &pci_state_reg);
+	pci_read_config_dword(tp->pdev, TG3PCI_PCISTATE, &pci_state_reg);
 
 	/* If this is a 5700 BX chipset, and we are in PCI-X
 	 * mode, enable register write workaround.
@@ -2853,49 +2836,6 @@ static int tg3_get_invariants(struct tg3 *tp)
 
 	tg3_read_partno(tp);
 
-	if (tp->phy_id == PHY_ID_SERDES) {
-		tp->tg3_flags &= ~TG3_FLAG_USE_MI_INTERRUPT;
-
-		/* And override led_mode in case Dell ever makes
-		 * a fibre board.
-		 */
-		tp->led_mode = led_mode_three_link;
-	} else {
-		if (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5700)
-			tp->tg3_flags |= TG3_FLAG_USE_MI_INTERRUPT;
-		else
-			tp->tg3_flags &= ~TG3_FLAG_USE_MI_INTERRUPT;
-	}
-
-#if 1
-	/* 5700 {AX,BX} chips have a broken status block link
-	 * change bit implementation, so we must use the
-	 * status register in those cases.
-	 */
-	if (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5700)
-		tp->tg3_flags |= TG3_FLAG_USE_LINKCHG_REG;
-	else
-		tp->tg3_flags &= ~TG3_FLAG_USE_LINKCHG_REG;
-
-	/* The led_mode is set during tg3_phy_probe, here we might
-	 * have to force the link status polling mechanism based
-	 * upon subsystem IDs.
-	 */
-	if (tp->subsystem_vendor == PCI_VENDOR_ID_DELL &&
-		tp->phy_id != PHY_ID_SERDES) {
-		tp->tg3_flags |= (TG3_FLAG_USE_MI_INTERRUPT |
-				  TG3_FLAG_USE_LINKCHG_REG);
-	}
-
-	/* For all SERDES we poll the MAC status register. */
-	if (tp->phy_id == PHY_ID_SERDES)
-		tp->tg3_flags |= TG3_FLAG_POLL_SERDES;
-	else
-		tp->tg3_flags &= ~TG3_FLAG_POLL_SERDES;
-
-#else
-	tp->tg3_flags |= TG3_FLAG_USE_LINKCHG_REG;
-#endif
 
 	/* 5700 BX chips need to have their TX producer index mailboxes
 	 * written twice to workaround a bug.
@@ -2905,18 +2845,8 @@ static int tg3_get_invariants(struct tg3 *tp)
 	/* 5700 chips can get confused if TX buffers straddle the
 	 * 4GB address boundary in some cases.
 	 * 
-	 * It does not matter in etherboot as etherboot lives below 4GB.
+	 * In etherboot we can ignore the problem as etherboot lives below 4GB.
 	 */
-	tp->rx_offset = 2;
-	if (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5701 &&
-	    (tp->tg3_flags & TG3_FLAG_PCIX_MODE) != 0)
-		tp->rx_offset = 0;
-
-#if 1
-	printf("ASIC_REV_5701: %d\n", 
-		GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5701);
-#endif
-
 	return err;
 }
 
@@ -3101,69 +3031,6 @@ static int tg3_test_dma(struct tg3 *tp)
 			tp->dma_rwctrl |= DMA_RWCTRL_ONE_DMA;
 	}
 
-	/* We don't do this on x86 because it seems to hurt performace.
-	 * It does help things on other platforms though.
-	 */
-#if 0 && !defined(CONFIG_X86)
-	{
-		u8 byte;
-		int cacheline_size;
-		pci_read_config_byte(tp->pdev, PCI_CACHE_LINE_SIZE, &byte);
-
-		if (byte == 0)
-			cacheline_size = 1024;
-		else
-			cacheline_size = (int) byte * 4;
-
-		tp->dma_rwctrl &= ~(DMA_RWCTRL_READ_BNDRY_MASK |
-				    DMA_RWCTRL_WRITE_BNDRY_MASK);
-
-		switch (cacheline_size) {
-		case 16:
-			tp->dma_rwctrl |=
-				(DMA_RWCTRL_READ_BNDRY_16 |
-				 DMA_RWCTRL_WRITE_BNDRY_16);
-			break;
-
-		case 32:
-			tp->dma_rwctrl |=
-				(DMA_RWCTRL_READ_BNDRY_32 |
-				 DMA_RWCTRL_WRITE_BNDRY_32);
-			break;
-
-		case 64:
-			tp->dma_rwctrl |=
-				(DMA_RWCTRL_READ_BNDRY_64 |
-				 DMA_RWCTRL_WRITE_BNDRY_64);
-			break;
-
-		case 128:
-			tp->dma_rwctrl |=
-				(DMA_RWCTRL_READ_BNDRY_128 |
-				 DMA_RWCTRL_WRITE_BNDRY_128);
-			break;
-
-		case 256:
-			tp->dma_rwctrl |=
-				(DMA_RWCTRL_READ_BNDRY_256 |
-				 DMA_RWCTRL_WRITE_BNDRY_256);
-			break;
-
-		case 512:
-			tp->dma_rwctrl |=
-				(DMA_RWCTRL_READ_BNDRY_512 |
-				 DMA_RWCTRL_WRITE_BNDRY_512);
-			break;
-
-		case 1024:
-			tp->dma_rwctrl |=
-				(DMA_RWCTRL_READ_BNDRY_1024 |
-				 DMA_RWCTRL_WRITE_BNDRY_1024);
-			break;
-		};
-	}
-#endif
-
 	/* Remove this if it causes problems for some boards. */
 	tp->dma_rwctrl |= DMA_RWCTRL_USE_MEM_READ_MULT;
 
@@ -3271,7 +3138,31 @@ static const char * tg3_phy_string(struct tg3 *tp)
 }
 
 
+static void tg3_poll_link(struct tg3 *tp)
+{
+	uint32_t mac_stat;
 
+	mac_stat = tr32(MAC_STATUS);
+	if (tp->phy_id == PHY_ID_SERDES) {
+		if (tp->carrier_ok?
+			(mac_stat & MAC_STATUS_LNKSTATE_CHANGED):
+			(mac_stat & MAC_STATUS_PCS_SYNCED)) {
+			tw32(MAC_MODE, tp->mac_mode & ~MAC_MODE_PORT_MODE_MASK);
+			tr32(MAC_MODE);
+			udelay(40);
+			tw32(MAC_MODE, tp->mac_mode);
+			tr32(MAC_MODE);
+			udelay(40);
+
+			tg3_setup_phy(tp);
+		}
+	}
+	else {
+		if (mac_stat & MAC_STATUS_LNKSTATE_CHANGED) {
+			tg3_setup_phy(tp);
+		}
+	}
+}
 
 /**************************************************************************
 POLL - Wait for a frame
@@ -3284,7 +3175,6 @@ static int tg3_poll(struct nic *nic)
 
 	struct tg3 *tp = &tg3;
 	int result;
-	uint32_t mac_stat;
 
 	result = 0;
 
@@ -3294,12 +3184,6 @@ static int tg3_poll(struct nic *nic)
 			0x00000001);
 		tp->hw_status->status &= ~SD_STATUS_UPDATED;
 
-		if (tp->hw_status->status & SD_STATUS_LINK_CHG) {
-			tp->hw_status->status = SD_STATUS_UPDATED |
-				(tp->hw_status->status & ~SD_STATUS_LINK_CHG);
-			tg3_setup_phy(tp);
-		}
-
 		if (tp->hw_status->idx[0].rx_producer != tp->rx_rcb_ptr) {
 			struct tg3_rx_buffer_desc *desc;
 			unsigned int len;
@@ -3307,8 +3191,6 @@ static int tg3_poll(struct nic *nic)
 			if ((desc->opaque & RXD_OPAQUE_RING_MASK) == RXD_OPAQUE_RING_STD) {
 				len = ((desc->idx_len & RXD_LEN_MASK) >> RXD_LEN_SHIFT) - 4; /* omit crc */
 
-				/* FIXME handle rx_offset */
-#warning "FIXME handler tp->rx_offset"
 				nic->packetlen = len;
 				memcpy(nic->packet, bus_to_virt(desc->addr_lo), len);
 				result = 1;
@@ -3332,20 +3214,7 @@ static int tg3_poll(struct nic *nic)
 			0x00000000);
 		tr32(MAILBOX_INTERRUPT_0 + TG3_64BIT_REG_LOW);
 	}
-#if 0
-	mac_stat = tr32(MAC_STATUS);
-	if (mac_stat & (MAC_STATUS_LNKSTATE_CHANGED | MAC_STATUS_PCS_SYNCED | MAC_STATUS_MI_INTERRUPT)) {
-		if (tp->phy_id == PHY_ID_SERDES) {
-			tw32(MAC_MODE, tp->mac_mode & ~MAC_MODE_PORT_MODE_MASK);
-			tr32(MAC_MODE);
-			udelay(40);
-			tw32(MAC_MODE, tp->mac_mode);
-			tr32(MAC_MODE);
-			udelay(40);
-		}
-		tg3_setup_phy(tp);
-	}
-#endif
+	tg3_poll_link(tp);
 	return result;
 }
 
@@ -3550,11 +3419,7 @@ static int tg3_probe(struct dev *dev, struct pci_device *pdev)
 	tp->tg3_flags |= TG3_FLAG_INIT_COMPLETE;
 
 	for(i = 0; !tp->carrier_ok && (i < 3*1000); i++) {
-#if 1
-		tg3_poll(nic);
-#else
-		tg3_setup_phy(tp);
-#endif
+		tg3_poll_link(tp);
 		mdelay(1);
 	}
 	if (!tp->carrier_ok){
@@ -3573,11 +3438,6 @@ static int tg3_probe(struct dev *dev, struct pci_device *pdev)
  err_out_disable:
 	tg3_disable(dev);
 	return 0;
-}
-
-int after_tg3_probe(int foo)
-{
-	return foo +1;
 }
 
 static struct pci_id tg3_nics[] = {

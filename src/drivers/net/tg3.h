@@ -1773,7 +1773,9 @@ struct tg3 {
 #endif
 	unsigned long			phy_crc_errors;
 
+#if 0
 	uint32_t			rx_offset;
+#endif
 	uint32_t			tg3_flags;
 #if 0
 #define TG3_FLAG_HOST_TXDS		0x00000001
