@@ -4,16 +4,29 @@
 # The basic idea is to unpack and replace or convert all
 # the necessary config files into the initrd
 # and then make a bootable image out of it
+#
+# The --output= options specifies an output file instead of stdout
+# The -nonet option specifies that a netbootable image is not to
+# be built but the vmlinuz and initrd.gz files left behind in $tempdir
+#
+# The first non-option argument is taken to be the letter of a floppy to
+# convert, e.g. a:, b: or even x: where x: is mapped to a file using
+# mtools mapping in $HOME/.mtoolsrc. See the mtools documentation.
+# Thus you can work on a floppy image in a disk file and only write
+# to a floppy with dd or cp when you need to test the image.
+
+use Getopt::Long;
 
 use strict;
 
-use vars qw($testing $verbose $floppy $libdir $tftpdir $format $tempdir $tempmount);
+use vars qw($testing $verbose $nonet $floppy $libdir $tftpdir $output
+	$format $tempdir $tempmount);
 
 sub findversion () {
 	my ($version) = grep(/FloppyFW/, `mtype ${floppy}floppyfw.msg`);
 	return '' unless defined($version) and $version ne '';
 	chomp($version);
-	$version =~ s/.*(\d+\.\d+\.\d+).*/$1/;
+	$version =~ s/.*FloppyFW (\d+\.\d+\.\d+(\.\d+)?).*/$1/;
 	return ($version);
 }
 
@@ -105,10 +118,17 @@ sub bunzip2untar ($$) {
 
 $testing = $< != 0;
 $verbose = 1;
-$floppy = $#ARGV >= 0 ? $ARGV[0] : 'a:';
+GetOptions('output=s' => \$output,
+	'nonet!' => \$nonet);
+if (defined($output) and $output !~ m(^/)) {
+	my $d = `pwd`;
+	chomp($d);
+	$output = "$d/$output";
+}
 $libdir = '/usr/local/lib/mkffwnb';
 $tftpdir = '/tftpdir';
 $format = 'nbi';	# can also be 'elf'
+$floppy = $#ARGV >= 0 ? $ARGV[0] : 'a:';
 print <<EOF;
 This program requires mtools, tar, bzip2, loopback mount in the kernel,
 and root privileges to execute. Hope you have them.
@@ -154,6 +174,11 @@ unless (glob('modules/*.bz2')) {
 }
 &loopbackumount($tempmount) == 0 or die "Loopback umount failed\n";
 &gzip('initrd') == 0 or die "Gzip of initrd failed\n";
-print "Calling mk$format-linux to make the netbootable image\n" if ($verbose);
-system("mk$format-linux $append --output=$tftpdir/floppyfw-$version.nb vmlinuz initrd.gz");
-print "Please clean up by removing $tempdir\n";
+if ($nonet) {
+	print "Floppyfw directory in $tempdir\n";
+} else {
+	print "Calling mk$format-linux to make the netbootable image\n" if ($verbose);
+	$output = "$tftpdir/floppyfw-$version.nb" if (!defined($output));
+	system("mk$format-linux $append --output=$output vmlinuz initrd.gz");
+	print "Please clean up by removing $tempdir\n";
+}
