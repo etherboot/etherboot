@@ -19,6 +19,7 @@
 #define EXTCALL_GDT		(0x0003)
 #define EXTCALL_STACK		(0x0004)
 #define EXTCALL_RET_STACK	(0x0005)
+#define EXTCALL_RELOC_STACK	(0x0006)
 #define EXTCALL_END_LIST	(0xffff)
 
 /* Skip the definitions that won't make sense to the assembler */
@@ -216,6 +217,8 @@ typedef struct {
 	EXTCALL_RET_STACK, (structure), sizeof(*(structure)), NULL
 #define EP_RET_VARSTACK(structure,length) \
 	EXTCALL_RET_STACK, (structure), sizeof(*(structure)), (length)
+
+#define EP_RELOC_STACK(top) EXTCALL_RELOC_STACK, (top)
 
 /* Function prototypes */
 extern uint32_t _ext_call ( uint32_t address, ... );
