@@ -423,7 +423,7 @@ endif # BUILDGOALS
 
 include/.buildserial.h :
 	@if [ ! -f $@ ]; then 	echo '#define BUILD_SERIAL_NUM 0' > $@; fi
-	@perl -pi -e 's/(BUILD_SERIAL_NUM\s+)(\d+)/"$${1} ".($${2}+1)/e' $@
+	@perl -pi -e 's/(BUILD_SERIAL_NUM)\s+(\d+)/"$${1} ".($${2}+1)/e' $@
 
 buildserial : include/.buildserial.h
 	@perl -n -e '/BUILD_SERIAL_NUM\s+(\d+)/ && ' \
