@@ -121,6 +121,7 @@ sub bunzip2untar ($$) {
 
 $testing = $< != 0;
 $verbose = 1;
+$format = '';
 GetOptions('output=s' => \$output,
 	'nonet!' => \$nonet,
 	'localtime=s' => \$localtime,
