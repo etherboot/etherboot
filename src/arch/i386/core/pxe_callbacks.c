@@ -155,6 +155,8 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	INT15_VECTOR->offset = (void*)pxe_intercept_int15 - pxe_callback_code;
 	(*pxe_hide_memory)[0].start = virt_to_phys(_text);
 	(*pxe_hide_memory)[0].length = _end - _text;
+	(*pxe_hide_memory)[1].start = heap_top;
+	(*pxe_hide_memory)[1].length = heap_bot - heap_top;
 
 	return pxe_stack;
 }
