@@ -1,4 +1,4 @@
-#if !defined(ISA_H) && defined(CONFIG_ISA)
+#ifndef	ISA_H
 #define ISA_H
 
 struct dev;
@@ -29,4 +29,3 @@ extern const struct isa_driver isa_drivers_end[];
 #define ISA_ROM(IMAGE, DESCRIPTION)
 
 #endif /* ISA_H */
-
