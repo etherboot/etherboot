@@ -274,6 +274,8 @@ UNDILoader:
 	pushw	$14			/* Dummy ret, PXE params, orig ss:sp */
 	call	prelocate
 	addw	$2, %sp			/* discard */
+	/* Inhibit automatic deallocation of base memory */
+	movl	$0, %cs:image_basemem
 	/* Make PXE API call to Etherboot */
 	pushl	$0x201			/* PXE API version */
 	/* Need to USE_INTERNAL_STACK, since we will call relocate() */
