@@ -161,7 +161,7 @@ int main( int argc, char* const* argv )
   memset( &header, 0, sizeof header );
   header.h.setup.magic     = 0x1b031336;    // magic number
   header.h.setup.length    =          4;
-  header.h.setup.location  = 0x97e00000;    // just below the EtherBoot rom
+  header.h.setup.location  = 0x93e00000;    // just below the EtherBoot rom
   header.h.setup.start     =          0;    // filled in dynamically
   header.h.qnx.flags       = 0x04000004;    // single image only
   header.h.qnx.loadaddr    =          0;    // filled in dynamically
