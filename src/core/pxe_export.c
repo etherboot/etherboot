@@ -330,6 +330,8 @@ PXENV_EXIT_t pxenv_undi_close ( t_PXENV_UNDI_CLOSE *undi_close ) {
  */
 PXENV_EXIT_t pxenv_undi_transmit ( t_PXENV_UNDI_TRANSMIT *undi_transmit ) {
 	DBG ( "PXENV_UNDI_TRANSMIT" );
+	ENSURE_READY ( undi_transmit );
+
 	undi_transmit->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -341,6 +343,7 @@ PXENV_EXIT_t pxenv_undi_transmit ( t_PXENV_UNDI_TRANSMIT *undi_transmit ) {
 PXENV_EXIT_t pxenv_undi_set_mcast_address ( t_PXENV_UNDI_SET_MCAST_ADDRESS
 					    *undi_set_mcast_address ) {
 	DBG ( "PXENV_UNDI_SET_MCAST_ADDRESS" );
+	/* ENSURE_READY ( undi_set_mcast_address ); */
 	undi_set_mcast_address->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -352,6 +355,7 @@ PXENV_EXIT_t pxenv_undi_set_mcast_address ( t_PXENV_UNDI_SET_MCAST_ADDRESS
 PXENV_EXIT_t pxenv_undi_set_station_address ( t_PXENV_UNDI_SET_STATION_ADDRESS
 					      *undi_set_station_address ) {
 	DBG ( "PXENV_UNDI_SET_STATION_ADDRESS" );
+	ENSURE_READY ( undi_set_station_address );
 
 	/* We don't offer a facility to set the MAC address; this
 	 * would require adding extra code to all the Etherboot
@@ -376,6 +380,7 @@ PXENV_EXIT_t pxenv_undi_set_station_address ( t_PXENV_UNDI_SET_STATION_ADDRESS
 PXENV_EXIT_t pxenv_undi_set_packet_filter ( t_PXENV_UNDI_SET_PACKET_FILTER
 					    *undi_set_packet_filter ) {
 	DBG ( "PXENV_UNDI_SET_PACKET_FILTER" );
+	/* ENSURE_READY ( undi_set_packet_filter ); */
 	undi_set_packet_filter->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -387,6 +392,7 @@ PXENV_EXIT_t pxenv_undi_set_packet_filter ( t_PXENV_UNDI_SET_PACKET_FILTER
 PXENV_EXIT_t pxenv_undi_get_information ( t_PXENV_UNDI_GET_INFORMATION
 					  *undi_get_information ) {
 	DBG ( "PXENV_UNDI_GET_INFORMATION" );
+	ENSURE_READY ( undi_get_information );
 
 	undi_get_information->BaseIo = nic.ioaddr;
 	undi_get_information->IntNumber = nic.irqno;
@@ -420,6 +426,7 @@ PXENV_EXIT_t pxenv_undi_get_information ( t_PXENV_UNDI_GET_INFORMATION
 PXENV_EXIT_t pxenv_undi_get_statistics ( t_PXENV_UNDI_GET_STATISTICS
 					 *undi_get_statistics ) {
 	DBG ( "PXENV_UNDI_GET_STATISTICS" );
+	/* ENSURE_READY ( undi_get_statistics ); */
 	undi_get_statistics->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -431,6 +438,7 @@ PXENV_EXIT_t pxenv_undi_get_statistics ( t_PXENV_UNDI_GET_STATISTICS
 PXENV_EXIT_t pxenv_undi_clear_statistics ( t_PXENV_UNDI_CLEAR_STATISTICS
 					   *undi_clear_statistics ) {
 	DBG ( "PXENV_UNDI_CLEAR_STATISTICS" );
+	/* ENSURE_READY ( undi_clear_statistics ); */
 	undi_clear_statistics->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -442,6 +450,7 @@ PXENV_EXIT_t pxenv_undi_clear_statistics ( t_PXENV_UNDI_CLEAR_STATISTICS
 PXENV_EXIT_t pxenv_undi_initiate_diags ( t_PXENV_UNDI_INITIATE_DIAGS
 					 *undi_initiate_diags ) {
 	DBG ( "PXENV_UNDI_INITIATE_DIAGS" );
+	/* ENSURE_READY ( undi_initiate_diags ); */
 	undi_initiate_diags->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -453,6 +462,7 @@ PXENV_EXIT_t pxenv_undi_initiate_diags ( t_PXENV_UNDI_INITIATE_DIAGS
 PXENV_EXIT_t pxenv_undi_force_interrupt ( t_PXENV_UNDI_FORCE_INTERRUPT
 					  *undi_force_interrupt ) {
 	DBG ( "PXENV_UNDI_FORCE_INTERRUPT" );
+	/* ENSURE_READY ( undi_force_interrupt ); */
 	undi_force_interrupt->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -464,6 +474,7 @@ PXENV_EXIT_t pxenv_undi_force_interrupt ( t_PXENV_UNDI_FORCE_INTERRUPT
 PXENV_EXIT_t pxenv_undi_get_mcast_address ( t_PXENV_UNDI_GET_MCAST_ADDRESS
 					    *undi_get_mcast_address ) {
 	DBG ( "PXENV_UNDI_GET_MCAST_ADDRESS" );
+	/* ENSURE_READY ( undi_get_mcast_address ); */
 	undi_get_mcast_address->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -477,6 +488,7 @@ PXENV_EXIT_t pxenv_undi_get_nic_type ( t_PXENV_UNDI_GET_NIC_TYPE
 	struct dev *dev = &nic.dev;
 	
 	DBG ( "PXENV_UNDI_GET_NIC_TYPE" );
+	ENSURE_READY ( undi_get_nic_type );
 	
 	if ( dev->to_probe == PROBE_PCI ) {
 		struct pci_device *pci = &dev->state.pci.dev;
@@ -524,6 +536,7 @@ PXENV_EXIT_t pxenv_undi_get_nic_type ( t_PXENV_UNDI_GET_NIC_TYPE
 PXENV_EXIT_t pxenv_undi_get_iface_info ( t_PXENV_UNDI_GET_IFACE_INFO
 					 *undi_get_iface_info ) {
 	DBG ( "PXENV_UNDI_GET_IFACE_INFO" );
+	ENSURE_READY ( undi_get_iface_info );
 
 	/* Just hand back some info, doesn't really matter what it is.
 	 * Most PXE stacks seem to take this approach.
@@ -543,6 +556,15 @@ PXENV_EXIT_t pxenv_undi_get_iface_info ( t_PXENV_UNDI_GET_IFACE_INFO
  */
 PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 	DBG ( "PXENV_UNDI_ISR" );
+	/* We can't call ENSURE_READY, because this could be being
+	 * called as part of an interrupt service routine.  Instead,
+	 * we should simply die if we're not READY.
+	 */
+	if ( ( pxe_stack == NULL ) || ( pxe_stack->state <= READY ) ) {
+		undi_isr->Status = PXENV_STATUS_UNDI_INVALID_STATE;
+		return PXENV_EXIT_FAILURE;
+	}
+	
 	undi_isr->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -565,6 +587,7 @@ PXENV_EXIT_t pxenv_stop_undi ( t_PXENV_STOP_UNDI *stop_undi ) {
  */
 PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
 	DBG ( "PXENV_TFTP_OPEN" );
+	/* ENSURE_READY ( tftp_open ); */
 	tftp_open->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -575,6 +598,7 @@ PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
  */
 PXENV_EXIT_t pxenv_tftp_close ( t_PXENV_TFTP_CLOSE *tftp_close ) {
 	DBG ( "PXENV_TFTP_CLOSE" );
+	/* ENSURE_READY ( tftp_close ); */
 	tftp_close->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -585,6 +609,7 @@ PXENV_EXIT_t pxenv_tftp_close ( t_PXENV_TFTP_CLOSE *tftp_close ) {
  */
 PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
 	DBG ( "PXENV_TFTP_READ" );
+	/* ENSURE_READY ( tftp_read ); */
 	tftp_read->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -595,6 +620,7 @@ PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
  */
 PXENV_EXIT_t pxenv_tftp_read_file ( t_PXENV_TFTP_READ_FILE *tftp_read_file ) {
 	DBG ( "PXENV_TFTP_READ_FILE" );
+	/* ENSURE_READY ( tftp_read_file ); */
 	tftp_read_file->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -605,6 +631,7 @@ PXENV_EXIT_t pxenv_tftp_read_file ( t_PXENV_TFTP_READ_FILE *tftp_read_file ) {
  */
 PXENV_EXIT_t pxenv_tftp_get_fsize ( t_PXENV_TFTP_GET_FSIZE *tftp_get_fsize ) {
 	DBG ( "PXENV_TFTP_GET_FSIZE" );
+	/* ENSURE_READY ( tftp_get_fsize ); */
 	tftp_get_fsize->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -615,6 +642,7 @@ PXENV_EXIT_t pxenv_tftp_get_fsize ( t_PXENV_TFTP_GET_FSIZE *tftp_get_fsize ) {
  */
 PXENV_EXIT_t pxenv_udp_open ( t_PXENV_UDP_OPEN *udp_open ) {
 	DBG ( "PXENV_UDP_OPEN" );
+	ENSURE_READY ( udp_open );
 
 	if ( udp_open->src_ip != arptable[ARP_CLIENT].ipaddr.s_addr ) {
 		/* Overwrite our IP address */
@@ -632,6 +660,7 @@ PXENV_EXIT_t pxenv_udp_open ( t_PXENV_UDP_OPEN *udp_open ) {
  */
 PXENV_EXIT_t pxenv_udp_close ( t_PXENV_UDP_CLOSE *udp_close ) {
 	DBG ( "PXENV_UDP_CLOSE" );
+	ENSURE_READY ( udp_close );
 	udp_close->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
 }
@@ -686,6 +715,7 @@ int await_pxe_udp ( int ival __unused, void *ptr,
 
 PXENV_EXIT_t pxenv_udp_read ( t_PXENV_UDP_READ *udp_read ) {
 	DBG ( "PXENV_UDP_READ" );
+	ENSURE_READY ( udp_read );
 
 	/* Use await_reply with a timeout of zero */
 	if ( ! await_reply ( await_pxe_udp, 0, udp_read, 0 ) ) {
@@ -708,6 +738,7 @@ PXENV_EXIT_t pxenv_udp_write ( t_PXENV_UDP_WRITE *udp_write ) {
 	int packet_size;
 
 	DBG ( "PXENV_UDP_WRITE" );
+	ENSURE_READY ( udp_write );
 
 	/* PXE spec says source port is 2069 if not specified */
 	src_port = ntohs(udp_write->src_port);
@@ -774,6 +805,7 @@ PXENV_EXIT_t pxenv_get_cached_info ( t_PXENV_GET_CACHED_INFO
 				     *get_cached_info ) {
 	BOOTPLAYER *cached_info = &pxe_stack->cached_info;
 	DBG ( "PXENV_GET_CACHED_INFO %d", get_cached_info->PacketType );
+	ENSURE_READY ( get_cached_info );
 
 	/* Fill in cached_info structure in our pxe_stack */
 
@@ -841,6 +873,7 @@ PXENV_EXIT_t pxenv_get_cached_info ( t_PXENV_GET_CACHED_INFO
  */
 PXENV_EXIT_t pxenv_restart_tftp ( t_PXENV_RESTART_TFTP *restart_tftp ) {
 	DBG ( "PXENV_RESTART_TFTP" );
+	/* ENSURE_READY ( restart_tftp ); */
 	restart_tftp->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -851,6 +884,7 @@ PXENV_EXIT_t pxenv_restart_tftp ( t_PXENV_RESTART_TFTP *restart_tftp ) {
  */
 PXENV_EXIT_t pxenv_start_base ( t_PXENV_START_BASE *start_base ) {
 	DBG ( "PXENV_START_BASE" );
+	/* ENSURE_READY ( start_base ); */
 	start_base->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -861,6 +895,7 @@ PXENV_EXIT_t pxenv_start_base ( t_PXENV_START_BASE *start_base ) {
  */
 PXENV_EXIT_t pxenv_stop_base ( t_PXENV_STOP_BASE *stop_base ) {
 	DBG ( "PXENV_STOP_BASE" );
+	/* ENSURE_READY ( stop_base ); */
 	stop_base->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
