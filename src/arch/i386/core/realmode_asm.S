@@ -579,69 +579,180 @@ _pxenv_in_call_far:
 /****************************************************************************
  * Exclude an address range from a potentially overlapping address range
  *
+ * Note: this *can* be called even if the range doesn't overlap; it
+ * will simply return the range unaltered.  It copes with all the
+ * possible cases of overlap, including total overlap (which will
+ * modify the range to length zero).  If the to-be-excluded range is
+ * in the middle of the target range, then the larger remaining
+ * portion will be returned.  If %di is nonzero on entry then the
+ * range will only be truncated from the high end, i.e. the base
+ * address will never be altered.  All this in less than 30
+ * instructions.  :)
+ *
  * Parameters:
  *  %eax	Base address of memory range
  *  %ecx	Length of memory range
  *  %ebx	Base address of memory range to exclude
  *  %edx	Length of memory range to exclude
+ *  %di		0 => truncate either end, 1 => truncate high end only
  * Returns:
  *  %eax	Updated base address of range
  *  %ecx	Updated length of range
  *  %ebx,%edx	Undefined
+ *		All other registers (including %di) preserved
+ *
+ * Note: "ja" is used rather than "jg" because we are comparing
+ * unsigned ints
  ****************************************************************************
  */
 	.code32
-exclude_memory_range:
+_exclude_memory_range:
 	/* Convert (start,length) to (start,end) */
 	addl	%eax, %ecx
 	addl	%ebx, %edx
+	/* Calculate "prefix" length */
 	subl	%eax, %ebx		/* %ebx = "prefix" length */
-	jg	1f
+	ja	1f
 	xorl	%ebx, %ebx		/* Truncate to zero if negative */
-1:	negl	%edx
-	addl	%ecx, %edx		/* %edx = "suffix" length */
-	jg	2f
-	xorl	%edx, %edx		/* Truncate to zero if negative */
-2:	cmpl	%ebx, %edx
-	jg	20f
-10:	/* Use prefix, discard suffix */
+1:	/* %di == 0 => truncate either end
+	 * %di != 0 => truncate only high end
+	 */
+	testw	%di, %di
+	je	use_either
+	cmpl	%eax, %edx
+	jbe	99f			/* excl. range is below target range */
+use_prefix:	/* Use prefix, discard suffix */
 	addl	%eax, %ebx		/* %ebx = candidate end address */
 	cmpl	%ecx, %ebx		/* %ecx = min ( %ebx, %ecx ) */
-	jg	11f
+	ja	1f
 	movl	%ebx, %ecx
-11:	jmp	30f
-20:	/* Use suffix, discard prefix */
+1:	jmp	99f
+use_either:		
+	/* Calculate "suffix" length */
+	subl	%ecx, %edx		/* %edx = -( "suffix" length ) */
+	jb	1f
+	xorl	%edx, %edx		/* Truncate to zero if negative */
+1:	negl	%edx			/* %edx = "suffix" length */
+	/* Use whichever is longest of "prefix" and "suffix" */
+	cmpl	%ebx, %edx
+	jbe	use_prefix
+use_suffix:	/* Use suffix, discard prefix */
 	negl	%edx
 	addl	%ecx, %edx		/* %edx = candidate start address */
 	cmpl	%eax, %edx		/* %eax = max ( %eax, %edx ) */
-	jl	21f
+	jb	1f
 	movl	%edx, %eax
-21:	
-30:	subl	%eax, %ecx		/* Convert back to (start,length) */
+1:	
+99:	subl	%eax, %ecx		/* Convert back to (start,length) */
 	ret
 
-	.globl	_test_exclude
-_test_exclude:
-	pushl	%ebx
-	movl	8(%esp), %eax
-	movl	12(%esp), %ecx
-	movl	16(%esp), %ebx
-	movl	20(%esp), %edx
-	call	exclude_memory_range
-	shll	$16, %eax
-	orl	%ecx, %eax
+	.globl	__test_exclude
+__test_exclude:
+	pushl   %ebx
+	pushl	%edi
+	movl    12(%esp), %eax
+	movl    16(%esp), %ecx
+	movl    20(%esp), %ebx
+	movl    24(%esp), %edx
+	movl	28(%esp), %edi
+	call    _exclude_memory_range
+	shll    $16, %eax
+	orl     %ecx, %eax
+	popl	%edi
 	popl	%ebx
 	ret
 	.code16
 	
-pxe_intercepted_e820:	.word 0,0
-pxe_intercept_e820:
+/****************************************************************************
+ * Exclude Etherboot-reserved address ranges from a potentially
+ * overlapping address range
+ *
+ * Parameters:
+ *  %eax	Base address of memory range
+ *  %ecx	Length of memory range
+ *  %di		0 => truncate either end, 1 => truncate high end only
+ * Returns:
+ *  %eax	Updated base address of range
+ *  %ecx	Updated length of range
+ *		All other registers (including %di) preserved
+ ****************************************************************************
+ */
+_exclude_hidden_memory_ranges:
+	pushw	%bp
+	pushw	%si
+	pushl	%ebx
+	pushl	%edx
+	call	1f
+1:	popw	%bp
+	movw	$(_pxe_hide_memory-1b), %si
+2:	movl	%cs:0(%bp,%si), %ebx
+	movl	%cs:4(%bp,%si), %edx
+	call	_exclude_memory_range
+	addw	$8, %si
+	cmpw	$(_pxe_hide_memory_end-1b), %si
+	jl	2b
+	popl	%edx
+	popl	%ebx
+	pushw	%si
+	popw	%bp
+	ret
+	
+	.globl	_pxe_hide_memory	
+_pxe_hide_memory:
+	.long	0,0			/* Etherboot text (base,length) */
+	.long	0,0			/* Heap (base,length) */
+_pxe_hide_memory_end:
+	
+/****************************************************************************
+ * Intercept INT 15,E820 calls and remove the hidden memory ranges
+ * from the resulting memory map.
+ ****************************************************************************
+ */
+#define SMAP ( 0x534d4150 )
+	.globl	_pxe_intercept_e820
+_pxe_intercept_e820:
 	/* Call to original E820 routine */
 	pushw	%bp
 	call	1f
-1:	pushfw			/* Original routine will return via iret */
-	lcall	%cs:*(pxe_intercepted_e820-1b)(%bp)
-	/* If >4GB, return immed (we don't use this mem), else use exclude_memory_range */
+1:	popw	%bp
+	/* Make INT-style call to old E820 routine */
+	pushfw
+	lcall	%cs:*(_pxe_intercepted_e820-1b)(%bp)
+	/* Preserve registers and flags returned by original E820 routine */
+	pushfw
+	pushl	%eax
+	pushl	%ecx
+	/* Check for valid E820 routine */
+	jc	99f
+	cmpl	$SMAP, %eax
+	jne	99f
+	/* If base address isn't in the low 4GB, return unaltered
+	 * (since we never claim memory above 4GB).  WARNING: we cheat
+	 * by assuming that no E820 region will straddle the 4GB
+	 * boundary: if this is not a valid assumption then things
+	 * will probably break.
+	 */
+	cmpl	$0, %es:4(%di)
+	jne	99f
+	movl	%es:0(%di), %eax	/* Base */
+	movl	%es:8(%di), %ecx	/* Length */
+	pushw	%di
+	xorw	%di, %di		/* "truncate either end" flag */
+	call	_exclude_hidden_memory_ranges
+	popw	%di
+	movl	%eax, %es:0(%di)	/* Store updated base */
+	movl	%ecx, %es:8(%di)	/* Store updated length */
+99:	/* Restore registers and return */
+	popl	%ecx
+	popl	%eax
+	popfw
+	popw	%bp
+	lret	$2			/* 'iret' - flags already loaded */
+	.globl	_pxe_intercepted_e820
+_pxe_intercepted_e820:	.word 0,0
+
+
+
 	
 	
 pxe_rm_in_call:	
