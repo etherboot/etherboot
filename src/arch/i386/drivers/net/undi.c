@@ -27,7 +27,7 @@ $Id$
 
 /* NIC specific static variables go here */
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-		       NULL, NULL, 0, NULL, 0,
+		       NULL, NULL, 0, NULL, 0, NULL,
 		       0, 0, 0, 0, 0,
 		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL } };
 
@@ -606,8 +606,6 @@ static void undi_transmit(
 	unsigned int s,			/* size */
 	const char *p)			/* Packet */
 {
-	char *xmit_buffer = NULL;
-
 	/* Inhibit compiler warning about unused parameter nic */
 	if ( nic == NULL ) {};
 
@@ -634,21 +632,21 @@ static void undi_transmit(
 		undi.xmit_data->tbd.Xmit.segment = SEGMENT( p );
 		undi.xmit_data->tbd.Xmit.offset = OFFSET( p );
 	} else {
-		xmit_buffer = allot_base_memory ( s );
-		if ( xmit_buffer == NULL ) {
+		/* Allocate xmit buffer only once.  We cannot allocate
+		 * once the download has started.
+		 */
+		if ( undi.xmit_buffer == NULL )
+			undi.xmit_buffer = allot_base_memory ( ETH_FRAME_LEN );
+		if ( undi.xmit_buffer == NULL ) {
 			printf ( "Could not allocate transmit buffer!\n" );
 			return;
 		}
-		memcpy ( xmit_buffer, p, s );
-		undi.xmit_data->tbd.Xmit.segment = SEGMENT( xmit_buffer );
-		undi.xmit_data->tbd.Xmit.offset = OFFSET( xmit_buffer );
+		memcpy ( undi.xmit_buffer, p, s );
+		undi.xmit_data->tbd.Xmit.segment = SEGMENT( undi.xmit_buffer );
+		undi.xmit_data->tbd.Xmit.offset = OFFSET( undi.xmit_buffer );
 	}
 
 	eb_pxenv_undi_transmit_packet();
-
-	/* Free temporary buffer, if allocated */
-	if ( xmit_buffer != NULL )
-		forget_base_memory ( xmit_buffer, s );
 }
 
 /**************************************************************************
@@ -661,6 +659,8 @@ static void undi_disable(struct dev *dev)
 	undi_full_shutdown();
 	forget_base_memory ( undi.base_mem_data,
 			     sizeof(undi_base_mem_data_t) );
+	if ( undi.xmit_buffer != NULL )
+		forget_base_memory ( undi.xmit_buffer, ETH_FRAME_LEN );
 }
 
 /**************************************************************************
@@ -758,8 +758,7 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 		nic->transmit = undi_transmit;
 		return 1;
 	}
-	forget_base_memory ( undi.base_mem_data,
-			     sizeof(undi_base_mem_data_t) );
+	undi_disable ( dev ); /* To free base memory structures */
 	return 0;
 }
 

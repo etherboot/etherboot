@@ -187,6 +187,7 @@ typedef struct undi {
 	size_t	driver_code_size;
 	void	*driver_data;
 	size_t	driver_data_size;
+	char	*xmit_buffer;
 	/* Flags.  We keep our own instead of trusting the UNDI driver
 	 * to have implemented PXENV_UNDI_GET_STATE correctly.  Plus
 	 * there's the small issue of PXENV_UNDI_GET_STATE being the
