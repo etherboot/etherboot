@@ -1,3 +1,5 @@
+#define	LOAD_DEBUG	0
+
 static int get_x_header(unsigned char *data, unsigned long now);
 static void jump_2ep();
 static unsigned char ce_signature[] = {'B', '0', '0', '0', 'F', 'F', '\n',};
@@ -54,7 +56,8 @@ static struct segment_info{
 	unsigned long checksum;		// Section CheckSum
 }X;
 
-#define DSIZE  512+12
+#define CSIZE	(512*3)
+#define DSIZE  (CSIZE+12)
 static unsigned long dbuffer_available =0;
 static unsigned long not_loadin =0;
 static unsigned long d_now =0;
@@ -74,7 +77,7 @@ static os_download_t wince_probe(unsigned char *data, unsigned int len)
 }
 static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 {
-	unsigned char dbuffer[DSIZE];
+	static unsigned char dbuffer[DSIZE];
 	int this_write = 0;
 	static int firsttime = 1;
 
@@ -87,8 +90,11 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 	 *	update...
 	 *	[2]  dbuffer_available
 	 */
-	memcpy( (dbuffer+dbuffer_available), data, 512);	//[1]
-	dbuffer_available += 512;	// [2]
+#if	LOAD_DEBUG
+	printf("len=%ld dbuffer_available=%ld\n", len, dbuffer_available);
+#endif	
+	memcpy( (dbuffer+dbuffer_available), data, len);	//[1]
+	dbuffer_available += len;	// [2]
 	len = 0;
 
 	d_now = 0;
@@ -123,7 +129,7 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 	while ( not_loadin > 0 )
 	{
 		/* dbuffer do not have enough data to loading, copy all */
-#if 0
+#if LOAD_DEBUG
 		printf("[0] not_loadin = [%ld], dbuffer_available = [%ld] \n", 
 			not_loadin, dbuffer_available);
 		printf("[0] d_now = [%ld] \n", d_now);
@@ -139,7 +145,7 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 			/* reset index and available in the dbuffer */
 			dbuffer_available = 0;
 			d_now = 0;
-#if 0
+#if LOAD_DEBUG
 			printf("[1] not_loadin = [%ld], dbuffer_available = [%ld] \n", 
 				not_loadin, dbuffer_available);
 			printf("[1] d_now = [%ld], this_write = [%d] \n", 
@@ -161,7 +167,7 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 			/* reset index and available in the dbuffer */
 			dbuffer_available -= this_write;
 			d_now += this_write;
-#if 0
+#if LOAD_DEBUG
 			printf("[2] not_loadin = [%ld], dbuffer_available = [%ld] \n", 
 				not_loadin, dbuffer_available);
 			printf("[2] d_now = [%ld], this_write = [%d] \n\n", 
@@ -179,7 +185,7 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 			}
 			else
 			{
-#if 0				
+#if LOAD_DEBUG				
 				printf("with remaining data to call get_x \n");
 				printf("dbuffer available = %ld , d_now = %ld\n", 
 					dbuffer_available, d_now);
@@ -198,6 +204,13 @@ static int get_x_header(unsigned char *dbuffer, unsigned long now)
 	X.checksum = *(unsigned long *)(dbuffer + now + sizeof(unsigned long)*2);
 
 	if (!prep_segment(X.addr, X.addr + X.size, X.addr + X.size, 0, 0)) {
+		if (X.addr == 0)
+		{
+			entry = X.size;
+			done();
+			printf("Entry Point Address = [%lx] \n", entry);
+			jump_2ep();		
+		}
 		longjmp(restart_etherboot, -2);
 	}
 
@@ -216,20 +229,13 @@ static int get_x_header(unsigned char *dbuffer, unsigned long now)
 	printf("\t Size = %d [%lx]\n", X.size, X.size);
 	printf("\t Checksum = %ld [%lx]\n", X.checksum, X.checksum);
 #endif
-#if 0
+#if LOAD_DEBUG
 	printf("____________________________________________\n");
 	printf("\t dbuffer_now = %ld \n", now);
 	printf("\t dbuffer available = %ld \n", dbuffer_available);
 	printf("\t not_loadin = %ld \n", not_loadin);
 #endif
 
-	if(X.addr == 0)
-	{
-		entry = X.size;
-		done();
-		printf("Entry Point Address = [%lx] \n", entry);
-		jump_2ep();		
-	}
 	
 	return now;
 }
