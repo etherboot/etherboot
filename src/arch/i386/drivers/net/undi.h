@@ -22,6 +22,7 @@ $Id$
 
 #undef PACKED
 #include "pxe.h"
+#include "pic8259.h"
 
 /* __undi_call is the assembler wrapper to the real-mode UNDI calls.
  * Pass it the real-mode segment:offset address of an undi_call_info_t
@@ -202,6 +203,7 @@ typedef struct undi {
 	/* Parameters that we need to store for future reference
 	 */
 	struct pci_device	pci;
+	irq_t			irq;
 } undi_t;
 
 /* Constants
