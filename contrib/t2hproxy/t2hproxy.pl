@@ -71,6 +71,7 @@ RETRY:
 			my $theiripaddr = recv($sockh, $ack, 256, 0);
 			# check it's for us
 			if ($theiripaddr eq $iaddr) {
+				# fixme: check for error packet also
 				# check that the right block was acked
 				if (blockno_of_ack($ack) == $blockno) {
 					return (1);
