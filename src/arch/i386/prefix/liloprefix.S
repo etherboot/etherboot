@@ -4,9 +4,6 @@
         Authors: Gary Byers (gb@thinguin.org)
                  Marty Connor (mdc@thinguin.org)
 
-	Modified: Ken Yap (ken_yap@users.sourceforge.net>
-	Experimental fix for not using START16 any more.
-
         This software may be used and distributed according to the terms
         of the GNU Public License (GPL), incorporated herein by reference.
 
@@ -118,8 +115,6 @@ boot_flag:
         This code gets loaded at SETUPSEG:0.  It wants to start
         executing the Etherboot image that's loaded at SYSSEG:0 and
         whose entry point is SYSSEG:0.
-
-        Before jumping to the image, check its signature.
 */
 setup_code: 
 /* Jump to the bootrom code */
