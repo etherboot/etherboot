@@ -2071,6 +2071,11 @@ name of a supported PCI NIC.
 
 Released as Etherboot 5.1.1 (development)
 
++ The rotating bar progress display has been replaced by a sequence of
+dots, one for each transmitted packet. This is kinder to dumb displays,
+e.g. serial terminals, and gives a better feel for how the loading is 
+going. If you want the rotating bar, use -DBAR_PROGRESS.
+
 + In loader.S change .fill 0x18-(.-_start) to .org 0x18. Might help
 people having errors assembling it.
 
@@ -2110,7 +2115,7 @@ addresses, and that printf returns void. Thanks to Klaus Espenlaub for
 assistance on this, after adding the %! format, he cleaned up all of the
 Ethernet address display code in the drivers.
 
-+ More cleanup patches from Klaus Espenlaub (he's better than lint,
++ More cleanup patches from Klaus Espenlaub (he's better than lint;
 people who have used Bell Labs Unix will know what lint is). Changes
 noted here for posterity.
 
