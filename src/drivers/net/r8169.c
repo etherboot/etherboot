@@ -50,8 +50,8 @@
 #include "pci.h"
 #include "timer.h"
 
-#define drv_version "v1.0"
-#define drv_date "11-26-2003"
+#define drv_version "v1.4"
+#define drv_date "11-30-2003"
 
 typedef unsigned char u8;
 typedef signed char s8;
@@ -265,7 +265,7 @@ struct RxDesc {
 };
 
 /* Define the TX Descriptor */
-//static struct TxDesc tx_ring[NUM_TX_DESC]
+static u8 tx_ring[NUM_TX_DESC * sizeof(struct TxDesc) + 256];
 //	__attribute__ ((aligned(256)));
 
 /* Create a static buffer of size RX_BUF_SZ for each
@@ -274,7 +274,7 @@ part of this buffer */
 static unsigned char txb[NUM_TX_DESC * RX_BUF_SIZE];
 
 /* Define the RX Descriptor */
-//static struct RxDesc rx_ring[NUM_RX_DESC]
+static u8 rx_ring[NUM_RX_DESC * sizeof(struct TxDesc) + 256];
   //  __attribute__ ((aligned(256)));
 
 /* Create a static buffer of size RX_BUF_SZ for each
@@ -584,8 +584,7 @@ static void r8169_reset(struct nic *nic)
 	u8 diff;
 	u32 TxPhyAddr, RxPhyAddr;
 
-	tpc->TxDescArrays = // (unsigned char *) &tx_ring; 
-	    allot(NUM_TX_DESC * sizeof(struct TxDesc) + 256);
+	tpc->TxDescArrays = tx_ring; 
 	if (tpc->TxDescArrays == 0)
 		printf("Allot Error");
 	// Tx Desscriptor needs 256 bytes alignment;
@@ -594,8 +593,7 @@ static void r8169_reset(struct nic *nic)
 	TxPhyAddr += diff;
 	tpc->TxDescArray = (struct TxDesc *) (tpc->TxDescArrays + diff);
 
-	tpc->RxDescArrays =
-	    allot(NUM_RX_DESC * sizeof(struct RxDesc) + 256);
+	tpc->RxDescArrays = rx_ring;
 	// Rx Desscriptor needs 256 bytes alignment;
 	RxPhyAddr = virt_to_bus(tpc->RxDescArrays);
 	diff = 256 - (RxPhyAddr - ((RxPhyAddr >> 8) << 8));
@@ -606,10 +604,6 @@ static void r8169_reset(struct nic *nic)
 		printf("Allocate RxDescArray or TxDescArray failed\n");
 		return;
 	}
-
-//	tpc->RxBufferRings = allot(RX_BUF_SIZE * NUM_RX_DESC);
-//	if (tpc->RxBufferRings == 0)
-//		printf("Unable to allocate RxBuffer Ring\n");
 
 	rtl8169_init_ring(nic);
 	rtl8169_hw_start(nic);
@@ -642,8 +636,6 @@ static void r8169_disable(struct dev *dev __unused)
 
 	RTL_W32(RxMissed, 0);
 
-	forget(tpc->TxDescArrays);
-	forget(tpc->RxDescArrays);
 	tpc->TxDescArrays = NULL;
 	tpc->RxDescArrays = NULL;
 	tpc->TxDescArray = NULL;
