@@ -24,12 +24,15 @@ $Id$
 #include "pci.h"
 /* UNDI and PXE defines.  Includes pxe.h. */
 #include "undi.h"
+/* 8259 PIC defines */
+#include "pic8259.h"
 
 /* NIC specific static variables go here */
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 		       NULL, NULL, 0, NULL, 0, NULL,
 		       0, 0, 0, 0,
-		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL } };
+		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL },
+		       IRQ_NONE };
 
 /* Function prototypes */
 int eb_pxenv_undi_shutdown ( void );
@@ -143,13 +146,10 @@ int hunt_pixie ( void ) {
 			printf ( "ok\n" );
 			undi.pxe = pxe;
 			pxe_dump();
-#ifdef PXELOADER_KEEP_ALL
 			printf ( "Resetting pixie...\n" );
-			eb_pxenv_undi_shutdown();
-			eb_pxenv_stop_undi();
 			undi_unload_base_code();
+			eb_pxenv_stop_undi();
 			pxe_dump();
-#endif
 			return 1;
 		}
 	}
@@ -630,8 +630,16 @@ int eb_pxenv_unload_stack ( void ) {
 
 	memset ( undi.pxs, 0, sizeof ( undi.pxs ) );
 	DBG ( "PXENV_UNLOAD_STACK => (void)\n" );
-	success = undi_call ( PXENV_UNLOAD_STACK );
-	DBG ( "PXENV_UNLOAD_STACK <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	success = undi_call_silent ( PXENV_UNLOAD_STACK );
+	DBG ( "PXENV_UNLOAD_STACK <= Status=%s ...\n... (%s)\n",
+	      UNDI_STATUS(undi.pxs),
+	      ( undi.pxs->Status == PXENV_STATUS_SUCCESS ?
+		"base-code is ready to be removed" :
+		( undi.pxs->Status == PXENV_STATUS_FAILURE ?
+		  "the size of free base memory has been changed" :
+		  ( undi.pxs->Status == PXENV_STATUS_KEEP_ALL ?
+		    "the NIC interrupt vector has been changed" :
+		    "UNEXPECTED STATUS CODE" ) ) ) );
 	return success;
 }
 
@@ -657,6 +665,13 @@ int undi_unload_base_code ( void ) {
 	/* Don't unload if there is no base code present */
 	if ( undi.pxe->BC_Code.Seg_Addr == 0 ) return 1;
 
+	/* Since we never start the base code, the only time we should
+	 * reach this is if we were loaded via PXE.  There are many
+	 * different and conflicting versions of the "correct" way to
+	 * unload the PXE base code, several of which appear within
+	 * the PXE specification itself.  This one seems to work for
+	 * our purposes.
+	 */
 	eb_pxenv_stop_base();
 	eb_pxenv_unload_stack();
 	if ( ( undi.pxs->unload_stack.Status != PXENV_STATUS_SUCCESS ) &&
@@ -665,15 +680,21 @@ int undi_unload_base_code ( void ) {
 			 "possible memory leak\n" );
 		return 0;
 	}
-	/* Free structures only if unload_base_stack zeroed them.
-	 * This is a safety check against insane UNDI code...
+	/* Free data structures.  Forget what the PXE specification
+	 * says about how to calculate the new size of base memory;
+	 * basemem.c takes care of all that for us.  Note that we also
+	 * have to free the stack (even though PXE spec doesn't say
+	 * anything about it) because nothing else is going to do so.
 	 */
-	if ( ( SEGMENT(bc_code) != 0 ) && ( undi.pxe->BC_Code.Seg_Addr == 0 ) )
+	if ( SEGMENT(bc_code) != 0 )
 		forget_base_memory ( bc_code, bc_code_size );
-	if ( ( SEGMENT(bc_data) != 0 ) && ( undi.pxe->BC_Data.Seg_Addr == 0 ) )
+	undi.pxe->BC_Code.Seg_Addr = 0;
+	if ( SEGMENT(bc_data) != 0 )
 		forget_base_memory ( bc_data, bc_data_size );
-	if ( ( SEGMENT(bc_stack) != 0 ) && ( undi.pxe->Stack.Seg_Addr == 0 ) )
+	undi.pxe->BC_Data.Seg_Addr = 0;
+	if ( SEGMENT(bc_stack) != 0 )
 		forget_base_memory ( bc_stack, bc_stack_size );
+	undi.pxe->Stack.Seg_Addr = 0;
 	return 1;
 }
 
@@ -687,6 +708,11 @@ int undi_full_startup ( void ) {
 	if ( ! eb_pxenv_undi_startup() ) return 0;
 	if ( ! eb_pxenv_undi_initialize() ) return 0;
 	if ( ! eb_pxenv_undi_get_information() ) return 0;
+	undi.irq = undi.pxs->undi_get_information.IntNumber;
+	if ( ! install_trivial_irq_handler ( undi.irq ) ) {
+		undi.irq = IRQ_NONE;
+		return 0;
+	}
 	memmove ( &undi.pxs->undi_set_station_address.StationAddress,
 		  &undi.pxs->undi_get_information.PermNodeAddress,
 		  sizeof (undi.pxs->undi_set_station_address.StationAddress) );
@@ -732,6 +758,10 @@ int undi_full_shutdown ( void ) {
 			 * 0x006a (INVALID_STATE).
 			 */
 			eb_pxenv_undi_shutdown();
+		}
+		if ( undi.irq != IRQ_NONE ) {
+			remove_trivial_irq_handler ( undi.irq );
+			undi.irq = IRQ_NONE;
 		}
 		undi_unload_base_code();
 		if ( undi.prestarted ) {
@@ -785,11 +815,19 @@ static int undi_poll(struct nic *nic)
 	 * handling them any more rapidly than the usual rate of
 	 * undi_poll() being called even if we did implement a full
 	 * ISR.  So it should work.  Ha!
+	 *
+	 * Addendum (21/10/03).  Some cards don't play nicely with
+	 * this trick, so instead of doing it the easy way we have to
+	 * go to all the hassle of installing a genuine interrupt
+	 * service routine and dealing with the wonderful 8259
+	 * Programmable Interrupt Controller.  Joy.
 	 */
 
-	/* Ask the UNDI driver if this is "our" interrupt.  OK, so
-	 * there may not have been a real hardware interrupt, but the
-	 * UNDI driver shouldn't be pedantic enough to care.
+	/* See if a hardware interrupt has occurred since the last poll().
+	 */
+	if ( ! trivial_irq_triggered ( undi.irq ) ) return 0;
+
+	/* Ask the UNDI driver if this is "our" interrupt.
 	 */
 	undi.pxs->undi_isr.FuncFlag = PXENV_UNDI_ISR_IN_START;
 	if ( ! eb_pxenv_undi_isr() ) return 0;
@@ -799,6 +837,11 @@ static int undi_poll(struct nic *nic)
 		 */
 		return 0;
 	}
+
+	/* At this stage, the device should have cleared its interrupt
+	 * line so we can send EOI to the 8259.
+	 */
+	send_specific_eoi ( undi.irq );
 
 	/* We might have received a packet, or this might be a
 	 * "transmit completed" interrupt.  Zero nic->packetlen,
