@@ -2602,3 +2602,18 @@ tricky stringify macro falls foul of C++ // comments in gcc 3.x.
 while, lots of exciting stuff coming.
 
 Released as Etherboot 5.2.3 (production)
+
++ Introduce new define DEFAULT_PROTO_NFS for those who were used to
+using DOWNLOAD_PROTO_NFS in 5.0 for NFS booting.
+
++ Reverse sort PCI drivers so that 3c90x is tried ahead of 3c595.
+
++ Updated e1000 driver by Georg Baum.
+
++ New PCI IDs for 3c90x and tulip drivers. Typos in 3c90x and tg3
+drivers corrected.
+
++ Timothy Legge contributed a forcedeth driver for the NVidia Force
+NIC.
+
+Released as Etherboot 5.2.4 (production)
