@@ -603,7 +603,7 @@ protected_start:
 	movw	%ax, %gs
 
 	/* Use the internal etherboot stack */
-	movl	$_stack_end, %esp
+	movl	$(_prefix_stack_end - protected_start + 0x100000), %esp
 
 	pushl	$0		/* No parameters to preserve for exit path */
 	pushl	$0		/* Use prefix exit path mechanism */

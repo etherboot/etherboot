@@ -96,4 +96,5 @@ SECTIONS {
 	_prefix_in_call               = _in_call              + _prefix_size ;
 	_prefix_rom                   = rom                   + _prefix_size ;
 	_prefix_rm_etherboot_location = rm_etherboot_location + _prefix_size ;
+	_prefix_stack_end             = _stack_end            + _prefix_size ;
 }
