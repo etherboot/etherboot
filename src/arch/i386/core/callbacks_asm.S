@@ -209,13 +209,13 @@ process_ec_params:
 	cmpl	$EXTCALL_SEG_REGISTERS, %eax
 	je	process_ec_params_seg_registers
 	cmpl	$EXTCALL_STACK, %eax
-	je	process_ec_params_stack
+	je	process_ec_params_stack_or_trampoline
 	cmpl	$EXTCALL_RET_STACK, %eax
 	je	process_ec_params_ret_stack
 	cmpl	$EXTCALL_RELOC_STACK, %eax
 	je	process_ec_params_reloc_stack
 	cmpl	$EXTCALL_TRAMPOLINE, %eax
-	je	process_ec_params_trampoline
+	je	process_ec_params_stack_or_trampoline
 	cmpl	$EXTCALL_VA_LIST, %eax
 	je	process_ec_params_va_list
 	/* fall through to error */
@@ -261,24 +261,54 @@ process_ec_params_seg_registers:
 	movl	%esi, (EC_OFFSET_ADDRESSES+8)(%esp)	/* return address */
 	movl	%ecx, (EC_OFFSET_ADDRESSES+12)(%esp)	/* return segment */
 	jmp	process_ec_params
-process_ec_params_stack:
+process_ec_params_stack_or_trampoline:
 	/* Move data currently on stack down to accommodate new data */
-	movl	EC_SIG_LENGTH(%ebp), %ecx /* %ecx = current data length */
-	movl	4(%ebx), %edx		/* %edx = extra data length */
-	addl	$EC_OFFSET_PARAMS, %ecx	/* %ecx = total data len to copy */
+	/* Insert below trampoline if there is one */
+	movl	EC_SIG_TRAMPOLINE(%ebp), %edx /* %edx = trampoline offset */
+	movl	EC_SIG_LENGTH(%ebp), %ecx /* %ecx = current length */
+	cmpl	$EXTCALL_TRAMPOLINE, %eax
+	jne	2f
+	/* Trampoline - store trampoline offset if not already defined */
+	testl	%edx, %edx
+	jne	1f
+	movl	%ecx, EC_SIG_TRAMPOLINE(%ebp)
+1:	xorl	%edx, %edx
+2:	/* 0(%ebx) = address of data to insert */
+	/* 4(%ebx) = length of data to insert */
+	/* %ecx = current length */
+	/* %edx = offset within stack to insert (0 = at end) */
+	testl	%edx, %edx
+	jne	1f
+	movl	%ecx, %edx
+1:	negl	%edx
+	addl	%ecx, %edx		/* %edx = post-insertion length */
+	movl	4(%ebx), %eax		/* %eax = insertion length */
+	addl	$(EC_OFFSET_PARAMS), %ecx /* %ecx = data len to copy */
 	movl	%esp, %esi		/* Source location */
 	leal	EC_SIG_PARAMS_TOP(%ebp), %edi
 	subl	%ecx, %edi
-	subl	%edx, %edi
+	subl	%eax, %edi
 	andl	$~0x3, %edi		/* Destination location */
 	movl	%edi, %esp		/* = new stack location */
+	/* Move entire stack down */
 	rep movsb			/* Shift stack down to make room */
-	movl	%edx, %ecx		/* Extra data length */
+	/* Move post-insertion data back up (backwards copy) */
+	decl	%edi
+	movl	%edi, %esi
+	addl	%eax, %edi
+	movl	%edx, %ecx
+	std
+	rep movsb
+	cld
+	/* Insert data */
+	incl	%edi
+	subl	%eax, %edi
+	movl	%eax, %ecx		/* Extra data length */
 	movl	0(%ebx), %esi		/* Extra data source */
 	rep movsb			/* Copy in new data */
-	addl	%edx, EC_SIG_LENGTH(%ebp) /* Update length */
+	addl	%eax, EC_SIG_LENGTH(%ebp) /* Update length */
 	addl	$8, %ebx
-	jmp	process_ec_params
+	jmp	process_ec_params	
 process_ec_params_ret_stack:
 	/* Nothing to do */
 	addl	$12, %ebx
@@ -290,19 +320,6 @@ process_ec_params_reloc_stack:
 	movl	%eax, EC_SIG_STACK(%ebp) /* ...and store it */
 	addl	$4, %ebx
 	jmp	process_ec_params
-process_ec_params_trampoline:
-	/* Record current value of length as trampoline offset.
-	 * Ignore if a trampoline is already defined.  (This is to
-	 * make it possible to concatenate trampoline sections
-	 * together.)
-	 */
-	movl	EC_SIG_TRAMPOLINE(%ebp), %eax
-	testl	%eax, %eax
-	jne 1f
-	movl	EC_SIG_LENGTH(%ebp), %eax
-	movl	%eax, EC_SIG_TRAMPOLINE(%ebp)
-	/* Process as a EXTCALL_STACK parameter */
-1:	jmp	process_ec_params_stack
 process_ec_params_va_list:
 	/* Record current "previous list" pointer as return point for
 	 * this new list.
@@ -396,6 +413,7 @@ process_ec_params_done:
 	popw	%ds			/* non-stack variables.		*/
 	addl	$4, %esp		/* Skip ss and cs */
 
+	BOCHSBP
 	/* Call to routine */
 	cmpl	$0, 0(%esp)
 	jne	1f
@@ -521,13 +539,13 @@ process_ecr_params:
 	cmpl	$EXTCALL_SEG_REGISTERS, %eax
 	je	process_ecr_params_seg_registers
 	cmpl	$EXTCALL_STACK, %eax
-	je	process_ecr_params_stack
+	je	process_ecr_params_stack_or_trampoline
 	cmpl	$EXTCALL_RET_STACK, %eax
 	je	process_ecr_params_ret_stack
 	cmpl	$EXTCALL_RELOC_STACK, %eax
 	je	process_ecr_params_reloc_stack
 	cmpl	$EXTCALL_TRAMPOLINE, %eax
-	je	process_ecr_params_trampoline
+	je	process_ecr_params_stack_or_trampoline
 	cmpl	$EXTCALL_VA_LIST, %eax
 	je	process_ecr_params_va_list
 	/* fall through to error */
@@ -554,7 +572,7 @@ process_ecr_params_seg_registers:
 	leal	ECR_OFFSET_SEG_REGS(%esp), %esi
 	rep movsw
 	jmp	process_ecr_params
-process_ecr_params_stack:
+process_ecr_params_stack_or_trampoline:
 	/* Nothing to do */
 	addl	$8, %ebx
 	jmp	process_ecr_params
@@ -583,10 +601,6 @@ process_ecr_params_ret_stack:
 process_ecr_params_reloc_stack:
 	/* Nothing to do */
 	addl	$4, %ebx
-	jmp	process_ecr_params
-process_ecr_params_trampoline:
-	/* Nothing to do */
-	addl	$8, %ebx
 	jmp	process_ecr_params
 process_ecr_params_va_list:
 	/* Record current "previous list" pointer as return point for
