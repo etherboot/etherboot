@@ -717,7 +717,11 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
  */
 PXENV_EXIT_t pxenv_stop_undi ( t_PXENV_STOP_UNDI *stop_undi ) {
 	DBG ( "PXENV_STOP_UNDI" );
-	ENSURE_CAN_UNLOAD ( stop_undi );
+
+	if ( ! ensure_pxe_state(CAN_UNLOAD) ) {
+		stop_undi->Status = PXENV_STATUS_KEEP_UNDI;
+		return PXENV_EXIT_FAILURE;
+	}
 
 	stop_undi->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
@@ -744,6 +748,8 @@ PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
 	request.name = tftp_open->FileName;
 	request.port = ntohs(tftp_open->TFTPPort);
 	request.blksize = tftp_open->PacketSize;
+	DBG ( " %@:%d/%s (%d)", tftp_open->ServerIPAddress,
+	      request.port, request.name, request.blksize );
 	if ( !request.blksize ) request.blksize = TFTP_DEFAULTSIZE_PACKET;
 	/* Make request and get first packet */
 	if ( !tftp_block ( &request, &block ) ) {
@@ -755,6 +761,7 @@ PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
 	/* Store first block for later retrieval by TFTP_READ */
 	pxe_stack->tftpdata.magic_cookie = PXE_TFTP_MAGIC_COOKIE;
 	pxe_stack->tftpdata.len = block.len;
+	pxe_stack->tftpdata.eof = block.eof;
 	memcpy ( pxe_stack->tftpdata.data, block.data, block.len );
 
 	tftp_open->Status = PXENV_STATUS_SUCCESS;
@@ -786,6 +793,7 @@ PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
 	if ( pxe_stack->tftpdata.magic_cookie == PXE_TFTP_MAGIC_COOKIE ) {
 		block.data = pxe_stack->tftpdata.data;
 		block.len = pxe_stack->tftpdata.len;
+		block.eof = pxe_stack->tftpdata.eof;
 		block.block = 1; /* Will be the first block */
 		pxe_stack->tftpdata.magic_cookie = 0;
 	} else {
@@ -799,7 +807,9 @@ PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
 	tftp_read->PacketNumber = block.block;
 	tftp_read->BufferSize = block.len;
 	memcpy ( SEGOFF16_TO_PTR(tftp_read->Buffer), block.data, block.len );
-	
+	DBG ( " %d to %hx:%hx", block.len, tftp_read->Buffer.segment,
+	      tftp_read->Buffer.offset );
+ 
 	tftp_read->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
 }
@@ -967,8 +977,10 @@ PXENV_EXIT_t pxenv_udp_write ( t_PXENV_UDP_WRITE *udp_write ) {
  * Status: working
  */
 PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
+	int success;
+
 	DBG ( "PXENV_UNLOAD_STACK" );
-	ENSURE_CAN_UNLOAD ( unload_stack );
+	success = ensure_pxe_state ( CAN_UNLOAD );
 
 	/* We need to call cleanup() at some point.  The network card
 	 * has already been disabled by ENSURE_CAN_UNLOAD(), but for
@@ -982,6 +994,11 @@ PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
 	 * here.
 	 */
 	cleanup();
+
+	if ( ! success ) {
+		unload_stack->Status = PXENV_STATUS_KEEP_ALL;
+		return PXENV_EXIT_FAILURE;
+	}
 
 	unload_stack->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
@@ -1086,8 +1103,8 @@ PXENV_EXIT_t pxenv_start_base ( t_PXENV_START_BASE *start_base ) {
 PXENV_EXIT_t pxenv_stop_base ( t_PXENV_STOP_BASE *stop_base ) {
 	DBG ( "PXENV_STOP_BASE" );
 	/* ENSURE_READY ( stop_base ); */
-	stop_base->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	stop_base->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_LOADER
