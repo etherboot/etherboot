@@ -2,11 +2,11 @@ ARCH_FORMAT=	elf32-i386
 
 LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES) -Ui386
 
-BUILD_ROMS:=	$(ROMS)
-BUILD_ELFS:=	$(patsubst %img, %elf, $(IMGS))
-BUILD_PXES:=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.lzpxe, $(IMGS))
-BUILD_COMS:=	$(patsubst %.img, %.com, $(IMGS))
-BUILD_LILOS:=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.lzlilo, $(IMGS))
+BUILD_ROMS=	$(ROMS)
+BUILD_ELFS=	$(patsubst %img, %elf, $(IMGS))
+BUILD_PXES=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.lzpxe, $(IMGS))
+BUILD_COMS=	$(patsubst %.img, %.com, $(IMGS))
+BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.lzlilo, $(IMGS))
 
 START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o $(BIN)/linuxbios.o
 
@@ -60,7 +60,10 @@ endif
 # deal with hex numbers, as test/eval don't support non-decimal integers).
 ROMLIMIT:=327680
 
-.PHONY:	allroms allelfs allpxes allcoms alllilos
+# We need allroms,allelfs,allpxes,allcoms,alllilos because $(IMGS) is not defined until
+# the Makefile fragment "Roms" is read.
+
+include		$(BIN)/Roms
 
 allroms:	$(BUILD_ROMS)
 allelfs:	$(BUILD_ELFS)
@@ -91,16 +94,23 @@ $(BIN)/loader.o:	arch/i386/prefix/loader.S
 
 
 # Prepended loaders
+$(BIN)/rloader.bin:	$(BIN)/rloader.o
+$(BIN)/prloader.bin:	$(BIN)/prloader.o
+$(BIN)/start16.bin:	$(BIN)/rloader.o
+$(BIN)/floppyload.bin:	$(BIN)/floppyload.o
+$(BIN)/comprefix.bin:   $(BIN)/comprefix.o
+$(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
+$(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
 
-$(BIN)/rloader.s:	arch/i386/prefix/loader.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) -o $@ $<
+$(BIN)/rloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
+	$(CPP) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
-$(BIN)/prloader.s:	arch/i386/prefix/loader.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) -DPCI_PNP_HEADER -o $@ $<
+$(BIN)/prloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
+	$(CPP) $(LCONFIG) -DPCI_PNP_HEADER $< | $(AS) $(ASFLAGS) -o $@ 
 
 # 16 to 32bit transition
-$(BIN)/start16.s:	arch/i386/core/start16.S $(MAKEDEPS)
-	$(CPP) $(CFLAGS) $(LCONFIG) -o $@ $<
+$(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
+	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@
 
 # Old floppy loader, may be required for non-1.44 MB floppies
 
@@ -294,6 +304,3 @@ $(BIN)/%.nrv2belf:	$(BIN)/%.nrv2bimgo $(ELFPREFIX) $(MAKEDEPS)
 %.lzlilo:	%.lzimg $(LILOPREFIX) $(START16)
 	cat $(LILOPREFIX) $(START16) $< /dev/zero | head -c 64k > $@
 
-
-echo:
-	echo "BUILD_ELFS $(BUILD_ELFS)"

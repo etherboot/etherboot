@@ -8,23 +8,50 @@ MISC Support Routines
 /**************************************************************************
 IPCHKSUM - Checksum IP Header
 **************************************************************************/
-uint16_t ipchksum(void *p, int len)
+uint16_t ipchksum(const void *data, unsigned long length)
 {
-	unsigned long sum = 0;
-	uint16_t *ip = p;
-	while (len > 1) {
-		len -= 2;
-		sum += *(ip++);
-		if (sum > 0xFFFF)
-			sum -= 0xFFFF;
+	unsigned long sum;
+	unsigned long i;
+	const uint8_t *ptr;
+
+	/* In the most straight forward way possible,
+	 * compute an ip style checksum.
+	 */
+	sum = 0;
+	ptr = data;
+	for(i = 0; i < length; i++) {
+		unsigned long value;
+		value = ptr[i];
+		if (i & 1) {
+			value <<= 8;
+		}
+		/* Add the new value */
+		sum += value;
+		/* Wrap around the carry */
+		if (sum > 0xFFFF) {
+			sum = (sum + (sum >> 16)) & 0xFFFF;
+		}
 	}
-	if (len) {
-		uint8_t *ptr = (void *)ip;
-		sum += *ptr;
-		if (sum > 0xFFFF)
-			sum -= 0xFFFF;
+	return (~cpu_to_le16(sum)) & 0xFFFF;
+}
+
+uint16_t add_ipchksums(unsigned long offset, uint16_t sum, uint16_t new)
+{
+	unsigned long checksum;
+	sum = ~sum & 0xFFFF;
+	new = ~new & 0xFFFF;
+	if (offset & 1) {
+		/* byte swap the sum if it came from an odd offset 
+		 * since the computation is endian independant this
+		 * works.
+		 */
+		new = bswap_16(new);
 	}
-	return((~sum) & 0x0000FFFF);
+	checksum = sum + new;
+	if (checksum > 0xFFFF) {
+		checksum -= 0xFFFF;
+	}
+	return (~checksum) & 0xFFFF;
 }
 
 
@@ -32,13 +59,13 @@ uint16_t ipchksum(void *p, int len)
 /**************************************************************************
 RANDOM - compute a random number between 0 and 2147483647L or 2147483562?
 **************************************************************************/
-long random(void)
+int32_t random(void)
 {
-	static long seed = 0;
-	long q;
+	static int32_t seed = 0;
+	int32_t q;
 	if (!seed) /* Initialize linear congruential generator */
-		seed = currticks() + *(long *)&arptable[ARP_CLIENT].node
-		       + ((short *)arptable[ARP_CLIENT].node)[2];
+		seed = currticks() + *(int32_t *)&arptable[ARP_CLIENT].node
+		       + ((int16_t *)arptable[ARP_CLIENT].node)[2];
 	/* simplified version of the LCG given in Bruce Schneier's
 	   "Applied Cryptography" */
 	q = seed/53668;
@@ -51,13 +78,15 @@ POLL INTERRUPTIONS
 **************************************************************************/
 void poll_interruptions(void)
 {
+	int ch;
 #ifdef FREEBSD_PXEEMU
 	if (pxeemu_nbp_active)
 		return;
 #endif
 	/* If an interruption has occured restart etherboot */
-	if (iskey() && (getchar() == ESC)) {
-		longjmp(restart_etherboot, -1);
+	if (iskey() && (ch = getchar(), (ch == K_ESC) || (ch == K_INTR) || (ch == K_KILL))) {
+		int state = (ch != K_KILL)? -1 : -3;
+		longjmp(restart_etherboot, state);
 	}
 }
 
@@ -87,30 +116,45 @@ TWIDDLE
 **************************************************************************/
 void twiddle(void)
 {
-#ifdef	BAR_PROGRESS
-	static unsigned long lastticks = 0;
+#ifdef BAR_PROGRESS
 	static int count=0;
 	static const char tiddles[]="-\\|/";
+	static unsigned long lastticks = 0;
 	unsigned long ticks;
+#endif
 #ifdef FREEBSD_PXEEMU
 	extern char pxeemu_nbp_active;
 	if(pxeemu_nbp_active != 0)
 		return;
 #endif
-	if ((ticks = currticks()) == lastticks)
+#ifdef	BAR_PROGRESS
+	/* Limit the maximum rate at which characters are printed */
+	ticks = currticks();
+	if ((lastticks + (TICKS_PER_SEC/18)) > ticks)
 		return;
 	lastticks = ticks;
+
 	putchar(tiddles[(count++)&3]);
 	putchar('\b');
 #else
-#ifdef FREEBSD_PXEEMU
-	extern char pxeemu_nbp_active;
-	if(pxeemu_nbp_active != 0)
-		return;
-#endif
 	putchar('.');
 #endif	/* BAR_PROGRESS */
 }
+
+
+#ifndef memcmp
+int memcmp(const void *s1, const void *s2, size_t n)
+{
+	size_t i;
+	const unsigned char *src1 = s1, *src2 = s2;
+	for(i = 0; i < n ; i++) {
+		if (src1[i] != src2[i]) {
+			return src1[i] - src2[i];
+		}
+	}
+	return 0;
+}
+#endif
 
 /**************************************************************************
 STRCASECMP (not entirely correct, but this will do for our purposes)
@@ -119,135 +163,6 @@ int strcasecmp(const char *a, const char *b)
 {
 	while (*a && *b && (*a & ~0x20) == (*b & ~0x20)) {a++; b++; }
 	return((*a & ~0x20) - (*b & ~0x20));
-}
-
-/**************************************************************************
-PRINTF and friends
-
-	Formats:
-		%[#]x	- 4 bytes long (8 hex digits, lower case)
-		%[#]X	- 4 bytes long (8 hex digits, upper case)
-		%[#]hx	- 2 bytes int (4 hex digits, lower case)
-		%[#]hX	- 2 bytes int (4 hex digits, upper case)
-		%[#]hhx	- 1 byte int (2 hex digits, lower case)
-		%[#]hhX	- 1 byte int (2 hex digits, upper case)
-			- optional # prefixes 0x or 0X
-		%d	- decimal int
-		%c	- char
-		%s	- string
-		%@	- Internet address in ddd.ddd.ddd.ddd notation
-		%!	- Ethernet address in xx:xx:xx:xx:xx:xx notation
-	Note: width specification not supported
-**************************************************************************/
-static int vsprintf(char *buf, const char *fmt, const int *dp)
-{
-	char *p, *s;
-
-	s = buf;
-	for ( ; *fmt != '\0'; ++fmt) {
-		if (*fmt != '%') {
-			buf ? *s++ = *fmt : putchar(*fmt);
-			continue;
-		}
-		if (*++fmt == 's') {
-			for (p = (char *)*dp++; *p != '\0'; p++)
-				buf ? *s++ = *p : putchar(*p);
-		}
-		else {	/* Length of item is bounded */
-			char tmp[20], *q = tmp;
-			int alt = 0;
-			int shift = 28;
-			if (*fmt == '#') {
-				alt = 1;
-				fmt++;
-			}
-			if (*fmt == 'h') {
-				shift = 12;
-				fmt++;
-			}
-			if (*fmt == 'h') {
-				shift = 4;
-				fmt++;
-			}
-			/*
-			 * Before each format q points to tmp buffer
-			 * After each format q points past end of item
-			 */
-			if ((*fmt | 0x20) == 'x') {
-				/* With x86 gcc, sizeof(long) == sizeof(int) */
-				const long *lp = (const long *)dp;
-				long h = *lp++;
-				int ncase = (*fmt & 0x20);
-				dp = (const int *)lp;
-				if (alt) {
-					*q++ = '0';
-					*q++ = 'X' | ncase;
-				}
-				for ( ; shift >= 0; shift -= 4)
-					*q++ = "0123456789ABCDEF"[(h >> shift) & 0xF] | ncase;
-			}
-			else if (*fmt == 'd') {
-				int i = *dp++;
-				char *r;
-				if (i < 0) {
-					*q++ = '-';
-					i = -i;
-				}
-				p = q;		/* save beginning of digits */
-				do {
-					*q++ = '0' + (i % 10);
-					i /= 10;
-				} while (i);
-				/* reverse digits, stop in middle */
-				r = q;		/* don't alter q */
-				while (--r > p) {
-					i = *r;
-					*r = *p;
-					*p++ = i;
-				}
-			}
-			else if (*fmt == '@') {
-				unsigned char *r;
-				union {
-					long		l;
-					unsigned char	c[4];
-				} u;
-				const long *lp = (const long *)dp;
-				u.l = *lp++;
-				dp = (const int *)lp;
-				for (r = &u.c[0]; r < &u.c[4]; ++r)
-					q += sprintf(q, "%d.", *r);
-				--q;
-			}
-			else if (*fmt == '!') {
-				char *r;
-				p = (char *)*dp++;
-				for (r = p + ETH_ALEN; p < r; ++p)
-					q += sprintf(q, "%hhX:", *p);
-				--q;
-			}
-			else if (*fmt == 'c')
-				*q++ = *dp++;
-			else
-				*q++ = *fmt;
-			/* now output the saved string */
-			for (p = tmp; p < q; ++p)
-				buf ? *s++ = *p : putchar(*p);
-		}
-	}
-	if (buf)
-		*s = '\0';
-	return (s - buf);
-}
-
-int sprintf(char *buf, const char *fmt, ...)
-{
-	return vsprintf(buf, fmt, ((const int *)&fmt)+1);
-}
-
-void printf(const char *fmt, ...)
-{
-	(void)vsprintf(0, fmt, ((const int *)&fmt)+1);
 }
 
 /**************************************************************************

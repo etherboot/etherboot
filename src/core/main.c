@@ -25,7 +25,7 @@ Literature dealing with the network protocols:
 #include "disk.h"
 #include "timer.h"
 
-jmpbuf	restart_etherboot;
+jmp_buf	restart_etherboot;
 int	url_port;		
 
 #ifdef	IMAGE_FREEBSD
@@ -48,11 +48,12 @@ static inline unsigned long ask_boot(void)
 		int c;
 		unsigned long time;
 		printf(ASK_PROMPT);
-		for (time = currticks() + ASK_BOOT*TICKS_PER_SEC; !iskey(); )
+		for (time = currticks() + ASK_BOOT*TICKS_PER_SEC; !iskey(); ) {
 			if (currticks() > time) {
 				c = ANS_DEFAULT;
 				goto done;
 			}
+		}
 		c = getchar();
 		if ((c >= 'a') && (c <= 'z')) c &= 0x5F;
 		if ((c >= ' ') && (c <= '~')) putchar(c);
@@ -132,20 +133,17 @@ operations[] = {
 };
 
 
+static int main_loop(int state);
+static int exit_ok;
+static int exit_status;
+
 /**************************************************************************
 MAIN - Kick off routine
 **************************************************************************/
-int main(void)
+int main(struct Elf_Bhdr *ptr)
 {
-	unsigned long volatile order;
 	char *p;
-	int boot;
-	int type;
-	int failsafe;
-	struct dev * volatile dev= 0;
-	struct class_operations * volatile ops;
-	int volatile state, i;
-	void *volatile heap_base;
+	int state;
 
 	for (p = _bss; p < _ebss; p++)
 		*p = 0;	/* Zero BSS */
@@ -162,115 +160,160 @@ int main(void)
 	gateA20_set();
 	print_config();
 	get_memsizes();
-	cleanup();
-	relocate();
-	console_init();
-	setup_timers();
-	init_heap();
+
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
+	   -3:  finish the current run.
 	   0:	retry booting bootp and tftp
 	   1:   retry tftp with possibly modified bootp reply
 	   2:   retry bootp and tftp
 	   3:   retry probe bootp and tftp
 	   4:   start with the next device and retry from there...
 	   255: exit Etherboot
+	   256: retry after relocation
 	*/
 	state = setjmp(restart_etherboot);
-	if ((state >= 1) && (state <= 2)) {
-		dev->how_probe = PROBE_AWAKE;
+	exit_ok = 1;
+	for(;state != 255;) {
+		state = main_loop(state);
+	}
+	return exit_status;
+}
+
+void exit(int status)
+{
+	while(!exit_ok)
+		;
+	exit_status = status;
+	longjmp(restart_etherboot, 255);
+}
+
+static int main_loop(int state)
+{
+	/* Splitting main into 2 pieces makes the semantics of 
+	 * which variables are preserved across a longjmp clean
+	 * and predictable.
+	 */
+	static unsigned long order;
+	static struct dev * dev = 0;
+	static struct class_operations *ops;
+	static void *heap_base;
+	static int type;
+	static int i;
+
+	if (((state >= 1) && (state <= 2)) && dev &&
+		(dev->how_probe == PROBE_AWAKE)) {
 		if ((dev->how_probe = ops->probe(dev)) == PROBE_FAILED) {
 			state = -1;
 		}
 		
 	}
-	while(1) {
-		switch(state) {
-		case 0:
-			/* First time through */
-			heap_base = allot(0);
-			i = -1;
-			state = 4;
-			dev = 0;
-
-			/* We just called setjmp ... */
-			order = ask_boot();
-			try_floppy_first();
-			break;
-		case 4:
+	switch(state) {
+	case 0:
+	{
+		static int firsttime = 1;
+		/* First time through */
+		if (firsttime) {
+			relocate();
 			cleanup();
 			console_init();
-			forget(heap_base);
-			/* Find a dev entry to probe with */
-			if (!dev) {
-				/* Advance to the next device type */
-				i += 1;
-				boot = (order >> (i * BOOT_BITS)) & BOOT_MASK;
-				type = boot & BOOT_TYPE_MASK;
-				failsafe = (boot & BOOT_FAILSAFE) != 0;
-				if (i >= MAX_BOOT_ENTRIES) {
-					type = BOOT_NOTHING;
-				}
-				if ((i == 0) && (type == BOOT_NOTHING)) {
-					/* Return to caller */
-					exit(0);
-				}
-				if (type >= BOOT_NOTHING) {
-					printf("No adapter found\n");
-					interruptible_sleep(2);
-					state = 0;
-					break;
-				}
-				ops = &operations[type];
-				dev = ops->dev;
-				dev->how_probe = PROBE_FIRST;
-				dev->type = type;
-				dev->failsafe = failsafe;
-			} else {
-				/* Advance to the next device of the same type */
-				dev->how_probe = PROBE_NEXT;
-			}
-			state = 3;
-			break;
-		case 3:
-			state = -1;
-			heap_base = allot(0);
-			dev->how_probe = ops->probe(dev);
-			if (dev->how_probe == PROBE_FAILED) {
-				dev = 0;
-				state = 4;
-			} else {
-				state = 2;
-			}
-			break;
-		case 2:
-			state = -1;
-			if (ops->load_configuration(dev) >= 0) {
-				state = 1;
-			}
-			break;
-		case 1:
-			/* Any return from load is a failure */
-			ops->load(dev);
-			state = -1;
-			break;
-		case 255:
-			exit(0);
-			state = -1;
-			break;
-		default:
-			printf("<abort>\n");
+			setup_timers();
+			init_heap();
+
+			firsttime = 0;
+		} 
 #ifdef EMERGENCYDISKBOOT
+		else {
+			cleanup();
 			exit(0);
-#endif
-			state = 4;
-			/* At the end goto state 0 */
-			if ((type >= BOOT_NOTHING) || (i >= MAX_BOOT_ENTRIES)) {
-				state = 0;
-			}
-			break;
 		}
+#endif
+		heap_base = allot(0);
+		i = -1;
+		state = 4;
+		dev = 0;
+
+		/* We just called setjmp ... */
+		order = ask_boot();
+		try_floppy_first();
+		break;
 	}
+	case 4:
+		cleanup();
+		console_init();
+		forget(heap_base);
+		/* Find a dev entry to probe with */
+		if (!dev) {
+			int boot;
+			int failsafe;
+
+			/* Advance to the next device type */
+			i += 1;
+			boot = (order >> (i * BOOT_BITS)) & BOOT_MASK;
+			type = boot & BOOT_TYPE_MASK;
+			failsafe = (boot & BOOT_FAILSAFE) != 0;
+			if (i >= MAX_BOOT_ENTRIES) {
+				type = BOOT_NOTHING;
+			}
+			if ((i == 0) && (type == BOOT_NOTHING)) {
+				/* Return to caller */
+				exit(0);
+			}
+			if (type >= BOOT_NOTHING) {
+				interruptible_sleep(2);
+				state = 0;
+				break;
+			}
+			ops = &operations[type];
+			dev = ops->dev;
+			dev->how_probe = PROBE_FIRST;
+			dev->type = type;
+			dev->failsafe = failsafe;
+		} else {
+			/* Advance to the next device of the same type */
+			dev->how_probe = PROBE_NEXT;
+		}
+		state = 3;
+		break;
+	case 3:
+		state = -1;
+		heap_base = allot(0);
+		dev->how_probe = ops->probe(dev);
+		if (dev->how_probe == PROBE_FAILED) {
+			dev = 0;
+			state = 4;
+		} else {
+			state = 2;
+		}
+		break;
+	case 2:
+		state = -1;
+		if (ops->load_configuration(dev) >= 0) {
+			state = 1;
+		}
+		break;
+	case 1:
+		/* Any return from load is a failure */
+		ops->load(dev);
+		state = -1;
+		break;
+	case 256:
+		state = 0;
+		break;
+	case -3:
+		i = MAX_BOOT_ENTRIES;
+		type = BOOT_NOTHING;
+		/* fall through */
+	default:
+		printf("<abort>\n");
+		state = 4;
+		/* At the end goto state 0 */
+		if ((type >= BOOT_NOTHING) || (i >= MAX_BOOT_ENTRIES)) {
+			state = 0;
+		}
+		break;
+	}
+	return state;
 }
 
 

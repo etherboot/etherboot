@@ -7,6 +7,7 @@ Author: Martin Renters
 Literature dealing with the network protocols:
 	ARP - RFC826
 	RARP - RFC903
+        IP - RFC791
 	UDP - RFC768
 	BOOTP - RFC951, RFC2132 (vendor extensions)
 	DHCP - RFC2131, RFC2132 (options)
@@ -30,7 +31,7 @@ static unsigned long	netmask;
 /* Used by nfs.c */
 char *hostname = "";
 int hostnamelen = 0;
-static unsigned long xid;
+static uint32_t xid;
 unsigned char *end_of_rfc1533 = NULL;
 static int vendorext_isvalid;
 static const unsigned char vendorext_magic[] = {0xE4,0x45,0x74,0x68}; /* äEth */
@@ -126,7 +127,13 @@ static int dummy(void *unused __unused)
 	return (0);
 }
 
-static char	packet[ETH_FRAME_LEN];
+/* Careful.  We need an aligned buffer to avoid problems on machines
+ * that care about alignment.  To trivally align the ethernet data
+ * (the ip hdr and arp requests) we offset the packet by 2 bytes.
+ * leaving the ethernet data 16 byte aligned.  Beyond this
+ * we use memmove but this makes the common cast simple and fast.
+ */
+static char	packet[ETH_FRAME_LEN + ETH_DATA_ALIGN] __aligned;
 
 struct nic	nic =
 {
@@ -154,7 +161,7 @@ struct nic	nic =
 	0,					/* flags */
 	&rom,					/* rom_info */
 	arptable[ARP_CLIENT].node,		/* node_addr */
-	packet,					/* packet */
+	packet + ETH_DATA_ALIGN,		/* packet */
 	0,					/* packetlen */
 	0,					/* priv_data */
 };
@@ -170,7 +177,7 @@ static int rarp(void);
 #else
 static int bootp(void);
 #endif
-static unsigned short udpchksum(struct iphdr *packet);
+static unsigned short udpchksum(struct iphdr *ip, struct udphdr *udp);
 
 
 int eth_probe(struct dev *dev)
@@ -382,7 +389,7 @@ void build_ip_hdr(unsigned long destip, int ttl, int protocol, int option_len,
 	ip->chksum = 0;
 	ip->src.s_addr = arptable[ARP_CLIENT].ipaddr.s_addr;
 	ip->dest.s_addr = destip;
-	ip->chksum = ipchksum((unsigned short *)buf, sizeof(struct iphdr) + option_len);
+	ip->chksum = ipchksum(buf, sizeof(struct iphdr) + option_len);
 }
 
 void build_udp_hdr(unsigned long destip, 
@@ -398,7 +405,7 @@ void build_udp_hdr(unsigned long destip,
 	udp->dest = htons(destsock);
 	udp->len = htons(len - sizeof(struct iphdr));
 	udp->chksum = 0;
-	if ((udp->chksum = htons(udpchksum(ip))) == 0)
+	if ((udp->chksum = udpchksum(ip, udp)) == 0)
 		udp->chksum = 0xffff;
 }
 
@@ -566,8 +573,9 @@ int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned in
 			if (len > packetsize)	/* shouldn't happen */
 				continue;	/* ignore it */
 			block = ntohs(tp.u.ack.block = tr->u.data.block); }
-		else /* neither TFTP_OACK nor TFTP_DATA */
+		else {/* neither TFTP_OACK nor TFTP_DATA */
 			break;
+		}
 
 		if ((block || bcounter) && (block != (unsigned short)(prevblock+1))) {
 			/* Block order should be continuous */
@@ -734,6 +742,10 @@ static int bootp(void)
 	struct bootpip_t ip;
 	unsigned long  starttime;
 
+#if 1
+#warning "I do not currently pass the archtecture etherboot is running on "	
+	printf("FIXME: pass the architecture etherboot is currently running on in DHCP.\n");
+#endif
 	memset(&ip, 0, sizeof(struct bootpip_t));
 	ip.bp.bp_op = BOOTP_REQUEST;
 	ip.bp.bp_htype = 1;
@@ -797,54 +809,24 @@ static int bootp(void)
 }
 #endif	/* RARP_NOT_BOOTP */
 
-/**************************************************************************
-UDPCHKSUM - Checksum UDP Packet (one of the rare cases when assembly is
-            actually simpler...)
- RETURNS: checksum, 0 on checksum error. This
-          allows for using the same routine for RX and TX summing:
-          RX  if (packet->udp.chksum && udpchksum(packet))
-                  error("checksum error");
-          TX  packet->udp.chksum=0;
-              if (0==(packet->udp.chksum=udpchksum(packet)))
-                  packet->udp.chksum=0xffff;
-**************************************************************************/
-static inline void dosum(unsigned short *start, unsigned int len, unsigned short *sum)
+static uint16_t udpchksum(struct iphdr *ip, struct udphdr *udp)
 {
-	__asm__ __volatile__(
-	"clc\n"
-	"1:\tlodsw\n\t"
-	"xchg %%al,%%ah\n\t"	/* convert to host byte order */
-	"adcw %%ax,%0\n\t"	/* add carry of previous iteration */
-	"loop 1b\n\t"
-	"adcw $0,%0"		/* add carry of last iteration */
-	: "=b" (*sum), "=S"(start), "=c"(len)
-	: "0"(*sum), "1"(start), "2"(len)
-	: "ax", "cc"
-	);
-}
+	struct udp_pseudo_hdr pseudo;
+	uint16_t checksum;
 
-/* UDP sum:
- * proto, src_ip, dst_ip, udp_dport, udp_sport, 2*udp_len, payload
- */
-static unsigned short udpchksum(struct iphdr *packet)
-{
-	int len = ntohs(packet->len);
-	unsigned short rval;
+	/* Compute the pseudo header */
+	pseudo.src.s_addr  = ip->src.s_addr;
+	pseudo.dest.s_addr = ip->dest.s_addr;
+	pseudo.unused      = 0;
+	pseudo.protocol    = IP_UDP;
+	pseudo.len         = udp->len;
 
-	/* add udplength + protocol number */
-	rval = (len - sizeof(struct iphdr)) + IP_UDP;
+	/* Sum the pseudo header */
+	checksum = ipchksum(&pseudo, 12);
 
-	/* pad to an even number of bytes */
-	if (len % 2) {
-		((char *) packet)[len++] = 0;
-	}
-
-	/* sum over src/dst ipaddr + udp packet */
-	len -= (char *) &packet->src - (char *) packet;
-	dosum((unsigned short *) &packet->src, len >> 1, &rval);
-
-	/* take one's complement */
-	return (~rval);
+	/* Sum the rest of the udp packet */
+	checksum = add_ipchksums(12, checksum, ipchksum(udp, ntohs(udp->len)));
+	return checksum;
 }
 
 #ifdef MULTICAST_LEVEL2
@@ -868,7 +850,7 @@ static void send_igmp_reports(unsigned long now)
 			igmp.igmp.response_time = 0;
 			igmp.igmp.chksum = 0;
 			igmp.igmp.group.s_addr = igmptable[i].group.s_addr;
-			igmp.igmp.chksum = ipchksum((unsigned short *)&igmp.igmp, sizeof(igmp.igmp));
+			igmp.igmp.chksum = ipchksum(&igmp.igmp, sizeof(igmp.igmp));
 			ip_transmit(sizeof(igmp), &igmp);
 #ifdef	MDEBUG
 			printf("Sent IGMP report to: %@\n", igmp.igmp.group.s_addr);
@@ -885,12 +867,12 @@ static void process_igmp(struct iphdr *ip, unsigned long now)
 	int i;
 	unsigned iplen;
 	if (!ip || (ip->protocol == IP_IGMP) ||
-		nic.packetlen < ETH_HLEN + sizeof(struct igmp)) {
+		(nic.packetlen < sizeof(struct iphdr) + sizeof(struct igmp))) {
 		return;
 	}
 	iplen = (ip->verhdrlen & 0xf)*4;
-	igmp = (struct igmp *)&nic.packet[ETH_HLEN + iplen];
-	if (ipchksum((unsigned short *)&igmp, ip->len - iplen) != 0)
+	igmp = (struct igmp *)&nic.packet[sizeof(struct iphdr)];
+	if (ipchksum(igmp, ntohs(ip->len) - iplen) != 0)
 		return;
 	if ((igmp->type == IGMP_QUERY) && 
 		(ip->dest.s_addr == htonl(GROUP_ALL_HOSTS))) {
@@ -951,7 +933,7 @@ void leave_group(int slot)
 		igmp.igmp.response_time = 0;
 		igmp.igmp.chksum = 0;
 		igmp.igmp.group.s_addr = igmptable[slot].group.s_addr;
-		igmp.igmp.chksum = ipchksum((unsigned short *)&igmp.igmp, sizeof(igmp));
+		igmp.igmp.chksum = ipchksum(&igmp.igmp, sizeof(igmp));
 		ip_transmit(sizeof(igmp), &igmp);
 #ifdef	MDEBUG
 		printf("Sent IGMP leave for: %@\n", igmp.igmp.group.s_addr);
@@ -985,9 +967,7 @@ void join_group(int slot, unsigned long group)
 /**************************************************************************
 AWAIT_REPLY - Wait until we get a response for our request
 ************f**************************************************************/
-int await_reply(int (*reply)(int ival, void *ptr, 
-		unsigned short ptype, struct iphdr *ip, struct udphdr *udp), 
-	int ival, void *ptr, int timeout)
+int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 {
 	unsigned long time, now;
 	struct	iphdr *ip;
@@ -1019,7 +999,7 @@ int await_reply(int (*reply)(int ival, void *ptr,
 			}
 			continue;
 		}
-		
+	
 		/* We have something! */
 
 		/* Find the Ethernet packet type */
@@ -1030,11 +1010,12 @@ int await_reply(int (*reply)(int ival, void *ptr,
 		/* Verify an IP header */
 		ip = 0;
 		if ((ptype == IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
+			unsigned ipoptlen;
 			ip = (struct iphdr *)&nic.packet[ETH_HLEN];
 			if ((ip->verhdrlen < 0x45) || (ip->verhdrlen > 0x4F)) 
 				continue;
 			iplen = (ip->verhdrlen & 0xf) * 4;
-			if (ipchksum((unsigned short *)ip, iplen) != 0)
+			if (ipchksum(ip, iplen) != 0)
 				continue;
 			if (ip->frags & htons(0x3FFF)) {
 				static int warned_fragmentation = 0;
@@ -1044,13 +1025,31 @@ int await_reply(int (*reply)(int ival, void *ptr,
 				}
 				continue;
 			}
+			if (ntohs(ip->len) > ETH_MAX_MTU)
+				continue;
+
+			ipoptlen = iplen - sizeof(struct iphdr);
+			if (ipoptlen) {
+				/* Delete the ip options, to guarantee
+				 * good alignment, and make etherboot simpler.
+				 */
+				memmove(&nic.packet[ETH_HLEN + sizeof(struct iphdr)], 
+					&nic.packet[ETH_HLEN + iplen],
+					nic.packetlen - ipoptlen);
+				nic.packetlen -= ipoptlen;
+			}
 		}
 		udp = 0;
 		if (ip && (ip->protocol == IP_UDP) && 
 			(nic.packetlen >= 
-				ETH_HLEN + iplen + sizeof(struct udphdr))) {
-			udp = (struct udphdr *)&nic.packet[ETH_HLEN + iplen];
-			if (udp->chksum && udpchksum(ip)) {
+			ETH_HLEN + sizeof(struct iphdr) + sizeof(struct udphdr))) {
+			udp = (struct udphdr *)&nic.packet[ETH_HLEN + sizeof(struct iphdr)];
+
+			/* Make certain we have a reasonable packet length */
+			if (ntohs(udp->len) > (ntohs(ip->len) - iplen))
+				continue;
+
+			if (udp->chksum && udpchksum(ip, udp)) {
 				printf("UDP checksum error\n");
 				continue;
 			}
@@ -1228,7 +1227,8 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 			if(*(p + 1) < sizeof(freebsd_kernel_env)){
 				memcpy(freebsd_kernel_env,p+2,*(p+1));
 			}else{
-				printf("Only support %d bytes in Kernel Env %d\n",sizeof(freebsd_kernel_env));
+				printf("Only support %ld bytes in Kernel Env\n",
+					sizeof(freebsd_kernel_env));
 			}
 		}
 #endif
@@ -1260,10 +1260,9 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 /**************************************************************************
 RFC2131_SLEEP_INTERVAL - sleep for expotentially longer times (base << exp) +- 1 sec)
 **************************************************************************/
-long rfc2131_sleep_interval(int base, int exp)
+long rfc2131_sleep_interval(long base, int exp)
 {
 	unsigned long tmo;
-
 #ifdef BACKOFF_LIMIT
 	if (exp > BACKOFF_LIMIT)
 		exp = BACKOFF_LIMIT;
@@ -1276,7 +1275,7 @@ long rfc2131_sleep_interval(int base, int exp)
 /**************************************************************************
 RFC1112_SLEEP_INTERVAL - sleep for expotentially longer times, up to (base << exp)
 **************************************************************************/
-long rfc1112_sleep_interval(int base, int exp)
+long rfc1112_sleep_interval(long base, int exp)
 {
 	unsigned long divisor, tmo;
 #ifdef BACKOFF_LIMIT

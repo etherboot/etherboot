@@ -115,8 +115,8 @@ _start:
 	call	main
 	/* fall through */
 
-	.globl	exit
-exit:
+	/* exit */
+
 	/* Switch back to the original stack */
 	movl	12 + initial_regs, %esp
 	subl	virt_offset, %esp

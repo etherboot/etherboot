@@ -39,9 +39,9 @@ Author: Martin Renters
 #define	TAGGED_IMAGE		/* choose at least one */
 #endif
 
-#define ESC		'\033'
-#define INTR		'\03'  /* Ctrl-C */
-#define KILL		'\025' /* Ctrl-U */
+#define K_ESC		'\033'
+#define K_INTR		'\03'  /* Ctrl-C */
+#define K_KILL		'\025' /* Ctrl-U */
 
 /*  Edit this to change the path to hostspecific kernel image
     kernel.<client_ip_address> in RARP boot */

@@ -101,7 +101,6 @@ all:		$(UTILS) $(BUILD_LIBS) allimgs
 SRCS:=
 BOBJS:=
 
-include		arch/$(ARCH)/Makefile
 
 GCC=		gcc
 CPP=		gcc -E -Wp,-Wall
@@ -201,9 +200,9 @@ $(BIN)/gcccheck:	Makefile Config
 		touch $(BIN)/gcccheck; \
 	fi
 
-include $(BIN)/Roms
+include		arch/$(ARCH)/Makefile
 
-# We need allbins because $(BINS) is not defined until
+# We need allimgss because $(IMGS) is not defined until
 # the Makefile fragment "Roms" is read.
 
 allimgs:	$(BUILD_IMGS)

@@ -86,7 +86,7 @@ static int disk_read_sectors(
 			break;
 	}
 	if (result < 0) {
-		printf("disk read error at 0x%x\n", sector);
+		printf("disk read error at 0x%lx\n", sector);
 	}
 	return result;
 }
@@ -168,7 +168,7 @@ int disk_load(struct dev *dev)
 	volatile int inc, increment;
 	int i;
 	int result;
-	jmpbuf real_restart;
+	jmp_buf real_restart;
 
 
 	printf("Searching for image...\n");
@@ -191,10 +191,10 @@ int disk_load(struct dev *dev)
 	/* Catch longjmp so if this image fails to load, I start looking
 	 * for the next image where I left off looking for this image.
 	 */
-	memcpy(&real_restart, &restart_etherboot, sizeof(jmpbuf));
+	memcpy(&real_restart, &restart_etherboot, sizeof(jmp_buf));
 	i = setjmp(restart_etherboot);
 	if ((i != 0) && (i != -2)) {
-		memcpy(&restart_etherboot, &real_restart, sizeof(jmpbuf));
+		memcpy(&restart_etherboot, &real_restart, sizeof(jmp_buf));
 		longjmp(restart_etherboot, i);
 	}
 	/* Read the canidate sectors into the buffer */
@@ -217,7 +217,7 @@ int disk_load(struct dev *dev)
 	printf("Loading image...\n");
 	result = load_image(disk, buffer, buf_sectors, block, offset, os_download);
  out:
-	memcpy(&restart_etherboot, &real_restart, sizeof(jmpbuf));
+	memcpy(&restart_etherboot, &real_restart, sizeof(jmp_buf));
 	return result;
 }
 
