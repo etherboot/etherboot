@@ -410,16 +410,55 @@ static int rtl8169_init_board(struct pci_device *pdev)
 }
 
 /**************************************************************************
+IRQ - Wait for a frame
+***************************************************************************/
+void r8169_irq ( struct nic *nic, irq_action_t action ) {
+	int intr_status = 0;
+	int interested = RxUnderrun | RxOverflow | RxFIFOOver | RxErr | RxOK;
+ 
+	switch ( action ) {
+		case DISABLE:
+		case ENABLE:
+			intr_status = RTL_R16(IntrStatus);
+			/* h/w no longer present (hotplug?) or major error, 
+				bail */
+			if (intr_status == 0xFFFF)
+				break;
+
+			intr_status = intr_status & ~interested;
+			if ( action == ENABLE )
+				intr_status = intr_status | interested;
+			RTL_W16(IntrMask, intr_status);
+			break;
+		case FORCE :
+			RTL_W8(TxPoll, (RTL_R8(TxPoll) | 0x01));
+			break;
+	}
+}
+
+/**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int r8169_poll(struct nic *nic)
+static int r8169_poll(struct nic *nic, int retreive)
 {
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
 	/* nic->packetlen should contain length of data */
 	int cur_rx;
+	unsigned int intr_status = 0;
 	cur_rx = tpc->cur_rx;
 	if ((tpc->RxDescArray[cur_rx].status & OWNbit) == 0) {
+	         /* There is a packet ready */
+  	         if(!retreive)
+  	                 return 1;
+		intr_status = RTL_R16(IntrStatus);
+		/* h/w no longer present (hotplug?) or major error,
+			bail */
+		if (intr_status == 0xFFFF)
+			return 0;
+		RTL_W16(IntrStatus, intr_status & 
+			~(RxFIFOOver | RxOverflow | RxOK));
+
 		if (!(tpc->RxDescArray[cur_rx].status & RxRES)) {
 			nic->packetlen = (int) (tpc->RxDescArray[cur_rx].
 						status & 0x00001FFF) - 4;
@@ -438,6 +477,9 @@ static int r8169_poll(struct nic *nic)
 		/* FIXME: shouldn't I reset the status on an error */
 		cur_rx = (cur_rx + 1) % NUM_RX_DESC;
 		tpc->cur_rx = cur_rx;
+		RTL_W16(IntrStatus, intr_status & 
+			(RxFIFOOver | RxOverflow | RxOK));
+
 		return 1;
 
 	}
@@ -787,6 +829,9 @@ static int r8169_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable = r8169_disable;
 	nic->poll = r8169_poll;
 	nic->transmit = r8169_transmit;
+	nic->irqno = pci->irq;
+	nic->irq = r8169_irq;
+	nic->ioaddr = ioaddr;
 	return 1;
 
 }
