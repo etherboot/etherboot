@@ -59,6 +59,19 @@ struct tftpreq_t {
 	} u;
 };
 
+struct tftpreq_info_t {
+	const char *name;
+	unsigned short port;
+	unsigned short blksize;
+};
+
+struct tftpblk_info_t {
+	char *data;
+	unsigned int block;
+	unsigned int len;
+	int eof;
+};
+
 #define TFTP_MIN_PACKET	(sizeof(struct iphdr) + sizeof(struct udphdr) + 4)
 
 #endif	/* _TFTP_H */

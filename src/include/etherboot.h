@@ -111,7 +111,11 @@
 /* total retransmission timeout in ticks */
 #define TFTP_TIMEOUT		(30*TICKS_PER_SEC)
 /* packet retransmission timeout in ticks */
+#ifdef CONGESTED
 #define TFTP_REXMT		(3*TICKS_PER_SEC)
+#else
+#define TFTP_REXMT		TIMEOUT
+#endif
 
 #ifndef	NULL
 #define NULL	((void *)0)
@@ -196,6 +200,7 @@ extern char as_main_program;
 /* nic.c */
 extern void rx_qdrain P((void));
 extern int tftp P((const char *name, int (*)(unsigned char *, unsigned int, unsigned int, int)));
+extern int tftp_block P((struct tftpreq_info_t *, struct tftpblk_info_t *));
 extern int ip_transmit P((int len, const void *buf));
 extern void build_ip_hdr P((unsigned long destip, int ttl, int protocol, 
 	int option_len, int len, const void *buf));
