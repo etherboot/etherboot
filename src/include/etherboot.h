@@ -364,6 +364,7 @@ struct Elf_Bhdr *prepare_boot_params(void *header);
 extern int elf_start(unsigned long machine, unsigned long entry, unsigned long params);
 extern unsigned long currticks P((void));
 extern void exit P((int status));
+extern unsigned long image_basemem;
 
 /* serial.c */
 extern int serial_getc P((void));
