@@ -3,7 +3,7 @@ UCLIBC = uClibc-$(UCLIBC_VERSION)
 $(UCLIBC)_SOURCE = http://www.uclibc.org/downloads/$(UCLIBC).tar.bz2
 UCLIBC_INSTALL = $(CURDIR)/uClibc
 
-UDHCP_VERSION = 0.9.6
+UDHCP_VERSION = 0.9.7
 UDHCP = udhcp-$(UDHCP_VERSION)
 $(UDHCP)_SOURCE = http://udhcp.busybox.net/source/$(UDHCP).tar.gz
 
@@ -71,6 +71,10 @@ udhcpc : $(UDHCP)
 
 $(UDHCP) : $(UDHCP).tar.bz2 uClibc
 	[ -d $@ ] || tar xvjf $<
+	if [ ! -f $@/.script.c.patch ]; then \
+		patch -d $@ -b -z .orig < script.c.patch ; \
+		touch $@/.script.c.patch ; \
+	fi
 	$(MAKE) LDFLAGS+=-static -C $(UDHCP)
 	install -m 644 $(UDHCP)/AUTHORS AUTHORS.udhcpc
 	install -m 644 $(UDHCP)/COPYING COPYING.udhcpc
@@ -110,6 +114,10 @@ mknbi : $(MKNBI)
 
 $(MKNBI) : $(MKNBI).tar.bz2
 	[ -d $@ ] || tar xvjf $<
+	if [ ! -f $@/.mknbi-encap.patch ]; then \
+		patch -d $@ -b -z .orig < mknbi-encap.patch ; \
+		touch $@/.mknbi-encap.patch ; \
+	fi
 	make -C $(MKNBI) LIBDIR=`pwd`/$(MKNBI) mknbi
 	install -m 755 $(MKNBI)/mknbi mknbi-linux
 	make -C $(MKNBI) clean
@@ -125,7 +133,6 @@ initrd-skel : $(UTILS) linuxrc udhcpc-post include-modules
 	mkdir -p $@/lib/modules
 	mkdir -p $@/proc
 	mkdir -p $@/sysroot
-	mkdir -p $@/sysroot/initrd
 	ln -s bin $@/sbin
 	install -m 755 busybox $@/bin/
 	install -m 755 udhcpc $@/bin/
@@ -142,6 +149,7 @@ initrd-skel : $(UTILS) linuxrc udhcpc-post include-modules
 	ln -s busybox $@/bin/umount
 	ln -s busybox $@/bin/[
 	ln -s busybox $@/bin/sleep
+	ln -s busybox $@/bin/grep
 
 	install -m 755 linuxrc $@/linuxrc
 	install -m 755 udhcpc-post $@/bin/udhcpc-post

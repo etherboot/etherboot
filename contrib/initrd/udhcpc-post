@@ -14,10 +14,12 @@ else if [ "$1" = "bound" ] ; then
     for i in $dns; do
       echo nameserver $i >> /etc/resolv.conf
     done
-    echo Mounting root filesystem $serverid:/ at /sysroot
-    echo If this appears to hang, check that the server $serverid is able to
+    [ -n "$siaddr" ] || siaddr=$serverid
+    [ -n "$rootpath" ] || rootpath=$siaddr:/
+    echo Mounting root filesystem $rootpath at /sysroot
+    echo If this appears to hang, check that the server of $rootpath is able to
     echo reverse-map my IP address $ip to obtain my hostname $hostname
-    mount -t nfs -o nolock,rsize=8192,wsize=8192 $serverid:/ /sysroot
+    mount -t nfs -o nolock,rsize=8192,wsize=8192 $rootpath /sysroot
   fi
 fi
 

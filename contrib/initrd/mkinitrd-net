@@ -50,6 +50,11 @@ output_dir=/var/lib/tftpboot
 make_link=y
 quiet=
 
+# No need to use sudo if we are root
+if [ $UID -eq 0 ]; then
+  use_sudo=n
+fi
+
 USAGE="Usage: $0 [-k|--kernel <kernel_ver>] [-n|--nolink] [-q|--quiet] [-l|--local] [--nosudo] [--keep] [--help] module_list ..."
 
 # Parse command-line options

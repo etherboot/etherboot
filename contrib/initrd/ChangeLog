@@ -1,11 +1,22 @@
 mkinitrd-net ChangeLog
 
-Last Modified: Sun May 26 11:14:43 2002
+Last Modified: Fri Jul 26 23:08:28 2002
 
 $Log$
-Revision 1.1  2002/05/26 12:09:12  mcb30
-Imported from Fen Systems CVS repository.
-These are non-authoritative versions: see README for details
+Revision 1.2  2002/07/26 23:12:16  mcb30
+Sync Etherboot contribs to version 1.10
+
+Revision 1.10  2002/07/26 23:09:13  mcb30
+Support for new binary etherboot.nic-dev-id structure
+Added --kernel option patch from Stew Benedict at MandrakeSoft
+Only try to use sudo if we are not already root
+
+Revision 1.9  2002/06/05 13:31:50  mcb30
+Modifications to allow DHCP, TFTP and NFS servers to be separate machines.
+
+Revision 1.8  2002/05/30 11:41:18  mcb30
+/tftpboot symlinked to /var/lib/tftpboot
+Has ability to be quiet if "quiet" specified on kernel cmdline
 
 Revision 1.7  2002/05/26 11:15:04  mcb30
 PCI-ID auto-mapping via dhcpd.conf.etherboot-pcimap.include

@@ -13,6 +13,7 @@ option etherboot-encapsulated-options code 150 = encapsulate etherboot;
 
 # Definition of option codes within the etherboot-encapsulated-options space
 #
+option etherboot.extensions-path code 18 = string;
 option etherboot.magic		code 128 = string;
 option etherboot.kernel-cmdline	code 129 = string;
 option etherboot.menu-opts	code 160 = string;
@@ -96,16 +97,7 @@ if substring ( option vendor-class-identifier, 0, 9 ) = "Etherboot" {
 					    "boot.nbi" ) ;
   filename = config-option bootfile-name;
 
-  # TFTP server defaults to DHCP server and is specified in both
-  # server-name field and tftp-server-name option field
-  #
-  option tftp-server-name = option dhcp-server-identifier;
-  server-name = option tftp-server-name;
-
   # "Sensible" default values for some options
-
-  # A fallback hostname, generated from the IP address
-  option host-name = concat ( "client_", binary-to-ascii ( 10, 8, "_", leased-address ) );
 
   # Mount devfs (will probably be needed for a network-boot)
   option etherboot.kernel-cmdline " devfs=mount";
@@ -121,7 +113,7 @@ if substring ( option vendor-class-identifier, 0, 9 ) = "Etherboot" {
 				     "]", 0d:0a, "  from ",
 				     binary-to-ascii ( 10, 8, ".", option dhcp-server-identifier ),
 				     " with file ",
-				     binary-to-ascii ( 10, 8, ".", config-option tftp-server-name ),
+				     config-option tftp-server-name,
 				     ":",
 				     config-option bootfile-name,
 				     " [",
@@ -164,6 +156,32 @@ if substring ( option vendor-class-identifier, 0, 9 ) = "Etherboot" {
     option legacy-etherboot-image-15	= config-option etherboot.image-15;
     option legacy-etherboot-image-16	= config-option etherboot.image-16;
   }
+}
+
+# Some options should be set for both Etherboot and the udhcpc client
+#
+if ( ( substring ( option vendor-class-identifier, 0, 9 ) = "Etherboot" ) 
+     or ( substring ( option vendor-class-identifier, 0, 5 ) = "udhcp" ) ) {
+
+  # TFTP server defaults to DHCP server and is specified in both
+  # next-server field and tftp-server-name option field
+  #
+  option tftp-server-name = binary-to-ascii ( 10, 8, ".", config-option dhcp-server-identifier );
+  server-name = config-option tftp-server-name;
+  next-server = config-option dhcp-server-identifier;
+
+  # Root path defaults to root of TFTP server
+  option root-path = concat ( config-option tftp-server-name, ":/" );
+
+  # A fallback hostname, generated from the IP address
+  option host-name = concat ( "client_", binary-to-ascii ( 10, 8, "_", leased-address ) );
+}
+
+# Force some items onto parameter request list for udhcp
+#
+if substring ( option vendor-class-identifier, 0, 5 ) = "udhcp" {
+  # Forcibly add root-path to list
+  option dhcp-parameter-request-list = concat ( option dhcp-parameter-request-list, 11 );
 }
 
 # Etherboot sends a string to identify the NIC in etherboot.nic-dev-id.
