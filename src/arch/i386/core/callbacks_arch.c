@@ -10,6 +10,13 @@
 #include "callbacks.h"
 #include <stdarg.h>
 
+/*****************************************************************************
+ *
+ * IN_CALL INTERFACE
+ *
+ *****************************************************************************
+ */
+
 /* in_call(): entry point for calls in to Etherboot from external code. 
  *
  * Parameters: some set up by assembly code _in_call(), others as
@@ -30,6 +37,39 @@ uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
 	return in_call ( opcode, ap, &in_call_data );
 }
 
+/* install_rm_callback_interface(): install real-mode callback
+ * interface at specified address.
+ *
+ * Real-mode code may then call to this address (or lcall to this
+ * address plus RM_IN_CALL_FAR) in order to make an in_call() to
+ * Etherboot.
+ *
+ * Returns the size of the installed code, or 0 if the code could not
+ * be installed.
+ */
+int install_rm_callback_interface ( void *address, size_t available ) {
+	if ( available &&
+	     ( available < rm_callback_interface_size ) ) return 0;
+
+	/* Inform RM code where to find Etherboot */
+	rm_etherboot_location = virt_to_phys(_text);
+
+	/* Install callback interface */
+	memcpy ( address, &rm_callback_interface,
+		 rm_callback_interface_size );
+
+	return rm_callback_interface_size;
+}
+
+/*****************************************************************************
+ *
+ * EXT_CALL INTERFACE
+ *
+ *****************************************************************************
+ */
+
+/* Debugging for i386-specific ext_call parameters
+ */
 #ifdef DEBUG_EXT_CALL
 
 /* Print out a GDT segment descriptor.
@@ -118,10 +158,6 @@ int v_arch_ec_check_param ( int type, va_list *ap ) {
 #endif /* DEBUG_EXT_CALL */
 
 
-
-
-
-
 /* Scrap routines used only during development of ext_call() and friends:
  */
 
@@ -135,19 +171,11 @@ extern void _in_call_far ( void );
 
 extern void demo_extcall_end;
 
-extern void _prot_to_real;
-extern void _prot_to_real_size;
-extern void _eprot_to_real;
-extern void _real_to_prot;
-extern void _ereal_to_prot;
 extern void hello_world;
 extern void ehello_world;
 extern void trial_real_incall;
 extern void etrial_real_incall;
 
-extern void _rm_callback_interface;
-extern long rm_etherboot_location;
-extern void _rm_callback_interface_end;
 
 
 extern int get_esp ( void );
@@ -216,9 +244,9 @@ int test_extcall ( int a, int b, int c, int d, int e ) {
 	   EP_GDT(&gdt, 0x18),
 	   EP_RELOC_STACK((rm_seg << 4 ) + 0x1000),
 	   EP_RET_VARSTACK( &ret_parms, &ret_stack_len ),
-	   EP_TRAMPOLINE(&_prot_to_real, &_eprot_to_real ),
+	   EP_TRAMPOLINE(_prot_to_real, _prot_to_real_end ),
 	   EP_TRAMPOLINE(&hello_world, &ehello_world ),
-	   EP_TRAMPOLINE(&_real_to_prot, &_ereal_to_prot )
+	   EP_TRAMPOLINE(_real_to_prot, _real_to_prot_end )
 	   );
 	/* When making a real call, relocate the stack only if
 	 * necessary.  (This requires ext_call to allow segment-adjust
@@ -276,9 +304,10 @@ int test_extcall ( int a, int b, int c, int d, int e ) {
 	/* Install real-mode callback interface at 0x80000
 	 */
 	uint32_t target = 0x80000;
-	rm_etherboot_location = virt_to_phys(_text);
-	memcpy ( phys_to_virt ( target ), &_rm_callback_interface,
-		 ( &_rm_callback_interface_end - &_rm_callback_interface ) );
+	install_rm_callback_interface ( phys_to_virt(target), 0 );
+	/*	rm_etherboot_location = virt_to_phys(_text);
+		memcpy ( phys_to_virt ( target ), &rm_callback_interface,
+		rm_callback_interface_size ); */
 	
 
 	ret = (int) ext_call (
@@ -291,9 +320,9 @@ int test_extcall ( int a, int b, int c, int d, int e ) {
 	   EP_RELOC_STACK((rm_seg << 4 ) + 0x1000),
 	   EP_RET_STACK( &rm_seg_regs ),
 	   EP_RET_VARSTACK( &ret_parms, &ret_stack_len ),
-	   EP_TRAMPOLINE(&_prot_to_real, &_eprot_to_real ),
+	   EP_TRAMPOLINE(_prot_to_real, _prot_to_real_end ),
 	   EP_TRAMPOLINE(&trial_real_incall, &etrial_real_incall ),
-	   EP_TRAMPOLINE(&_real_to_prot, &_ereal_to_prot )
+	   EP_TRAMPOLINE(_real_to_prot, _real_to_prot_end )
 	   );
 
 	printf ( "return stack length %hx: %hx %hx %hx %hx\n",
