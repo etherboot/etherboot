@@ -119,6 +119,10 @@
 
 /* Vendors and devices.  Sort key: vendor first, device next. */
 
+/* Wildcard vendor and device IDs used by e.g. the UNDI driver */
+#define PCI_VENDOR_ID_ANY		0xffff
+#define PCI_DEVICE_ID_ANY		0xffff
+
 #define PCI_VENDOR_ID_DYNALINK		0x0675
 #define PCI_DEVICE_ID_DYNALINK_IS64PH	0x1702
 

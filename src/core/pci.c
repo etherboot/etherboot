@@ -31,8 +31,10 @@ static void scan_drivers(
 			continue;
 		}
 		for(i = 0; i < driver->id_count; i++) {
-			if ((vendor == driver->ids[i].vendor) &&
-				(device == driver->ids[i].dev_id)) {
+			if ((( vendor == driver->ids[i].vendor) ||
+			     ( driver->ids[i].vendor == PCI_VENDOR_ID_ANY )) &&
+			    (( device == driver->ids[i].dev_id) ||
+			     ( driver->ids[i].dev_id == PCI_DEVICE_ID_ANY ))) {
 
 				dev->driver = driver;
 #if 0
