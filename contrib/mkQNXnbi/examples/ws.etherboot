@@ -1,0 +1,18 @@
+# /boot/build/ws.etherboot
+
+sys/Proc32
+$ Proc32 -l $(lnode)
+
+sys/Slib32
+$ Slib32
+
+sys/Slib16
+$ Slib16
+
+/bin/Net
+$ Net -n 10 -m "1 1 <MAC of node 1>"
+
+/bin/Net.tulip
+$ Net.tulip -r100000000
+
+/bin/sinit $ sinit -r //1/ TERM=qansi
