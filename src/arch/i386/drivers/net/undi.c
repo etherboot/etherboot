@@ -51,6 +51,7 @@ static undi_t undi = {
 	.started          = 0, 
 	.initialized      = 0, 
 	.opened           = 0,
+	.pci	          = { 0, 0, 0, NULL, 0, 0, 0, 0, 0, 0, 0, NULL },
 	.irq              = IRQ_NONE 
 };
 
@@ -63,7 +64,7 @@ static int undi_unload_base_code ( void );
 static int undi_full_shutdown ( void );
 
 /* Trivial/nontrivial IRQ handler selection */
-#if defined(UNDI_NONTRIVIAL_IRQ)
+#ifdef UNDI_NONTRIVIAL_IRQ
 static void nontrivial_irq_handler ( void );
 static void nontrivial_irq_handler_end ( void );
 static int install_nontrivial_irq_handler ( irq_t irq );
@@ -107,8 +108,7 @@ static uint8_t checksum ( void *block, size_t size ) {
 /* Print the status of a !PXE structure
  */
 
-static void pxe_dump ( void )
-{
+static void pxe_dump ( void ) {
 	printf ( "API %hx:%hx St %hx:%hx UD %hx:%hx UC %hx:%hx "
 		 "BD %hx:%hx BC %hx:%hx\n",
 		 undi.pxe->EntryPointSP.segment, undi.pxe->EntryPointSP.offset,
@@ -286,9 +286,14 @@ static int hunt_pixie ( void ) {
 /* Locate PCI PnP ROMs.
  */
 
-static int hunt_rom ( struct pci_device *pci ) 
-{
+static int hunt_rom ( void ) {
 	static uint32_t ptr = 0;
+
+	/* If we are not a PCI device, we cannot search for a ROM that
+	 * matches us (?)
+	 */
+	if ( ! undi.pci.vendor )
+		return 0;
 
 	printf ( "Hunting for ROMs..." );
 	if ( ptr == 0 ) ptr = 0x100000;
@@ -312,11 +317,11 @@ static int hunt_rom ( struct pci_device *pci )
 			}
 			printf ( "PCI:%hx:%hx...", pcir_header->vendor_id,
 				 pcir_header->device_id );
-			if ( ( pcir_header->vendor_id != pci->vendor ) ||
-			     ( pcir_header->device_id != pci->dev_id ) ) {
+			if ( ( pcir_header->vendor_id != undi.pci.vendor ) ||
+			     ( pcir_header->device_id != undi.pci.dev_id ) ) {
 				printf ( "not me (%hx:%hx)\n...",
-					pci->vendor,
-					pci->dev_id );
+					 undi.pci.vendor,
+					 undi.pci.dev_id );
 				continue;
 			}
 			if ( undi.rom->pnp_off == 0 ) {
@@ -350,9 +355,8 @@ static int hunt_rom ( struct pci_device *pci )
 /* Locate ROMs containing UNDI drivers.
  */
 
-static int hunt_undi_rom ( struct pci_device *pci ) 
-{
-	while ( hunt_rom(pci) ) {
+static int hunt_undi_rom ( void ) {
+	while ( hunt_rom() ) {
 		if ( undi.rom->undi_rom_id_off == 0 ) {
 			printf ( "Not a PXE ROM\n" );
 			continue;
@@ -499,17 +503,16 @@ static int undi_call ( uint16_t opcode ) {
  * is not intended for mainstream use.
  */
 
-
 uint16_t nontrivial_irq_previous_trigger_count = 0;
 
-static int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused )
-{
+static int copy_nontrivial_irq_handler ( void *target,
+					 size_t target_size __unused ) {
 	RM_FRAGMENT(nontrivial_irq_handler,
 	/* Will be installed on a paragraph boundary, so access variables
 	 * using %cs:(xxx-irqstart)
 	 */
-		"irqstart:\n\t"
 		"\n\t"
+		"irqstart:\n\t"
 	/* Fields here must match those in undi_irq_handler_t */
 		"chain_to:\t.word 0,0\n\t"
 		"irq_chain:\t.byte 0,0,0,0\n\t"
@@ -578,19 +581,20 @@ static int copy_nontrivial_irq_handler ( void *target, size_t target_size __unus
 	return 1;
 }
 
-static int install_nontrivial_irq_handler ( irq_t irq )
-{
+static int install_nontrivial_irq_handler ( irq_t irq ) {
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
 	segoff_t isr_segoff;
 
 	printf ( "WARNING: using non-trivial IRQ handler [EXPERIMENTAL]\n" );
+	/*
+	 * This code is deliberately quick and dirty.  The whole
+	 * nontrivial IRQ stuff is only present in order to test out
+	 * calling our PXE stack in interrupt context.  Do NOT use
+	 * this in production code.
+	 */
 
-	if (OFFSET(handler) != 0) {
-		DBG("handler not paragraph aligned\n");
-		return 0;
-	}
-	
+	disable_irq ( irq );
 	handler->count_all = 0;
 	handler->count_ours = 0;
 	handler->entry = undi.pxe->EntryPointSP;
@@ -599,35 +603,12 @@ static int install_nontrivial_irq_handler ( irq_t irq )
 	isr_segoff.offset = (void*)&handler->code - (void*)handler;
 	install_irq_handler( irq, &isr_segoff, 
 		&handler->irq_chain, &handler->chain_to);
-#if defined(TRACE_UNDI) && (TRACE_UNDI > 0)
-	DBG ( "Testing nontrivial IRQ handler for irq: %d\n", irq );
-
-	if (irq == 0) {
-		/* If it is the timer interrupt we don't have to trigger anything
-		 * we can just wait for it to occur,
-		 */
-		unsigned long start_ticks, ticks;
-		start_ticks = ticks = currticks();
-		do {
-			printf("^");
-			ticks = currticks();
-		} while(ticks == start_ticks);
-	} else {
-		fake_irq ( irq );
-	}
-	if ( handler->count_all == 0 ) {
-		DBG ( "Installation of non-trivial IRQ handler failed\n" );
-		remove_nontrivial_irq_handler ( irq );
-		return 0;
-	}
-#endif
-	DBG ( "Non-Trivial IRQ handler installed successfully\n" );
+	enable_irq ( irq );
 
 	return 1;
 }
 
-static int remove_nontrivial_irq_handler ( irq_t irq )
-{
+static int remove_nontrivial_irq_handler ( irq_t irq ) {
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
 	segoff_t isr_segoff;
@@ -639,20 +620,19 @@ static int remove_nontrivial_irq_handler ( irq_t irq )
 	return 1;
 }
 
-static int nontrivial_irq_triggered ( irq_t irq __unused )
-{
+static int nontrivial_irq_triggered ( irq_t irq __unused ) {
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
-	uint16_t count = handler->count_ours;
-	int triggered = count -  nontrivial_irq_previous_trigger_count;
+	uint16_t nontrivial_irq_this_trigger_count = handler->count_ours;
+	int triggered = ( nontrivial_irq_this_trigger_count -
+			  nontrivial_irq_previous_trigger_count );
 
-	nontrivial_irq_previous_trigger_count = count;
-
+	nontrivial_irq_previous_trigger_count =
+		nontrivial_irq_this_trigger_count;
 	return triggered ? 1 : 0;
 }
 
-static void nontrivial_irq_debug ( irq_t irq )
-{
+static void nontrivial_irq_debug ( irq_t irq ) {
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
 
@@ -668,12 +648,16 @@ static void nontrivial_irq_debug ( irq_t irq )
 /* Install the UNDI driver from a located UNDI ROM.
  */
 
-static int undi_loader(struct pci_device *pci) 
-{
+static int undi_loader ( void ) {
 	pxe_t *pxe = NULL;
 
+	if ( ! undi.pci.vendor ) {
+		printf ( "ERROR: attempted to call loader of an ISA ROM?\n" );
+		return 0;
+	}
+
 	/* AX contains PCI bus:devfn (PCI specification) */
-	undi.pxs->loader.ax = ( pci->bus << 8 ) | pci->devfn;
+	undi.pxs->loader.ax = ( undi.pci.bus << 8 ) | undi.pci.devfn;
 	/* BX and DX set to 0xffff for non-ISAPnP devices
 	 * (BIOS boot specification)
 	 */
@@ -737,12 +721,11 @@ static int undi_loader(struct pci_device *pci)
 /* Start the UNDI driver.
  */
 
-static int eb_pxenv_start_undi( struct pci_device *pci ) 
-{
+static int eb_pxenv_start_undi ( void ) {
 	int success = 0;
 
 	/* AX contains PCI bus:devfn (PCI specification) */
-	undi.pxs->start_undi.ax = ( pci->bus << 8 ) | pci->devfn;
+	undi.pxs->start_undi.ax = ( undi.pci.bus << 8 ) | undi.pci.devfn;
 
 	/* BX and DX set to 0xffff for non-ISAPnP devices
 	 * (BIOS boot specification)
@@ -772,7 +755,7 @@ static int eb_pxenv_start_undi( struct pci_device *pci )
 	return success;
 }
 
-static int eb_pxenv_undi_startup ( void )	{
+static int eb_pxenv_undi_startup ( void ) {
 	int success = 0;
 
 	DBG ( "PXENV_UNDI_STARTUP => (void)\n" );
@@ -1089,6 +1072,7 @@ static int undi_unload_base_code ( void ) {
  */
 
 static int undi_full_startup ( void ) {
+	if ( ! eb_pxenv_start_undi() ) return 0;
 	if ( ! eb_pxenv_undi_startup() ) return 0;
 	if ( ! eb_pxenv_undi_initialize() ) return 0;
 	if ( ! eb_pxenv_undi_get_information() ) return 0;
@@ -1129,7 +1113,7 @@ static int undi_full_shutdown ( void ) {
 						   0 );
 			undi.driver_data_size = undi.pxe->UNDIData.Seg_Size;
 		}
-
+		
 		/* Ignore errors and continue in the hope of shutting
 		 * down anyway
 		 */
@@ -1235,9 +1219,23 @@ static int undi_poll(struct nic *nic, int retrieve)
 		/* "Not our interrupt" translates to "no packet ready
 		 * to read".
 		 */
+		/* FIXME: Technically, we shouldn't be the one sending
+		 * EOI.  However, since our IRQ handlers don't yet
+		 * support chaining, nothing else gets the chance to.
+		 * One nice side-effect of doing this is that it means
+		 * we can cheat and claim the timer interrupt as our
+		 * NIC interrupt; it will be inefficient but will
+		 * work.
+		 */
+		send_specific_eoi ( undi.irq );
 		return 0;
 	}
 #endif
+
+	/* At this stage, the device should have cleared its interrupt
+	 * line so we can send EOI to the 8259.
+	 */
+	send_specific_eoi ( undi.irq );
 
 	/* We might have received a packet, or this might be a
 	 * "transmit completed" interrupt.  Zero nic->packetlen,
@@ -1323,8 +1321,7 @@ static void undi_transmit(
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void undi_disable(struct dev *dev __unused)
-{
+static void undi_disable ( struct dev *dev __unused ) {
 	undi_full_shutdown();
 	free_base_mem_data();
 }
@@ -1338,8 +1335,7 @@ PROBE - Look for an adapter, this routine's visible to the outside
  * to install their drivers.
  */
 
-static int hunt_pixies_and_undi_roms(struct pci_device *pci)
-{
+static int hunt_pixies_and_undi_roms ( void ) {
 	static uint8_t hunt_type = HUNT_FOR_PIXIES;
 	
 	if ( hunt_type == HUNT_FOR_PIXIES ) {
@@ -1348,8 +1344,8 @@ static int hunt_pixies_and_undi_roms(struct pci_device *pci)
 		}
 	}
 	hunt_type = HUNT_FOR_UNDI_ROMS;
-	while (pci && hunt_undi_rom(pci) ) {
-		if ( undi_loader(pci) && eb_pxenv_start_undi(pci) ) {
+	while ( hunt_undi_rom() ) {
+		if ( undi_loader() ) {
 			return 1;
 		}
 		undi_full_shutdown(); /* Free any allocated memory */
@@ -1367,6 +1363,13 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 
 	/* Zero out global undi structure */
 	memset ( &undi, 0, sizeof(undi) );
+
+	/* Store PCI parameters; we will need them to initialize the
+	 * UNDI driver later.  If not a PCI device, leave as 0.
+	 */
+	if ( pci ) {
+		memcpy ( &undi.pci, pci, sizeof(undi.pci) );
+	}
 
 	/* Find the BIOS' $PnP structure */
 	if ( ! hunt_pnp_bios() ) {
@@ -1386,7 +1389,7 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 	if ( ! allocate_base_mem_data() ) return 0;
 
 	/* Search thoroughly for UNDI drivers */
-	for ( ; hunt_pixies_and_undi_roms(pci); undi_full_shutdown() ) {
+	for ( ; hunt_pixies_and_undi_roms(); undi_full_shutdown() ) {
 		/* Try to initialise UNDI driver */
 		printf ( "Initializing UNDI driver.  Please wait...\n" );
 		if ( ! undi_full_startup() ) {
@@ -1421,9 +1424,9 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 	return 0;
 }
 
-static int undi_isa_probe(struct dev *dev, unsigned short *probe_addrs __unused)
-{
-	return undi_probe(dev, NULL);
+static int undi_isa_probe ( struct dev *dev,
+			    unsigned short *probe_addrs __unused ) {
+	return undi_probe ( dev, NULL );
 }
 
 
