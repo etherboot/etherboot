@@ -37,40 +37,54 @@ typedef struct {
 uint32_t prepare_real_call ( real_call_params_t *p,
 			     int local_stack_len, char *local_stack ) {
 	char *stack_base;
+	char *stack_end;
 	char *stack;
+	char *s;
 	prot_to_real_params_t *p2r_params;
 	real_to_prot_params_t *r2p_params;
 	
 	/* Work out where we're putting the stack */
-	stack_base = ( virt_to_phys(local_stack) < 0xa0000 ) ? local_stack :
-		( phys_to_virt(real_mode_stack) + real_mode_stack_size
-		  - local_stack_len );
-	stack = stack_base;
+	if ( virt_to_phys(local_stack) < 0xa0000 ) {
+		/* Current stack is in base memory.  We can therefore
+		 * use it directly, with a constraint on the size that
+		 * we don't know; assume that we can use up to
+		 * real_mode_stack_size.  (Not a valid assumption, but
+		 * it will do).
+		 */
+		stack_end = local_stack + local_stack_len;
+		stack_base = stack_end - real_mode_stack_size;
+	} else {
+		/* Use the allocated real-mode stack in base memory.
+		 * This has fixed start and end points.
+		 */
+		stack_base = phys_to_virt(real_mode_stack);
+		stack_end = stack_base + real_mode_stack_size;
+	}
+	s = stack = stack_end - local_stack_len;
 
 	/* Compile input stack and trampoline code to stack */
 	if ( p->in_stack_len ) {
-		memcpy ( stack, p->in_stack, p->in_stack_len );
-		stack += p->in_stack_len;
+		memcpy ( s, p->in_stack, p->in_stack_len );
+		s += p->in_stack_len;
 	}
-	memcpy ( stack, _prot_to_real_prefix, _prot_to_real_prefix_size );
-	stack += _prot_to_real_prefix_size;
-	p2r_params = (prot_to_real_params_t*) ( stack - sizeof(*p2r_params) );
-	memcpy ( stack, p->fragment, p->fragment_len );
-	stack += p->fragment_len;
-	memcpy ( stack, _real_to_prot_suffix, _real_to_prot_suffix_size );
-	stack += _real_to_prot_suffix_size;
-	r2p_params = (real_to_prot_params_t*) ( stack - sizeof(*r2p_params) );
+	memcpy ( s, _prot_to_real_prefix, _prot_to_real_prefix_size );
+	s += _prot_to_real_prefix_size;
+	p2r_params = (prot_to_real_params_t*) ( s - sizeof(*p2r_params) );
+	memcpy ( s, p->fragment, p->fragment_len );
+	s += p->fragment_len;
+	memcpy ( s, _real_to_prot_suffix, _real_to_prot_suffix_size );
+	s += _real_to_prot_suffix_size;
+	r2p_params = (real_to_prot_params_t*) ( s - sizeof(*r2p_params) );
 
 	/* Set parameters within compiled stack */
-	p2r_params->ss =
-		p2r_params->cs = SEGMENT ( stack - real_mode_stack_size );
-	p2r_params->esp = virt_to_phys ( stack_base );
+	p2r_params->ss = p2r_params->cs = SEGMENT ( stack_base );
+	p2r_params->esp = virt_to_phys ( stack );
 	p2r_params->r2p_params = virt_to_phys ( r2p_params );
 	r2p_params->out_stack = ( p->out_stack == NULL ) ?
 		0 : virt_to_phys ( p->out_stack );
 	r2p_params->out_stack_len = p->out_stack_len;
 
-	return virt_to_phys ( stack_base + p->in_stack_len );
+	return virt_to_phys ( stack + p->in_stack_len );
 }
 
 
