@@ -117,9 +117,9 @@ void scan_pci_bus(int type, struct pci_device *dev)
 #if	DEBUG
 		{
 			int i;
-			printf("%hhx:%hhx.%hhx [%hX/%hX]\n",
+			printf("%hhx:%hhx.%hhx [%hX/%hX] Class %hX\n",
 				bus, PCI_SLOT(devfn), PCI_FUNC(devfn),
-				vendor, device);
+				vendor, device, class >> 8);
 #if	DEBUG > 1
 			for(i = 0; i < 256; i++) {
 				unsigned char byte;
