@@ -35,6 +35,7 @@ SRCS+=	arch/i386/core/cpu.c
 # ROM loaders: PCI header version (prefix P)
 RLOADER=	$(BIN)/rloader.bin
 PRLOADER=	$(BIN)/prloader.bin
+
 START16=	$(BIN)/start16.bin
 DISKLOADER=	$(BIN)/floppyload.bin
 COMPREFIX=	$(BIN)/comprefix.bin
@@ -44,10 +45,12 @@ ELFPREFIX=	$(BIN)/elfprefix.o
 
 # Make sure that the relocation address is acceptable for all ROM sizes.  
 # The old setting was 0x9400 which left about 45kB of space for Etherboot.
-# Now we default to 0x7e00 which is where most disk loaders will load us.
-# Without relocation enabled this means etherboot cannot load images that
-# resize in the low 640KB.  With relocation enabled we Etherboot should be
-# able to load any image.  The size is limited to 320KB to catch really flagrant
+# Now we default to 0x20000. Without relocation enabled this means
+# Etherboot cannot load images that resize in the low 640KB.
+# (We should see if we can lower this to allow larger images in the low
+# 640kB but this is not urgent.)
+# With relocation enabled we Etherboot should be able to load any image.
+# The size is limited to 320KB to catch really flagrant
 # abuses, and to ensure there is enough room for etherboot to decompress itself.
 # This check may need to be updated to ensure the single driver etherboot will
 # fit in a bootrom.  The check is done based running 'size' on the binary, not
@@ -55,15 +58,11 @@ ELFPREFIX=	$(BIN)/elfprefix.o
 # used ROM of 32kB, remembering to take compressed ROM images into account.
 #
 ifndef RELOCADDR
-#RELOCADDR=0x7e00
-# The floppy code uses the rom loader which does an extra memcpy.
-# If we place ourselves at 0x7e00 we will get stomped, so run
-# slightly higher until that can be fixed.
 RELOCADDR:=0x20000
 endif
 
-# Until all of the drivers are updated to be relocateable, 
-# Carefully setup loader.S to loader
+# Until all of the drivers are updated to be relocatable,
+# carefully setup loader.S to know start16.bin size
 #
 ifndef START16_BYTES
 START16_BYTES:=112
@@ -92,8 +91,6 @@ alllilos:	$(BUILD_LILOS)
 BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
 BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o
 
-
-
 # Prepended loaders
 $(BIN)/rloader.bin:	$(BIN)/rloader.o
 $(BIN)/prloader.bin:	$(BIN)/prloader.o
@@ -102,6 +99,8 @@ $(BIN)/floppyload.bin:	$(BIN)/floppyload.o
 $(BIN)/comprefix.bin:   $(BIN)/comprefix.o
 $(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
 $(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
+
+# ROM loaders
 
 $(BIN)/rloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
@@ -113,7 +112,7 @@ $(BIN)/prloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
 $(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@
 
-# floppy / hard disk loader
+# floppy / hard disk loader (not used)
 
 $(BIN)/boot1a.bin: arch/i386/prefix/boot1a.s $(MAKEDEPS)
 	as --defsym FLAGS=0x80 arch/i386/prefix/boot1a.s -o $(BIN)/boot1a.o
@@ -130,14 +129,15 @@ $(BIN)/floppyload.bin: $(BIN)/floppyload.o
 	objcopy -O binary $< $(BIN)/floppyload.bin
 	$(RM) $(BIN)/floppyload.o
 
-# PXE loader
+# PXE prefix
+
 $(BIN)/pxeprefix.s:	arch/i386/prefix/pxeprefix.S $(MAKEDEPS)
 	$(CPP) -o $@ $<
 
 $(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
 	$(LD) -Ttext 0x7c00 $(LDBINARY) -o $@ $<
 
-# COM loader
+# COM prefix
 
 $(BIN)/comprefix.s:	arch/i386/prefix/comprefix.S $(MAKEDEPS)
 	$(CPP) -o $@ $<
@@ -154,7 +154,6 @@ $(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
 
 $(BIN)/nrv2b:	util/nrv2b.c
 	$(HOST_CC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -DNDEBUG -DBITSIZE=32 -DENDIAN=0 -o $@ $<
-
 
 # Pattern Rules
 
@@ -179,7 +178,6 @@ $(BIN)/%.o:	arch/i386/prefix/%.S $(MAKEDEPS)
 $(BIN)/%.o:	$(BIN)/%.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-
 # general rule for .bin (plain binary loader code), may be overridden
 $(BIN)/%.bin:	$(BIN)/%.o
 	$(LD) -Ttext 0x10000 $(LDBINARY) -o $@ $<
@@ -196,13 +194,13 @@ $(BIN)/%.lzimg: $(BIN)/%.hufo $(BIN)/unhuf.o arch/i386/prefix/unhuf.lds $(MAKEDE
 
 # general rule for .z (compressed binary code), may be overridden
 # rule for .z is in top level Makefile
+# Give the directory name, e.g. use $(BIN)/rtl8139.com as the target.
 
 $(BIN)/%.zo:	$(BIN)/%.z arch/i386/prefix/huf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/huf.lds -b binary $< -o $@
 
 $(BIN)/%.zimg:	$(BIN)/%.zo $(BIN)/unnrv2b.o arch/i386/prefix/unhuf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/unhuf.lds $(BIN)/unnrv2b.o $< -o $@
-
 
 # general rules for normal/compressed ROM images, may be overridden
 $(BIN)/%.rom:	$(BIN)/%.img $(RLOADER) $(START16)
@@ -243,26 +241,25 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	@$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size )
 	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
-# rules to generate a .com executable
-# Give the directory name, e.g. use $(BIN)/rtl8139.com as the target.
+# rules to generate a DOS loadable .com executable
 %.com:	%.zimg $(COMPREFIX) $(START16)
 	cat $(COMPREFIX) $(START16) $< > $@
 
-# rules to make a LILO-bootable image
+# rules to make a LILO loadable image
 %.lilo:		%.img $(LILOPREFIX) $(START16)
 	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync of=$@
 
 %.zlilo:	%.zimg $(LILOPREFIX) $(START16)
 	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync of=$@
 
-# rules to generate a pxe loadable image
+# rules to generate a PXE loadable image
 %.pxe:	%.img $(PXEPREFIX) $(START16)
 	cat $(PXEPREFIX) $(START16) $< > $@
 
 %.zpxe:	%.zimg $(PXEPREFIX) $(START16)
 	cat $(PXEPREFIX) $(START16) $< > $@
 
-# Give the directory name, e.g. $(BIN)/rtl8139.dsk as the target.
+# rules to generate the .dsk/.zdsk floppy images
 %.dsk:	%.img $(DISKLOADER) $(START16)
 	cat $(DISKLOADER) $(START16) $< > $@
 
@@ -270,7 +267,6 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	cat $(DISKLOADER) $(START16) $< > $@
 
 # rules to write the .img/.zimg image onto a blank floppy
-# Give the directory name, e.g. $(BIN)/rtl8139.zfd0 as the target.
 %.fd0:	%.img $(DISKLOADER) $(START16)
 	cat $(DISKLOADER) $(START16) $< > /dev/fd0
 

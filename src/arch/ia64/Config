@@ -3,16 +3,14 @@
 # Do not delete the tag OptionDescription and /OptionDescription
 # It is used to automatically generate the documentation.
 #
-# <OptionDescrition>
-#
+# @OptionDescrition@
 #
 #	BIOS interface options:
 #
 #	-DCONFIG_EFI
 #			Compile in support for EFI
 #
-#
-# </OptionDescription>
+# @/OptionDescription@
 
 CFLAGS+= -DCONSOLE_FIRMWARE
 CFLAGS+= -DCONFIG_EFI

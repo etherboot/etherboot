@@ -92,6 +92,8 @@ LCONFIG+=	-DMOVEROM
 
 CFLAGS+= -fstrength-reduce -fomit-frame-pointer -mcpu=i386 -march=i386
 # Squeeze the code in as little space as possible.
+# These old options generate warnings from gcc 3.3,
+# but I can't get rid of them until everybody upgrades
 CFLAGS+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
 
 LDFLAGS+=	-N -Ttext $(RELOCADDR)
