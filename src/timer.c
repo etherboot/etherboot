@@ -10,16 +10,62 @@
 #include	"etherboot.h"
 #include	"timer.h"
 
-void load_timer2(unsigned int ticks)
+void __load_timer2(unsigned int ticks)
 {
+	/*
+	 * Now let's take care of PPC channel 2
+	 *
+	 * Set the Gate high, program PPC channel 2 for mode 0,
+	 * (interrupt on terminal count mode), binary count,
+	 * load 5 * LATCH count, (LSB and MSB) to begin countdown.
+	 *
+	 * Note some implementations have a bug where the high bits byte
+	 * of channel 2 is ignored.
+	 */
 	/* Set up the timer gate, turn off the speaker */
+	/* Set the Gate high, disable speaker */
 	outb((inb(PPC_PORTB) & ~PPCB_SPKR) | PPCB_T2GATE, PPC_PORTB);
+	/* binary, mode 0, LSB/MSB, Ch 2 */
 	outb(TIMER2_SEL|WORD_ACCESS|MODE0|BINARY_COUNT, TIMER_MODE_PORT);
+	/* LSB of ticks */
 	outb(ticks & 0xFF, TIMER2_PORT);
+	/* MSB of ticks */
 	outb(ticks >> 8, TIMER2_PORT);
 }
 
+static int __timer2_running(void)
+{
+	return ((inb(PPC_PORTB) & PPCB_T2OUT) == 0);
+}
+
+#if !defined(CONFIG_TSC_CURRTICKS)
+void setup_timers(void)
+{
+	return;
+}
+
+void load_timer2(unsigned int ticks)
+{
+	return __load_timer2(ticks);
+}
+
+int timer2_running(void)
+{
+	return __timer2_running();
+}
+
+void ndelay(unsigned int nsecs)
+{
+	waiton_timer2((nsecs * CLOCK_TICK_RATE)/1000000000);
+}
+void udelay(unsigned int usecs)
+{
+	waiton_timer2((usecs * CLOCK_TICK_RATE)/1000000);
+}
+#endif /* !defined(CONFIG_TSC_CURRTICKS) */
+
 #if defined(CONFIG_TSC_CURRTICKS)
+
 #define rdtsc(low,high) \
      __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (high))
 
@@ -27,69 +73,46 @@ void load_timer2(unsigned int ticks)
      __asm__ __volatile__ ("rdtsc" : "=A" (val))
 
 
-#define HZ TICKS_PER_SEC
-#define CLOCK_TICK_RATE	1193180U /* Underlying HZ */
-/* LATCH is used in the interval timer and ftape setup. */
-#define LATCH  ((CLOCK_TICK_RATE + HZ/2) / HZ)	/* For divider */
+/* Number of clock ticks to time with the rtc */
+#define LATCH 0xFF
 
+#define LATCHES_PER_SEC ((CLOCK_TICK_RATE + (LATCH/2))/LATCH)
+#define TICKS_PER_LATCH ((LATCHES_PER_SEC + (TICKS_PER_SEC/2))/TICKS_PER_SEC)
+
+static void sleep_latch(void)
+{
+	__load_timer2(LATCH);
+	while(__timer2_running());
+}
 
 /* ------ Calibrate the TSC ------- 
- * Return 2^32 * (1 / (TSC clocks per usec)) for do_fast_gettimeoffset().
- * Too much 64-bit arithmetic here to do this cleanly in C, and for
- * accuracy's sake we want to keep the overhead on the CTC speaker (channel 2)
- * output busy loop as low as possible. We avoid reading the CTC registers
- * directly because of the awkward 8-bit access mechanism of the 82C54
- * device.
+ * Time how long it takes to excute a loop that runs in known time.
+ * And find the convertion needed to get to CLOCK_TICK_RATE
  */
 
-#define CALIBRATE_LATCH	(5 * LATCH)
 
 static unsigned long long calibrate_tsc(void)
 {
-	/* Set the Gate high, disable speaker */
-	outb((inb(0x61) & ~0x02) | 0x01, 0x61);
+	unsigned long startlow, starthigh;
+	unsigned long endlow, endhigh;
+	
+	rdtsc(startlow,starthigh);
+	sleep_latch();
+	rdtsc(endlow,endhigh);
 
-	/*
-	 * Now let's take care of CTC channel 2
-	 *
-	 * Set the Gate high, program CTC channel 2 for mode 0,
-	 * (interrupt on terminal count mode), binary count,
-	 * load 5 * LATCH count, (LSB and MSB) to begin countdown.
-	 */
-	outb(0xb0, 0x43);			/* binary, mode 0, LSB/MSB, Ch 2 */
-	outb(CALIBRATE_LATCH & 0xff, 0x42);	/* LSB of count */
-	outb(CALIBRATE_LATCH >> 8, 0x42);	/* MSB of count */
-
-	{
-		unsigned long startlow, starthigh;
-		unsigned long endlow, endhigh;
-		unsigned long count;
-
-		rdtsc(startlow,starthigh);
-		count = 0;
-		do {
-			count++;
-		} while ((inb(0x61) & 0x20) == 0);
-		rdtsc(endlow,endhigh);
-
-		/* Error: ECTCNEVERSET */
-		if (count <= 1)
-			goto bad_ctc;
-
-		/* 64-bit subtract - gcc just messes up with long longs */
-		__asm__("subl %2,%0\n\t"
-			"sbbl %3,%1"
-			:"=a" (endlow), "=d" (endhigh)
-			:"g" (startlow), "g" (starthigh),
-			 "0" (endlow), "1" (endhigh));
-
-		/* Error: ECPUTOOFAST */
-		if (endhigh)
-			goto bad_ctc;
-
-		endlow /= 5;
-		return endlow;
-	}
+	/* 64-bit subtract - gcc just messes up with long longs */
+	__asm__("subl %2,%0\n\t"
+		"sbbl %3,%1"
+		:"=a" (endlow), "=d" (endhigh)
+		:"g" (startlow), "g" (starthigh),
+		"0" (endlow), "1" (endhigh));
+	
+	/* Error: ECPUTOOFAST */
+	if (endhigh)
+		goto bad_ctc;
+	
+	endlow *= TICKS_PER_LATCH;
+	return endlow;
 
 	/*
 	 * The CTC wasn't reliable: we got a hit on the very first read,
@@ -101,17 +124,20 @@ bad_ctc:
 	return 0;
 }
 
+static unsigned long clocks_per_tick;
+void setup_timers(void)
+{
+	if (!clocks_per_tick) {
+		clocks_per_tick = calibrate_tsc();
+		/* Display the CPU Mhz to easily test if the calibration was bad */
+		printf("CPU %d Mhz\n", (clocks_per_tick/1000 * TICKS_PER_SEC)/1000);
+	}
+}
 
 unsigned long currticks(void)
 {
-	static unsigned long clocks_per_tick;
 	unsigned long clocks_high, clocks_low;
 	unsigned long currticks;
-	if (!clocks_per_tick) {
-		clocks_per_tick = calibrate_tsc();
-		printf("clocks_per_tick = %d\n", clocks_per_tick);
-	}
-
 	/* Read the Time Stamp Counter */
 	rdtsc(clocks_low, clocks_high);
 
@@ -124,4 +150,58 @@ unsigned long currticks(void)
 	return currticks;
 }
 
+static unsigned long long timer_timeout;
+static int __timer_running(void)
+{
+	unsigned long long now;
+	rdtscll(now);
+	return now < timer_timeout;
+}
+
+void udelay(unsigned int usecs)
+{
+	unsigned long long now;
+	rdtscll(now);
+	timer_timeout = now + usecs * ((clocks_per_tick * TICKS_PER_SEC)/(1000*1000));
+	while(__timer_running());
+}
+void ndelay(unsigned int nsecs)
+{
+	unsigned long long now;
+	rdtscll(now);
+	timer_timeout = now + nsecs * ((clocks_per_tick * TICKS_PER_SEC)/(1000*1000*1000));
+	while(__timer_running());
+}
+
+void load_timer2(unsigned int timer2_ticks)
+{
+	unsigned long long now;
+	unsigned long clocks;
+	rdtscll(now);
+	clocks = timer2_ticks * ((clocks_per_tick * TICKS_PER_SEC)/CLOCK_TICK_RATE);
+	timer_timeout = now + clocks;
+}
+
+int timer2_running(void)
+{
+	return __timer_running();
+}
+
 #endif /* RTC_CURRTICKS */
+
+void mdelay(unsigned int msecs)
+{
+	int i;
+	for(i = 0; i < msecs; i++) {
+		udelay(1000);
+		poll_interruptions();
+	}
+}
+
+void waiton_timer2(unsigned int ticks)
+{
+	load_timer2(ticks);
+	while(timer2_running()) {
+		poll_interruptions();
+	}
+}

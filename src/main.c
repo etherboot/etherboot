@@ -21,7 +21,7 @@ Literature dealing with the network protocols:
 #include "etherboot.h"
 #include "nic.h"
 
-jmpbuf			restart_etherboot;
+jmp_buf			restart_etherboot;
 struct arptable_t	arptable[MAX_ARP];
 /* Currently no other module uses rom, but it is available */
 struct rom_info		rom;
@@ -174,8 +174,8 @@ static pxenv_t pxenv = {
         {0, 0}                          /* !PXEPtr      */
 };
 
-static jmpbuf		pxeemu_v86call_jbuf;
-static jmpbuf		pxeemu_entry_jbuf;
+static jmp_buf		pxeemu_v86call_jbuf;
+static jmp_buf		pxeemu_entry_jbuf;
 extern char		pxeemu_nbp_active;
 static char		pxeemu_boot_flag;
 

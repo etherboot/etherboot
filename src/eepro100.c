@@ -139,8 +139,6 @@ void hd(void *where, int n);
 #define EE_WRITE_1      0x4806
 #define EE_ENB          (0x4800 | EE_CS)
 
-#define udelay(n)       waiton_timer2(((n)*TICKS_PER_MS)/1000)
-
 /* The EEPROM commands include the alway-set leading bit. */
 #define EE_READ_CMD     6
 

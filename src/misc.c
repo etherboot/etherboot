@@ -5,6 +5,21 @@ MISC Support Routines
 #include "etherboot.h"
 
 /**************************************************************************
+POLL INTERRUPTIONS
+**************************************************************************/
+void poll_interruptions(void)
+{
+#ifdef FREEBSD_PXEEMU
+	if (pxeemu_nbp_active)
+		return;
+#endif
+	/* If an interruption has occured restart etherboot */
+	if (iskey() && (getchar() == ESC)) {
+		longjmp(restart_etherboot, -1);
+	}
+}
+
+/**************************************************************************
 SLEEP
 **************************************************************************/
 void sleep(int secs)

@@ -33,8 +33,6 @@ $Id$
 #include "timer.h"
 #include "3c509.h"
 
-#define	udelay(n)	waiton_timer2(((n)*TICKS_PER_MS)/1000)
-
 static unsigned short	eth_nic_base;
 static enum { none, bnc, utp } connector = none;	/* for 3C509 */
 

@@ -291,8 +291,6 @@ static int		eepro = 0;
 static unsigned short	ioaddr = 0;
 static unsigned int	mem_start, mem_end = RCV_DEFAULT_RAM / 1024;
 
-#define	udelay(n)	waiton_timer2(((n)*TICKS_PER_MS)/1000)
-
 /**************************************************************************
 RESET - Reset adapter
 ***************************************************************************/

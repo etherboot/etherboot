@@ -502,7 +502,7 @@ extern inline int rom_address_ok(struct rom_info *rom, int assigned_rom_segment)
 /* Define a type for use by setjmp and longjmp */
 typedef	struct {
 	unsigned long	buf[7];
-} jmpbuf[1];
+} jmp_buf[1];
 
 /* Define a type for passing info to a loaded program */
 struct ebinfo {
@@ -614,8 +614,8 @@ extern void xstart P((unsigned long, unsigned long, char *));
 extern void xend P((void));
 #endif
 extern unsigned long currticks P((void));
-extern int setjmp P((jmpbuf env));
-extern void longjmp P((jmpbuf env, int val));
+extern int setjmp P((jmp_buf env));
+extern void longjmp P((jmp_buf env, int val));
 extern void exit P((int status));
 
 /* serial.S */
@@ -643,7 +643,7 @@ External variables
 extern struct rom_info rom;
 extern char *hostname;
 extern int hostnamelen;
-extern jmpbuf restart_etherboot;
+extern jmp_buf restart_etherboot;
 extern struct arptable_t arptable[MAX_ARP];
 #ifdef	IMAGE_MENU
 extern int menutmo,menudefault;

@@ -67,7 +67,6 @@ static const char hardcoded_ssid[] = "";
  */
 #include <errno.h>
 #include "timer.h"
-#define udelay(x) waiton_timer2( (x) * 1000 / TICKS_PER_MS)
 #define __le16_to_cpu(x) (x)
 #define __le32_to_cpu(x) (x)
 #define __cpu_to_le16(x) (x)
