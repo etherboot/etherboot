@@ -124,8 +124,8 @@ exec_moved:
  *****************************************************************************
  */
 	popl	%esi			/* Return address */
-	push	%ss			/* %es:di = prefix stack address   */
-	pop	%es			/* (*after* pop of return address) */
+	mov	%ss,%bx			/* %es:di = prefix stack address   */
+	mov	%bx,%es			/* (*after* pop of return address) */
 	movw	%sp, %di
 	movw	$offset__stack_pgh, %bx	/* Set up Etherboot stack */
 	addw	%ax, %bx
@@ -144,7 +144,7 @@ exec_moved:
  * for use in copy routine.
  *****************************************************************************
  */
-	movzwl	%es:2(%di), %ebx	/* Prefix code segment */
+	movzwl	%es:-2(%di), %ebx	/* Prefix code segment */
 	shll	$4, %ebx
 	pushl	%ebx			/* Prefix code physical address */
 	movzwl	%ax, %edi		/* Image target segment */
