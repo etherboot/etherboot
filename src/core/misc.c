@@ -345,7 +345,8 @@ void hex_dump ( const char *data, const unsigned int len ) {
 			more();
 		}
 		if ( ( index % 16 ) == 0 ) {
-			printf ( "%X : %hX :", data + index, index );
+			printf ( "%X [%X] : %hX :", data + index,
+				 virt_to_phys ( data + index ), index );
 		}
 		printf ( " %hhX", data[index] );
 	}
