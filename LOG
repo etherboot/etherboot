@@ -2611,4 +2611,6 @@ tricky stringify macro falls foul of C++ // comments in gcc 3.x.
 
 Released as Etherboot 5.3.6 (development)
 
++ Don't include ISA .o files for etherboot-pci.
+
 + Doug Ambrisko fixed bugs in the FreeBSD loader.

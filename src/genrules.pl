@@ -348,7 +348,7 @@ print "PCIOBJS\t:=\n";
 foreach my $pci (reverse sort keys %pcient) {
 	my $img = basename($pci);
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
-	print "PCIOBJS\t+= \$(BIN)/$img.o\n";
+	print "PCIOBJS\t+= \$(BIN)/$img.o\n" unless isaonly($pci);
 	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym \$(BIN)/$img.zsym\n";
 }
 foreach my $img (sort keys %buildent) {
@@ -372,7 +372,7 @@ foreach my $isa (sort keys %isalist) {
 print "\n# Rules to build the driver object files\n";
 foreach my $pci (sort keys %drivers) {
 	# For ISA the rule for .o will generated later
-	next if &isaonly($pci);
+	next if isaonly($pci);
 	# PCI drivers are compiled only once for all ROMs
 	(my $macro = basename($pci)) =~ tr/\-/_/;
 	my $obj = basename($pci);
