@@ -92,7 +92,9 @@ Author: Martin Renters
 #define	TICKS_PER_SEC		18
 
 /* Inter-packet retry in ticks */
+#ifndef TIMEOUT
 #define TIMEOUT			(10*TICKS_PER_SEC)
+#endif
 
 /* Max interval between IGMP packets */
 #define IGMP_INTERVAL		(10*TICKS_PER_SEC)
