@@ -578,7 +578,8 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 			tctx.segflags = sh.flags;
 			tctx.segaddr += ((sh.length & 0x0F) << 2)
 				+ ((sh.length & 0xF0) >> 2);
-			if ( sh.length == 0 ) return 0; /* Avoid lock-up */
+			/* Avoid lock-up */
+			if ( sh.length == 0 ) longjmp(restart_etherboot, -2); 
 		}
 		i = (tctx.seglen > len) ? len : tctx.seglen;
 		memcpy(phys_to_virt(curaddr), data, i);
@@ -1524,7 +1525,7 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 #endif
 				
 			// get the next packet...
-			return (1);
+			return (0);
 		}
 			
 		/* dbuffer have more data then loading ... , copy partital.... */
@@ -1552,7 +1553,7 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 			{
 //				printf("we don't have enough data remaining to call get_x. \n");
 				memcpy( (dbuffer+0), (dbuffer+d_now), dbuffer_available);
-				return (1);
+				return (0);
 			}
 			else
 			{
@@ -1565,7 +1566,7 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 			}
 		}
 	}
-	return (1);
+	return (0);
 }
 
 static int get_x_header(unsigned char *dbuffer, unsigned long now)
