@@ -30,7 +30,7 @@
 # (leave PCI-IDs blank for ISA NICs)
 #
 # The "test-multi" ROM at the end of this file illustrates a ROM that 
-# contains drivers for the rtl8139 and prism2_plx NICs.
+# contains drivers for the rtl8139 and prism2_pci NICs.
 #
 # Please send additions to this file to <ken_yap@users.sourceforge.net>
 #
@@ -241,9 +241,9 @@ hwp01170	prism2_pci	0x1260,0x3873
 dwl520		prism2_pci	0x1260,0x3873
 
 # Example of the multi-NIC ROM syntax
-# This ROM contains drivers for rtl8139 and prism2_plx cards.
-# The PCI IDs (0x1260,0x3873) are for a D-Link DFE-538TX card, so this 
+# This ROM contains drivers for rtl8139 and prism2_pci cards.
+# The PCI IDs (0x1186,0x1300) are for a D-Link DFE-538TX card, so this 
 # ROM can be placed in the BootROM socket of a D-Link DFE-538TX card and 
-# will then boot the computer via any rtl8139 or prism2_plx cards in the 
+# will then boot the computer via any rtl8139 or prism2_pci cards in the 
 # system (the DFE-538TX is itself an rtl8139-based card).
-test-multi	multi(rtl8139,prism2_plx)	0x1260,0x3873
+test-multi	multi(rtl8139,prism2_pci)	0x1186,0x1300

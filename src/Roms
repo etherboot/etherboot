@@ -362,11 +362,11 @@ bin32/tiara.o:	tiara.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-
 bin32/config-tiara.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 	$(CC32) $(CFLAGS32) -DINCLUDE_TIARA -o $@ -c $<
 
-bin32/test-multi.o:	bin32/prism2_plx.o bin32/rtl8139.o
-	$(LD32) -r -o $@ bin32/prism2_plx.o bin32/rtl8139.o
+bin32/test-multi.o:	bin32/prism2_pci.o bin32/rtl8139.o
+	$(LD32) -r -o $@ bin32/prism2_pci.o bin32/rtl8139.o
 
 bin32/config-test-multi.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	$(CC32) $(CFLAGS32) -DINCLUDE_PRISM2_PLX -DINCLUDE_RTL8139 -DTRY_ALL_DEVICES -o $@ -c $<
+	$(CC32) $(CFLAGS32) -DINCLUDE_PRISM2_PCI -DINCLUDE_RTL8139 -DTRY_ALL_DEVICES -o $@ -c $<
 
 
 # Rules to build the ROM files
@@ -2172,19 +2172,19 @@ bin32/smc1211.ebi:	bin32/rtl8139.elf
 
 bin32/test-multi.rom:	bin32/test-multi.img $(PRLOADER)
 	cat $(PRLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+	bin/makerom $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
 bin32/test-multi.lzrom:	bin32/test-multi.huf $(PRZLOADER)
 	cat $(PRZLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+	bin/makerom $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
 bin32/test-multi.pxe:	bin32/test-multi.img $(PXELOADER)
 	cat $(PXELOADER) $< > $@
-	bin/makerom -x $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
 bin32/test-multi.lzpxe:	bin32/test-multi.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
-	bin/makerom -x $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
 bin32/test-multi.ebi:	bin32/test-multi.elf
 	cp bin32/test-multi.elf $@
