@@ -13,13 +13,26 @@
 
 /* Types of data that can be passed to external_call().
  */
-#define EXTCALL_NONE		(0x0000UL)
-#define EXTCALL_REGISTERS	(0x0001UL)
-#define EXTCALL_SEG_REGISTERS	(0x0002UL)
-#define EXTCALL_GDT		(0x0003UL)
-#define EXTCALL_STACK		(0x0004UL)
-#define EXTCALL_STACK_CORRUPT	(0x0005UL)
-#define EXTCALL_END_LIST	(0xffffUL)
+#define EXTCALL_NONE		(0x0000)
+#define EXTCALL_REGISTERS	(0x0001)
+#define EXTCALL_SEG_REGISTERS	(0x0002)
+#define EXTCALL_GDT		(0x0003)
+#define EXTCALL_STACK		(0x0004)
+#define EXTCALL_END_LIST	(0xffff)
+
+/* Skip the definitions that won't make sense to the assembler */
+#ifndef ASSEMBLY
+
+/* extcall_stack_is_corrupt_look_in_callbacks_h
+ *
+ * This is used as a flag to cause an invalid usage of
+ * EP_STACK_PASSTHRU() to generate a linker error rather than locking
+ * the machine up at runtime.  If you see it, it means that you have a
+ * usage of EP_STACK_PASSTHRU(first,last) where one or both of the
+ * parameters have sizes that are non multiples of 4.  See definition
+ * of WILL_BE_LEFT_ON_STACK() below for more details.
+ */
+extern int extcall_stack_is_corrupt_look_in_callbacks_h;
 
 /* Struct to hold general-purpose register values.  PUSHAL and POPAL
  * can work directly with this structure; do not change the order of
@@ -36,21 +49,21 @@ typedef struct {
 	uint32_t eax;
 } regs_t;
 /* As part of an external_call parameter list */
-#define REGISTERS(regs) EXTCALL_REGISTERS, (regs)
+#define EP_REGISTERS(regs) EXTCALL_REGISTERS, (regs)
 
 /* Struct to hold segment register values.  Use as part of a GDT()
  * structure.
  */
 typedef struct {
-	uint16_t cs;
+	uint16_t gs;
+	uint16_t fs;
+	uint16_t es;
 	uint16_t ds;
 	uint16_t ss;
-	uint16_t es;
-	uint16_t fs;
-	uint16_t gs;
+	uint16_t cs;
 } PACKED seg_regs_t;
 /* As part of an external_call parameter list */
-#define SEG_REGISTERS(seg_regs) EXTCALL_SEG_REGISTERS, (seg_regs)
+#define EP_SEG_REGISTERS(seg_regs) EXTCALL_SEG_REGISTERS, (seg_regs)
 
 /* Struct for a GDT entry.  Use GDT_SEGMENT() to fill it in.
  */
@@ -162,7 +175,7 @@ typedef struct {
 	(structure)->padding = 0; \
 }
 /* As part of an external_call parameter list */
-#define GDT(structure) EXTCALL_GDT, &((structure)->limit)
+#define EP_GDT(structure) EXTCALL_GDT, &((structure)->limit)
 
 /* Stack alignment used by GCC.  Must be a power of 2.
  */
@@ -184,22 +197,30 @@ typedef struct {
  *
  * This will automatically check to see that "first" and "last" won't
  * suffer from the "&" problem mentioned above; if they do then
- * EXTCALL_STACK_CORRUPT will be passed as the parameter type.
+ * extcall_stack_is_corrupt_look_in_callbacks_h will be used as the
+ * parameter type, triggering a linker error.  (I can't find a way to
+ * make the compiler detect this error).
  */
-#define STACK_PASSTHRU(first,last) \
+#define EP_STACK_PASSTHRU(first,last) \
 	( WILL_BE_LEFT_ON_STACK((first)) && WILL_BE_LEFT_ON_STACK((last)) ? \
-	  EXTCALL_STACK : EXTCALL_STACK_CORRUPT ), \
+	  EXTCALL_STACK : extcall_stack_is_corrupt_look_in_callbacks_h ), \
 	(void*)&(first), \
 	( ( (void*)&(last) + sizeof((last)) - (void*)&(first) \
 	    + (STACK_ALIGNMENT-1) ) & ~(STACK_ALIGNMENT-1) )
 
+#define EP_STACK(structure) \
+	EXTCALL_STACK, (structure), sizeof(*(structure))
+
 /* Function prototypes */
 extern uint32_t _ext_call ( uint32_t address, ... );
+#define ext_call(address, ...) \
+	_ext_call( (uint32_t)(address), ##__VA_ARGS__, EXTCALL_END_LIST )
 #ifdef DEBUG_EXT_CALL
 extern uint32_t _ext_call_check ( uint32_t address, ... );
-#define ext_call_check(...) _ext_call_check( __VA_ARGS__, EXTCALL_END_LIST )
-#else
-#define ext_call(...) _ext_call( __VA_ARGS__, EXTCALL_END_LIST )
+#define ext_call_check(address, ...) \
+	_ext_call_check( (uint32_t)(address), ##__VA_ARGS__, EXTCALL_END_LIST )
 #endif
+
+#endif /* ASSEMBLY */
 
 #endif /* CALLBACKS_H */
