@@ -709,7 +709,7 @@ _in_call_far:
 1:
 
 	/* Call to C code */
-	call	in_call
+	call	i386_in_call
 
 	/* Set %eax (return code from C) in registers structure on
 	 * stack, so that we return it to the caller.
@@ -1278,10 +1278,13 @@ ehello_world:
 	.globl	etrial_real_incall
 	.code16
 trial_real_incall:
-	pushl	$0x3456
+	pushw	$0x0000
+	pushw	$0x7c00
+	pushw	$0x3456
+	pushl	$0x201
 	pushl	$EB_OPCODE_PXE
 	lcall	$0x8000, $0
-	addw	$8, %sp
+	addw	$14, %sp
 etrial_real_incall:	
 
 	
