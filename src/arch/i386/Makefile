@@ -236,8 +236,14 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 
 # rules to generate a DOS loadable .com executable
 SUFFIXES +=	com
-%.com:	%.zbin $(COMPREFIX)
-	cat $(COMPREFIX) $< > $@
+$(BIN)/%.com.rt: $(BIN)/%.rt.o $(COMEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(COMEXIT)
+
+$(BIN)/%.com.prf: $(BIN)/%.rt.o $(COMENTRY) $(COMEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(COMENTRY) $(PREFIXOBJS) $< $(COMEXIT)
+
+$(BIN)/%.com: $(BIN)/%.com.prf.bin $(BIN)/%.com.rt.bin
+	cat $^ > $@
 
 # rules to make a LILO loadable image
 SUFFIXES +=	lilo zlilo
