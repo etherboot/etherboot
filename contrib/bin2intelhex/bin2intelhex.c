@@ -24,8 +24,8 @@
 /*
  * $Id$
  * $Log$
- * Revision 1.1  2003/08/10 09:56:30  ken_yap
- * Initial revision
+ * Revision 1.1.1.1  2003/08/10 09:56:30  ken_yap
+ * New 5.3 development series.
  *
  * Revision 1.9  1997/12/14 05:14:54  install
  * - some documentation....
