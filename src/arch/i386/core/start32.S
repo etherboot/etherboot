@@ -76,9 +76,14 @@ _start:
 	 * address) and set the flag EB_CALL_FROM_REAL_MODE if so.
 	 */
 	cmpl	$0, 4(%esp)
+	jne	1f
 	orl	$EB_CALL_FROM_REAL_MODE, 0(%esp)
+1:	
 #endif
-	/* Fall through to _in_call */
+	/* Fall through to _in_call.  Zero here indicates a dummy
+	 * return address, which means in_call will skip our pushed
+	 * opcode before returning to the caller.
+	 */
 	pushl	$0
 	
 /**************************************************************************
@@ -220,7 +225,7 @@ _in_call_far:
 	je	3f
 	ret
 3:	/* fall-through from _start */
-	addl	$4, %esp		/* Skip opcode */
+	addl	$8, %esp		/* Skip dummy retn. address & opcode */
 	ret				/* Exit */
 	
 #if defined(RELOCATE)
