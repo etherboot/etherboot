@@ -2795,7 +2795,7 @@ was NOT received.
 + Removed dead code related to CAN_BOOT_DISK.
 
 + Clarified that BOOT_DISK and BOOT_FLOPPY options only work with
-LinuxBIOS.
+LinuxBIOS and are not replacements for PCBIOS functions.
 
 + Renamed EMERGENCYDISKBOOT to EXIT_IF_NO_OFFER.
 
@@ -2804,9 +2804,24 @@ LinuxBIOS.
 + Paolo Salvan submitted changes to arch/i386/Makefile to make .com
 images compressed.
 
-+ Eric Biedermann made LinuxBIOS .*elf images work again and cleaned
-up the build procedure in the process. The hardwired virtual RELOCADDR
-is no more, the virtual base is 0. He also added code to display which
-protocols are compiled into the image.
++ Eric Biedermann made .*elf images work again and cleaned up the build
+procedure in the process. The hardwired virtual RELOCADDR is no more,
+the virtual base is 0. He also added code to display which protocols are
+compiled into the image.
 
 Released as Etherboot 5.3.13 aka 5.4RC4 (development)
+
++ Eric fixed some bugs in the assembly code preventing running on
+3/486s. One case of write through %cs and two cases of failures to jump
+to flush the prefetch queue.
+
++ Eric added support for dynamically relocatable images, which have new
+suffixes.
+
++ Eric fixed some bugs in real_to_prot and prot_to_real.
+
++ Kenneth Sumrall fixed up the all* rules in genrules.pl and
+arch/i386/Makefile.
+
++ Barry Shaw added a missing PCI descriptor to the internal tulip.c
+tables.
