@@ -247,7 +247,6 @@ int eth_load(struct dev *dev)
 #else
 	kernel = KERNEL_BUF;
 #endif
-	printf("Loading %@:%s ", arptable[ARP_SERVER].ipaddr, kernel);
 	loadkernel(kernel); /* We don't return except on error */
 	printf("Unable to load file.\n");
 	interruptible_sleep(2);		/* lay off the server for a while */

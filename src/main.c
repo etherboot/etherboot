@@ -271,6 +271,9 @@ static const struct proto protos[] = {
 #ifdef DOWNLOAD_PROTO_DISK
 	{ "file", url_file },
 #endif
+#ifdef DOWNLOAD_PROTO_TFTP
+	{ "tftp", tftp },
+#endif
 };
 
 int loadkernel(const char *fname)
@@ -328,9 +331,11 @@ int loadkernel(const char *fname)
 		if (name[0] == '/') {
 			/* FIXME where do I pass the port? */
 			arptable[ARP_SERVER].ipaddr.s_addr = ip.s_addr;
+			printf( "Loading %s ", fname );
 			return proto->load(name + 1, load_block);
 		}
 	}
+	printf("Loading %@:%s ", arptable[ARP_SERVER].ipaddr, fname);
 	return tftp(fname, load_block);
 }
 
