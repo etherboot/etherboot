@@ -1,10 +1,32 @@
-Etherboot 5.1.0
+Etherboot 5.1.1
 
-This is a development release which may contain experimental code. It
-may fix problems but also have unexpected behaviour. If you can test it,
-it would be appreciated, but if you want something stable, please use
-the 5.0.x series.  Some important notes have been retained from the 4.7
-development series. Please read the documentation for more details.
+This is a development release.  Some important notes have been retained
+from the 4.7 development series. Please read the documentation for more
+details.
+
+PXE loadable images can be generated, just say make bin32/nic.pxe or
+make bin32/nic.lzpxe where nic is the name of the NIC. This allows you
+to chain from PXE to Etherboot. Details in 5.0.2 documentation. Some
+setup of the DHCP server is required, at the moment the finer details
+are in mailing list postings in the archive, but hopefully will be
+documented soon.
+
+This release contains patches to make images that can be run under
+LinuxBIOS. To make an image, edit Config to enable the EBI options (and
+disable TAGGED_IMAGE), then make bin32/driver.ebi, where driver is the
+name of a supported PCI NIC.
+
+There is a driver for NICs based on the National Semiconductor DP83815
+now. Netgear FA311/312 are two that are DP83815 based.
+
+The 3c90x driver has been verified to work with the 3c980.
+
+5.0.2 compiles with gcc 3.0 and works for the couple of NICs that I have
+been able to test. Please report any problems with gcc 3.0. Make sure
+that gcc 3.0 is the problem by trying a gcc 2.9.5 compiled version
+before sending in a bug report.
+
+binutils 2.11 appears to work fine on 5.0.2.
 
 The documentation is now distributed separately. This is to make it
 easier to do parallel development of production and development
@@ -40,11 +62,13 @@ boot1a.s.
 
 It has been reported that RH 7.0's gcc ("gcc 2.96") generates buggy code
 when compiling Etherboot. Please do not use it. If you must compile on
-RH 7.0, use kgcc.
+RH 7.0, use kgcc. RH 7.1's gcc may or may not work, I haven't had any
+reports either way.
 
-If you are booting kernel 2.2.18 or .19, you MUST specify ip=dhcp (or
-bootp or one of the other options, see kernel Documentation/nfsroot.txt)
-if you want the kernel to do IP autoconfiguration, even though you have
+If you are booting kernel 2.2.18 or later, or 2.4.5 or later, you MUST
+specify ip=dhcp (or bootp or one of the other options, see kernel
+Documentation/nfsroot.txt) to mknbi-linux or in the DHCP options if you
+want the kernel to do IP autoconfiguration, even though you have
 included the option in your kernel build. The alternative is to use
 ip=rom and then the kernel will use values passed down by Etherboot.
 For me at least, kernel IP autoconfiguration is instant and any concerns

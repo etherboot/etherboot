@@ -48,7 +48,7 @@ int pcibios_read_config_word (unsigned int bus,
     return PCIBIOS_SUCCESSFUL;
 }
 
-static int pcibios_read_config_dword (unsigned int bus, unsigned int device_fn,
+int pcibios_read_config_dword (unsigned int bus, unsigned int device_fn,
 				 unsigned int where, unsigned int *value)
 {
     outl(CONFIG_CMD(bus,device_fn,where), 0xCF8);
@@ -170,7 +170,7 @@ int pcibios_read_config_word(unsigned int bus,
         return (int) (ret & 0xff00) >> 8;
 }
 
-static int pcibios_read_config_dword(unsigned int bus,
+int pcibios_read_config_dword(unsigned int bus,
         unsigned int device_fn, unsigned int where, unsigned int *value)
 {
         unsigned long ret;

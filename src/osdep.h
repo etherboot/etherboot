@@ -74,32 +74,6 @@ static inline unsigned short int __swap16(unsigned short int x)
 #define	swap32(x)	__swap32(x)
 #define	swap16(x)	__swap16(x)
 
-/* Taken from asm/string-486.h */
-#define __HAVE_ARCH_STRNCMP
-extern inline int strncmp(const char * cs,const char * ct,int count)
-{
-register int __res;
-__asm__ __volatile__(
-	"\n1:\tdecl %3\n\t"
-	"js 2f\n\t"
-	"movb (%1),%b0\n\t"
-	"incl %1\n\t"
-	"cmpb %b0,(%2)\n\t"
-	"jne 3f\n\t"
-	"incl %2\n\t"
-	"testb %b0,%b0\n\t"
-	"jne 1b\n"
-	"2:\txorl %0,%0\n\t"
-	"jmp 4f\n"
-	"3:\tmovl $1,%0\n\t"
-	"jb 4f\n\t"
-	"negl %0\n"
-	"4:"
-	:"=q" (__res), "=r" (cs), "=r" (ct), "=r" (count)
-	:"1"  (cs), "2"  (ct),  "3" (count));
-return __res;
-}
-
 #include "linux-asm-string.h"
 #include "linux-asm-io.h"
 

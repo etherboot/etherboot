@@ -141,6 +141,18 @@ bin32/$rom.lzrom:	bin32/$drv.huf \$(PRZLOADER)
 	cat \$(PRZLOADER) \$< > \$@
 	bin/makerom \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
+bin32/$rom.pxe:	bin32/$drv.img \$(PXELOADER)
+	cat \$(PXELOADER) \$< > \$@
+	bin/makerom -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+
+bin32/$rom.lzpxe:	bin32/$drv.huf \$(PXEZLOADER)
+	cat \$(PXEZLOADER) \$< > \$@
+	bin/makerom -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+
+bin32/$rom.ebi: bin32/$drv.elf
+	cp bin32/$drv.elf \$@
+	\$(STRIP) -R .comment -R .note \$@
+
 EOF
 }
 foreach $rom (sort keys %roms_isa) {
@@ -149,6 +161,10 @@ foreach $rom (sort keys %roms_isa) {
 bin32/$rom.rom:	bin32/$rom.img \$(RLOADER)
 
 bin32/$rom.lzrom:	bin32/$rom.huf \$(RZLOADER)
+
+bin32/$rom.pxe:	bin32/$rom.img \$(PXELOADER)
+
+bin32/$rom.lzpxe:	bin32/$rom.huf \$(PXEZLOADER)
 
 EOF
 }
@@ -160,6 +176,10 @@ foreach $key (sort keys %drivers_pci) {
 	print <<EOF;
 bin32/$key.tmp:	bin32/$key.o bin32/config-$key.o bin32/pci.o \$(STDDEPS32)
 	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$key.o bin32/$key.o bin32/pci.o \$(LIBS32)
+	@\$(SIZE32) \$@ | \$(CHECKSIZE)
+
+bin32/$key.elf: bin32/$key.o bin32/config-$key.o bin32/pci.o \$(UBE_DEPS32)
+	\$(LD32) \$(LDFLAGS32) -o \$@ \$(UBE_START32) bin32/config-$key.o bin32/$key.o bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
 bin32/$key.img:	bin32/$key.o bin32/$key.tmp bin32/config-$key.o bin32/pci.o \$(STDDEPS32)

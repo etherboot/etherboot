@@ -72,6 +72,9 @@ int bootdisk(int dev,int part)
 			goto readerr; }
 	cleanup();
 	gateA20_unset();
+	/* Set %edx to device number to emulate BIOS
+	   Fortunately %edx is not used after this */
+	__asm__("movl %0,%%edx" : : "g" (dev));
 	xstart((unsigned long)BOOTSECT, 0, 0);
 	return(0);
 }

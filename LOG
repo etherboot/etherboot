@@ -2000,3 +2000,73 @@ looping trying to get that file.  Allowing typos in dhcpd.conf to be
 corrected without having to reboot the client machine running etherboot.
 
 Released as Etherboot 5.1.0 (development)
+
++ All the changes from 5.1.0 carried over except calling eth_reset()
+from cleanup().
+
++ Marty Connor, funded by Sicom System (http://www.sicompos.com/), wrote
+a driver for NICs based on the National Semiconductor DP83815, e.g.
+Netgear FA311/FA312. Also independently created by Jason McMullan just
+at the time Marty released his driver. Thanks for the effort Jason;
+great minds think alike. Both are based on Donald Becker's Linux driver,
+of course.
+
++ Doug Ambrisko contributed a patch to take environment bindings for
+FreeBSD kernels from a BOOTP/DHCP option or config variable.
+
++ Dax Kelson contributed an example of an ISC DHCP config file that uses
+Vendor Class Identifier to tailor the response to Etherboot clients.
+Also discovered that the Etherboot VCI should also be sent in the
+DHCPREQUEST message, in addition to the DHCPDISCOVER message.  Note that
+the DHCP server must be set to non authorititative if you have an
+authoritative server running already or it will interfere with that
+one's operation.
+
++ Peter Lister and Vasil Vasilev contributed changes to generate .pxe
+images bootable via PXE.
+
++ Eric Biederman added code to 3c90x.c to enable the NIC: set up
+busmastering and set the latency timer in case the NIC is not already
+set correctly, and fixed a couple of related bugs in eepro100.c.
+Verified that the 3c90x driver works for the 3c980.
+
++ Moved strncmp from osdep.h to linux-asm-string.h. Use the general
+version using string ops, not the deprecated 486 version (what was I
+thinking).  Also added strlen, needed for FreeBSD patch above.
+
++ Thanks to gcc 3.0, found and corrected a couple of C constructs of
+undefined semantics in rtl8139.c and lance.c of the form: i = ++i &
+MASK;
+
++ In Config/CFLAGS32: changed -m386 to prefered form, -mcpu=i386,
+changed -O2 to -Os, and added -ffreestanding. These changes allow
+warning-free compilation under gcc 3.0. Only mimimal testing has been
+done with gcc 3.0 compiled binaries, we hope there are no problems but
+don't throw away your gcc 2.9.5 yet.
+
++ Added an .org 0 to loader.S just before _start. May or may not fix
+alleged assembly problem with gas 2.11.
+
++ Cosmetic change: in boot1a.s replaced "loaded" with "done\r\n" so that
+Etherboot messages start at beginning of line.
+
++ More improvements to contrib/mkffwnb.
+
+Released as Etherboot 5.0.2 (production)
+
++ Added missing rules in genrules.pl for .pxe and .lzpxe images.
+
++ Peter Lister unified pxeloader.S into loader.S. pxeloader.S not
+required now. Also fixed .lzpxe.
+
++ Added missing int i; declaration in try_floppy_first().
+
++ Load %edx with dev just before calling xstart in floppy.c:bootdisk()
+so that %dl will have device number, just like entry from BIOS.
+
++ Merged in Eric Biederman's patches to build .ebi images that run under
+LinuxBIOS. To make an image, edit Config to enable the EBI options (and
+disable TAGGED_IMAGE), then make bin32/driver.ebi, where driver is the
+name of a supported PCI NIC.
+
+Released as Etherboot 5.1.1 (development)

@@ -502,6 +502,11 @@ elf_startkernel:
 			info.bsdinfo.bi_kernelname = KERNEL_BUF;
 			info.bsdinfo.bi_nfs_diskless = NULL;
 			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
+#define RB_BOOTINFO     0x80000000      /* have `struct bootinfo *' arg */  
+			if(freebsd_kernel_env[0] != '\0'){
+				freebsd_howto |= RB_BOOTINFO;
+				info.bsdinfo.bi_envp = (unsigned long)freebsd_kernel_env;
+			}
 
 			/* Check if we have symbols loaded, and if so,
 			 * made the meta_data needed to pass those to

@@ -487,7 +487,6 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 	int options;
 	int promisc;
 
-	unsigned char pci_bus = 0;
 	unsigned short pci_command;
 	unsigned short new_command;
 	unsigned char pci_latency;
@@ -508,19 +507,19 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 		* from eepro100.c in 2.2.9 kernel source
 		*/
 
-		pcibios_read_config_word(pci_bus, p->devfn, PCI_COMMAND, &pci_command);
+		pcibios_read_config_word(p->bus, p->devfn, PCI_COMMAND, &pci_command);
 		new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
 
 		if (pci_command != new_command) {
 			printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %x->%x. pci_bus %x pci_device_fn %x\n",
-				   pci_command, new_command, pci_bus, p->devfn);
-			pcibios_write_config_word(pci_bus, p->devfn, PCI_COMMAND, new_command);
+				   pci_command, new_command, p->bus, p->devfn);
+			pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
 		}
 
-		pcibios_read_config_byte(pci_bus, p->devfn, PCI_LATENCY_TIMER, &pci_latency);
+		pcibios_read_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, &pci_latency);
 		if (pci_latency < 32) {
 			printf("\nPCI latency timer (CFLT) is unreasonably low at %d. Setting to 32 clocks.\n", pci_latency);
-			pcibios_write_config_byte(pci_bus, p->devfn, PCI_LATENCY_TIMER, 32);
+			pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
 		}
 	}
 

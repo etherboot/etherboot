@@ -237,7 +237,7 @@ static void empty_8042(void)
 	       currticks() < time)
 		inb(K_RDWR);
 }
-#endif	IBM_L40
+#endif	/* IBM_L40 */
 
 /*
  * Gate A20 for high memory

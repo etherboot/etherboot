@@ -221,6 +221,7 @@ Author: Martin Renters
 #define	RFC1533_VENDOR_ETHDEV	130
 #ifdef	IMAGE_FREEBSD
 #define RFC1533_VENDOR_HOWTO    132
+#define RFC1533_VENDOR_KERNEL_ENV    133
 #endif
 #define RFC1533_VENDOR_MNUOPTS	160
 #define RFC1533_VENDOR_SELECTION 176
@@ -439,8 +440,11 @@ struct rpc_t {
 #define NFS_READ_SIZE	1024
 
 #define	FLOPPY_BOOT_LOCATION	0x7c00
+/* Must match offsets in loader.S */
+#define ROM_SEGMENT		0x1fa
+#define ROM_LENGTH		0x1fc
 
-#define	ROM_INFO_LOCATION	0x7dfa
+#define	ROM_INFO_LOCATION	(FLOPPY_BOOT_LOCATION+ROM_SEGMENT)
 /* at end of floppy boot block */
 
 struct rom_info {
@@ -579,6 +583,7 @@ extern struct bootpd_t bootp_data;
 extern unsigned char *end_of_rfc1533;
 #ifdef	IMAGE_FREEBSD
 extern int freebsd_howto;
+extern char freebsd_kernel_env[];
 #endif
 
 /* config.c */

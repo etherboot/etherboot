@@ -112,6 +112,12 @@ exit:
 	lret
 
 	.code32
+#if defined(CONFIG_TSC_CURRTICKS)
+#undef CONFIG_BIOS_CURRTICKS
+#else
+#define CONFIG_BIOS_CURRTICKS 1
+#endif
+#if defined(CONFIG_BIOS_CURRTICKS)
 /**************************************************************************
 CURRTICKS - Get Time
 Use direct memory access to BIOS variables, longword 0040:006C (ticks
@@ -141,7 +147,7 @@ notmidnite:
 	popl	%ebx
 	popl	%ebp
 	ret
-
+#endif /* CONFIG_BIOS_CURRTICKS */
 /**************************************************************************
 CONSOLE_PUTC - Print a character on console
 **************************************************************************/

@@ -79,15 +79,19 @@
 # SIS900 options:
 #	-DINCLUDE_SIS900 - Include SIS900 support
 #
+# NATSEMI options:
+#	-DINCLUDE_NATSEMI - Include NATSEMI support
+#
 
 include Config
 
 GCC=		gcc
 CPP=		gcc -E
+STRIP=		strip
 OBJCOPY=	objcopy
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
-VERSION_PATCH=	0
+VERSION_PATCH=	1
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -101,7 +105,7 @@ IDENT32=	'$(@F) $(VERSION) Etherboot (GPL)'
 
 # Find out if we're using binutils 2.9.1 which uses a different syntax in some
 # places (most prominently in the opcode prefix area).
-OLDGAS:=	$(shell $(AS) --version | grep -q '2\.9\.1' && echo -DGAS291)
+OLDGAS:=	$(shell $(AS32) --version | grep -q '2\.9\.1' && echo -DGAS291)
 
 BUILD_LIBS=	$(BLIB32)
 BUILD_BINS=	$(BINS32)
@@ -129,6 +133,7 @@ NI6510FLAGS=	-DINCLUDE_NI6510
 RTL8139FLAGS=	-DINCLUDE_RTL8139
 SK_G16FLAGS=	-DINCLUDE_SK_G16
 SIS900FLAGS=   	-DINCLUDE_SIS900
+NATSEMIFLAGS=  	-DINCLUDE_NATSEMI
 SMC9000FLAGS=   -DINCLUDE_SMC9000
 TIARAFLAGS=	-DINCLUDE_TIARA
 DEPCAFLAGS=	-DINCLUDE_DEPCA	# -DDEPCA_MODEL=DEPCA -DDEPCA_RAM_BASE=0xd0000
@@ -144,6 +149,8 @@ SRCS+=	md5.c floppy.c
 
 # ROM loaders: LZ version (prefix Z), PCI header version (prefix P)
 RLOADER=	bin/rloader.bin
+PXELOADER=	bin/pxeloader.bin
+PXEZLOADER=	bin/pxezloader.bin
 PRLOADER=	bin/prloader.bin
 RZLOADER=	bin/rzloader.bin
 PRZLOADER=	bin/przloader.bin
@@ -152,6 +159,7 @@ COMPREFIX=	bin/comprefix.bin
 LILOPREFIX=	bin/liloprefix.bin
 
 START32=	bin32/start32.o
+UBE_START32=	bin32/ube_start32.o bin32/ube.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/misc.o
 BOBJS32+=	bin32/ansiesc.o bin32/bootmenu.o bin32/md5.o bin32/floppy.o
@@ -160,6 +168,7 @@ BLIB32=		bin32/bootlib.a
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf
 STDDEPS32=	$(START32) $(BLIB32) $(UTILS)
+UBE_DEPS32=	$(UBE_START32) $(BLIB32)
 MAKEDEPS=	Makefile Config Roms
 
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
@@ -248,6 +257,12 @@ bin/rloader.s:	loader.S $(MAKEDEPS)
 bin/rzloader.s:	loader.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) -DZLOADER -o $@ $<
 
+bin/pxeloader.s:	loader.S $(MAKEDEPS)
+	$(CPP) $(LCONFIG) -DPXELOADER -o $@ $<
+
+bin/pxezloader.s:	loader.S $(MAKEDEPS)
+	$(CPP) $(LCONFIG) -DPXELOADER -DZLOADER -o $@ $<
+
 bin/prloader.s:	loader.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) -DPCI_PNP_HEADER -o $@ $<
 
@@ -298,11 +313,11 @@ bin32/%.o:	%.c $(MAKEDEPS)
 	$(CC32) $(CFLAGS32) -o $@ -c $<
 
 bin32/%.o:	%.S $(MAKEDEPS)
-	$(CPP) $(CFLAGS32) $< | $(AS) $(ASFLAGS32) -o $@
+	$(CPP) $(CFLAGS32) $< | $(AS32) $(ASFLAGS32) -o $@
 
 # general rule for .bin (plain binary loader code), may be overridden
 bin/%.bin:	bin/%.s
-	$(AS) $(ASFLAGS32) -o bin/$*.tmp $<
+	$(AS32) $(ASFLAGS32) -o bin/$*.tmp $<
 	$(OBJCOPY) -O binary bin/$*.tmp $@
 	$(RM) bin/$*.tmp
 
@@ -318,6 +333,16 @@ bin32/%.rom:	bin32/%.img $(RLOADER)
 bin32/%.lzrom:	bin32/%.huf $(RZLOADER)
 	cat $(RZLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -i$(IDENT32) $@
+
+# general rules for normal/compressed PXE images, may be overridden
+bin32/%.pxe:	bin32/%.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $@
+
+bin32/%.lzpxe:	bin32/%.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $@
+
 
 # rules to write the .rom/.lzrom image onto a blank floppy
 # You must give the directory name, e.g. use bin32/rtl8139.lzfd0 as the target.
@@ -366,6 +391,8 @@ clean:
 	$(RM) bin32/*.com
 	$(RM) bin32/*.dsk bin32/*.lzdsk
 	$(RM) bin32/*.lilo bin32/*.lzlilo
+	$(RM) bin32/*.pxe bin32/*.lzpxe
+	$(RM) bin32/*.elf bin32/*.ebi
 
 tarball:
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION

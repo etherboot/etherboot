@@ -49,6 +49,7 @@ char *motd[RFC1533_VENDOR_NUMOFMOTD];
 
 #ifdef	IMAGE_FREEBSD
 int freebsd_howto = 0;
+char freebsd_kernel_env[256];
 #endif
 
 #ifndef	BOOTP_DATA_AT_0x93C00
@@ -78,6 +79,8 @@ static const unsigned char dhcprequest [] = {
 	RFC2132_REQ_ADDR,4,0,0,0,0,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
 	sizeof(struct bootpd_t) / 256, sizeof(struct bootpd_t) % 256,
+	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
+	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
 	/* request parameters */
 	RFC2132_PARAM_LIST,
 #ifdef	IMAGE_FREEBSD
@@ -97,6 +100,9 @@ static const unsigned char dhcprequest [] = {
 	RFC1533_VENDOR_ETHDEV,
 #ifdef	IMAGE_FREEBSD
 	RFC1533_VENDOR_HOWTO,
+	/*
+	RFC1533_VENDOR_KERNEL_ENV,
+	*/
 #endif
 	RFC1533_VENDOR_MNUOPTS, RFC1533_VENDOR_SELECTION,
 	/* 8 MOTD entries */
@@ -173,6 +179,7 @@ done:
 static inline void try_floppy_first(void)
 {
 #if (TRY_FLOPPY_FIRST > 0) && defined (FLOPPY)
+	int i;
 	printf("Trying floppy");
 	disk_init();
 	for (i = TRY_FLOPPY_FIRST; i-- > 0; ) {
@@ -598,7 +605,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 			if (len > TFTP_MAX_PACKET)
 				goto noak;
 			e = p + len;
-			while (*p != '\000' && p < e) {
+			while (*p != '\0' && p < e) {
 				if (!strcasecmp("blksize", p)) {
 					p += 8;
 					if ((packetsize = getdec(&p)) <
@@ -999,6 +1006,13 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 		   any troubles with this but I have without it
 		*/
 		vendorext_isvalid = 1;
+#ifdef FREEBSD_KERNEL_ENV
+		memcpy(freebsd_kernel_env, FREEBSD_KERNEL_ENV,
+		       sizeof(FREEBSD_KERNEL_ENV));
+		/* FREEBSD_KERNEL_ENV had better be a string constant */
+#else
+		freebsd_kernel_env[0]='\0';
+#endif
 #else
 		vendorext_isvalid = 0;
 #endif
@@ -1072,6 +1086,13 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 #ifdef	IMAGE_FREEBSD
 		else if (c == RFC1533_VENDOR_HOWTO)
 			freebsd_howto = ((p[2]*256+p[3])*256+p[4])*256+p[5];
+		else if (c == RFC1533_VENDOR_KERNEL_ENV){
+			if(*(p + 1) < sizeof(freebsd_kernel_env)){
+				memcpy(freebsd_kernel_env,p+2,*(p+1));
+			}else{
+				printf("Only support %d bytes in Kernel Env %d\n",sizeof(freebsd_kernel_env));
+			}
+		}
 #endif
 #ifdef	IMAGE_MENU
 		else if (c == RFC1533_VENDOR_MNUOPTS)
@@ -1103,7 +1124,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 	if (block == 0 && extpath != NULL) {
 		char fname[64];
 		memcpy(fname, extpath+2, TAG_LEN(extpath));
-		fname[(int)TAG_LEN(extpath)] = '\000';
+		fname[(int)TAG_LEN(extpath)] = '\0';
 		printf("Loading BOOTP-extension file: %s\n",fname);
 		download(fname, decode_rfc1533);
 	}
@@ -1143,7 +1164,7 @@ long rfc2131_sleep_interval(int base, int exp)
 	if (!seed) /* Initialize linear congruential generator */
 		seed = currticks() + *(long *)&arptable[ARP_CLIENT].node
 		       + ((short *)arptable[ARP_CLIENT].node)[2];
-	/* simplified version of the LCG given in Bruce Scheier's
+	/* simplified version of the LCG given in Bruce Schneier's
 	   "Applied Cryptography" */
 	q = seed/53668;
 	if ((seed = 40014*(seed-53668*q) - 12211*q) < 0) seed += 2147483563L;
@@ -1161,8 +1182,6 @@ void cleanup(void)
 #endif
 	/* Stop receiving packets */
 	eth_disable();
-	/* Set the card back to it's default state, so it can be found */
-	eth_reset();
 #if	defined(ANSIESC) && defined(CONSOLE_CRT)
 	ansi_reset();
 #endif

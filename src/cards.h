@@ -170,4 +170,9 @@ extern struct nic	*sis900_probe(struct nic *, unsigned short *
         PCI_ARG(struct pci_device *));
 #endif
 
+#ifdef	INCLUDE_NATSEMI
+extern struct nic	*natsemi_probe(struct nic *, unsigned short *
+        PCI_ARG(struct pci_device *));
+#endif
+
 #endif	/* CARDS_H */

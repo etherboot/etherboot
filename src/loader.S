@@ -16,10 +16,22 @@
  */
 #endif
 
+#ifdef	PXELOADER
+#ifdef	PCI_PNP_HEADER
+#error Cannot have PXELOADER and PCI_PNP_HEADER
+#endif
+#endif
+
 /* This provides for execution at 0x88000 to avoid disk-on-chip drivers */
 #undef	NOT_AT_0x9xxxx
 #if	(RELOC & 0xF0000) != 0x90000
 #define NOT_AT_0x9xxxx
+#else
+#ifdef	PXELOADER
+/* also don't depend on the amount of memory int 12 reports as it has been 
+   decreased by PXE and not increased again even after releasing it */
+#define NOT_AT_0x9xxxx
+#endif / * PXELOADER */
 #define	MAX_SP	((RELOC & 0xF0000) + 0x10000 - RELOC)
 /* e.g. RELOC = 0x84000, MAX_SP = 0x90000 - 0x84000 = 0xC000 */
 #endif
@@ -63,11 +75,12 @@
 #define SCRATCHVEC	0x300
 
 /* Offsets of words containing ROM's CS and size (in 512 byte blocks)
- * from start of floppy boot block at 0x7C00
+ * from start of floppy boot block at 0x7c00
+ * Offsets must match those in etherboot.h
  */
-#define FLOPPY_SEGMENT	0x7C0
-#define ROM_SEGMENT	506
-#define ROM_LENGTH	508
+#define FLOPPY_SEGMENT	0x7c0
+#define ROM_SEGMENT	0x1fa
+#define ROM_LENGTH	0x1fc
 
 /* Do not change these values unless you really know what you are doing
  * the pre-computed lookup tables rely on the buffer size being 4kB or
@@ -84,8 +97,10 @@
 
 	.text
 	.code16
-	
+	.org 0
+
 _start: 
+#ifndef	PXELOADER
 	.word 0xAA55			/* BIOS extension signature */
 size:	.byte 0				/* number of 512 byte blocks */
 					/* = number of 256 word blocks */
@@ -186,6 +201,126 @@ legacyentry:
 	jmp	blockmove
 pnpentry:
 	movw	$0,%ax
+#else /* PXELOADER */
+#define PXENV_UNDI_SHUTDOWN	0x05
+#define PXENV_UNLOAD_STACK	0x70
+	jmp	startpxe
+size:	.byte 64			/* number of 512 byte blocks */
+					/* PXE will not load more than 32K */
+					/* so this should be <= 64 */
+					/* filled in by makerom program */
+startpxe:
+	jmp	$FLOPPY_SEGMENT, $n-_start
+n:
+	movw	%sp, %bp
+
+	push	%cs
+	pop	%ds
+	
+	movw	$hellomsgend-hellomsg, %cx
+	movw	$hellomsg-_start, %si
+	movw	$0x0007, %bx			/* page 0, attribute 7 (normal) */
+	movb	$0x0e, %ah			/* write char, tty mode */
+prloop_hellomsg: 
+	lodsb
+	int	$0x10
+	loop	prloop_hellomsg
+	
+	movw	$MAGIC,%ax
+	jmp	pxefind
+hellomsg:
+	.ascii	"PXE loader for etherboot"
+#if	defined(ZLOADER) 
+	.ascii	"(with ZLOADER)"
+#endif
+	.ascii	"\r\n"
+hellomsgend: 
+pxe_undi_shutdown_pkt:
+	.word	0
+pxe_unload_stack_pkt:
+	.word	0
+	.word	0,0,0,0,0
+PXEEntry:
+	.word	0,0
+pxefind:
+	les	4(%bp), %di		/* !PXE structure */
+	cmpl	$0x45585021, %es:(%di)	/* '!PXE' signature */
+	je	have_pxe
+	movl	$0x202b564e, pxemsg2-_start /* 'NV+ ' */
+	mov	$0x5650, %ax
+	int	$0x1a
+	jc	no_pxe
+	cmp	$0x564e, %ax
+	jne	no_pxe
+
+	cmpl	$0x4e455850, %es:(%bx)	/* 'PXEN' signature */
+	jne	no_pxe
+	cmpw	$0x2b56, %es:4(%bx)	/* 'V+' signature */
+	jne	no_pxe
+	mov	%bx, %cs:PXEEntry  -_start /* save them in case we use PXENV+ */
+	mov	%es, %cs:PXEEntry+2-_start
+	cmpw	$0x201, %es:6(%bx)	/* API version 2.1 or higher */
+	jae	get_pxe			/* otherwise use PXENV+ */
+use_pxenv:
+	les	%es:0x0a(%bx), %di
+	mov	%di, %cs:PXEEntry  -_start
+	mov	%es, %cs:PXEEntry+2-_start
+	push	%ds
+	pop	%es
+	mov	$pxe_undi_shutdown_pkt, %di
+	mov	$PXENV_UNDI_SHUTDOWN, %bx
+	lcall	%cs:(PXEEntry-_start)
+	mov	$pxe_unload_stack_pkt, %di
+	mov	$PXENV_UNLOAD_STACK, %bx
+	lcall	%cs:(PXEEntry-_start)
+	jmp	pxe
+get_pxe:
+	les	%es:0x28(%bx), %di
+	cmpl	$0x45585021, %es:(%di)	/* '!PXE' signature */
+	jne	no_pxe
+	jmp	have_pxe
+/*	mov	%cs:PXEEntry+2-_start, %bx /* restore PXENV+ */
+/*	mov	%bx, %es
+	mov	%cs:PXEEntry  -_start, %bx
+	jmp	use_pxenv */
+have_pxe:
+	les	%es:0x10(%di), %di
+	mov	%di, %cs:PXEEntry  -_start
+	mov	%es, %cs:PXEEntry+2-_start
+
+	pushw	%cs
+	pushw	$pxe_undi_shutdown_pkt
+	pushw	$PXENV_UNDI_SHUTDOWN
+	lcall	%cs:(PXEEntry-_start)
+	add	$6, %sp
+	pushw	%cs
+	pushw	$pxe_unload_stack_pkt
+	pushw	$PXENV_UNLOAD_STACK
+	lcall	%cs:(PXEEntry-_start)
+	add	$6, %sp
+
+pxe:	movw	$pxemsg-_start+3, %si
+	movw	$pxemsgend-pxemsg-3, %cx
+	jmp	pxe_print
+no_pxe:
+	movw	$pxemsg-_start, %si
+	movw	$pxemsgend-pxemsg, %cx
+pxe_print:
+	movw	$0x0007, %bx			/* page 0, attribute 7 (normal) */
+	movb	$0x0e, %ah			/* write char, tty mode */
+prloop_pxemsg: 
+	lodsb
+	int	$0x10
+	loop	prloop_pxemsg
+	
+	movw	$MAGIC,%ax
+	jmp	blockmove
+pxemsg:
+	.ascii	"No PXE"
+pxemsg2:
+	.ascii	"    unloaded\r\n"
+pxemsgend:
+#endif /* PXELOADER*/
 blockmove: 
 	pushw	%ax			/* indicates whether PnP or legacy */
 /* The following copy is a bit convoluted to save source code, so here a few
@@ -207,6 +342,17 @@ blockmove:
 	movw	%ax, ROM_SEGMENT
 	movw	%cx, ROM_LENGTH
 	popw	%ds			/* restore DS */
+
+/* PXE loads this code in FLOPPY_SEGMENT so we have to leave some room
+   or it will clobber code */
+#ifdef	PXELOADER
+	jmp	endrominfo
+	.org	ROM_SEGMENT
+	.word	0
+	.word	0
+	.word	0xAA55			/* bootblock signature */
+endrominfo:
+#endif	/* PXELOADER */
 
 #if	!defined(ZLOADER) || defined(MOVEROM)
 	cld

@@ -319,7 +319,7 @@ static int lance_poll(struct nic *nic)
 	outw(0x500, ioaddr+LANCE_DATA);		/* clear receive + InitDone */
 
 	/* Switch to the next Rx ring buffer */
-	ringno = (++ringno) & RX_RING_MOD_MASK;
+	ringno = (ringno + 1) & RX_RING_MOD_MASK;
 
 	return (status == 0x3);
 }

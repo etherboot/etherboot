@@ -22,6 +22,7 @@
  */
 
 #define PCI_COMMAND_IO			0x1	/* Enable response in I/O space */
+#define PCI_COMMAND_MEM			0x2	/* Enable response in mem space */
 #define PCI_COMMAND_MASTER		0x4	/* Enable bus mastering */
 #define PCI_LATENCY_TIMER		0x0d	/* 8 bits */
 
@@ -158,6 +159,8 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_SIS7016    	0x7016  
 #define	PCI_VENDOR_ID_DLINK		0x1186
 #define	PCI_DEVICE_ID_DFE530TXP		0x1300
+#define	PCI_VENDOR_ID_NS		0x100B
+#define	PCI_DEVICE_ID_DP83815		0x0020
 
 struct pci_device {
 	unsigned short	vendor, dev_id;
@@ -174,5 +177,6 @@ extern int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn, un
 extern int pcibios_write_config_byte (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned char value);
 extern int pcibios_read_config_word(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned short *value);
 extern int pcibios_write_config_word (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned short value);
+extern int pcibios_read_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int *value);
 extern int pcibios_write_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int value);
 #endif	/* PCI_H */

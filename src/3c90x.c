@@ -685,8 +685,26 @@ a3c90x_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci
     unsigned int mopt;
     unsigned short linktype;
 
+    unsigned short pci_command;
+    unsigned short new_command;
+    unsigned char pci_latency;
+
     if (probeaddrs == 0 || probeaddrs[0] == 0)
           return 0;
+
+    /* Make certain the card is properly set up as a bus master. */
+    pcibios_read_config_word(pci->bus, pci->devfn, PCI_COMMAND, &pci_command);
+    new_command = pci_command | PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
+    if (pci_command != new_command) {
+	    printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %x->%x. pci_bus %x pci_device_fn %x\n",
+		    pci_command, new_command, pci->bus, pci->devfn);
+	    pcibios_write_config_word(pci->bus, pci->devfn, PCI_COMMAND, new_command);
+    }
+    pcibios_read_config_byte(pci->bus, pci->devfn, PCI_LATENCY_TIMER, &pci_latency);
+    if (pci_latency < 32) {
+	    printf("\nPCI latency timer (CFLT) is unreasonably low at %d. Setting to 32 clocks.\n", pci_latency);
+	    pcibios_write_config_byte(pci->bus, pci->devfn, PCI_LATENCY_TIMER, 32);
+    }
 
     INF_3C90X.IOAddr = probeaddrs[0] & ~3;
     INF_3C90X.CurrentWindow = 255;
