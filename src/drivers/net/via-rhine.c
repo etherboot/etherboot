@@ -22,6 +22,9 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 
 /* A few user-configurable values. */
 
+// max time out delay time
+#define W_MAX_TIMEOUT	0x0FFFU
+
 /* Size of the in-memory receive ring. */
 #define RX_BUF_LEN_IDX	3	/* 0==8K, 1==16K, 2==32K, 3==64K */
 #define RX_BUF_LEN (8192 << RX_BUF_LEN_IDX)
@@ -46,6 +49,7 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
+#include "timer.h"
 
 /* define all ioaddr */
 
@@ -352,6 +356,7 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 #define CFGD_GPIOEN		0x80
 #define CFGD_DIAG		0x40
 #define CFGD_MAGIC		0x10
+#define CFGD_RANDOM		0x08
 #define CFGD_CFDX		0x04
 #define CFGD_CEREN		0x02
 #define CFGD_CETEN		0x01
@@ -416,6 +421,9 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 #define TX_RING_SIZE		2
 #define RX_RING_SIZE		2
 #define PKT_BUF_SZ		1536	/* Size of each temporary Rx buffer. */
+
+#define PCI_REG_MODE3		0x53
+#define MODE3_MIION		0x04    /* in PCI_REG_MOD3 OF PCI space */
 
 enum rhine_revs {
     VT86C100A       = 0x00,
@@ -670,7 +678,7 @@ static struct rhine_private
 }
 rhine;
 
-static void rhine_probe1 (struct nic *nic, int revision_id, int ioaddr,
+static void rhine_probe1 (struct nic *nic, struct pci_device *pci, int ioaddr,
 				 int chip_id, int options);
 static int QueryAuto (int);
 static int ReadMII (int byMIIIndex, int);
@@ -931,14 +939,11 @@ void rhine_irq ( struct nic *nic, irq_action_t action ) {
 static int
 rhine_probe (struct dev *dev, struct pci_device *pci)
 {
+    struct rhine_private *tp;
     struct nic *nic = (struct nic *)dev;
-    struct rhine_private *tp = &rhine;
-    uint8_t revision_id;    
     if (!pci->ioaddr)
 	return 0;
-    // get revision id.
-    pci_read_config_byte(pci, PCI_REVISION, &revision_id);
-    rhine_probe1 (nic, revision_id, pci->ioaddr, pci->dev_id, -1);
+    rhine_probe1 (nic, pci, pci->ioaddr, pci->dev_id, -1);
 
     adjust_pci_device(pci);
     rhine_reset (nic);
@@ -968,20 +973,25 @@ static void set_rx_mode(struct nic *nic __unused) {
 }
 
 static void
-rhine_probe1 (struct nic *nic, int revision_id, int ioaddr, int chip_id, int options)
+rhine_probe1 (struct nic *nic, struct pci_device *pci, int ioaddr, int chip_id, int options)
 {
     struct rhine_private *tp;
     static int did_version = 0;	/* Already printed version info. */
-    int i;
+    int i, ww;
     unsigned int timeout;
     int FDXFlag;
     int byMIIvalue, LineSpeed, MIICRbak;
+    uint8_t revision_id;    
+    unsigned char mode3_reg;
 
     if (rhine_debug > 0 && did_version++ == 0)
 	printf (version);
 
+    // get revision id.
+    pci_read_config_byte(pci, PCI_REVISION, &revision_id);
+
     /* D-Link provided reset code (with comment additions) */
-    if((chip_id != 0x3043) && (chip_id != 0x6100)) {
+    if (revision_id >= 0x40) {
 	unsigned char byOrgValue;
 	
 	if(rhine_debug > 0)
@@ -1002,6 +1012,43 @@ rhine_probe1 (struct nic *nic, int revision_id, int ioaddr, int chip_id, int opt
 	
     }
 
+    /* Reset the chip to erase previous misconfiguration. */
+    outw(CR_SFRST, byCR0);
+    // if vt3043 delay after reset
+    if (revision_id <0x40) {
+       udelay(10000);
+    }
+    // polling till software reset complete
+    // W_MAX_TIMEOUT is the timeout period
+    for(ww = 0; ww < W_MAX_TIMEOUT; ww++) {
+        if ((inw(byCR0) & CR_SFRST) == 0)
+		break;
+        }
+
+    // issue AUTOLoad in EECSR to reload eeprom
+    outb(0x20, byEECSR );
+
+    // if vt3065 delay after reset
+    if (revision_id >=0x40) {
+	// delay 8ms to let MAC stable
+	mdelay(8);
+        /*
+         * for 3065D, EEPROM reloaded will cause bit 0 in MAC_REG_CFGA
+         * turned on.  it makes MAC receive magic packet
+         * automatically. So, we turn it off. (D-Link)
+         */
+         outb(inb(byCFGA) & 0xFE, byCFGA);
+    }
+
+    /* turn on bit2 in PCI configuration register 0x53 , only for 3065*/
+    if (revision_id >= 0x40) {
+        pci_read_config_byte(pci, PCI_REG_MODE3, &mode3_reg);
+        pci_write_config_byte(pci, PCI_REG_MODE3, mode3_reg|MODE3_MIION);
+    }
+
+
+    /* back off algorithm ,disable the right-most 4-bit off CFGD*/
+    outb(inb(byCFGD) & (~(CFGD_RANDOM | CFGD_CFDX | CFGD_CEREN | CFGD_CETEN)), byCFGD);
 
     /* Perhaps this should be read from the EEPROM? */
     for (i = 0; i < ETH_ALEN; i++)
