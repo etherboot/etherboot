@@ -2244,3 +2244,25 @@ This release is dedicated to the memory of my mother (July 1917 -
 November 2001) [Ken Yap].
 
 Released as Etherboot 5.0.5 (production)
+
++ Changes to enable fa311too driver which were overlooked in 5.0.5.
+
++ Chien-Yu Chen sent in patches to support the SiS630ET. Independently,
+Doug Ambrisko made the same changes. Marty Connor tidied the patches.
+
++ In misc.c, when enabling/disabling Gate A20, call int 0x15 with
+ax=0x240x to do handling first, and if that is not supported, fall back
+to using the keyboard controller. Hopefully this will solve Gate A20
+problems for recent BIOSes.
+
++ Add missing entry to config.c for the Macronix 98713 (device ID
+0x512). But latest report is that it doesn't transmit. Anybody wanna
+debug?
+
++ Omit test for pointer to $PnP string for ISA NIC images, it may
+trigger false recognition of a PnP ROM. Just use legacy mode.
+
++ Merged in Christopher Li's Intel E1000 gigabit Ethernet driver.
+
++ RISKO Gergely found that the ADMTek Comet 983 works with the tulip
+driver if you provide the right PCI IDs.
