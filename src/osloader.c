@@ -483,6 +483,10 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 	/* Memory location where we are supposed to save it */
 	tctx.segaddr = tctx.linlocation = 
 		((tctx.img.u.segoff.ds) << 4) + tctx.img.u.segoff.bx;
+	if (!prep_segment(tctx.segaddr, tctx.segaddr + 512, tctx.segaddr + 512,
+			  0, 512)) {
+		return 0;
+	}
 	/* Grab a copy */
 	memcpy(phys_to_virt(tctx.segaddr), data, 512);
 	/* Advance to first segment descriptor */
@@ -568,6 +572,7 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 			tctx.segflags = sh.flags;
 			tctx.segaddr += ((sh.length & 0x0F) << 2)
 				+ ((sh.length & 0xF0) >> 2);
+			if ( sh.length == 0 ) return 0; /* Avoid lock-up */
 		}
 		i = (tctx.seglen > len) ? len : tctx.seglen;
 		memcpy(phys_to_virt(curaddr), data, i);
