@@ -310,6 +310,7 @@ a3c90x_internal_ReadEeprom(int ioaddr, int address)
     }
 
 
+#if 0
 /*** a3c90x_internal_WriteEepromWord - write a physical word of
  *** data to the onboard serial eeprom (not the BIOS prom, but the
  *** nvram in the card that stores, among other things, the MAC
@@ -343,8 +344,9 @@ a3c90x_internal_WriteEepromWord(int ioaddr, int address, unsigned short value)
 
     return 0;
     }
+#endif
 
-
+#if 0
 /*** a3c90x_internal_WriteEeprom - write data to the serial eeprom,
  *** and re-compute the eeprom checksum.
  ***/
@@ -383,8 +385,7 @@ a3c90x_internal_WriteEeprom(int ioaddr, int address, unsigned short value)
 
     return 0;
     }
-
-
+#endif
 
 /*** a3c90x_reset: exported function that resets the card to its default
  *** state.  This is so the Linux driver can re-set the card up the way
@@ -598,7 +599,7 @@ a3c90x_transmit(struct nic *nic __unused, const char *d, unsigned int t,
  *** in nic->packetlen.  Return 1 if a packet was found.
  ***/
 static int
-a3c90x_poll(struct nic *nic)
+a3c90x_poll(struct nic *nic, int retrieve)
     {
     int i, errcode;
 
@@ -606,6 +607,8 @@ a3c90x_poll(struct nic *nic)
 	{
 	return 0;
 	}
+
+    if ( ! retrieve ) return 1;
 
     /** we don't need to acknowledge rxComplete -- the upload engine
      ** does it for us.
@@ -669,7 +672,17 @@ a3c90x_disable(struct dev *dev __unused)
 	outw(cmdTxDisable, INF_3C90X.IOAddr + regCommandIntStatus_w);
 }
 
-
+static void a3c90x_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
 
 /*** a3c90x_probe: exported routine to probe for the 3c905 card and perform
  *** initialization.  If this routine is called, the pci functions did find the
@@ -690,6 +703,9 @@ static int a3c90x_probe(struct dev *dev, struct pci_device *pci)
           return 0;
 
     adjust_pci_device(pci);
+
+    nic->ioaddr = pci->ioaddr & ~3;
+    nic->irqno = 0;
 
     INF_3C90X.IOAddr = pci->ioaddr & ~3;
     INF_3C90X.CurrentWindow = 255;
@@ -937,6 +953,7 @@ static int a3c90x_probe(struct dev *dev, struct pci_device *pci)
     dev->disable  = a3c90x_disable;
     nic->poll     = a3c90x_poll;
     nic->transmit = a3c90x_transmit;
+    nic->irq      = a3c90x_irq;
 
     return 1;
 }
