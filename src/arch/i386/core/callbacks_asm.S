@@ -11,7 +11,9 @@
 /* FIXME: remove these once we have relocated _gdt */
 #define KERN_CODE_SEG (0x08)
 #define KERN_DATA_SEG (0x10)
-
+#define FLAT_CODE_SEG (0x28)
+#define FLAT_DATA_SEG (0x30)
+	
 #undef CODE16
 #if defined(PCBIOS) || defined(TAGGED_IMAGE)
 #define	CODE16
@@ -27,13 +29,9 @@
 /****************************************************************************
  * _v_ext_call
  *
- * Call to an external routine.  Has the capability to pass in and out
- * register and stack contents, relocate stack to a new address,
- * switch and restore GDT etc.
- *
- * Note: this code does handle temporarily disabling of interrupts.
- * However, for now at least, interrupts are always disabled anyway
- * while in protected mode since we don't set up an IDT.
+ * Call to an external routine using flat physical addresses.  Has the
+ * capability to pass in and out register and stack contents, relocate
+ * stack to a new address, use a trampoline routine on the stack etc.
  ****************************************************************************
  */
 
@@ -47,11 +45,16 @@
 #define EC_SIG_TRAMPOLINE ( EC_SIG_STACK + 4 )
 #define EC_SIG_SIG2 ( EC_SIG_TRAMPOLINE + 4 )
 #define EC_SIGBLOCK_LENGTH ( EC_SIG_SIG2 + 4 )
+#define EC_SIG_TRAMPOLINE_RET ( EC_SIG_SIG1 - 8 )
+#define EC_SIG_PARAMS_TOP ( EC_SIG_TRAMPOLINE_RET )
 #define EC_OFFSET_CALLPRESERVE ( EC_OFFSET_SIGBLOCK + EC_SIGBLOCK_LENGTH )
 #define EC_CALLPRESERVE_LENGTH (16)
 #define EC_OFFSET_RETADDR ( EC_OFFSET_CALLPRESERVE + EC_CALLPRESERVE_LENGTH )
 #define EC_RETADDR_LENGTH (4)
 #define EC_OFFSET_ARGUMENTS ( EC_OFFSET_RETADDR + EC_RETADDR_LENGTH )
+#define EC_OFFSET_CALLADDR ( EC_OFFSET_ARGUMENTS )
+#define EC_OFFSET_CALLADDR_E ( EC_OFFSET_ARGUMENTS + 4 )
+#define EC_OFFSET_ARG_LIST ( EC_OFFSET_CALLADDR_E )
 
 /* Offsets from current %esp */
 /* Outgoing structure */
@@ -83,6 +86,7 @@ _v_ext_call:
 	 * stack_ptr		%ebp + EC_SIG_STACK
 	 * length		%ebp + EC_SIG_LENGTH
 	 * EC_SIGNATURE		%ebp + EC_SIG_SIG1 ( = %ebp + 0 )
+	 * trampoline_return	%ebp + EC_SIG_TRAMPOLINE_RET ( = %ebp - 8 )
 	 * ext_params		%esp + EC_OFFSET_PARAMS
 	 * addresses		%esp + EC_OFFSET_ADDRESSES
 	 * seg_registers	%esp + EC_OFFSET_SEG_REGS
@@ -99,15 +103,22 @@ _v_ext_call:
 	 * which the stack should be copied back).  Address is the top
 	 * of the stack (i.e. %ebp + EC_SIGBLOCK_LENGTH).
 	 *
+	 * trampoline_return : 8 bytes reserved at the end of
+	 * ext_params.  The far return address is stored at the end of
+	 * ext_params when a trampoline is used, enabling the
+	 * trampoline to discard the return address at the head of the
+	 * stack if necessary.  Note that the return address is stored
+	 * to follow immediately from the end of the trampoline code.
+	 * 
 	 * ext_params : Parameters to pass on stack to external call.
 	 * "length" indicates the length of this data, which may not
 	 * be a multiple of 4.  The bottom of ext_params is kept
 	 * aligned, i.e. there is padding at the top.
 	 *
 	 * addresses : return and call addresses.  Always 4 dwords.
-	 * For a near call, these are (return address, call address,
-	 * 0, call address); for a far call (return segment, return
-	 * address, call segment, call address).
+	 * For a near call, these are (return address, flat code
+	 * segment, call address, 0); for a far call (flat code
+	 * segment, return address, call segment, call address).
 	 *
 	 * seg_registers : segment registers to set up before calling
 	 * to external routine.  %cs and %ss are dealt with
@@ -128,27 +139,32 @@ _v_ext_call:
 	movl	$EC_SIGNATURE, %eax
 	xorl	%ecx, %ecx
 	movl	%esp, %ebx
-	pushl	%eax		/* Signature */
-	pushl	%ecx		/* trampoline */
-	pushl	%ebx		/* stack_ptr */
-	pushl	%ecx		/* length */
-	pushl	%eax		/* Signature */
-	movl	%esp, %ebp	/* and preserve stack position in %ebp */
+	addl	virt_offset, %ebx
+	pushl	%eax			/* Signature */
+	pushl	%ecx			/* trampoline */
+	pushl	%ebx			/* stack_ptr (physical) */
+	pushl	%ecx			/* length */
+	pushl	%eax			/* Signature */
+	movl	%esp, %ebp		/* and set %ebp */
 
-	/* Save default addresses for a near call */
+	/* Store values in trampoline_return */
 	leal	ec_return, %eax
-	pushl	%eax		/* Near return address */
-	pushl	(EC_OFFSET_SIGBLOCK+EC_OFFSET_ARGUMENTS)(%ebp)
-				/* Near call address */
+	addl	virt_offset, %eax	/* %eax = physical return address */
+	movl	$FLAT_CODE_SEG, %ecx
+	pushl	%ecx			/* Far return address */
+	pushl	%eax
+
+	/* Save default addresses for a 'near' call */
+	pushl	%eax			/* Near return address */
+	pushl	%ecx			/* Far call segment */
+	pushl	EC_OFFSET_CALLADDR(%ebp) /* Call address */
 	xorl	%eax, %eax
-	pushl	%eax		/* 0 (indicating near call) */
-	pushl	(EC_OFFSET_SIGBLOCK+EC_OFFSET_ARGUMENTS)(%ebp)
-				/* Near call address */
+	pushl	%eax			/* 0 (indicating 'near' call) */
 
 	/* Save segment registers.  Order matches the seg_regs_t
 	 * struct in callbacks.h
 	 */
-	pushw	%ax		/* %cs = 0 => "near call" */
+	pushw	%ax			/* %cs = 0 => "near call" */
 	pushw	%ss
 	pushw	%ds
 	pushw	%es
@@ -165,11 +181,8 @@ _v_ext_call:
 	pushfl
 
 	/* Set %ebx to point to first argument in list */
-	movl	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
+	movl	EC_OFFSET_ARG_LIST(%ebp), %ebx
 	
-	/* Mask interrupts around non-reentrant code */
-	cli
-
 	/* Ensure that movsb etc work as expected */
 	cld
 
@@ -177,7 +190,7 @@ _v_ext_call:
 process_ec_params:
 	movl	0(%ebx), %eax		/* %eax = type */
 	addl	$4, %ebx
-	cmpw	$EXTCALL_END_LIST, %ax
+	cmpl	$EXTCALL_END_LIST, %eax
 	je	process_ec_params_done
 	cmpl	$EXTCALL_NONE, %eax
 	je	process_ec_params
@@ -185,8 +198,6 @@ process_ec_params:
 	je	process_ec_params_registers
 	cmpl	$EXTCALL_SEG_REGISTERS, %eax
 	je	process_ec_params_seg_registers
-	cmpl	$EXTCALL_GDT, %eax
-	je	process_ec_params_gdt
 	cmpl	$EXTCALL_STACK, %eax
 	je	process_ec_params_stack
 	cmpl	$EXTCALL_RET_STACK, %eax
@@ -196,15 +207,11 @@ process_ec_params:
 	cmpl	$EXTCALL_TRAMPOLINE, %eax
 	je	process_ec_params_trampoline
 	/* fall through to error */
-process_ec_params_error: 
-	/* Lockup machine.  Drastic, but since we may have reloaded
-	 * the GDT already, there's not a lot else we can safely do.
-	 * If the parameters pass the checks in _ext_call_check() then
-	 * this should never happen anyway.  We re-enable interrupts
-	 * so that Ctrl-Alt-Del works.
-	 */
-	sti
-1:	jmp	1b
+process_ec_params_error:
+	/* Return -1 to indicate an error */
+	xorl	%eax, %eax
+	decl	%eax
+	jmp	ec_return_to_etherboot
 process_ec_params_registers:
 	/* Copy registers from C structure to our register store on
 	 * stack (i.e. replace the contents of the pushal that we
@@ -222,63 +229,33 @@ process_ec_params_seg_registers:
 	movl	$NUM_SEG_REGS, %ecx
 	leal	EC_OFFSET_SEG_REGS(%esp), %edi
 	rep movsw
-	/* Recalculate return address based on new CS (fall-through) */
-ec_recalc_addresses:
 	/* Check code segment register, set near/far call addresses */
-	call	1f
-1:	popl	%eax
-	subl	$1b, %eax		/* %eax = current offset */
-	leal	ec_return(%eax), %ecx	/* %ecx = return address */
-	movl	(EC_OFFSET_ARGUMENTS)(%ebp), %edx /* %edx = call address */
+	leal	ec_return, %esi		/* %esi = return address */
+	addl	virt_offset, %esi	/* %esi = physical return address */
+	movl	EC_OFFSET_CALLADDR(%ebp), %edi /* %edi = call address */
 	movzwl	(EC_OFFSET_SEG_REGS+10)(%esp), %eax /* %eax = '%cs' */
+	movl	$FLAT_CODE_SEG, %ecx	/* %ecx = flat code seg */
 	testl	%eax, %eax
 	jne	1f
-	/* near call */
-	movl	%edx, (EC_OFFSET_ADDRESSES+0)(%esp)	/* call address */
-	movl	%eax, (EC_OFFSET_ADDRESSES+4)(%esp)	/* zero */
-	movl	%edx, (EC_OFFSET_ADDRESSES+8)(%esp)	/* call address */
-	movl	%ecx, (EC_OFFSET_ADDRESSES+12)(%esp)	/* return address */
+	/* 'near' call */
+	movl	%eax, (EC_OFFSET_ADDRESSES+0)(%esp)	/* zero */
+	movl	%edi, (EC_OFFSET_ADDRESSES+4)(%esp)	/* call address */
+	movl	%ecx, (EC_OFFSET_ADDRESSES+8)(%esp)	/* flat code segment */
+	movl	%esi, (EC_OFFSET_ADDRESSES+12)(%esp)	/* return address */
 	jmp	process_ec_params
 1:	/* far call */
-	movl	%edx, (EC_OFFSET_ADDRESSES+0)(%esp)	/* call address */
+	movl	%edi, (EC_OFFSET_ADDRESSES+0)(%esp)	/* call address */
 	movl	%eax, (EC_OFFSET_ADDRESSES+4)(%esp)	/* call segment */
-	pushl	%cs
-	popl	%eax
-	movl	%ecx, (EC_OFFSET_ADDRESSES+8)(%esp)	/* return address */
-	movl	%eax, (EC_OFFSET_ADDRESSES+12)(%esp)	/* return segment */
+	movl	%esi, (EC_OFFSET_ADDRESSES+8)(%esp)	/* return address */
+	movl	%ecx, (EC_OFFSET_ADDRESSES+12)(%esp)	/* return segment */
 	jmp	process_ec_params
-process_ec_params_gdt:
-	movl	0(%ebx), %eax		/* %eax = &gdt */
-	lgdt	(%eax)			/* Load new GDT */
-	/* Calculate eip offset for new CS and ljmp to reload */
-	movl	4(%ebx), %ecx		/* %ecx = replacement %cs */
-	addl	%ecx, %eax		/* %eax = &(code segment descriptor) */
-	movb	7(%eax), %dh
-	movb	4(%eax), %dl
-	shll	$16, %edx
-	movw	2(%eax), %dx		/* %edx = new %cs base address */
-	subl	virt_offset, %edx	/* %edx = offset to new base address */
-	leal	2f, %eax		/* %eax = new %eip for 2f */
-	subl	%edx, %eax
-	pushl	%ecx			/* new %cs */
-	pushl	%eax			/* new %eip */
-	lret				/* and ljmp */
-2:	/* Don't reset the segment registers yet; they will be
-	 * reloaded just before the external call.  For now, we still
-	 * want to be able to access the Etherboot data and stack
-	 * segments.  Interrupts are disabled so we're safe doing
-	 * this.
-	 */
-	addl	$8, %ebx
-	/* Recalculate return address based on new CS */
-	jmp	ec_recalc_addresses
 process_ec_params_stack:
 	/* Move data currently on stack down to accommodate new data */
 	movl	EC_SIG_LENGTH(%ebp), %ecx /* %ecx = current data length */
 	movl	4(%ebx), %edx		/* %edx = extra data length */
 	addl	$EC_OFFSET_PARAMS, %ecx	/* %ecx = total data len to copy */
 	movl	%esp, %esi		/* Source location */
-	movl	%ebp, %edi
+	leal	EC_SIG_PARAMS_TOP(%ebp), %edi
 	subl	%ecx, %edi
 	subl	%edx, %edi
 	andl	$~0x3, %edi		/* Destination location */
@@ -320,10 +297,17 @@ process_ec_params_done:
 	 * function.
 	 */
 
+	/* Switch to flat physical stack segment, adjust %esp and %ebp */
+	movl	$FLAT_DATA_SEG, %eax
+	movl	virt_offset, %ebx
+	movw	%ax, %ss
+	addl	%ebx, %esp
+	addl	%ebx, %ebp
+	/* %ax = stack segment */
+	
 	/* Copy stack to new location indicated by stack_ptr, reset
 	 * %ss:esp to point to it.
 	 */
-	movw	(EC_OFFSET_SEG_REGS+8)(%esp), %ax
 	movw	%ax, %es		/* %es = new %ss */
 	movl	%esp, %esi		/* %esi = &(original stack) */
 	leal	EC_SIGBLOCK_LENGTH(%ebp), %edi /* %edi = &(orig. stack top) */
@@ -334,33 +318,34 @@ process_ec_params_done:
 	subl	%ecx, %edi		/* %es:edi = &(new stack) */
 	movl	%edi, %esp		/* Set new %esp */
 	rep ss movsb			/* Copy stack */
-	movw	%ax, %ss		/* Set new %ss */
 	leal	(-EC_SIGBLOCK_LENGTH)(%edi), %ebp /* Set new %ebp */
 
-	/* Check for null call address => use trampoline, edit call
-	 * address as appropriate.
+	/* Check for use of trampoline, edit call address as
+	 * appropriate.
 	 */
-	cmpl	$0, (EC_OFFSET_ADDRESSES+0)(%esp)
-	jne	1f			/* No trampoline */
-	/* Zero call address indicates use of trampoline code */
-	movl	%ss:EC_SIG_TRAMPOLINE(%ebp), %eax
-					/* %eax = (trampoline-params) */
+	movl	EC_SIG_TRAMPOLINE(%ebp), %eax /* %eax = (trampoline-params) */
+	testl	%eax, %eax
+	je	2f			/* No trampoline */
+	/* Align trampoline return address to end of trampoline code */
+	leal	EC_SIG_TRAMPOLINE_RET(%ebp), %esi
+	leal	EC_OFFSET_PARAMS(%esp), %edi
+	addl	EC_SIG_LENGTH(%ebp), %edi
+	movl	$8, %ecx
+	rep ss movsb
+	/* Set trampoline address as call address */
 	addl	$EC_OFFSET_PARAMS, %eax	/* %eax = (trampoline-%esp) */
 	addl	%esp, %eax		/* %eax = trampoline address */
-	/* Note: we are requiring that cs and ss have same base
-	 * address when using trampoline code
-	 */
-	movl	%eax, (EC_OFFSET_ADDRESSES+0)(%esp)
-	cmpl	$0, (EC_OFFSET_ADDRESSES+4)(%esp)
+	movl	(EC_OFFSET_ADDRESSES+0)(%esp), %ecx
+	testl	%ecx, %ecx
 	jne	1f
-	/* Near call only: update near call address field */
-	movl	%eax, (EC_OFFSET_ADDRESSES+8)(%esp)
-1:
+	/* 'near' call */
+	movl	%eax, (EC_OFFSET_ADDRESSES+4)(%esp)
+	jmp	2f
+1:	/* far call */
+	movl	%eax, (EC_OFFSET_ADDRESSES+0)(%esp)
+2:
 
-	/* Restore flags.  (It is safe to do this; cs and ss are
-	 * already reloaded, and we don't use the other segment
-	 * registers before they get reloaded anyway.)
-	 */
+	/* Restore flags. */
 	popfl
 	
 	/* Restore general-purpose registers */
@@ -375,17 +360,11 @@ process_ec_params_done:
 	popw	%ds			/* non-stack variables.		*/
 	addl	$4, %esp		/* Skip ss and cs */
 
-	.globl	extcall_breakpoint
-extcall_breakpoint:	
 	/* Call to routine */
-	cmpl	$0, 4(%esp)
+	cmpl	$0, 0(%esp)
 	jne	1f
-	/* near call */
-
-	addl	$8, %esp		/* Skip the zeroes */
-	ret				/* Do the calculated call */
-1:	/* far call */
-	lret				/* Do the calculated lcall */
+	addl	$4, %esp		/* Near call: skip the zero */
+1:	lret				/* Do the calculated ljmp */
 
 	/* Return point */
 ec_return:
@@ -441,8 +420,8 @@ ec_return:
 	movl	EC_SIG_TRAMPOLINE(%ebp), %ecx /* Trampoline length */
 	testl	%ecx, %ecx
 	jnz	2f
-1:	/* No trampoline: length is &(signature) - (returned %esp) */
-	movl	%ebp, %ecx	/* &(signature) */
+1:	/* No trampoline: calculate length */
+	leal	EC_SIG_PARAMS_TOP(%ebp), %ecx	/* &(signature) */
 	leal	ECR_OFFSET_PARAMS(%esp), %edx /* Returned %esp */
 	subl	%edx, %ecx
 2:	/* Trampoline present: length is just the trampoline offset */
@@ -459,7 +438,6 @@ ec_return:
 	/* Stack aligned, length set as before, structures in place */
 
 	/* Reload GDT, copy back stack and reset segment registers. */
-	pushfw
 	cli			/* Disable interrupts */
 	call	1f
 1:	popl	%eax
@@ -478,17 +456,17 @@ ec_return:
 	movl	%esp, %esi	/* %ss:esi = source address */
 	leal	EC_SIGBLOCK_LENGTH(%ebp), %ecx
 	subl	%esp, %ecx	/* %ecx = stack length */
-	movl	EC_SIG_STACK(%ebp), %edi
+	movl	EC_SIG_STACK(%ebp), %edi /* %edi = phys. stack top */
+	subl	virt_offset, %edi /* %edi = virt. stack stop */
 	movl	%edi, %ebp
 	subl	%ecx, %edi	/* %es:edi = dest address */
 	subl	$EC_SIGBLOCK_LENGTH, %ebp /* New %ebp */
 	movl	%edi, %esp	/* New %esp */
 	rep ss movsb
 	movw	%ax, %ss	/* Reload %ss */
-	popfw			/* Restore interrupt status */
 
 	/* %ebx now points to first parameter in list, as before */
-	movl	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
+	movl	EC_OFFSET_ARG_LIST(%ebp), %ebx
 
 	/* Reprocess argument list */
 process_ecr_params:
@@ -502,8 +480,6 @@ process_ecr_params:
 	je	process_ecr_params_registers
 	cmpl	$EXTCALL_SEG_REGISTERS, %eax
 	je	process_ecr_params_seg_registers
-	cmpl	$EXTCALL_GDT, %eax
-	je	process_ecr_params_gdt
 	cmpl	$EXTCALL_STACK, %eax
 	je	process_ecr_params_stack
 	cmpl	$EXTCALL_RET_STACK, %eax
@@ -514,15 +490,10 @@ process_ecr_params:
 	je	process_ecr_params_trampoline
 	/* fall through to error */
 process_ecr_params_error:
-	/* Lockup machine.  Drastic, but since we may have the wrong
-	 * GDT, there's not a lot else we can safely do.  This should
-	 * only happen if the external routine has corrupted our
-	 * stack, in which case we're going to crash at some point
-	 * anyway; better now when it can be traced rater than at a
-	 * random future point.
-	 */
-	sti
-1:	jmp	1b
+	/* Return -1 to indicate an error */
+	xorl	%eax, %eax
+	decl	%eax
+	jmp	ec_return_to_etherboot
 process_ecr_params_registers:
 	/* Copy registers from register store on stack to C structure */
 	movl	0(%ebx), %edi		/* %edi = &registers */
@@ -540,10 +511,6 @@ process_ecr_params_seg_registers:
 	movl	$NUM_SEG_REGS, %ecx
 	leal	ECR_OFFSET_SEG_REGS(%esp), %esi
 	rep movsw
-	jmp	process_ecr_params
-process_ecr_params_gdt:
-	/* Nothing to do */
-	addl	$8, %ebx
 	jmp	process_ecr_params
 process_ecr_params_stack:
 	/* Nothing to do */
@@ -586,6 +553,7 @@ process_ecr_params_done:
 	 */
 	movl	(ECR_OFFSET_REGISTERS+28)(%esp), %eax
 
+ec_return_to_etherboot:	
 	/* Everything that we want to keep is copied out of the stack
 	 * by now, so discard it, all the way up to above the
 	 * signature block.
