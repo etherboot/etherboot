@@ -90,6 +90,11 @@
 #define PCI_BASE_ADDRESS_4      0x20    /* 32 bits */
 #define PCI_BASE_ADDRESS_5      0x24    /* 32 bits */
 
+#define PCI_BASE_ADDRESS_MEM_TYPE_MASK 0x06
+#define PCI_BASE_ADDRESS_MEM_TYPE_32	0x00	/* 32 bit address */
+#define PCI_BASE_ADDRESS_MEM_TYPE_1M	0x02	/* Below 1M [obsolete] */
+#define PCI_BASE_ADDRESS_MEM_TYPE_64	0x04	/* 64 bit address */
+
 #ifndef	PCI_BASE_ADDRESS_IO_MASK
 #define	PCI_BASE_ADDRESS_IO_MASK       (~0x03)
 #endif
