@@ -269,6 +269,13 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # from getting an IP lease until you have configured DHCPD correctly
 # CFLAGS+=	-DREQUIRE_VCI_ETHERBOOT
 
+# for btext console support
+#CFLAGS+= -DCONSOLE_BTEXT 
+# for direct PC kbd support 
+#CFLAGS+= -DCONSOLE_PC_KBD
+# for FILO support it will make main call pci_init
+#CFLAGS+= -DCONFIG_FILO
+
 # Enabling this causes Etherboot to ignore Etherboot-specific options
 # that are not within an Etherboot encapsulated options field.
 # This option should be enabled unless you have a legacy DHCP server

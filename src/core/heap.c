@@ -102,6 +102,29 @@ void *allot(size_t size)
 	return ptr;
 }
 
+//if mask = 0xf, it will be 16 byte aligned
+//if mask = 0xff, it will be 256 byte aligned
+//For DMA memory allocation, because it has more reqiurement on alignment
+void *allot2(size_t size, uint32_t mask)
+{
+        void *ptr;
+        size_t *mark, addr;
+	uint32_t *mark1;
+        
+	addr = ((heap_ptr - size ) &  ~mask) - sizeof(size_t) - sizeof(uint32_t);
+        if (addr < heap_top) {
+                ptr = 0;        
+        } else {        
+                mark = phys_to_virt(addr);
+                *mark = size;  
+		mark1 = phys_to_virt(addr+sizeof(size_t));
+		*mark1 = mask; 
+                heap_ptr = addr;
+                ptr = phys_to_virt(addr + sizeof(size_t) + sizeof(uint32_t));
+        }                       
+        return ptr;             
+}  
+
 void forget(void *ptr)
 {
 	size_t *mark, addr;
@@ -119,4 +142,27 @@ void forget(void *ptr)
 		addr = heap_bot;
 	}
 	heap_ptr = addr;
+}
+
+void forget2(void *ptr)
+{
+        size_t *mark, addr;
+        size_t size;
+	uint32_t mask;
+	uint32_t *mark1;
+
+        if (!ptr) {
+                return;
+        }
+        addr = virt_to_phys(ptr);
+        mark = phys_to_virt(addr - sizeof(size_t) - sizeof(uint32_t));
+        size = *mark;
+	mark1 = phys_to_virt(addr - sizeof(uint32_t));
+	mask = *mark1;
+        addr += (size + mask) & ~mask;
+
+        if (addr > heap_bot) {
+                addr = heap_bot;
+        }
+        heap_ptr = addr;
 }

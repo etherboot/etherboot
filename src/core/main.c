@@ -23,6 +23,14 @@ Literature dealing with the network protocols:
 #include "timer.h"
 #include "cpu.h"
 
+#ifdef CONSOLE_BTEXT
+#include "btext.h"
+#endif
+
+#ifdef CONFIG_FILO
+#include <lib.h>
+#endif
+
 jmp_buf	restart_etherboot;
 int	url_port;		
 
@@ -121,6 +129,9 @@ static void console_init(void)
 #ifdef 	CONSOLE_DIRECT_VGA
        	video_init();
 #endif
+#ifdef	CONSOLE_BTEXT
+	map_boot_text();
+#endif
 }
 
 static void console_fini(void)
@@ -162,6 +173,13 @@ int main(struct Elf_Bhdr *ptr)
 	console_init();
 	arch_main(ptr);
 
+#if 0
+#ifdef  CONSOLE_BTEXT
+        btext_init();
+	map_boot_text();
+	btext_clearscreen();
+#endif
+#endif  
 	rom = *(struct rom_info *)phys_to_virt(ROM_INFO_LOCATION);
 	printf("ROM segment %#hx length %#hx reloc %#x\n", rom.rom_segment,
 		rom.rom_length << 1, (unsigned long)_text);
@@ -243,6 +261,16 @@ static int main_loop(int state)
 			cleanup();
 			console_init();
 			init_heap();
+#ifdef  CONSOLE_BTEXT
+//I need to all allot
+        btext_init(); 
+        map_boot_text();
+        btext_clearscreen();
+#else
+#ifdef CONFIG_FILO
+	pci_init();
+#endif
+#endif
 
 			firsttime = 0;
 		} 

@@ -113,6 +113,15 @@ CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION=\"$(VERSION)\" -DRELOC=$(RELOCADDR) $(OLDGAS) \
 		-I include -I arch/$(ARCH)/include \
 		-DARCH=$(ARCH)
+FILO=filo
+FILO_PROGRAM_NAME = FILO
+FILO_PROGRAM_VERSION = 0.4.1
+FILO_BUILD_INFO = ($(shell whoami)@$(shell hostname)) $(shell LANG=C date)
+
+GCCINCDIR = $(shell $(CC) -print-search-dirs | head -n 1 | cut -d' ' -f2)include
+CPPFLAGS = -nostdinc -imacros filo/config.h 
+#-Ifilo/include -I$(GCCINCDIR) -MD
+ASFLAGS_X = -D__ASSEMBLY__
 
 IDENT=		'$(@F) $(VERSION) (GPL) etherboot.org'
 
@@ -160,6 +169,9 @@ WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
 SRCS+=	core/serial.c core/rsa.c
+
+SRCS+=	core/btext.c core/pc_kbd.c
+
 SRCS+=	core/main.c core/pci.c core/osloader.c core/nfs.c
 SRCS+=	core/misc.c core/config.c core/relocate.c core/heap.c
 SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/timer.c
@@ -168,16 +180,34 @@ SRCS+=	core/proto_slam.c core/proto_tftm.c
 SRCS+=	core/isapnp.c core/md5.c
 SRCS+=	core/pcmcia.c core/i82365.c
 
+SRCS+=	$(FILO)/drivers/ide_x.c  
+SRCS+=	$(FILO)/fs/blockdev.c $(FILO)/fs/eltorito.c $(FILO)/fs/fsys_ext2fs.c $(FILO)/fs/fsys_fat.c $(FILO)/fs/fsys_iso9660.c
+SRCS+=	$(FILO)/fs/fsys_reiserfs.c $(FILO)/fs/vfs.c $(FILO)/fs/fsys_jfs.c $(FILO)/fs/fsys_minix.c $(FILO)/fs/fsys_xfs.c  
+SRCS+=	$(FILO)/main/elfload.c $(FILO)/main/elfnote.c $(FILO)/main/filo_x.c $(FILO)/main/lib.c $(FILO)/main/linuxbios_x.c 
+SRCS+=	$(FILO)/main/pci_x.c $(FILO)/main/malloc_x.c $(FILO)/main/printf_x.c $(FILO)/main/console_x.c 
+SRCS+=	$(FILO)/$(ARCH)/context.c $(FILO)/$(ARCH)/linux_load.c $(FILO)/$(ARCH)/segment.c $(FILO)/$(ARCH)/sys_info.c 
+SRCS+=	$(FILO)/$(ARCH)/switch.S $(FILO)/usb/debug_x.c $(FILO)/usb/scsi_cmds.c $(FILO)/usb/uhci.c $(FILO)/usb/usb.c 
+SRCS+=	$(FILO)/usb/ohci.c $(FILO)/usb/usb_scsi_low.c  $(FILO)/usb/usb_x.c
+
 BOBJS+=		$(BIN)/main.o $(BIN)/osloader.o $(BIN)/nfs.o $(BIN)/misc.o
 BOBJS+=		$(BIN)/proto_slam.o $(BIN)/proto_tftm.o
 BOBJS+=		$(BIN)/floppy.o $(BIN)/md5.o
 BOBJS+=		$(BIN)/serial.o $(BIN)/timer.o  $(BIN)/relocate.o $(BIN)/heap.o
+BOBJS+=		$(BIN)/btext.o $(BIN)/pc_kbd.o
 BOBJS+=		$(BIN)/nic.o $(BIN)/disk.o
 BOBJS+=		$(BIN)/isapnp.o
 BOBJS+=		$(BIN)/pci.o $(BIN)/rsa.o
 BOBJS+=		$(BIN)/vsprintf.o
 
 BOBJS+=		$(BIN)/pcmcia.o $(BIN)/i82365.o
+
+BOBJS+=		$(BIN)/ide_x.o $(BIN)/pci_x.o
+BOBJS+=		$(BIN)/blockdev.o $(BIN)/eltorito.o $(BIN)/fsys_ext2fs.o $(BIN)/fsys_fat.o $(BIN)/fsys_iso9660.o $(BIN)/fsys_reiserfs.o $(BIN)/vfs.o
+BOBJS+=		$(BIN)/fsys_jfs.o $(BIN)/fsys_minix.o $(BIN)/fsys_xfs.o  
+BOBJS+=		$(BIN)/elfload.o  $(BIN)/elfnote.o  $(BIN)/filo_x.o $(BIN)/lib.o $(BIN)/linuxbios_x.o $(BIN)/malloc_x.o $(BIN)/printf_x.o $(BIN)/console_x.o   
+BOBJS+=		$(BIN)/context.o  $(BIN)/linux_load.o  $(BIN)/segment.o  $(BIN)/sys_info.o $(BIN)/switch.o
+BOBJS+=		$(BIN)/debug_x.o  $(BIN)/scsi_cmds.o $(BIN)/uhci.o $(BIN)/usb.o $(BIN)/ohci.o $(BIN)/usb_scsi_low.o $(BIN)/usb_x.o
+
 BLIB=		$(BIN)/bootlib.a 
 LIBS=		$(BLIB)
 UTILS+=		$(BIN)/nrv2b
@@ -231,6 +261,18 @@ $(BIN)/linuxbios.o:	firmware/linuxbios/linuxbios.c include/etherboot.h include/d
 # Do not add driver specific dependencies here unless it's something the
 # genrules.pl script *can't* deal with, i.e. if it is not C code.
 
+$(FILO)/config.h: $(FILO)/Config
+	/bin/echo -e '/* GENERATED FILE, DO NOT EDIT */\n' >$@
+	sed -e 's/#.*//' -e '/=/!d' -e 's/\([^[:space:]]*\)[[:space:]]*=[[:space:]]*\(.*\).*/#define \1 \2/' -e 's/^#define \([^ ]*\) 0$$/#undef \1/' $^ >>$@
+
+filo_version: $(FILO)/main/version.h
+
+$(FILO)/main/version.h: FORCE
+	echo '#define PROGRAM_NAME "$(FILO_PROGRAM_NAME)"' > $@
+	echo '#define PROGRAM_VERSION "$(FILO_PROGRAM_VERSION) $(FILO_BUILD_INFO)"' >> $@
+
+FORCE:
+
 
 # Utilities
 
@@ -261,6 +303,25 @@ $(BIN)/%.o:	drivers/net/%.c $(MAKEDEPS)
 $(BIN)/%.o:	firmware/linuxbios/%.c $(MAKEDEPS)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
+$(BIN)/%.o:     $(FILO)/drivers/%.c $(MAKEDEPS) $(FILO)/config.h
+	$(CC) $(CFLAGS) -imacros $(FILO)/config.h -o $@ -c $<
+
+$(BIN)/%.o:     $(FILO)/fs/%.c $(MAKEDEPS) $(FILO)/config.h
+	$(CC) $(CFLAGS) -imacros $(FILO)/config.h -o $@ -c $<
+
+$(BIN)/%.o:     $(FILO)/$(ARCH)/%.c $(MAKEDEPS) $(FILO)/config.h
+	$(CC) $(CFLAGS) -imacros $(FILO)/config.h -o $@ -c $<
+
+$(BIN)/%.o:     $(FILO)/$(ARCH)/%.S $(MAKEDEPS) $(FILO)/config.h
+	$(CC) $(ASFLAGS_X) $(CPPFLAGS) -c $< -o $@
+
+$(BIN)/%.o:     $(FILO)/main/%.c $(MAKEDEPS) $(FILO)/config.h filo_version
+	$(CC) $(CFLAGS) -imacros $(FILO)/config.h -o $@ -c $<
+
+$(BIN)/%.o:     $(FILO)/usb/%.c $(MAKEDEPS) $(FILO)/config.h
+	$(CC) $(CFLAGS) -imacros $(FILO)/config.h -o $@ -c $<
+
+
 # Rule for the super etherboot image.
 $(BIN)/etherboot.o: $(DOBJS)
 	$(LD) -r $(DOBJS) -o $@
@@ -284,6 +345,7 @@ $(BIN)/%.z:	$(BIN)/%.img $(BIN)/nrv2b $(MAKEDEPS)
 
 clean:
 	$(RM) $(BIN)/*
+	$(RM) $(FILO)/config.h
 
 ../index.html:	../doc/html/template ../index.xhtml
 	(cd ..; m4 -P -DHTML_INCLUDE=index.xhtml -DHTML_DIR=doc/html -DHOSTSITE=SOURCEFORGE doc/html/template > index.html)
