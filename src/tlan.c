@@ -401,11 +401,6 @@ static void TLan_ResetAdapter(struct nic *nic)
 	} else {
 		TLan_PhyPowerDown(nic);
 	}
-/*	data = inl(BASE + TLAN_HOST_CMD);
-	data |= TLAN_HC_INT_OFF;
-	outl(data, BASE + TLAN_HOST_CMD);
-*/
-
 }				/* TLan_ResetAdapter */
 
 static void TLan_FinishReset(struct nic *nic)
@@ -600,7 +595,7 @@ static void refill_rx(struct nic *nic)
 
 }
 
-/* #define EBDEBUG */
+/* #define EBDEBUG  */
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
@@ -614,11 +609,11 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 	struct TLanList *tail_list;
 	struct TLanList *head_list;
 	u8 *tail_buffer;
-	int pad;
-	u16 tmpCStat;
 	u32 ack = 0;
 	u32 host_cmd;
+#ifdef EBDEBUG
 	u16 host_int = inw(BASE + TLAN_HOST_INT);
+#endif
 	int entry = 0;
 
 #ifdef EBDEBUG
@@ -717,7 +712,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 			}
 		}
 	}
-
+	
 	CIRC_INC(priv->txTail, TLAN_NUM_TX_LISTS);
 
 #ifdef EBDEBUG
@@ -756,37 +751,19 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 	host_int = inw(BASE + TLAN_HOST_INT);
 	printf("INT3-0x%hX\n", host_int);
 #endif
-/*
-	if(!priv->eoc)
-    	outl(TLAN_HC_STOP, BASE + TLAN_HOST_CMD);
-*/
 
 	head_list = priv->txList + priv->txTail;
-
-	if ((head_list->cStat & TLAN_CSTAT_READY) == TLAN_CSTAT_READY) {
-#ifdef EBDEBUG
-		printf("EOC if clause\n");
-#endif
-		head_list->cStat = TLAN_CSTAT_UNUSED;
-		outl(virt_to_le32desc((priv->txList + priv->txTail)),
-		     BASE + TLAN_CH_PARM);
-
+	head_list->cStat = TLAN_CSTAT_UNUSED;
+	if (priv->eoc) {
+		tx_started = 1;
 	} else {
-#ifdef EBDEBUG
-		printf("EOC2\n");
-#endif
-		head_list->cStat = TLAN_CSTAT_UNUSED;
-		if (priv->eoc) {
-			tx_started = 1;
-		} else {
-			tx_started = 0;
-			outl(TLAN_HC_ACK | 0x00000001 | 0x00140000,
-			     BASE + TLAN_HOST_CMD);
-		}
-		outl(virt_to_le32desc((priv->txList + priv->txTail)),
-		     BASE + TLAN_CH_PARM);
-
+		tx_started = 0;
+		outl(TLAN_HC_ACK | 0x00000001 | 0x00140000,
+		     BASE + TLAN_HOST_CMD);
 	}
+	outl(virt_to_le32desc((priv->txList + priv->txTail)),
+	     BASE + TLAN_CH_PARM);
+
 
 #ifdef EBDEBUG
 	host_int = inw(BASE + TLAN_HOST_INT);
