@@ -158,7 +158,10 @@ sub makerom () {
 	}
 	# Pad with 0xFF to $romsize
 	$rom .= "\xFF" x ($romsize - length($rom));
-	substr($rom, 2, 1) = chr($romsize / 512);
+	if ($romsize >= 128 * 1024) {
+		print "Warning: ROM size exceeds extension BIOS limit\n";
+	}
+	substr($rom, 2, 1) = chr(($romsize / 512) % 256);
 	print "ROM size is $romsize\n" if $opts{'v'};
 	my $identoffset = &addident(\$rom);
 	&pcipnpheaders(\$rom, $identoffset);
