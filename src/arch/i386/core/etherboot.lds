@@ -53,6 +53,11 @@ SECTIONS {
 		*(.stack.*)
 	}
 	. = ALIGN(16);
+	.prefix : {
+		*(.prefix)
+		*(.prefix.*)
+	}
+	. = ALIGN(16);
 	_end = .;
 	/DISCARD/ : {
 		*(.comment)
