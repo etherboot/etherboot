@@ -576,6 +576,11 @@ int undi_full_shutdown ( void ) {
 	}
 	/* Free memory allocated to UNDI driver */
 	if ( undi.driver_code != NULL ) {
+		/* Clear contents in order to eliminate !PXE and PXENV
+		 * signatures to prevent spurious detection via base
+		 * memory scan.
+		 */
+		memset ( undi.driver_code, 0, undi.driver_code_size );
 		forget_base_memory ( undi.driver_code, undi.driver_code_size );
 		undi.driver_code = NULL;
 		undi.driver_code_size = 0;
