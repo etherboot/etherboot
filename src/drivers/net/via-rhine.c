@@ -953,8 +953,8 @@ void rhine_irq ( struct nic *nic, irq_action_t action ) {
 static int
 rhine_probe (struct dev *dev, struct pci_device *pci)
 {
-    struct rhine_private *tp;
     struct nic *nic = (struct nic *)dev;
+    struct rhine_private *tp = (struct rhine_private *) nic->priv_data;
     if (!pci->ioaddr)
 	return 0;
     rhine_probe1 (nic, pci, pci->ioaddr, pci->dev_id, -1);
