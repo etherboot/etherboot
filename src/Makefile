@@ -85,7 +85,7 @@ include Config
 
 GCC=		gcc
 CPP=		gcc -E
-VERSION=	4.6.11
+VERSION=	4.6.12
 CFLAGS16+=	-DVERSION=\"$(VERSION)\" -DRELOC=$(RELOCADDR)
 CFLAGS32+=	-DVERSION=\"$(VERSION)\" -DRELOC=$(RELOCADDR) $(OLDGAS)
 LCONFIG+=	-DRELOC=$(RELOCADDR)
@@ -120,6 +120,7 @@ MAKEROM_3c503=	-3
 3C595FLAGS=	-DINCLUDE_3C595
 3C90XFLAGS=	-DINCLUDE_3C90X
 CS89X0FLAGS=	-DINCLUDE_CS89X0
+EEPROFLAGS=	-DINCLUDE_EEPRO
 EEPRO100FLAGS=	-DINCLUDE_EEPRO100
 EPIC100FLAGS=	-DINCLUDE_EPIC100
 EXOS205FLAGS=	-DINCLUDE_EXOS205
@@ -225,7 +226,10 @@ CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 # because of other drivers (e.g. Disk On Chip). In that case, you may
 # only load 512kB of OS, or load in memory above 1MB.
 # Don't forget to choose an assembler because the loaders have to be rebuilt.
+ifndef RELOCADDR
 RELOCADDR=0x98000
+endif
+
 # Evaluate ROMLIMIT only once - it is constant during the make run.
 # Note that the 3K safety margin below is for the 1K extended BIOS data area
 # and for the Etherboot runtime stack.  Under normal situations, 2K of stack
@@ -422,10 +426,10 @@ bin32/%.lzrom:	bin32/%.huf $(RZLOADER)
 
 # rules to make a LILO-bootable image
 %.lilo:		%.rom $(LILOPREFIX)
-	cat $(LILOPREFIX) $< > $@
+	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
 
 %.lzlilo:	%.lzrom $(LILOPREFIX)
-	cat $(LILOPREFIX) $< > $@
+	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
 
 # Housekeeping
 

@@ -39,6 +39,16 @@ Ken Yap, July 1997
 #define	LANCE_TOTAL_SIZE	0x10
 #endif
 
+/* lance_poll() now can use multiple Rx buffers to prevent packet loss. Set
+ * Set LANCE_LOG_RX_BUFFERS to 0..7 for 1, 2, 4, 8, 16, 32, 64 or 128 Rx
+ * buffers. Usually 4 (=16 Rx buffers) is a good value. (Andreas Neuhaus) */
+
+#define LANCE_LOG_RX_BUFFERS	4		// Use 2^4=16 Rx buffers
+
+#define RX_RING_SIZE		(1 << (LANCE_LOG_RX_BUFFERS))
+#define RX_RING_MOD_MASK	(RX_RING_SIZE - 1)
+#define RX_RING_LEN_BITS	((LANCE_LOG_RX_BUFFERS) << 29)
+
 struct lance_init_block
 {
 	unsigned short	mode;
@@ -71,9 +81,9 @@ struct lance_tx_head
 struct lance_interface
 {
 	struct lance_init_block	init_block;
-	struct lance_rx_head	rx_ring;
+	struct lance_rx_head	rx_ring[RX_RING_SIZE];
 	struct lance_tx_head	tx_ring;
-	unsigned char		rbuf[ETH_MAX_PACKET];
+	unsigned char		rbuf[RX_RING_SIZE][ETH_MAX_PACKET];
 	unsigned char		tbuf[ETH_MAX_PACKET];
 };
 
@@ -214,12 +224,14 @@ static void lance_reset(struct nic *nic)
 	/* Set station address */
 	for (i = 0; i < ETHER_ADDR_SIZE; ++i)
 		lp->init_block.phys_addr[i] = nic->node_addr[i];
-	/* Preset the receive ring header */
-	lp->rx_ring.buf_length = -ETH_MAX_PACKET;
-	/* OWN */
-	lp->rx_ring.u.base = virt_to_bus(lp->rbuf) & 0xffffff;
-	/* we set the top byte as the very last thing */
-	lp->rx_ring.u.addr[3] = 0x80;
+	/* Preset the receive ring headers */
+	for (i=0; i<RX_RING_SIZE; i++) {
+		lp->rx_ring[i].buf_length = -ETH_MAX_PACKET;
+		/* OWN */
+		lp->rx_ring[i].u.base = virt_to_bus(lp->rbuf[i]) & 0xffffff;
+		/* we set the top byte as the very last thing */
+		lp->rx_ring[i].u.addr[3] = 0x80;
+	}
 	lp->init_block.mode = 0x0;	/* enable Rx and Tx */
 	l = (Address)virt_to_bus(&lp->init_block);
 	outw(0x1, ioaddr+LANCE_ADDR);
@@ -252,25 +264,32 @@ POLL - Wait for a frame
 ***************************************************************************/
 static int lance_poll(struct nic *nic)
 {
+	static int	ringno = 0;
 	int		status;
 
-	status = lp->rx_ring.u.base >> 24;
+	status = lp->rx_ring[ringno].u.base >> 24;
 	if (status & 0x80)
 		return (0);
 #ifdef	DEBUG
 	printf("LANCE packet received rx_ring.u.base %X mcnt %x csr0 %x\n",
-		lp->rx_ring.u.base, lp->rx_ring.msg_length,
+		lp->rx_ring[ringno].u.base, lp->rx_ring[ringno].msg_length,
 		inw(ioaddr+LANCE_DATA));
 #endif
 	if (status == 0x3)
-		memcpy(nic->packet, lp->rbuf, nic->packetlen = lp->rx_ring.msg_length);
+		memcpy(nic->packet, lp->rbuf[ringno], nic->packetlen = lp->rx_ring[ringno].msg_length);
 	/* Andrew Boyd of QNX reports that some revs of the 79C765
 	   clear the buffer length */
-	lp->rx_ring.buf_length = -ETH_MAX_PACKET;
-	lp->rx_ring.u.addr[3] |= 0x80;	/* prime for next receive */
+	lp->rx_ring[ringno].buf_length = -ETH_MAX_PACKET;
+	lp->rx_ring[ringno].u.addr[3] |= 0x80;	/* prime for next receive */
+
+	/* I'm not sure if the following is still ok with multiple Rx buffers, but it works */
 	outw(0x0, ioaddr+LANCE_ADDR);
 	(void)inw(ioaddr+LANCE_ADDR);
 	outw(0x500, ioaddr+LANCE_DATA);		/* clear receive + InitDone */
+
+	/* Switch to the next Rx ring buffer */
+	ringno = (++ringno) & RX_RING_MOD_MASK;
+
 	return (status == 0x3);
 }
 
@@ -373,8 +392,8 @@ static int lance_probe1(struct nic *nic)
 	lp = (struct lance_interface *)l;
 	lp->init_block.mode = 0x3;	/* disable Rx and Tx */
 	lp->init_block.filter[0] = lp->init_block.filter[1] = 0x0;
-	/* top bits are zero, we have only one buffer each for Rx and Tx */
-	lp->init_block.rx_ring = virt_to_bus(&lp->rx_ring) & 0xffffff;
+	/* using multiple Rx buffer and a single Tx buffer */
+	lp->init_block.rx_ring = (virt_to_bus(&lp->rx_ring) & 0xffffff) | RX_RING_LEN_BITS;
 	lp->init_block.tx_ring = virt_to_bus(&lp->tx_ring) & 0xffffff;
 	l = virt_to_bus(&lp->init_block);
 	outw(0x1, ioaddr+LANCE_ADDR);
@@ -416,10 +435,10 @@ static int lance_probe1(struct nic *nic)
 	}
 	if (i >= (sizeof(dmas)/sizeof(dmas[0])))
 		dma = 0;
-	printf("\n%s base 0x%x, DMA %d, addr ",
+	printf("\n%s base %#x, DMA %d, addr ",
 		chip_table[lance_version].name, ioaddr, dma);
 #else
-	printf(" %s base 0x%x, addr ", chip_table[lance_version].name, ioaddr);
+	printf(" %s base %#x, addr ", chip_table[lance_version].name, ioaddr);
 #endif
 	/* Get station address */
 	for (i = 0; i < ETHER_ADDR_SIZE; ++i)

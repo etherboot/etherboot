@@ -23,26 +23,28 @@ more details can be found in the
 utility.
 <P>
 <P>
-<P>I have booted DOS (both M$ and DR versions) diskless this way.  A 
-<A HREF="mknbi.html">mknbi-fdos</A> is available for building tagged
-images for booting FreeDOS, the procedure differs slightly from booting
-M$ or DR DOS. Note that extended memory is used so that rules out
-086/088 computers but 286s are ok. See 
+<P>I have booted DOS (both M$ versions up to 5.0 and DR versions up to
+7.03) diskless this way.  A 
+<A HREF="mknbi.html">mknbi-fdos</A> is
+available for building tagged images for booting FreeDOS, the procedure
+differs slightly from booting M$ or DR DOS. Note that extended memory is
+used so that rules out 086/088 computers but 286s are ok. See 
 <A HREF="atnetboot.html">this document</A> for more details.
 <P>
 <P>
-<P>If you were thinking of booting a Windows machine via the network,
-it seems (I'm not masochistic enough to do this) the problem is not
-the network booting but the mounting of a file system over NetBIOS
-(Windows does not do remote mounts of root filesystems over NetBIOS on
-TCP). So that rules out a Samba server. It appears to be possible over
-a Netware server, for which Linux or FreeBSD has workalikes. But then
+<P>If you were thinking of booting a Windows machine via the network, it
+seems (I'm not masochistic enough to do this) the problem is not the
+network booting but the mounting of a file system over NetBIOS (Windows
+does not do remote mounts of root filesystems over NetBIOS on TCP). So
+that rules out a Samba server. It appears to be possible over a Netware
+server, for which Linux or FreeBSD has workalikes. Also it is said that
+only certain versions of Windows will allow diskless booting.  But then
 what do you do about the networking stack? This situation may change
 with with future Samba developments. But you will still have problems
-with pathnames and the usual Windows hassles. Do you really want to
-do this?  You do know that you can run lots of desktop applications like
+with pathnames and the usual Windows hassles. Do you really want to do
+this?  You do know that you can run lots of desktop applications like
 Netscape, StarOffice, etc. on Linux, FreeBSD, etc. now?  In the 
-<A HREF="http://etherboot.sourceforge.net/">Web page for Etherboot</A>,
+<A HREF="http://etherboot.sourceforge.net/">Etherboot home page</A>,
 there are links to external Web pages, one explaining how this was done
 with a commercial TCP/IP boot ROM, another explaining how to do it using
 Etherboot and Netbios over IPX. Good luck and send us your experiences

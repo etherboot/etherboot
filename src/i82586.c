@@ -618,7 +618,7 @@ static int t507_probe1(struct nic *nic, unsigned short ioaddr)
 	mem_end = mem_start + size;
 	scb_base = 65536L - size;
 	if_port = inb(ioaddr + ROM_CONFIG) & 0x80;
-	printf("\n3c507 ioaddr 0x%x, IRQ %d, mem [0x%X-0x%X], %sternal xcvr, addr ",
+	printf("\n3c507 ioaddr %#x, IRQ %d, mem [%#x-%#x], %sternal xcvr, addr ",
 		ioaddr, irq, mem_start, mem_end, if_port ? "in" : "ex");
 	/* Get station address */
 	outb(0x01, ioaddr + MISC_CTRL);
@@ -756,7 +756,7 @@ static int ni5210_probe1(struct nic *nic)
 			break;
 	if (mem_start == 0)
 		return (0);
-	printf("\nNI5210 ioaddr 0x%x, mem [0x%X-0x%X], addr ",
+	printf("\nNI5210 ioaddr %#x, mem [%#x-%#x], addr ",
 		ioaddr, mem_start, mem_end);
 	/* Get station address */
 	for (i = 0; i < ETHER_ADDR_SIZE; ++i)
@@ -922,7 +922,7 @@ static int exos205_probe1(struct nic *nic)
 			break;
 	if (mem_start == 0)
 		return (0);
-	printf("\nEXOS205 ioaddr 0x%x, mem [0x%X-0x%X], addr ",
+	printf("\nEXOS205 ioaddr %#x, mem [%#x-%#x], addr ",
 		ioaddr, mem_start, mem_end);
 	/* Get station address */
 	for (i = 0; i < ETHER_ADDR_SIZE; ++i)

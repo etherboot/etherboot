@@ -16,8 +16,9 @@
 
 <P>
 <P>In this section I assume you want to boot a Linux kernel. Booting a
-FreeBSD kernel will be documented soon.  Booting a DOS kernel is similar,
-the main differences being in the way you set up the tagged image.
+FreeBSD kernel is documented elsewhere and does not require a tagged
+image.  Booting a DOS kernel is similar, the main differences being in
+the way you set up the tagged image.
 <P>
 <H2><A NAME="ss3.1">3.1 Making a tagged image</A>
 </H2>
@@ -35,23 +36,25 @@ to start execution.
 <P>A tagged image is created using a utility program. The 
 <A HREF="mknbi.html">utility program</A> is specific to the kernel you
 want to load. The version for Linux is called mknbi-linux and that for
-DOS is mknbi-dos. These utilities are found in the mknbi directory of
-the distribution.
+DOS is mknbi-dos. These utilities are found in the mknbi-&lt;version&gt;
+directory of the distribution.
 <P>
 <H2><A NAME="ss3.2">3.2 Compiling a custom kernel</A>
 </H2>
 
 <P>
-<P>You will almost certainly have to compile a custom kernel because the kernel
-needs to have the "Root file system on NFS" option compiled in.  (You need to
-select "NFS filesystem support" as built-in, not a module, and possibly also
-"Kernel level autoconfiguration" before this option will appear.)  You should
-also select "BOOTP support" and/or "DHCP support".  "RARP support" is not
-needed.  In 2.2 kernels you have to enable the "Kernel level autoconfiguration"
-option under IP networking to access the BOOTP support question.  And unless
-you are using an initrd (initial ramdisk) you will have to compile in the
-driver for your network card too. For details, see the file
-/usr/src/linux/Documentation/nfsroot.txt in a Linux kernel source distribution.
+<P>You will almost certainly have to compile a custom kernel because the
+kernel needs to have the "Root file system on NFS" option compiled in.
+(You need to select "NFS filesystem support" as built-in, not a module,
+and possibly also "Kernel level autoconfiguration" before this option
+will appear.)  You should also select "BOOTP support" and/or "DHCP
+support".  "RARP support" is not needed.  In 2.2 kernels you have to
+enable the "Kernel level autoconfiguration" option under IP networking
+to access the BOOTP support question.  And unless you are using an
+initrd (initial ramdisk) you will have to compile in the driver for your
+network card too. For details, see the file
+/usr/src/linux/Documentation/nfsroot.txt in a Linux kernel source
+distribution.
 <P>
 <P>
 <P>After you have compiled the custom kernel, make the tagged image,
@@ -63,10 +66,10 @@ typically like this:
 </PRE>
 <HR>
 <P>Then put the tagged image in where the tftp daemon expects to find it,
-in this example /tftpdir. Make sure it is world-readable because typically
-the tftp daemon runs as an unprivileged user. It is recommended that you
-set a path explicitly for tftpd instead of relying on any defaults. For
-example:
+in this example /tftpdir. Make sure it is world-readable because
+typically the tftp daemon runs as an unprivileged user. It is
+recommended that you set a path explicitly for tftpd instead of relying
+on any defaults. For example:
 <P>
 <HR>
 <PRE>
@@ -78,10 +81,17 @@ tftp    dgram   udp     wait    root    /usr/sbin/tcpd  in.tftpd /tftpdir
 </H2>
 
 <P>
-<P>Now set up a bootp daemon. In RedHat 5.2 this means installing the
-bootp RPM package, making sure that the bootps service is active in
-/etc/inetd.conf,  and editing /etc/bootptab. The essential pieces of
-information you need to put in bootptab are:
+<P>Now set up a bootp daemon. This means installing the bootp package,
+making sure that the bootps service is active in /etc/inetd.conf; it
+should look something like this:
+<P>
+<HR>
+<PRE>
+bootps  dgram   udp     wait    root    /usr/sbin/tcpd  bootpd
+</PRE>
+<HR>
+<P>Then you need to edit /etc/bootptab. The essential pieces of information
+you need to put in bootptab are:
 <P>
 <OL>
 <LI>The domain name of the machine.
@@ -103,8 +113,8 @@ tftp server's address.
 </OL>
 <P>
 <P>
-<P>Here is an example of a /etc/bootptab for the bootpd supplied with RedHat
-Linux 5.2 and probably many versions of Unix:
+<P>Here is an example of a /etc/bootptab for the bootpd supplied many with
+Linux distributions and probably many versions of Unix:
 <P>
 <HR>
 <PRE>
@@ -133,18 +143,19 @@ run bootpef everytime bootptab is modified.
 
 <P>
 <P>As an alternative to bootp, you could set up a DHCP server which has the
-advantage of automating the handing out of IP addresses.  In RedHat 6.0,
-bootpd is not supplied and DHCPD is preferred.  However the kernel will
-still do a bootp request to find the IP address for mounting the NFS
-filesystem. The exceptions to the last sentence are recent kernels in
-the 2.2 series (2.2.15 or 2.2.16 onwards), which can autoconfigure using
-DHCP thanks to code by Chip Salzenberg. It is rumoured that this feature
-will not be ported to 2.4 kernels because DHCP autoconfig is a userland
-issue. You may perhaps wish to investigate the --rootdir=rom option in
-<A HREF="mknbi.html">mknbi-linux</A> which tells the kernel to take
-the address from the initial DHCP reply, or to use initrds in
-conjunction with a userland DHCP client program to configure the
-netbooted machine.
+advantage of automating the handing out of IP addresses.  In recent
+Linux distributions bootpd is not supplied and DHCPD is preferred.
+However the kernel will still do a bootp request to find the IP address
+for mounting the NFS filesystem. The exceptions to the last sentence are
+recent kernels in the 2.2 series (2.2.15 or 2.2.16 onwards), which can
+autoconfigure using DHCP thanks to code by Chip Salzenberg. It is
+rumoured that this feature will not be ported to 2.4 kernels because
+DHCP autoconfig is a userland issue. You may perhaps wish to investigate
+the --rootdir=rom option in 
+<A HREF="mknbi.html">mknbi-linux</A>
+which tells the kernel to take the address from the initial DHCP reply,
+or to use initrds in conjunction with a userland DHCP client program to
+configure the netbooted machine.
 <P>
 <P>
 <P>This is the roughly equivalent dhcpd.conf file to the above bootptab:
@@ -197,7 +208,7 @@ of running tftpd from inetd. Typically inetd has limits on how often a
 daemon can be spawned, to detect runaway daemons. If many clients
 request the tftp service within a short period, inetd may shutdown that
 service.  If you have a setup where there are many clients, it may be
-better to use a more flexible replacement for inetd, such as xinetd.
+better to use an improved replacement for inetd, such as xinetd.
 Another solution is to run a dedicated tftpd that is not spawned from
 inetd. One such tftpd can be found here at:
 <CODE>ftp://nilo.on.openprojects.net/pub/nilo/snapshots</CODE>

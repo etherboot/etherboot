@@ -362,7 +362,7 @@ struct nic *otulip_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
 	for (i=0; i < 6; i++)
 		nic->node_addr[i] = srom[20+i];
 
-        printf("Tulip %b:%b:%b:%b:%b:%b at ioaddr 0x%x\n",
+        printf("Tulip %b:%b:%b:%b:%b:%b at ioaddr %#x\n",
                 srom[20],srom[21],srom[22],srom[23],srom[24],srom[25],
                 ioaddr);
 

@@ -17,21 +17,23 @@
 <P>
 <P>
 <UL>
-<LI>Floppy boot doesn't work. Have you copied the ROM image (with
-the floppyloader prepended) to the floppy raw? Is that size of floppy
-bootable by your computer? Are you trying to run a 32 bit Etherboot
-on a 16 bit machine (286, 086/088)? Have you selected too many compile
-time options? The real limit on Etherboot is not the size of the EPROM
-but the fact that it executes in the 32kB region between 0x98000 and
-0xA0000. If the sum of code, stack and bss is greater than 32kB, then
-Etherboot might crash at unexpected places. You could increase the memory
-to 48kB by lowering the RELOCADDR in the Makefile but this is outside the
-specifications. Definitely do not lower RELOCADDR below 0x94000 because
-various pieces of booting information are stored from 0x90000 upwards.
+<LI>Floppy boot doesn't work. Is the floppy error-free? Have you
+copied the ROM image (with the floppyloader prepended) to the floppy
+raw? Is that size of floppy bootable by your computer? Are you trying to
+run a 32 bit Etherboot on a 16 bit machine (286, 086/088)? Have you
+selected too many compile time options? The real limit on Etherboot is
+not the size of the EPROM but the fact that it executes in the 32kB
+region between 0x98000 and 0xA0000. If the sum of code, stack and bss is
+greater than 32kB, then Etherboot might crash at unexpected places. You
+could increase the memory to 48kB by lowering the RELOCADDR in the
+Makefile but this is outside the specifications. Definitely do not lower
+RELOCADDR below 0x94000 because various pieces of booting information
+are stored from 0x90000 upwards.
 </LI>
 <LI>Floppy version works but EPROM version doesn't work. There is
 a program called rom-scan (Linux, FreeBSD and DOS versions) in the
-directory contrib/rom-scan which will help detect problems.
+directory contrib/rom-scan which will help detect problems. Rom-scan
+will only work on ISA ROMs though.
 
 <UL>
 <LI>If the EPROM is not detected at all then the contents of
@@ -84,11 +86,11 @@ of the computer, i.e. power down and up again before running Etherboot.
 </LI>
 <LI>Etherboot detects card but does nothing after saying Searching for
 server. Check your network hardware. Did you select the right hardware
-interface (AUI, BNC, RJ45)? Is the cabling ok? If you have a Unix computer
-on the network and have root privileges, you could run tcpdump looking
-for broadcast packets on the bootps port. If the requests are getting
-sent out but no replies are getting back, check your bootpd setup. Also
-check if the server has a route to the client.
+interface (AUI, BNC, RJ45)? Is the cabling ok? If you have a Unix
+computer on the network and have root privileges, you could run tcpdump
+or ethereal looking for broadcast packets on the bootps port. If the
+requests are getting sent out but no replies are getting back, check
+your bootpd setup. Also check if the server has a route to the client.
 </LI>
 <LI>Etherboot obtains IP address but fails to load file. Check the tftp
 server. Is the tagged image file installed? Is the file world readable? Is
@@ -96,7 +98,7 @@ the path to the file allowed by the configuration of tftpd? Is the client
 denied by tcpwrapper rules?  Did you put the right home directory and
 boot filename in bootptab? If you are booting lots of clients, is inetd
 shutting down tftpd for being spawned too often? If so, you need to get
-a dedicated tftpd that runs as an independent daemon.
+a better inetd or a a dedicated tftpd that runs as an independent daemon.
 </LI>
 <LI>Etherboot loads file via tftp but Linux fails to boot. This is a
 large category. Here are some suggestions:
@@ -117,7 +119,9 @@ and/or libm*) or does not have the loader files ld*.so*
 or you do not have a configuration file for ldconfig.
 </LI>
 <LI>Your /etc/inittab and/or /etc/rc.d/* files have not been
-customized for the clients.
+customized for the clients. For example if you set the wrong IP
+address in your client's init files you could interfere with the
+server.
 </LI>
 <LI>Your kernel is missing some crucial compile-time feature
 (such as NFS filesystem support, booting from the net, transname
@@ -145,12 +149,12 @@ The essence is that you must provide whatever is needed in the NFS root
 filesystem that your kernel needs to boot. This is somewhat distribution
 dependent. In the discussion mentioned above I solved the problem by
 making a copy of an existing root filesystem and modifying a few bits.
-Be aware that some, if not all, distributions contain bugs in their layout
-that hinder diskless mounting so you will have to fix any problems that
-arise. An example was a directory in /usr/X11R6/lib that needed to be
-writable, however /usr was mounted read-only. Another common problem
-is the assumption that /usr is available before NFS mounts are done and
-invoking programs stored there.
+Be aware that some, if not all, distributions contain bugs in their
+layout that hinder diskless mounting so you will have to fix any
+problems that arise. An example was a directory in /usr/X11R6/lib that
+needed to be writable, however /usr was mounted read-only. Another
+common problem is the assumption in init scripts that /usr is available
+before NFS mounts are done and invoking programs under /usr.
 </LI>
 <LI>Etherboot works fine and kernel starts but network interface
 doesn't work. Check your network configuration in the OS.  Etherboot uses

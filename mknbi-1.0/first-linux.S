@@ -1238,8 +1238,10 @@ procv4:	pop	bp
 ; argument not given in command line:
 ;   -  if there is no value from the boot rom, just do nothing and let
 ;      the kernel decide
+#ifdef	USE_ROM_VALUE_IF_MISSING
 ;   -  if there is a value from the boot rom, add a new argument at the
 ;      end of the command line using the boot rom value
+#endif
 ;
 ; argument given in command line:
 ;   -  if the value of the argument is not empty and not "rom" or "kernel",
@@ -1253,6 +1255,7 @@ procv4:	pop	bp
 	or	dx,dx			; check if argument found in command
 	jnz	isarg			; line
 
+#ifdef	USE_ROM_VALUE_IF_MISSING
 	push	ds
 	mov	ax,cx
 	mov	ds,ax
@@ -1270,6 +1273,7 @@ procv5:	pop	ds
 procv6:	mov	es,cx
 	mov	di,bp			; if not, add new option with boot rom
 	call	addarg			; argument to end of command line
+#endif	/* USE_ROM_VALUE_IF_MISSING */
 procv9:	pop	bp
 	ret
 

@@ -469,7 +469,7 @@ elf_startkernel:
 			c += end_of_rfc1533[1];
 		}
 #endif
-		sprintf(c, " -retaddr 0x%X", (unsigned long)xend);
+		sprintf(c, " -retaddr %#x", (unsigned long)xend);
 
 		info.mbinfo.flags = 5;
 		info.mbinfo.memlower = basememsize();

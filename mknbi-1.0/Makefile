@@ -103,8 +103,8 @@ else
 endif
 
 $(MANS):	mknbi.pl disnbi.pl Makefile
-	pod2man --date="2000-08-07" --release="Mknbi 1.0" --center="Etherboot tools" mknbi.pl > mknbi.1
-	pod2man --date="2000-08-07" --release="Mknbi 1.0" --center="Etherboot tools" disnbi.pl > disnbi.1
+	pod2man --date="2000-11-15" --release="Mknbi 1.0" --center="Etherboot tools" mknbi.pl > mknbi.1
+	pod2man --date="2000-11-15" --release="Mknbi 1.0" --center="Etherboot tools" disnbi.pl > disnbi.1
 
 $(HTMLS):	mknbi.pl disnbi.pl
 	pod2html mknbi.pl > mknbi.html

@@ -65,6 +65,11 @@ extern struct nic	*a3c90x_probe(struct nic *, unsigned short *
 	PCI_ARG(struct pci_device *));
 #endif
 
+#ifdef	INCLUDE_EEPRO
+extern struct nic	*eepro_probe(struct nic *, unsigned short *
+	PCI_ARG(struct pci_device *));
+#endif
+
 #ifdef	INCLUDE_EEPRO100
 extern struct nic	*eepro100_probe(struct nic *, unsigned short *
 	PCI_ARG(struct pci_device *));

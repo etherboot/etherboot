@@ -106,8 +106,10 @@ Author: Martin Renters
 #define TRUE		1
 #define FALSE		0
 
-#define ETHER_ADDR_SIZE		6	/* Size of Ethernet address */
-#define ETHER_HDR_SIZE		14	/* Size of ethernet header */
+#define ETH_ALEN		6	/* Size of Ethernet address */
+#define ETHER_ADDR_SIZE		ETH_ALEN	/* deprecated */
+#define ETH_HLEN		14	/* Size of ethernet header */
+#define ETHER_HDR_SIZE		ETH_HLEN	/* deprecated */
 #define ETH_MIN_PACKET		64
 #define ETH_MAX_PACKET		1518
 

@@ -1,4 +1,29 @@
-Etherboot 4.6.11
+Etherboot 4.6.12
+
+A fix to BIOSes that are strict about using the boot entry vector in
+preference to the INT19H vector.
+
+Finally fixed DHCP option limit I hope. It was requesting large
+packets but the parsing was limited by the constant in the call to
+decode_rfc1533().
+
+There is a multiple rx buffer fix for lance.c which may fix problems
+people might be having with it; it's reported to work well now under
+WMware (simulated Lance).
+
+There is an EEPRO/10 (ISA adaptor) driver now.
+
+.lilo images can now be booted with Syslinux. It would be interesting if
+someone would try booting it from loadlin.
+
+There's a contributed script to convert floppyfw (www.zelow.no/floppyfw)
+floppies to tagged images.
+
+Various documentation additions and changes.
+
+There are a couple of small bug fixes to mknbi, one for compilation
+problems on some old Perl 5 interpreters, the other for a bug that
+prevented it from letting the kernel do IP autoconfig.
 
 4.6.11 contains a prefix file that turns an Etherboot image into an
 image that LILO is happy to register as a bootable "Linux" kernel,

@@ -15,15 +15,15 @@
 <H2><A NAME="s4">4. Testing the network booting</A></H2>
 
 <P>
-<P>Now when you start up Etherboot, it should obtain an IP address and print
-out what it received. If you do not get this to work, turn on debugging
-in bootpd and see if any query was received. You may also wish to use
-the tcpdump utility to watch the network for bootp packets.  If not,
-check your network hardware (cables, etc). If a query was received,
-check if bootpd was able to give an answer. If not, then the Ethernet
-address was not found in /etc/bootptab. If a reply was sent, then only
-faulty hardware or a bug in Etherboot would prevent it being received
-by Etherboot.
+<P>Now when you start up Etherboot, it should obtain an IP address and
+print out what it received. If you do not get this to work, turn on
+debugging in bootpd and see if any query was received. You may also wish
+to use the tcpdump or ethereal utilities to watch the network for bootp
+packets (port bootps).  If not, check your network hardware (cables,
+etc). If a query was received, check if bootpd/dhcpd was able to give an
+answer. If not, then the Ethernet address was not found in /etc/bootptab
+or /etc/dhcp.conf. If a reply was sent, then only faulty hardware or a
+bug in Etherboot would prevent it being received by Etherboot.
 <P>
 <P>
 <P>Assuming an IP address was received, the next thing Etherboot tries to
@@ -49,13 +49,15 @@ in and that you have compiled in the network card driver.
 
 <P>
 <P>Now you need to set up a NFS root filesystem for the diskless computer.
-Typically this is under /tftpboot/&lt;ip address of computer&gt;. In
-2.1 and higher kernels, this should be /tftpboot/&lt;name of computer
-in bootptab&gt;.  This needs to contain a complete root filesystem
-that will make the kernel boot happily.  This means, for most kernels,
-it should contain /dev, /proc, /etc, /sbin, /bin, /tmp and /var. The
-details vary from distribution to distribution.  Being lazy I just make
-a copy of the necessary files from an existing RedHat 6.0 filesystem and
+Typically this is under /tftpboot/&lt;ip address of computer&gt;. In 2.1
+and higher kernels, this should be /tftpboot/&lt;name of computer in
+bootptab&gt;.  This needs to contain a complete root filesystem that
+will make the kernel boot happily.  This means, for most kernels, it
+should contain /dev, /proc, /etc, /sbin, /bin, /tmp and /var. The
+details vary from distribution to distribution.  See the FAQ section for
+various methods of constructing a NFS root filesystem. There is no one
+true method. In the method I use I was lazy so I just make a copy of the
+necessary files from an existing Linux filesystem on the server and
 modify some key files appropriately. You can find a description in 
 <A HREF="diskless.html">my tutorial</A> and some shell scripts to copy
 the files. Since the amount of disk space needed is relatively small in
@@ -89,10 +91,12 @@ can however share some directories between clients, typically /sbin,
 <P>The root filesystem should be exported rw and no_root_squash because the
 various processes need to be root and need to write to log files in the
 root partition. You may wish to export /usr and /home filesystems to the
-diskless computer also. These do not need no_root_squash permission. Be
-aware that practically all Linux distributions have a few "bugs" relating
-to symlinks and so forth for diskless booting.  These are mentioned in
-the tutorial.
+diskless computer also. These do not need no_root_squash permission, and
+in the case of /usr probably only needs to be ro. Otherwise you will be
+opening up a security hole for hacking the server from the client. Be
+aware that practically all Linux distributions have a few "bugs"
+relating to symlinks and so forth for diskless booting.  These are
+mentioned in the tutorial.
 <P>
 <H2><A NAME="ss4.2">4.2 Initial ramdisk</A>
 </H2>
@@ -120,9 +124,9 @@ that can acquire an identity using a userland DHCP client program.
 
 <P>
 <P>Swap over NFS can be arranged but you have to patch the kernel source.
-There are patches in the contrib directory for NFS swap but for up to date
-patches, try 
-<A HREF=" http://www.math1.rwth-aachen.de/~heine/nfs-swap/">here</A>.
+There are patches in the contrib directory for NFS swap but for up to
+date patches, try 
+<A HREF="http://www.instmath.rwth-aachen.de/~heine/nfs-swap/nfs-swap.html">here</A>.
 <P>
 <P>
 <P>Be aware that opinions are divided on NFS swap.  Some people think

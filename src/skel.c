@@ -14,11 +14,10 @@ Skeleton NIC driver for Etherboot
 #include "etherboot.h"
 /* to get the interface to the body of the program */
 #include "nic.h"
-/* to get the PCI support functions */
+/* to get the PCI support functions, if this is a PCI NIC */
 #include "pci.h"
 /* to get our own prototype */
 #include "cards.h"
-
 
 /* NIC specific static variables go here */
 
@@ -38,6 +37,7 @@ static int skel_poll(struct nic *nic)
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
 	/* nic->packetlen should contain length of data */
+	return (0);	/* initially as this is called to flush the input */
 }
 
 /**************************************************************************
@@ -62,6 +62,7 @@ static void skel_disable(struct nic *nic)
 
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
+You should omit the last argument struct pci_device * for a non-PCI NIC
 ***************************************************************************/
 struct nic *skel_probe(struct nic *nic, unsigned short *probe_addrs,
 	struct pci_device *p)
@@ -77,7 +78,5 @@ struct nic *skel_probe(struct nic *nic, unsigned short *probe_addrs,
 		return nic;
 	}
 	/* else */
-	{
-		return 0;
-	}
+	return 0;
 }

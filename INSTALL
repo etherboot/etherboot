@@ -2,7 +2,7 @@ For the impatient, "cd src" and "make". Your ROM images will be in
 bin32/xxx.rom and bin32/xxx.lzrom, where xxx is the name of your NIC
 driver.  See src/NIC for the list of supported NICs.  To make the mknbi
 tools, "cd mknbi", edit the Makefile to set the installation directories,
-"make" and then "make install".
+"make" and then "make install". Mknbi is not needed for booting FreeBSD.
 
 More likely if you are unfamiliar with Etherboot you should read the
 documentation starting with index.html if you have a Web browser, or

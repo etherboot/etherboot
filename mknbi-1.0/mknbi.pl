@@ -18,7 +18,7 @@ use constant;
 use constant DEBUG => 0;
 
 use vars qw($libdir $target $output $module $param $append $rootdir
-	$ipaddrs $ramdisk $rdmode $simhd $first32);
+	$ipaddrs $ramdisk $rdmode $simhd $squashfd $first32);
 
 sub check_file {
 	my ($f, $status);
@@ -200,7 +200,7 @@ sub get_geom{
 	my ($usedsize, $declsize, $firsttracksize, $geom_string, $fstype);
 	my ($secttot, $secttrk, $heads, $bootid, $sig, $cyltot);
 
-	($usedsize = &TruncFD::truncfd($file)) > 0
+	($usedsize = $squashfd ? &TruncFD::truncfd($file) : -s $file) > 0
 		or die "Error reading $file\n";
 	(undef, $secttot, undef, $secttrk, $heads, undef, $bootid, undef,
 		$fstype, $sig) = unpack('a19va3vva8Ca17Z5@510a2', $$block);
@@ -353,6 +353,7 @@ sub mknbi_dos {
 $libdir = '@@LIBDIR@@';		# where config and auxiliary files are stored
 
 $simhd = 0;
+$squashfd = 1;
 $first32 = 0;
 GetOptions('target=s' => \$target,
 	'output=s' => \$output,
@@ -362,6 +363,7 @@ GetOptions('target=s' => \$target,
 	'ipaddrs=s' => \$ipaddrs,
 	'rdmode=s' => \$rdmode,
 	'harddisk!' => \$simhd,
+	'squash!' => \$squashfd,
 	'first32!' => \$first32);
 
 $0 =~ /-([a-z]+)$/ and $target = $1;
@@ -417,7 +419,7 @@ B<mknbi> can be invoked with the B<--target> option or links can be made
 to it under target specific names.
 
 B<--target>=I<target> Specify the target binary. Currently available are
-linux, rom, fdos and dos.
+linux, rom, fdos and dos. B<mknbi> is not needed for booting FreeBSD.
 
 B<--output=>I<outputfile> Specify the output file, can be used with
 all variants.  Stdout is the default.
@@ -590,6 +592,12 @@ reason you might want to do this is because you want to use the real
 floppy. The limit on "disk size" in the boot image is not raised by this
 option so that is not a reason to use this option.
 
+B<--nosquash> Do not try to chop unused sectors from the end of the
+floppy image. This increases the tagged image size and hence loading
+time if the FAT filesystem on the floppy is mostly empty but you may
+wish to use this option if you have doubts as to whether the squashing
+algorithm is working correctly.
+
 =head1 MKNBI-DOS
 
 B<mknbi-dos> makes a tagged image from a floppy image containing a
@@ -637,6 +645,12 @@ B<--harddisk> Make the boot ramdisk the first hard disk, i.e. C:. One
 reason you might want to do this is because you want to use the real
 floppy. The limit on "disk size" in the boot image is not raised by this
 option so that is not a reason to use this option.
+
+B<--nosquash> Do not try to chop unused sectors from the end of the
+floppy image. This increases the tagged image size and hence loading
+time if the FAT filesystem on the floppy is mostly empty but you may
+wish to use this option if you have doubts as to whether the squashing
+algorithm is working correctly.
 
 =head1 BUGS
 

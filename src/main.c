@@ -69,7 +69,7 @@ static const char dhcpdiscover[]={
 		RFC2132_MAX_SIZE,2,	/* request as much as we can */
 		sizeof(struct bootpd_t) / 256, sizeof(struct bootpd_t) % 256,
 		RFC2132_PARAM_LIST,4,RFC1533_NETMASK,RFC1533_GATEWAY,
-		RFC1533_HOSTNAME,RFC1533_EXTENSIONPATH
+		RFC1533_HOSTNAME
 	};
 static const char dhcprequest []={
 		RFC2132_MSG_TYPE,1,DHCPREQUEST,
@@ -80,17 +80,16 @@ static const char dhcprequest []={
 		/* request parameters */
 		RFC2132_PARAM_LIST,
 #ifdef	IMAGE_FREEBSD
-		/* 5 standard + 6 vendortags + 8 motd + 16 menu items */
-		5 + 6 + 8 + 16,
+		/* 4 standard + 6 vendortags + 8 motd + 16 menu items */
+		4 + 6 + 8 + 16,
 #else
-		/* 5 standard + 5 vendortags + 8 motd + 16 menu items */
-		5 + 5 + 8 + 16,
+		/* 4 standard + 5 vendortags + 8 motd + 16 menu items */
+		4 + 5 + 8 + 16,
 #endif
 		/* Standard parameters */
 		RFC1533_NETMASK, RFC1533_GATEWAY,
 		RFC1533_HOSTNAME,
 		RFC1533_ROOTPATH,	/* only passed to the booted image */
-		RFC1533_EXTENSIONPATH,
 		/* Etherboot vendortags */
 		RFC1533_VENDOR_MAGIC,
                 RFC1533_VENDOR_ADDPARM,
@@ -152,12 +151,12 @@ int main(void)
 
 #ifdef	ETHERBOOT32
 	rom = *(struct rom_info *)ROM_INFO_LOCATION;
-	printf("ROM segment 0x%x length 0x%x reloc 0x%x\n", rom.rom_segment,
+	printf("ROM segment %#x length %#x reloc %#x\n", rom.rom_segment,
 		rom.rom_length << 1, ((unsigned long)_start) >> 4);
 #endif
 #ifdef	ETHERBOOT16
 	fmemcpy(&rom, (Address)ROM_INFO_LOCATION, sizeof(rom));
-	printf("ROM segment 0x%x length 0x%x\n", rom.rom_segment,
+	printf("ROM segment %#x length %#x\n", rom.rom_segment,
 		rom.rom_length << 1);
 #endif
 #ifdef	ASK_BOOT
@@ -874,10 +873,9 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 				memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
 				decode_rfc1533(BOOTP_DATA_ADDR->bootp_reply.bp_vend,
 #ifdef	NO_DHCP_SUPPORT
-					       0, BOOTP_VENDOR_LEN +
-					       MAX_BOOTP_EXTLEN, 1);
+					       0, BOOTP_VENDOR_LEN + MAX_BOOTP_EXTLEN, 1);
 #else
-					       0, DHCP_OPT_LEN, 1);
+					       0, DHCP_OPT_LEN + MAX_BOOTP_EXTLEN, 1);
 #endif	/* NO_DHCP_SUPPORT */
 				return(1);
 			}

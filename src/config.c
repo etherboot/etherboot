@@ -190,6 +190,9 @@ static const struct dispatch_table	NIC[] =
 #ifdef	INCLUDE_3C90X
 	{ "3C90X", a3c90x_probe, pci_ioaddrs },
 #endif
+#ifdef	INCLUDE_EEPRO
+	{ "EEPRO", eepro_probe, 0 },
+#endif
 #ifdef	INCLUDE_EEPRO100
 	{ "EEPRO100", eepro100_probe, pci_ioaddrs },
 #endif

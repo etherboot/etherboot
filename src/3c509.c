@@ -311,9 +311,9 @@ static int t509_poll(struct nic *nic)
 	type = (nic->packet[12]<<8) | nic->packet[13];
 	if(nic->packet[0]+nic->packet[1]+nic->packet[2]+nic->packet[3]+nic->packet[4]+
 	    nic->packet[5] == 0xFF*ETHER_ADDR_SIZE)
-		printf(",t=0x%x,b]",type);
+		printf(",t=%#x,b]",type);
 	else
-		printf(",t=0x%x]",type);
+		printf(",t=%#x]",type);
 #endif
 	return 1;
 }
@@ -564,14 +564,14 @@ struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
 
 #ifdef	INCLUDE_3C529
 	if (mcafound) {
-		printf("%s board found on MCA at 0x%x IRQ %d -",
+		printf("%s board found on MCA at %#x IRQ %d -",
 		       mcafound->name, eth_nic_base, mca_irq);
 	} else {
 #endif
 		if(eth_nic_base >= EP_EISA_START) {
-			printf("3C5x9 board on EISA at 0x%x - ",eth_nic_base);
+			printf("3C5x9 board on EISA at %#x - ",eth_nic_base);
 		} else {
-			printf("3C5x9 board on ISA at 0x%x - ",eth_nic_base);
+			printf("3C5x9 board on ISA at %#x - ",eth_nic_base);
 		}
 #ifdef	INCLUDE_3C529
 	}

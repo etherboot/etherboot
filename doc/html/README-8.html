@@ -29,7 +29,7 @@
 <P>
 <P>You need gcc, gas and objcopy, as well as any accompanying libraries and
 include files. Generally speaking on a package based system using RPM
-or PKG, you will need the C compiler package, the include file package,
+or DEB, you will need the C compiler package, the include file package,
 the C library package, the assembler package and the binutils package
 (this may include the assembler). In addition, if you intend to modify
 the assembler files you will need an up-to-date as86 and ld86, not the
@@ -59,9 +59,11 @@ are they?
 
 <P>
 <P>These are 
-<A HREF="mknbi.html">utilities</A> in the mknbi-1.0
-directory.  You need to cd into this directory, edit Makefile and run
-make and make install to install the utilities in their final location.
+<A HREF="mknbi.html">utilities</A> in the
+mknbi-&lt;version&gt; directory.  You need to cd into this directory,
+edit Makefile and run make then make install to install the utilities in
+their final location.  You cannot use them until they have been
+installed as they rely on a library directory.
 <P>
 </LI>
 <LI>Why don't you provide prebuilt ROM images?
@@ -85,7 +87,7 @@ For this reason, Etherboot is provided in source form for you to build.
 <OL>
 <LI>I put the ROM image on floppy like you wrote (cat floppyload.bin.pre
 bin32/foo.rom > /dev/fd0, or make bin32/foo.fd0) but the floppy prints
-out hex numbers when it boots.
+out a bunch of register names and hex numbers when it boots.
 
 <P>
 <P>The floppy you use should be an error-free, preferably a recently
@@ -208,7 +210,7 @@ What can I expect to run on it?
 Linux, since 0.0.83 there has been support for making a tagged image
 and a ramdisk. However there are few applications for ELKS. For more
 details please go to the ELKS web site and mailing lists. Note that
-there is no networking in ELKS yet.
+there is no networking in ELKS yet (and probably never).
 </LI>
 <LI>On a 286 you can run DOS. With 384kB of extended memory you can
 run a 320kB ramdisk that can hold NCSA telnet with a VT100 terminal
@@ -220,7 +222,9 @@ run various small application and network services. See
 </LI>
 <LI>On a 386 with at least 4MB of memory you can boot Linux. With 4MB
 perhaps only a few telnet sessions are possible. With 8MB you might be
-able to run a text based web browser like Lynx or W3M.
+able to run a text based web browser like Lynx or W3M. You can also run
+firewalls such as 
+<A HREF="http://www.zelow.no/floppyfw">floppyfw</A>.
 </LI>
 <LI>On a 486 with 16MB of memory you can run X to make an X-terminal.
 </LI>
@@ -275,6 +279,12 @@ are your friends?
 able to open an initial console. Or alternatively, various services
 complain about not being able to write to the filesystem.
 
+<P>
+<P>A common mistake in Linux NFS servers is to put extra spaces in
+/etc/exports. Please see 
+<A HREF="http://nfs.sourceforge.net/">the NFS FAQ</A> for frequently answered questions
+about Linux NFS services.
+<P>
 <P>
 <P>Please review the Troubleshooting section for what is required on this
 root filesystem. The situation is complicated by the fact that there are
@@ -541,11 +551,11 @@ other versions don't have the necessary support for diskless booting.
 
 <P>
 <P>Depending on where you live, you might find a supplier listed on the
-Commercial Links page. Another possibility is to get the help of someone
-working in a university or industrial lab who has an EPROM programmer.
-If you are handy with hardware, you could buy a kit or build your own.
-There are links to kit suppliers in the Commercial Links part of the
-home page.
+Commercial Links page. Another possibility is to seek the help of
+someone working in a university or industrial lab who has an EPROM
+programmer.  If you are handy with hardware, you could buy a kit or
+build your own.  There are links to kit suppliers in the Commercial
+Links part of the home page.
 <P>
 <P>
 <P>Some high end adapters, for example the 3Com and Intel ones, accept
@@ -561,7 +571,7 @@ possibly
 <A HREF="http://www.ping.be/bios">here</A>. It
 is also reputed to live 
 <A HREF="http://www.boardrunner.com/download/utility/utility.htm">here</A>. Or do a
-Web search for it.  No success has been reported for AMI BIOSes. Dirk von
+Web search for it. No success has been reported for AMI BIOSes. Dirk von
 Suchodoletz maintains a list of successes and failures 
 <A HREF="http://goe.net/anleitungen/award_board.html">here</A>.
 <P>Here is some text contributed by Dirk von Suchodoletz. He hopes to put
@@ -575,14 +585,14 @@ Newer mainboards that have an AWARD-BIOS can use etherboot without
 seperate EPROMS and therefore without the necessity of having a
 EPROM-programmer[?]. (Heinrich Rebehn wishes to add: Flashing the BIOS
 is always a (small) risk. Flashing with unsupported, hacked BIOS image
-is *dangerous* and may render your PC unbootable.  If you don't
+is *dangerous* and may render your PC unbootable. If you don't
 have access to a PROM burner you should stay away from experimenting.) In
 order to do this, you need 2 software tools: awdflash.exe, which should be
 included in your mainboard package, and cbrom.exe, which is an OEM-tool
 that allows modifications of the BIOS. awdflash.exe reads and writes
 the flashrom content, whereas cbrom.exe is used to analyze the content
 of the AWARD BIOS image. cbrom.exe can also add code to the BIOS image
-or remove components.  This way you can easily integrate etherboot into
+or remove components. This way you can easily integrate etherboot into
 your mainboards without even opening the PC's case.
 
 After the BIOS image has been saved (e.g. as bios.bin), or in case the
@@ -591,7 +601,7 @@ website, 'cbrom bios.bin /d' shows how much space is left on the image
 for your code.
 
 As the flashrom holds the compressed BIOS, cbrom will also compress
-the code when adding it to the BIOS.  Therefore, 8 to 20 kbyte of free
+the code when adding it to the BIOS. Therefore, 8 to 20 kbyte of free
 memory is needed, depending on the network adapter's driver. In case not
 enough memory is left, unneeded BIOS components can be removed from the
 BIOS image to regain space: the manufacturer's logo or the Symbios/NCR
@@ -645,23 +655,23 @@ cbrom.exe versions:
 <P>
 <HR>
 <PRE>
-Some  more remarks  for cbrom..
+Some more remarks for cbrom..
 
-There are several version numbers of cbrom.exe  p.e. 1.x  and 2.x.
-and there is a cbrom called cbrom6.exe.  First cbrom.exe with Version
-1.x  (newest 1.32)  is for Award Bios Version 4.5x   and cbrom6.exe is
+There are several version numbers of cbrom.exe p.e. 1.x and 2.x.
+and there is a cbrom called cbrom6.exe. First cbrom.exe with Version
+1.x (newest 1.32) is for Award Bios Version 4.5x  and cbrom6.exe is
 for Award Bios Version 6.xx.
 
-So because it seems a lot people become confused  and use cbrom 1.x
-for the new 6.x  Bios Award merged this together  to a cbrom.exe   with
+So because it seems a lot people become confused and use cbrom 1.x
+for the new 6.x Bios Award merged this together to a cbrom.exe  with
 Version number 2.x ( newest know 2.04) witch now runs on Award 4.5x and
 6.xx Bioses.
 
-Now how to find cbrom.exe.  Different  1.x Versions  of cbrom.exe
-could be found  on the net, cbrom6.exe  seems to be gone.  It seems
+Now how to find cbrom.exe. Different 1.x Versions of cbrom.exe
+could be found on the net, cbrom6.exe seems to be gone. It seems
 that Award/Phoenix do all that cbrom is deleted from servers of board
-manufaktures.  So cbrom.exe Vers 2.04  is not  available on the net.
-If  somebody need this please try to send a demand question to the list -
+manufaktures. So cbrom.exe Vers 2.04 is not available on the net.
+If somebody need this please try to send a demand question to the list -
 I hope somebody will mail it to you.
 </PRE>
 <HR>
@@ -747,7 +757,8 @@ volunteering. And I have the latest Linux source anyway, doesn't everyone?
 <P>
 <P>
 <OL>
-<LI>I have a question not covered by this list.
+<LI>I don't understand something, or I have a question not covered by
+this list.
 
 <P>
 <P>Please join the 
@@ -763,20 +774,22 @@ packages. However there is a fair amount of overlap between the lists
 and many key people are on all lists.
 <P>
 <P>
-<P>Posting to a list is preferable to mailing me because: you get the
-benefit of a lot of experts seeing your question (no, I don't know
-everything, if only because there are many configurations I have never
-used); if your question is answered, a lot of people see the answer and
-this helps them too; and finally you may not get an immediate (or any)
-reply from me because I may be not reading my email or on holiday or
-just plain grumpy :-).
+<P>I strongly suggest you post Etherboot questions to the Etherboot-users
+mailing list instead of mailing me because: you get the benefit of a lot
+of experts seeing your question (no, I don't know everything, if only
+because there are many configurations I have never used); a lot of
+people see the question and answer and this helps them too. For these
+reasons you may not get any reply from me if you email me privately. I
+want to make the best use of my time and that is by making sure that as
+many people as possible see the questions and answers.
 <P>
 <P>
 <P>Note that the Netboot mailing list is spam protected.  If your ISP has
 been slack security-wise and had a machine of theirs get onto one of the
 Open Relay Blacklists, then you will not be allowed to post. The only
 things I can suggest are to change your ISP to a more responsible one,
-or to get a Web based mailbox.
+or to get a Web based mailbox. I cannot help you with problems here as I
+do not administer the Netboot mailing list.
 <P>
 </LI>
 </OL>

@@ -23,9 +23,9 @@ sub truncfd {
 	$nread = read(F, $buffer, 512);
 	return -1 if (!defined($nread));
 
-	my (undef, $bytepersect, $sectperclus, $resvsectors, $fats, $rootdirents,
-		$sectors, undef, $sectperfat, $sectpertrk, $heads, $hidsectors,
-		undef, $fstype) =
+	my ($dummy1, $bytepersect, $sectperclus, $resvsectors, $fats, $rootdirents,
+		$sectors, $dummy2, $sectperfat, $sectpertrk, $heads, $hidsectors,
+		$dummy3, $fstype) =
 		unpack('a11vCvCvvavvvva24Z5', $buffer);
 	$cylinders = $sectors / ($sectpertrk * $heads);
 	$clusters = $sectors / $sectperclus;

@@ -14,9 +14,6 @@
 <HR>
 <H2><A NAME="s2">2. Unpacking, compiling and testing the package</A></H2>
 
-<P>
-<P><EM>This section is Etherboot specific.</EM>
-<P>
 <H2><A NAME="ss2.1">2.1 Unpacking the distribution</A>
 </H2>
 
@@ -39,22 +36,23 @@ commands, where you replace x by the patchlevel number:
 
 <P>
 <P>To build the ROM images you need a recent release of gcc and the
-binutils tools. This package was compiled with the tools from a RedHat
-6.0 distribution but it should work with any recent Linux or FreeBSD
+binutils tools. This package was compiled with the tools from a SuSE
+7.0 distribution but it should work with any recent Linux or FreeBSD
 distribution. For the 16 bit version you need the bcc tools from the
 Embedded Linux Kernel Subset (ELKS) project, for more details see the
 <A HREF="16.html">notes on 16 bit Etherboot</A>. You need the 16
 bit version only if you intend to run Etherboot on a 286 or 086/088 PC.
 <P>
 <P>
-<P>Assuming you have decided to make the 32 bit version, you only have
-to go to src/, edit the options in Config and say make. This will
-create all the ROM images available in bin32. The .lzrom images are the
-same as the .rom images. Since the .lzrom images are smaller and work
-exactly the same, there is no real reason to use .rom images any more,
-unless you are nervous about compression algorithm patents. We believe
-the algorithm used does not infringe patents, having been in public use
-for some time, but we do not know all the legal ramifications. See 
+<P>You probably want to make the 32 bit version. You only have to go to
+src/, edit the options in Config and say make. We suggest you accept the
+default options if you are not sure what to select.  This will create
+all the ROM images available in bin32. The .lzrom images are the same as
+the .rom images. Since the .lzrom images are smaller and work exactly
+the same, there is no real reason to use .rom images any more, unless
+you are nervous about compression algorithm patents. We believe the
+algorithm used does not infringe patents, having been in public use for
+some time, but we do not know all the legal ramifications. See 
 <A HREF="COPYING_compressor.html">here</A> for more details.
 <P>
 <P>
@@ -214,12 +212,11 @@ Etherboot/32 only options:
 <HR>
 <P>
 <P>
-<P>You may also wish to examine file NIC for other options that may need
-adjustment. If you find you need to adjust the PCI vendor and device IDs,
-add the appropriate line to this file (and send me a copy). If you do
-not set the IDs correctly, the floppy version will work, but the ROM
-will not. The PCI IDs are usually displayed by the BIOS on booting
-up. They can also be read out from a running Linux system using the
+<P>If you find you need to adjust the PCI vendor and device IDs for PCI
+NICs, add the appropriate line to the file NIC (and send me a copy). If
+you do not set the IDs correctly, the floppy version will work, but the
+ROM will not.  The PCI IDs are usually displayed by the BIOS on booting
+up. They can also be read out from a running Linux system using the 
 <A HREF="http://atrey.karlin.mff.cuni.cz/~mj/pciutils.html">Linux PCI Utilities</A>.
 <P>
 <H2><A NAME="ss2.3">2.3 Testing the ROM images</A>
@@ -241,10 +238,19 @@ i.e. starting at the boot block. Like this:
         cat floppyload.bin.pre 3c509.lzrom > /dev/fd0
 </PRE>
 <HR>
+<P>Make sure the floppy has no bad blocks. It is best if it has been
+formatted just before use. You do not need to put any kind of filesystem
+on it. If you wish, you could substitute /dev/fd0 with the actual device
+suitable for the floppy size you are using, for example /dev/fd0H1440
+for 1.44 MB floppies. This may be more reliable than using the
+autodetecting device /dev/fd0.
+<P>
+<P>
 <P>When you boot with this floppy it will load the Etherboot ROM image from
-floppy and execute it. It should be able to detect your card. To get
-the bootrom to acquire an IP address and load the intended code, you
-need to set up bootp, tftp and NFS services, which we will discuss next.
+floppy and execute it. If you chose the correct ROM image, it should be
+able to detect your card. To get the bootrom to acquire an IP address
+and load the intended code, you need to set up bootp, tftp and NFS
+services, which we will discuss next.
 <P>
 <P>
 <P>We suggest you continue to use floppy booting until you have completed

@@ -212,7 +212,7 @@ static int tiara_probe1(struct nic *nic)
 		return (0);
 	if (memcmp(nic->node_addr, all_ones, sizeof(all_ones)) == 0)
 		return (0);
-	printf("\nTiara ioaddr 0x%x, addr ", ioaddr);
+	printf("\nTiara ioaddr %#x, addr ", ioaddr);
 	for (i = 0; i < ETHER_ADDR_SIZE; ++i)
 	{
 		printf("%b", nic->node_addr[i]);

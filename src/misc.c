@@ -45,28 +45,39 @@ int strcasecmp(a,b)
 PRINTF and friends
 
 	Formats:
-		%X	- 4 byte ASCII (8 hex digits)
-		%x	- 2 byte ASCII (4 hex digits)
-		%b	- 1 byte ASCII (2 hex digits)
-		%d	- decimal
-		%c	- ASCII char
-		%s	- ASCII string
+		%[#]X	- 4 bytes long (8 hex digits)
+		%[#]x	- 2 bytes int (4 hex digits)
+			- optional # prefixes 0x
+		%b	- 1 byte int (2 hex digits)
+		%d	- decimal int
+		%c	- char
+		%s	- string
 		%I	- Internet address in x.x.x.x notation
 	Note: width specification not supported
 **************************************************************************/
 static char *do_printf(char *buf, const char *fmt, const int *dp)
 {
 	register char *p;
+	int alt;
 	char tmp[16];
 	static const char hex[]="0123456789ABCDEF";
 
 	while (*fmt) {
 		if (*fmt == '%') {	/* switch() uses more space */
+			alt = 0;
 			fmt++;
+			if (*fmt == '#') {
+				alt = 1;
+				fmt++;
+			}
 			if (*fmt == 'X') {
 				const long *lp = (const long *)dp;
 				register long h = *lp++;
 				dp = (const int *)lp;
+				if (alt) {
+					*buf++ = '0';
+					*buf++ = 'x';
+				}
 				*(buf++) = hex[(h>>28)& 0x0F];
 				*(buf++) = hex[(h>>24)& 0x0F];
 				*(buf++) = hex[(h>>20)& 0x0F];
@@ -78,6 +89,10 @@ static char *do_printf(char *buf, const char *fmt, const int *dp)
 			}
 			if (*fmt == 'x') {
 				register int h = *(dp++);
+				if (alt) {
+					*buf++ = '0';
+					*buf++ = 'x';
+				}
 				*(buf++) = hex[(h>>12)& 0x0F];
 				*(buf++) = hex[(h>>8)& 0x0F];
 				*(buf++) = hex[(h>>4)& 0x0F];

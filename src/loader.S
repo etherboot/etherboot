@@ -154,7 +154,7 @@ PnP:
 					; hexdumping Intel bootrom image)
 	dw	0x0000			; boot connection vector
 	dw	0x0000			; disconnect vector
-	dw	over			; bootstrap entry vector
+	dw	start19h		; bootstrap entry vector
 	dw	0x0000			; reserved
 	dw	0x0000			; static resource information vector
 #endif

@@ -1354,7 +1354,7 @@ Linux kernels which actually pay attention to the root-path handed down
 and use that as nfsroot. People who were expecting the diskless kernel
 to use the default /tftpboot/<name of client> as nfsroot would have been
 surprised to find it trying to use the tftp directory (which often
-happens to be /tftpboot, although I recomend that it be different, to
+happens to be /tftpboot, although I recommend that it be different, to
 improve security).
 
 + Eric Biederman found an off-by-one bug in the ELF loader.
@@ -1378,3 +1378,41 @@ Added to file NIC.
 different IDs.  Added to file NIC.
 
 Released as Etherboot 4.6.11
+
++ Stefan Lesicnik sent in a report from Intel which explains what is
+probably wrong with the PnP header. BEV should point to the mainline
+vector, not to the part that installs the INT19H vector.
+
++ Hopefully finally fixed DHCP option limit problem. It was requesting
+large packets but not parsing them fully due to the length limit passed
+into decode_rfc1533(). Thanks to shredda for testing this.
+
++ Added the # modifier to printf, it prefixes 0x to %x and %X making
+printf formats shorter throughout. 0x%[xX] changed to %#[xX] in lots of
+files.  Now if only I could make b,x,X the standard hhx,hx,x and get rid
+of I.
+
++ Andreas Neuhaus provided patches for multiple rx buffers for lance.c
+which made it work again with VMware.
+
++ Perl script to convert floppyfw floppies to netbootable images.
+
++ Marty Connor made some small changes to liloprefix and Makefile to
+make the LILO images SYSLINUX bootable also.
+
++ Make the default return value for _poll in skel.c 0 so that when
+driver writers implement _transmit first, it will not hang on garbage
+return values from _poll when it's called to flush the input queue
+before the first transmit.
+
++ EEPRO/10 driver now works. µs timer routines came in useful.
+
++ Anders Larsen sent in a patch to 3c90x.txt which makes it clearer.
+
++ Added more stuff to the documentation.
+
++ Fixed bug in mknbi that always did the equivalent of --ipaddrs=rom
+no matter what. Also removed undef from my variable list in TruncFD.pm
+so that it won't have problems with Perl interpreters.
+
+Released as Etherboot 4.6.12

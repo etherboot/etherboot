@@ -218,7 +218,7 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 			*ap++ = inb(ioaddr + MAC0 + i);
 	}
 
-	printf("ioaddr 0x%x, addr ", ioaddr);
+	printf("ioaddr %#x, addr ", ioaddr);
 
 	for (i = 0; i < ETHER_ADDR_SIZE; i++) {
 		printf("%b", nic->node_addr[i]);

@@ -24,21 +24,22 @@ bootp, tftp and NFS Internet Protocols.
 <P>
 <P>
 <P>Etherboot is Open Source. Please support it by joining the Open Source
-community and sharing. See the Etherboot home page for some ways you
-can help Etherboot.
+community and sharing. See the 
+<A HREF="http://etherboot.sourceforge.net/">Etherboot home page</A> for some ways you can help
+Etherboot.
 <P>
 <P>
 <P><I>Disclaimer: Etherboot comes with NO warranties of any kind. It is
-hoped that it will be useful to you, and NO responsibility is accepted for
-any outcome of using it. Etherboot also comes with NO support, although
-you can get helpful advice from the Netboot mailing list referred to on
-the Etherboot home page, and from the Internet in general.</I>
+hoped that it will be useful to you, and NO responsibility is accepted
+for any outcome of using it. Etherboot also comes with NO support,
+although you can usually get helpful advice from the mailing lists
+listed on the Etherboot home page.</I>
 <P>
 <H2><A NAME="ss1.1">1.1 What hardware is supported?</A>
 </H2>
 
 <P>
-<P>The following is the current NIC configuration file as of 2000-11-04.
+<P>The following is the current NIC configuration file as of 2000-11-29.
 <P>Even if your NIC does not appear in the list, it may still be supported
 if the chip is one of those supported.  Many OEMs use chips from
 foundries. An exhaustive list of brand names is impossible.  The best
@@ -116,6 +117,8 @@ strategy is to read the number on the LAN controller chip on the board.
 cs89x0
 # Digital DE100 and DE200
 depca           depca
+# Intel Etherexpress Pro/10 (ISA card)
+eepro           eepro
 # Intel Etherexpress Pro/100
 eepro100        eepro100        0x8086,0x1229
 82559er         eepro100        0x8086,0x1209
@@ -228,14 +231,9 @@ accessed via
 </H2>
 
 <P>
-<P>There is a mailing list for all netbooting related
-issues. To subscribe follow the instructions on the 
+<P>There are mailing lists for all Etherboot related issues. To subscribe
+follow the instructions on the 
 <A HREF="http://etherboot.sourceforge.net/">Etherboot home page</A>.
-<P>
-<P>
-<P>With the major exception of the following section, and the section on
-Writing an Etherboot Driver, most of the information on diskless booting
-is not specific to Etherboot but can be used for the Netboot package also.
 <P>
 <HR>
 <A HREF="README-2.html">Next</A>

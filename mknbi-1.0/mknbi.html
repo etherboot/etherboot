@@ -73,7 +73,7 @@ systems suitable for network loading by Etherboot or Netboot.
 
 <P>
 <STRONG>--target</STRONG>=<EM>target</EM> Specify the target binary. Currently available are linux, rom, fdos and
-dos.
+dos. <STRONG>mknbi</STRONG> is not needed for booting FreeBSD.
 
 <P>
 <STRONG>--output=</STRONG><EM>outputfile</EM> Specify the output file, can be used with all variants. Stdout is the
@@ -302,6 +302,13 @@ want to do this is because you want to use the real floppy. The limit on
 a reason to use this option.
 
 <P>
+<STRONG>--nosquash</STRONG> Do not try to chop unused sectors from the end of the floppy image. This
+increases the tagged image size and hence loading time if the FAT
+filesystem on the floppy is mostly empty but you may wish to use this
+option if you have doubts as to whether the squashing algorithm is working
+correctly.
+
+<P>
 <HR>
 <H1><A NAME="MKNBI_DOS">MKNBI-DOS</A></H1>
 <P>
@@ -377,6 +384,13 @@ Move <EM>dos.nb</EM> to where the network booting process expects to find it.
 want to do this is because you want to use the real floppy. The limit on
 ``disk size'' in the boot image is not raised by this option so that is not
 a reason to use this option.
+
+<P>
+<STRONG>--nosquash</STRONG> Do not try to chop unused sectors from the end of the floppy image. This
+increases the tagged image size and hence loading time if the FAT
+filesystem on the floppy is mostly empty but you may wish to use this
+option if you have doubts as to whether the squashing algorithm is working
+correctly.
 
 <P>
 <HR>

@@ -315,7 +315,7 @@ static int ni5010_probe1(struct nic *nic)
 			return (0);
 	} else
 		return (0);
-	printf("\nNI5010 ioaddr 0x%x, addr ", ioaddr);
+	printf("\nNI5010 ioaddr %#x, addr ", ioaddr);
 	for (i = 0; i < ETHER_ADDR_SIZE; i++) {
 		outw(i, IE_GP);
 		printf("%b", nic->node_addr[i] = inb(IE_SAPROM));

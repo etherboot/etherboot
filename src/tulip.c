@@ -733,7 +733,7 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
       nic->node_addr[i] = ee_data[20+i];
   }
 
-  printf("Tulip %b:%b:%b:%b:%b:%b at ioaddr 0x%x\n",
+  printf("Tulip %b:%b:%b:%b:%b:%b at ioaddr %#x\n",
     nic->node_addr[0],nic->node_addr[1],nic->node_addr[2],nic->node_addr[3],
     nic->node_addr[4],nic->node_addr[5],ioaddr);
 

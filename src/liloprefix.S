@@ -41,7 +41,7 @@
 
 #define SYSSIZE 2048		/* 2048 * 16 bytes = 32kB maximum size of
 				   .ROM file */
-#define SETUPSECS 1		/* Minimal nr of setup-sectors */
+#define SETUPSECS 4		/* Minimal nr of setup-sectors */
 #define BOOTSEG 0x07C0		/* original address of boot-sector */
 #define INITSEG DEF_INITSEG	/* we move boot here - out of the way */
 #define SETUPSEG DEF_SETUPSEG	/* setup starts here */

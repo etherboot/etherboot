@@ -120,7 +120,7 @@ static unsigned long bios32_service(unsigned long service)
 			printf("bios32_service(%d) : not present\n", service);
 			return 0;
 		default: /* Shouldn't happen */
-			printf("bios32_service(%d) : returned 0x%x, mail drew@colorado.edu\n",
+			printf("bios32_service(%d) : returned %#x, mail drew@colorado.edu\n",
 				service, return_code);
 			return 0;
 	}
@@ -294,7 +294,7 @@ static void check_pcibios(void)
 #if	DEBUG
 		if (pcibios_entry) {
 			printf ("pcibios_init : PCI BIOS revision %b.%b"
-				" entry at 0x%X\n", major_revision,
+				" entry at %#x\n", major_revision,
 				minor_revision, pcibios_entry);
 		}
 #endif
@@ -327,13 +327,13 @@ static void pcibios_init(void)
 		if (sum != 0)
 			continue;
 		if (check->fields.revision != 0) {
-			printf("pcibios_init : unsupported revision %d at 0x%X, mail drew@colorado.edu\n",
+			printf("pcibios_init : unsupported revision %d at %#x, mail drew@colorado.edu\n",
 				check->fields.revision, check);
 			continue;
 		}
 #if	DEBUG
 		printf("pcibios_init : BIOS32 Service Directory "
-			"structure at 0x%X\n", check);
+			"structure at %#x\n", check);
 #endif
 		if (!bios32_entry) {
 			if (check->fields.entry >= 0x100000) {
@@ -344,7 +344,7 @@ static void pcibios_init(void)
 				bios32_entry = check->fields.entry;
 #if	DEBUG
 				printf("pcibios_init : BIOS32 Service Directory"
-					" entry at 0x%X\n", bios32_entry);
+					" entry at %#x\n", bios32_entry);
 #endif
 				bios32_indirect.address = bios32_entry;
 			}
@@ -408,7 +408,7 @@ static void scan_bus(struct pci_device *pcidev)
 					/* Get the ROM base address */
 					pcibios_read_config_dword(bus, devfn, PCI_ROM_ADDRESS, &romaddr);
 					romaddr >>= 10;
-					printf("Found %s at 0x%x, ROM address 0x%X\n",
+					printf("Found %s at %#x, ROM address %#x\n",
 						pcidev[i].name, ioaddr, romaddr);
 					/* Take the first one or the one that matches in boot ROM address */
 					if (pci_ioaddr == 0 || romaddr == ((unsigned long) rom.rom_segment << 4)) {

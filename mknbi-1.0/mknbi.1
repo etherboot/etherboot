@@ -93,7 +93,7 @@
 .nr % 0
 .rr F
 .\}
-.TH MKNBI 1 "Mknbi 1.0" "2000-08-07" "Etherboot tools"
+.TH MKNBI 1 "Mknbi 1.0" "2000-11-15" "Etherboot tools"
 .UC
 .if n .hy 0
 .if n .na
@@ -207,7 +207,7 @@ operating systems suitable for network loading by Etherboot or Netboot.
 to it under target specific names.
 .PP
 \fB--target\fR=\fItarget\fR Specify the target binary. Currently available are
-linux, rom, fdos and dos.
+linux, rom, fdos and dos. \fBmknbi\fR is not needed for booting FreeBSD.
 .PP
 \fB--output=\fR\fIoutputfile\fR Specify the output file, can be used with
 all variants.  Stdout is the default.
@@ -367,6 +367,12 @@ from mtools, you are not restricted to the actual size of the boot floppy.
 reason you might want to do this is because you want to use the real
 floppy. The limit on \*(L"disk size\*(R" in the boot image is not raised by this
 option so that is not a reason to use this option.
+.PP
+\fB--nosquash\fR Do not try to chop unused sectors from the end of the
+floppy image. This increases the tagged image size and hence loading
+time if the FAT filesystem on the floppy is mostly empty but you may
+wish to use this option if you have doubts as to whether the squashing
+algorithm is working correctly.
 .SH "MKNBI\-DOS"
 \fBmknbi-dos\fR makes a tagged image from a floppy image containing a
 bootable DOS filesystem.  It is not necessary to build the filesystem
@@ -411,6 +417,12 @@ Move \fIdos.nb\fR to where the network booting process expects to find it.
 reason you might want to do this is because you want to use the real
 floppy. The limit on \*(L"disk size\*(R" in the boot image is not raised by this
 option so that is not a reason to use this option.
+.PP
+\fB--nosquash\fR Do not try to chop unused sectors from the end of the
+floppy image. This increases the tagged image size and hence loading
+time if the FAT filesystem on the floppy is mostly empty but you may
+wish to use this option if you have doubts as to whether the squashing
+algorithm is working correctly.
 .SH "BUGS"
 Please report all bugs to the author.
 .SH "SEE ALSO"

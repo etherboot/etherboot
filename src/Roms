@@ -16,6 +16,7 @@ DOBJS32	+= bin32/3c509.o
 DOBJS32	+= bin32/3c529.o
 DOBJS32	+= bin32/cs89x0.o
 DOBJS32	+= bin32/depca.o
+DOBJS32	+= bin32/eepro.o
 DOBJS32	+= bin32/3c507.o
 DOBJS32	+= bin32/exos205.o
 DOBJS32	+= bin32/ni5210.o
@@ -32,6 +33,7 @@ DOBJS16	+= bin16/3c509.o
 DOBJS16	+= bin16/3c529.o
 DOBJS16	+= bin16/cs89x0.o
 DOBJS16	+= bin16/depca.o
+DOBJS16	+= bin16/eepro.o
 DOBJS16	+= bin16/3c507.o
 DOBJS16	+= bin16/exos205.o
 DOBJS16	+= bin16/ni5210.o
@@ -94,6 +96,7 @@ BINS32	+= bin32/3c509.rom bin32/3c509.lzrom
 BINS32	+= bin32/3c529.rom bin32/3c529.lzrom
 BINS32	+= bin32/cs89x0.rom bin32/cs89x0.lzrom
 BINS32	+= bin32/depca.rom bin32/depca.lzrom
+BINS32	+= bin32/eepro.rom bin32/eepro.lzrom
 BINS32	+= bin32/exos205.rom bin32/exos205.lzrom
 BINS32	+= bin32/ne.rom bin32/ne.lzrom
 BINS32	+= bin32/ne2100.rom bin32/ne2100.lzrom
@@ -110,6 +113,7 @@ BINS16	+= bin16/3c509.rom bin16/3c509.lzrom
 BINS16	+= bin16/3c529.rom bin16/3c529.lzrom
 BINS16	+= bin16/cs89x0.rom bin16/cs89x0.lzrom
 BINS16	+= bin16/depca.rom bin16/depca.lzrom
+BINS16	+= bin16/eepro.rom bin16/eepro.lzrom
 BINS16	+= bin16/exos205.rom bin16/exos205.lzrom
 BINS16	+= bin16/ne.rom bin16/ne.lzrom
 BINS16	+= bin16/ne2100.rom bin16/ne2100.lzrom
@@ -218,6 +222,12 @@ bin32/depca.o:	depca.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-
 bin32/config-depca.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 	$(CC32) $(CFLAGS32) -DINCLUDE_DEPCA -o $@ -c $<
 
+bin32/eepro.o:	eepro.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
+	$(CC32) $(CFLAGS32) $(EEPROFLAGS) -o $@ -c $<
+
+bin32/config-eepro.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	$(CC32) $(CFLAGS32) -DINCLUDE_EEPRO -o $@ -c $<
+
 bin32/3c507.o:	i82586.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC32) $(CFLAGS32) $(3C507FLAGS) -o $@ -c $<
 
@@ -313,6 +323,12 @@ bin16/depca.o:	depca.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-
 
 bin16/config-depca.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 	$(CC16) $(CFLAGS16) -DINCLUDE_DEPCA -o $@ -c $<
+
+bin16/eepro.o:	eepro.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
+	$(CC16) $(CFLAGS16) $(EEPROFLAGS) -o $@ -c $<
+
+bin16/config-eepro.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	$(CC16) $(CFLAGS16) -DINCLUDE_EEPRO -o $@ -c $<
 
 bin16/3c507.o:	i82586.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h
 	$(CC16) $(CFLAGS16) $(3C507FLAGS) -o $@ -c $<
@@ -764,6 +780,10 @@ bin32/depca.rom:	bin32/depca.img $(RLOADER)
 
 bin32/depca.lzrom:	bin32/depca.huf $(RZLOADER)
 
+bin32/eepro.rom:	bin32/eepro.img $(RLOADER)
+
+bin32/eepro.lzrom:	bin32/eepro.huf $(RZLOADER)
+
 bin32/exos205.rom:	bin32/exos205.img $(RLOADER)
 
 bin32/exos205.lzrom:	bin32/exos205.huf $(RZLOADER)
@@ -827,6 +847,10 @@ bin16/cs89x0.lzrom:	bin16/cs89x0.huf $(RZLOADER)
 bin16/depca.rom:	bin16/depca.img $(RLOADER)
 
 bin16/depca.lzrom:	bin16/depca.huf $(RZLOADER)
+
+bin16/eepro.rom:	bin16/eepro.img $(RLOADER)
+
+bin16/eepro.lzrom:	bin16/eepro.huf $(RZLOADER)
 
 bin16/exos205.rom:	bin16/exos205.img $(RLOADER)
 
@@ -996,6 +1020,13 @@ bin32/depca.tmp:	bin32/depca.o bin32/config-depca.o $(STDDEPS32)
 bin32/depca.img:	bin32/depca.o bin32/depca.tmp bin32/config-depca.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-depca.o bin32/depca.o $(LIBS32)
 
+bin32/eepro.tmp:	bin32/eepro.o bin32/config-eepro.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-eepro.o bin32/eepro.o $(LIBS32)
+	@$(SIZE32) $@ | $(CHECKSIZE)
+
+bin32/eepro.img:	bin32/eepro.o bin32/eepro.tmp bin32/config-eepro.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-eepro.o bin32/eepro.o $(LIBS32)
+
 bin32/exos205.tmp:	bin32/exos205.o bin32/config-exos205.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-exos205.o bin32/exos205.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
@@ -1107,6 +1138,13 @@ bin16/depca.tmp:	bin16/depca.o bin16/config-depca.o $(STDDEPS16)
 
 bin16/depca.img:	bin16/depca.o bin16/depca.tmp bin16/config-depca.o $(STDDEPS16)
 	$(LD16) $(LDFLAGS16) $(LDBINARY16) -o $@ $(START16) bin16/config-depca.o bin16/depca.o $(LIBS16)
+
+bin16/eepro.tmp:	bin16/eepro.o bin16/config-eepro.o $(STDDEPS16)
+	$(LD16) $(LDFLAGS16) -o $@ $(START16) bin16/config-eepro.o bin16/eepro.o $(LIBS16)
+	@$(SIZE16) $@ | $(CHECKSIZE)
+
+bin16/eepro.img:	bin16/eepro.o bin16/eepro.tmp bin16/config-eepro.o $(STDDEPS16)
+	$(LD16) $(LDFLAGS16) $(LDBINARY16) -o $@ $(START16) bin16/config-eepro.o bin16/eepro.o $(LIBS16)
 
 bin16/exos205.tmp:	bin16/exos205.o bin16/config-exos205.o $(STDDEPS16)
 	$(LD16) $(LDFLAGS16) -o $@ $(START16) bin16/config-exos205.o bin16/exos205.o $(LIBS16)

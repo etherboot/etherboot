@@ -676,7 +676,7 @@ struct nic *davicom_probe(struct nic *nic, unsigned short *io_addrs,
   for (i=0; i<6; i++)
     nic->node_addr[i] = ee_data[20+i];
 
-  printf("Davicom %b:%b:%b:%b:%b:%b at ioaddr 0x%x\n",
+  printf("Davicom %b:%b:%b:%b:%b:%b at ioaddr %#x\n",
     nic->node_addr[0],nic->node_addr[1],nic->node_addr[2],nic->node_addr[3],
     nic->node_addr[4],nic->node_addr[5],ioaddr);
 

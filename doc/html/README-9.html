@@ -102,10 +102,11 @@ This is passed a pointer to a nic struct.  This can be called from
 the probe routine.
 </LI>
 <LI>A disable routine, which puts the adapter into a disabled state.
-This is passed a pointer to a nic struct.  This is needed to leave
-the adapter in a suitable state for use by the operating system which
-will be run after Etherboot. Some adapters, if left in an active state,
-cannot be found by the operating system.
+This is passed a pointer to a nic struct.  This is needed to leave the
+adapter in a suitable state for use by the operating system which will
+be run after Etherboot. Some adapters, if left in an active state, may
+crash the operating system at boot time, or cannot be found by the
+operating system.
 </LI>
 <LI>A transmit routine, to send an Ethernet packet. This is passed a
 pointer to a nic struct, the 6 byte Ethernet address of the destination,
@@ -182,6 +183,26 @@ supported adapter card on a test machine so that you know that the network
 services are working and what to expect to see on the test machine.
 <P>
 <P>
+<P>If you are starting from a Linux driver, usually the hardest part is
+filtering out all the things you do not need from the Linux driver. Here
+is a non-exhaustive list: You do not use interrupts. You do not need
+more than one transmit buffer. You do not need to use the most efficient
+method of data transfer. You do not need to implement multicasting. You
+do not need to implement statistics counting.
+<P>
+<P>
+<P>Generally speaking, the probe routine is relatively easy to translate
+from the Linux driver. The reset routine is tricky because you won't
+know if it worked until you try to transmit or receive. So check
+carefully for typographical errors. The transmit is usually
+straightforward, and the receive a bit more difficult. The main problem
+is that in the Linux driver, the work is split between routines called
+from the kernel and routines triggered by hardware interrupts.  As
+mentioned before, Etherboot does not use interrupts so you have to bring
+the work of transmitting and receiving back into the main routines. The
+disable routine is straightforward if you have the hardware commands.
+<P>
+<P>
 <P>When coding, first get the probe routine working. You will need to refer
 to the programmer's guide to the adapter when you do this.  You can also
 get some information by reading a Linux or FreeBSD driver. You may also
@@ -189,15 +210,15 @@ need to get the reset routine working at this time.
 <P>
 <P>
 <P>Next, get the transmit routine working. To check that packets are going
-out on the wire, you can use tcpdump on the development machine to snoop
-on the Ethernet. The first packet to be sent out by Etherboot will be
-a broadcast query packet, on UDP port 67. Note that you do not need
-interrupts at all.  You should ensure the packet is fully transmitted
-before returning from this routine.  You may also wish to implement a
-timeout to make sure the driver doesn't get stuck inside transmit if it
-fails to complete. A couple of timer routines are available for
-implementing the timeout, see timer.h. You use them like this (in
-pseudo-code):
+out on the wire, you can use tcpdump or ethereal on the development
+machine to snoop on the Ethernet. The first packet to be sent out by
+Etherboot will be a broadcast query packet, on UDP port 67. Note that
+you do not need interrupts at all.  You should ensure the packet is
+fully transmitted before returning from this routine.  You may also wish
+to implement a timeout to make sure the driver doesn't get stuck inside
+transmit if it fails to complete. A couple of timer routines are
+available for implementing the timeout, see timer.h. You use them like
+this (in pseudo-code):
 <P>
 <HR>
 <PRE>

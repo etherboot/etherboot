@@ -68,6 +68,8 @@
 cs89x0
 # Digital DE100 and DE200
 depca		depca
+# Intel Etherexpress Pro/10 (ISA card)
+eepro		eepro
 # Intel Etherexpress Pro/100
 eepro100	eepro100	0x8086,0x1229
 82559er		eepro100	0x8086,0x1209

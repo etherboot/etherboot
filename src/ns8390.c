@@ -660,7 +660,7 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 	}
 #endif
 	outb(0x80, eth_asic_base + WD_MSR);	/* Reset */
-	printf("\n%s base 0x%x, memory 0x%X, addr ",
+	printf("\n%s base %#x, memory %#x, addr ",
 		brd->name, eth_asic_base, eth_bmem);
 	for (i=0; i<ETHER_ADDR_SIZE; i++) {
 		printf("%b",(int)(nic->node_addr[i] =
@@ -794,11 +794,11 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
         /* Get our ethernet address */
 
                 outb(_3COM_CR_EALO | _3COM_CR_XSEL, eth_asic_base + _3COM_CR);
-                printf("\n3Com 3c503 base 0x%x, ", eth_nic_base);
+                printf("\n3Com 3c503 base %#x, ", eth_nic_base);
                 if (eth_flags & FLAG_PIO)
 			printf("PIO mode");
                 else
-			printf("memory 0x%X", eth_bmem);
+			printf("memory %#x", eth_bmem);
                 printf(", %s, addr ", nic->aui ? "AUI" : "internal xcvr");
                 for (i=0; i<ETHER_ADDR_SIZE; i++) {
                         printf("%b",(int)(nic->node_addr[i] =
@@ -906,7 +906,7 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 			eth_flags |= FLAG_16BIT;
 		eth_vendor = VENDOR_NOVELL;
 		eth_pio_read(0, romdata, sizeof(romdata));
-		printf("\nNE%c000 base 0x%x, addr ",
+		printf("\nNE%c000 base %#x, addr ",
 			(eth_flags & FLAG_16BIT) ? '2' : '1', eth_nic_base);
 		for (i=0; i<ETHER_ADDR_SIZE; i++) {
 			printf("%b",(int)(nic->node_addr[i] = romdata[i

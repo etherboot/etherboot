@@ -1,7 +1,7 @@
   Etherboot README
   Markus Gutschke and Ken Yap, markus+etherboot@gutschke.com,
   ken_yap@users.sourceforge.net
-  13 Oct 2000
+  30 Nov 2000
 
   This is the README file for the Etherboot package. This document
   explains how to install, configure and use the Etherboot package.  The
@@ -137,23 +137,23 @@
 
 
   Etherboot is Open Source. Please support it by joining the Open Source
-  community and sharing. See the Etherboot home page for some ways you
-  can help Etherboot.
+  community and sharing. See the Etherboot home page
+  <http://etherboot.sourceforge.net/> for some ways you can help
+  Etherboot.
 
 
 
   _D_i_s_c_l_a_i_m_e_r_: _E_t_h_e_r_b_o_o_t _c_o_m_e_s _w_i_t_h _N_O _w_a_r_r_a_n_t_i_e_s _o_f _a_n_y _k_i_n_d_. _I_t _i_s
   _h_o_p_e_d _t_h_a_t _i_t _w_i_l_l _b_e _u_s_e_f_u_l _t_o _y_o_u_, _a_n_d _N_O _r_e_s_p_o_n_s_i_b_i_l_i_t_y _i_s _a_c_c_e_p_t_e_d
   _f_o_r _a_n_y _o_u_t_c_o_m_e _o_f _u_s_i_n_g _i_t_. _E_t_h_e_r_b_o_o_t _a_l_s_o _c_o_m_e_s _w_i_t_h _N_O _s_u_p_p_o_r_t_,
-  _a_l_t_h_o_u_g_h _y_o_u _c_a_n _g_e_t _h_e_l_p_f_u_l _a_d_v_i_c_e _f_r_o_m _t_h_e _N_e_t_b_o_o_t _m_a_i_l_i_n_g _l_i_s_t
-  _r_e_f_e_r_r_e_d _t_o _o_n _t_h_e _E_t_h_e_r_b_o_o_t _h_o_m_e _p_a_g_e_, _a_n_d _f_r_o_m _t_h_e _I_n_t_e_r_n_e_t _i_n
-  _g_e_n_e_r_a_l_.
+  _a_l_t_h_o_u_g_h _y_o_u _c_a_n _u_s_u_a_l_l_y _g_e_t _h_e_l_p_f_u_l _a_d_v_i_c_e _f_r_o_m _t_h_e _m_a_i_l_i_n_g _l_i_s_t_s
+  _l_i_s_t_e_d _o_n _t_h_e _E_t_h_e_r_b_o_o_t _h_o_m_e _p_a_g_e_.
 
 
   11..11..  WWhhaatt hhaarrddwwaarree iiss ssuuppppoorrtteedd??
 
 
-  The following is the current NIC configuration file as of 2000-11-04.
+  The following is the current NIC configuration file as of 2000-11-29.
 
   Even if your NIC does not appear in the list, it may still be
   supported if the chip is one of those supported.  Many OEMs use chips
@@ -267,6 +267,8 @@
   cs89x0
   # Digital DE100 and DE200
   depca           depca
+  # Intel Etherexpress Pro/10 (ISA card)
+  eepro           eepro
   # Intel Etherexpress Pro/100
   eepro100        eepro100        0x8086,0x1229
   82559er         eepro100        0x8086,0x1209
@@ -383,21 +385,13 @@
   11..33..  GGeettttiinngg hheellpp
 
 
-  There is a mailing list for all netbooting related issues. To
-  subscribe follow the instructions on the Etherboot home page
+  There are mailing lists for all Etherboot related issues. To subscribe
+  follow the instructions on the Etherboot home page
   <http://etherboot.sourceforge.net/>.
 
 
-
-  With the major exception of the following section, and the section on
-  Writing an Etherboot Driver, most of the information on diskless
-  booting is not specific to Etherboot but can be used for the Netboot
-  package also.
-
   22..  UUnnppaacckkiinngg,, ccoommppiilliinngg aanndd tteessttiinngg tthhee ppaacckkaaggee
 
-
-  _T_h_i_s _s_e_c_t_i_o_n _i_s _E_t_h_e_r_b_o_o_t _s_p_e_c_i_f_i_c_.
 
 
   22..11..  UUnnppaacckkiinngg tthhee ddiissttrriibbuuttiioonn
@@ -422,8 +416,8 @@
 
 
   To build the ROM images you need a recent release of gcc and the
-  binutils tools. This package was compiled with the tools from a RedHat
-  6.0 distribution but it should work with any recent Linux or FreeBSD
+  binutils tools. This package was compiled with the tools from a SuSE
+  7.0 distribution but it should work with any recent Linux or FreeBSD
   distribution. For the 16 bit version you need the bcc tools from the
   Embedded Linux Kernel Subset (ELKS) project, for more details see the
   notes on 16 bit Etherboot <16.html>. You need the 16 bit version only
@@ -431,19 +425,25 @@
 
 
 
-  Assuming you have decided to make the 32 bit version, you only have to
-  go to src/, edit the options in Config and say make. This will create
-  all the ROM images available in bin32. The .lzrom images are the same
-  as the .rom images. Since the .lzrom images are smaller and work
-  exactly the same, there is no real reason to use .rom images any more,
-  unless you are nervous about compression algorithm patents. We believe
-  the algorithm used does not infringe patents, having been in public
-  use for some time, but we do not know all the legal ramifications. See
-  here <COPYING_compressor.html> for more details.
+  You probably want to make the 32 bit version. You only have to go to
+  src/, edit the options in Config and say make. We suggest you accept
+  the default options if you are not sure what to select.  This will
+  create all the ROM images available in bin32. The .lzrom images are
+  the same as the .rom images. Since the .lzrom images are smaller and
+  work exactly the same, there is no real reason to use .rom images any
+  more, unless you are nervous about compression algorithm patents. We
+  believe the algorithm used does not infringe patents, having been in
+  public use for some time, but we do not know all the legal
+  ramifications. See here <COPYING_compressor.html> for more details.
 
 
 
   Here is a brief description of the options available:
+
+
+
+
+
 
 
 
@@ -615,11 +615,10 @@
 
 
 
-  You may also wish to examine file NIC for other options that may need
-  adjustment. If you find you need to adjust the PCI vendor and device
-  IDs, add the appropriate line to this file (and send me a copy). If
-  you do not set the IDs correctly, the floppy version will work, but
-  the ROM will not. The PCI IDs are usually displayed by the BIOS on
+  If you find you need to adjust the PCI vendor and device IDs for PCI
+  NICs, add the appropriate line to the file NIC (and send me a copy).
+  If you do not set the IDs correctly, the floppy version will work, but
+  the ROM will not.  The PCI IDs are usually displayed by the BIOS on
   booting up. They can also be read out from a running Linux system
   using the Linux PCI Utilities
   <http://atrey.karlin.mff.cuni.cz/~mj/pciutils.html>.
@@ -645,26 +644,31 @@
 
 
 
+  Make sure the floppy has no bad blocks. It is best if it has been
+  formatted just before use. You do not need to put any kind of
+  filesystem on it. If you wish, you could substitute /dev/fd0 with the
+  actual device suitable for the floppy size you are using, for example
+  /dev/fd0H1440 for 1.44 MB floppies. This may be more reliable than
+  using the autodetecting device /dev/fd0.
+
+
+
   When you boot with this floppy it will load the Etherboot ROM image
-  from floppy and execute it. It should be able to detect your card. To
-  get the bootrom to acquire an IP address and load the intended code,
-  you need to set up bootp, tftp and NFS services, which we will discuss
-  next.
-
-
-
+  from floppy and execute it. If you chose the correct ROM image, it
+  should be able to detect your card. To get the bootrom to acquire an
+  IP address and load the intended code, you need to set up bootp, tftp
+  and NFS services, which we will discuss next.
   We suggest you continue to use floppy booting until you have completed
   the setup of the server and are satisfied that diskless booting works.
-
 
 
   33..  SSeettttiinngg uupp aa ddiisskklleessss bboooott
 
 
   In this section I assume you want to boot a Linux kernel. Booting a
-  FreeBSD kernel will be documented soon.  Booting a DOS kernel is
-  similar, the main differences being in the way you set up the tagged
-  image.
+  FreeBSD kernel is documented elsewhere and does not require a tagged
+  image.  Booting a DOS kernel is similar, the main differences being in
+  the way you set up the tagged image.
 
 
   33..11..  MMaakkiinngg aa ttaaggggeedd iimmaaggee
@@ -682,7 +686,8 @@
   A tagged image is created using a utility program. The utility program
   <mknbi.html> is specific to the kernel you want to load. The version
   for Linux is called mknbi-linux and that for DOS is mknbi-dos. These
-  utilities are found in the mknbi directory of the distribution.
+  utilities are found in the mknbi-<version> directory of the
+  distribution.
 
 
   33..22..  CCoommppiilliinngg aa ccuussttoomm kkeerrnneell
@@ -719,17 +724,28 @@
   recommended that you set a path explicitly for tftpd instead of
   relying on any defaults. For example:
 
-
   ______________________________________________________________________
   tftp    dgram   udp     wait    root    /usr/sbin/tcpd  in.tftpd /tftpdir
   ______________________________________________________________________
 
+
+
+
   33..33..  SSeettttiinngg uupp aa bboooottpp ddaaeemmoonn
 
 
-  Now set up a bootp daemon. In RedHat 5.2 this means installing the
-  bootp RPM package, making sure that the bootps service is active in
-  /etc/inetd.conf,  and editing /etc/bootptab. The essential pieces of
+  Now set up a bootp daemon. This means installing the bootp package,
+  making sure that the bootps service is active in /etc/inetd.conf; it
+  should look something like this:
+
+
+  ______________________________________________________________________
+  bootps  dgram   udp     wait    root    /usr/sbin/tcpd  bootpd
+  ______________________________________________________________________
+
+
+
+  Then you need to edit /etc/bootptab. The essential pieces of
   information you need to put in bootptab are:
 
 
@@ -751,8 +767,8 @@
 
 
 
-  Here is an example of a /etc/bootptab for the bootpd supplied with
-  RedHat Linux 5.2 and probably many versions of Unix:
+  Here is an example of a /etc/bootptab for the bootpd supplied many
+  with Linux distributions and probably many versions of Unix:
 
 
   ______________________________________________________________________
@@ -774,7 +790,6 @@
   more details, consult the bootptab man page.
 
 
-
   Please note that if you use the ef (extension file) attribute to be
   able to send more configuration data to the diskless machine, you must
   run bootpef everytime bootptab is modified.
@@ -785,17 +800,17 @@
 
   As an alternative to bootp, you could set up a DHCP server which has
   the advantage of automating the handing out of IP addresses.  In
-  RedHat 6.0, bootpd is not supplied and DHCPD is preferred.  However
-  the kernel will still do a bootp request to find the IP address for
-  mounting the NFS filesystem. The exceptions to the last sentence are
-  recent kernels in the 2.2 series (2.2.15 or 2.2.16 onwards), which can
-  autoconfigure using DHCP thanks to code by Chip Salzenberg. It is
-  rumoured that this feature will not be ported to 2.4 kernels because
-  DHCP autoconfig is a userland issue. You may perhaps wish to
-  investigate the --rootdir=rom option in mknbi-linux <mknbi.html> which
-  tells the kernel to take the address from the initial DHCP reply, or
-  to use initrds in conjunction with a userland DHCP client program to
-  configure the netbooted machine.
+  recent Linux distributions bootpd is not supplied and DHCPD is
+  preferred.  However the kernel will still do a bootp request to find
+  the IP address for mounting the NFS filesystem. The exceptions to the
+  last sentence are recent kernels in the 2.2 series (2.2.15 or 2.2.16
+  onwards), which can autoconfigure using DHCP thanks to code by Chip
+  Salzenberg. It is rumoured that this feature will not be ported to 2.4
+  kernels because DHCP autoconfig is a userland issue. You may perhaps
+  wish to investigate the --rootdir=rom option in mknbi-linux
+  <mknbi.html> which tells the kernel to take the address from the
+  initial DHCP reply, or to use initrds in conjunction with a userland
+  DHCP client program to configure the netbooted machine.
 
 
 
@@ -838,6 +853,9 @@
   own IP address(es).
 
 
+
+
+
   33..55..  SSeettttiinngg uupp aa ttffttpp ddaaeemmoonn
 
 
@@ -855,7 +873,7 @@
   daemon can be spawned, to detect runaway daemons. If many clients
   request the tftp service within a short period, inetd may shutdown
   that service.  If you have a setup where there are many clients, it
-  may be better to use a more flexible replacement for inetd, such as
+  may be better to use an improved replacement for inetd, such as
   xinetd.  Another solution is to run a dedicated tftpd that is not
   spawned from inetd. One such tftpd can be found here at:
   ftp://nilo.on.openprojects.net/pub/nilo/snapshots
@@ -867,12 +885,13 @@
   Now when you start up Etherboot, it should obtain an IP address and
   print out what it received. If you do not get this to work, turn on
   debugging in bootpd and see if any query was received. You may also
-  wish to use the tcpdump utility to watch the network for bootp
-  packets.  If not, check your network hardware (cables, etc). If a
-  query was received, check if bootpd was able to give an answer. If
-  not, then the Ethernet address was not found in /etc/bootptab. If a
-  reply was sent, then only faulty hardware or a bug in Etherboot would
-  prevent it being received by Etherboot.
+  wish to use the tcpdump or ethereal utilities to watch the network for
+  bootp packets (port bootps).  If not, check your network hardware
+  (cables, etc). If a query was received, check if bootpd/dhcpd was able
+  to give an answer. If not, then the Ethernet address was not found in
+  /etc/bootptab or /etc/dhcp.conf. If a reply was sent, then only faulty
+  hardware or a bug in Etherboot would prevent it being received by
+  Etherboot.
 
 
 
@@ -905,13 +924,15 @@
   in bootptab>.  This needs to contain a complete root filesystem that
   will make the kernel boot happily.  This means, for most kernels, it
   should contain /dev, /proc, /etc, /sbin, /bin, /tmp and /var. The
-  details vary from distribution to distribution.  Being lazy I just
-  make a copy of the necessary files from an existing RedHat 6.0
-  filesystem and modify some key files appropriately. You can find a
-  description in my tutorial <diskless.html> and some shell scripts to
-  copy the files. Since the amount of disk space needed is relatively
-  small in these days of large disks, I don't bother to throw out things
-  that may not be needed.
+  details vary from distribution to distribution.  See the FAQ section
+  for various methods of constructing a NFS root filesystem. There is no
+  one true method. In the method I use I was lazy so I just make a copy
+  of the necessary files from an existing Linux filesystem on the server
+  and modify some key files appropriately. You can find a description in
+  my tutorial <diskless.html> and some shell scripts to copy the files.
+  Since the amount of disk space needed is relatively small in these
+  days of large disks, I don't bother to throw out things that may not
+  be needed.
 
 
 
@@ -945,7 +966,9 @@
   the various processes need to be root and need to write to log files
   in the root partition. You may wish to export /usr and /home
   filesystems to the diskless computer also. These do not need
-  no_root_squash permission. Be aware that practically all Linux
+  no_root_squash permission, and in the case of /usr probably only needs
+  to be ro. Otherwise you will be opening up a security hole for hacking
+  the server from the client. Be aware that practically all Linux
   distributions have a few "bugs" relating to symlinks and so forth for
   diskless booting.  These are mentioned in the tutorial.
 
@@ -977,8 +1000,8 @@
 
   Swap over NFS can be arranged but you have to patch the kernel source.
   There are patches in the contrib directory for NFS swap but for up to
-  date patches, try here < http://www.math1.rwth-aachen.de/~heine/nfs-
-  swap/>.
+  date patches, try here <http://www.instmath.rwth-aachen.de/~heine/nfs-
+  swap/nfs-swap.html>.
 
 
 
@@ -987,6 +1010,8 @@
   diskless computers and that you shouldn't be running into a swap
   regime on a diskless computer anyway. Some other people like having a
   bit of insurance.
+
+
 
   Also have a look at the NBD
   <http://atrey.karlin.mff.cuni.cz/~pavel/nbd/nbd.html> Network Block
@@ -1005,12 +1030,12 @@
 
 
 
-  I have booted DOS (both M$ and DR versions) diskless this way.  A
-  mknbi-fdos <mknbi.html> is available for building tagged images for
-  booting FreeDOS, the procedure differs slightly from booting M$ or DR
-  DOS. Note that extended memory is used so that rules out 086/088
-  computers but 286s are ok. See this document <atnetboot.html> for more
-  details.
+  I have booted DOS (both M$ versions up to 5.0 and DR versions up to
+  7.03) diskless this way.  A mknbi-fdos <mknbi.html> is available for
+  building tagged images for booting FreeDOS, the procedure differs
+  slightly from booting M$ or DR DOS. Note that extended memory is used
+  so that rules out 086/088 computers but 286s are ok. See this document
+  <atnetboot.html> for more details.
 
 
 
@@ -1019,17 +1044,19 @@
   network booting but the mounting of a file system over NetBIOS
   (Windows does not do remote mounts of root filesystems over NetBIOS on
   TCP). So that rules out a Samba server. It appears to be possible over
-  a Netware server, for which Linux or FreeBSD has workalikes. But then
-  what do you do about the networking stack? This situation may change
-  with with future Samba developments. But you will still have problems
-  with pathnames and the usual Windows hassles. Do you really want to do
-  this?  You do know that you can run lots of desktop applications like
-  Netscape, StarOffice, etc. on Linux, FreeBSD, etc. now?  In the Web
-  page for Etherboot <http://etherboot.sourceforge.net/>, there are
-  links to external Web pages, one explaining how this was done with a
-  commercial TCP/IP boot ROM, another explaining how to do it using
-  Etherboot and Netbios over IPX. Good luck and send us your experiences
-  or better still a URL to a page explaining how you did it.
+  a Netware server, for which Linux or FreeBSD has workalikes. Also it
+  is said that only certain versions of Windows will allow diskless
+  booting.  But then what do you do about the networking stack? This
+  situation may change with with future Samba developments. But you will
+  still have problems with pathnames and the usual Windows hassles. Do
+  you really want to do this?  You do know that you can run lots of
+  desktop applications like Netscape, StarOffice, etc. on Linux,
+  FreeBSD, etc. now?  In the Etherboot home page
+  <http://etherboot.sourceforge.net/>, there are links to external Web
+  pages, one explaining how this was done with a commercial TCP/IP boot
+  ROM, another explaining how to do it using Etherboot and Netbios over
+  IPX. Good luck and send us your experiences or better still a URL to a
+  page explaining how you did it.
 
 
   66..  MMaakkiinngg aann EEtthheerrbboooott EEPPRROOMM oorr EEEEPPRROOMM
@@ -1038,13 +1065,26 @@
   Assuming you have satisfactorily set up your server environment, you
   may now wish to put the Etherboot onto an EPROM or EEPROM. Naturally
   this assumes access to hardware to program (and possibly erase)
-  EPROMs.  An alternative is to use an EEPROM card. There is a schematic
-  and PCB artwork for such a card at the web site where you got the
-  Etherboot distribution. This EEPROM card plugs onto the ISA bus and
-  can be reprogrammed with software. Some network cards, for example the
-  3Com 905B, have a socket for an EEPROM which can be programmed in situ
-  with the right utilities. See any release notes accompanying Etherboot
-  for more information.
+  EPROMs.  Access to a friendly electronics engineer and/or lab is one
+  way to program and erase EPROMs. Otherwise you can look at the
+  commercial links page
+  <http://etherboot.sourceforge.net/commercial.html> for places you can
+  buy programmed EPROMs from.
+
+
+
+  If you are familiar with electronics construction, an alternative is
+  to use an EEPROM card. There is a schematic and PCB artwork for such a
+  card at the web site where you got the Etherboot distribution. This
+  EEPROM card plugs onto the ISA bus and can be reprogrammed with
+  software.
+
+
+
+  Some high-end network cards, for example the 3Com 905B, have a socket
+  for an EEPROM which can be programmed in situ with the right
+  utilities.  See any release notes accompanying Etherboot for more
+  information.
 
 
   66..11..  CChhoooossiinngg tthhee EEPPRROOMM
@@ -1054,6 +1094,8 @@
   seldom used. When it is used, it is typically filled with a
   proprietary EPROM from the network card manufacturer. You can put an
   Etherboot EPROM there instead.
+
+
   66..22..  EEnnaabblliinngg tthhee EEPPRROOMM
 
 
@@ -1148,22 +1190,24 @@
 
 
 
-  +o  Floppy boot doesn't work. Have you copied the ROM image (with the
-     floppyloader prepended) to the floppy raw? Is that size of floppy
-     bootable by your computer? Are you trying to run a 32 bit Etherboot
-     on a 16 bit machine (286, 086/088)? Have you selected too many
-     compile time options? The real limit on Etherboot is not the size
-     of the EPROM but the fact that it executes in the 32kB region
-     between 0x98000 and 0xA0000. If the sum of code, stack and bss is
-     greater than 32kB, then Etherboot might crash at unexpected places.
-     You could increase the memory to 48kB by lowering the RELOCADDR in
-     the Makefile but this is outside the specifications. Definitely do
-     not lower RELOCADDR below 0x94000 because various pieces of booting
-     information are stored from 0x90000 upwards.
+  +o  Floppy boot doesn't work. Is the floppy error-free? Have you copied
+     the ROM image (with the floppyloader prepended) to the floppy raw?
+     Is that size of floppy bootable by your computer? Are you trying to
+     run a 32 bit Etherboot on a 16 bit machine (286, 086/088)? Have you
+     selected too many compile time options? The real limit on Etherboot
+     is not the size of the EPROM but the fact that it executes in the
+     32kB region between 0x98000 and 0xA0000. If the sum of code, stack
+     and bss is greater than 32kB, then Etherboot might crash at
+     unexpected places. You could increase the memory to 48kB by
+     lowering the RELOCADDR in the Makefile but this is outside the
+     specifications. Definitely do not lower RELOCADDR below 0x94000
+     because various pieces of booting information are stored from
+     0x90000 upwards.
 
   +o  Floppy version works but EPROM version doesn't work. There is a
      program called rom-scan (Linux, FreeBSD and DOS versions) in the
-     directory contrib/rom-scan which will help detect problems.
+     directory contrib/rom-scan which will help detect problems. Rom-
+     scan will only work on ISA ROMs though.
 
 
   +o  If the EPROM is not detected at all then the contents of the EPROM
@@ -1207,6 +1251,7 @@
      Etherboot yet? In this case and where you think there is a bug in
      Etherboot, please contact the author with all details.
 
+
   +o  Etherboot detects card but hangs computer after detection. Some
      cards are booby traps while they are enabled. The typical offenders
      are NE2000s which will hang the bus if any access is made to the
@@ -1218,10 +1263,10 @@
      server. Check your network hardware. Did you select the right
      hardware interface (AUI, BNC, RJ45)? Is the cabling ok? If you have
      a Unix computer on the network and have root privileges, you could
-     run tcpdump looking for broadcast packets on the bootps port. If
-     the requests are getting sent out but no replies are getting back,
-     check your bootpd setup. Also check if the server has a route to
-     the client.
+     run tcpdump or ethereal looking for broadcast packets on the bootps
+     port. If the requests are getting sent out but no replies are
+     getting back, check your bootpd setup. Also check if the server has
+     a route to the client.
 
   +o  Etherboot obtains IP address but fails to load file. Check the tftp
      server. Is the tagged image file installed? Is the file world
@@ -1229,8 +1274,8 @@
      tftpd? Is the client denied by tcpwrapper rules?  Did you put the
      right home directory and boot filename in bootptab? If you are
      booting lots of clients, is inetd shutting down tftpd for being
-     spawned too often? If so, you need to get a dedicated tftpd that
-     runs as an independent daemon.
+     spawned too often? If so, you need to get a better inetd or a a
+     dedicated tftpd that runs as an independent daemon.
 
   +o  Etherboot loads file via tftp but Linux fails to boot. This is a
      large category. Here are some suggestions:
@@ -1251,7 +1296,9 @@
      do not have a configuration file for ldconfig.
 
   +o  Your /etc/inittab and/or /etc/rc.d/* files have not been customized
-     for the clients.
+     for the clients. For example if you set the wrong IP address in
+     your client's init files you could interfere with the server.
+
   +o  Your kernel is missing some crucial compile-time feature (such as
      NFS filesystem support, booting from the net, transname (optional),
      ELF file support, networking support, driver for your ethernet
@@ -1280,8 +1327,8 @@
      mounting so you will have to fix any problems that arise. An
      example was a directory in /usr/X11R6/lib that needed to be
      writable, however /usr was mounted read-only. Another common
-     problem is the assumption that /usr is available before NFS mounts
-     are done and invoking programs stored there.
+     problem is the assumption in init scripts that /usr is available
+     before NFS mounts are done and invoking programs under /usr.
 
   +o  Etherboot works fine and kernel starts but network interface
      doesn't work. Check your network configuration in the OS.
@@ -1316,7 +1363,7 @@
 
      You need gcc, gas and objcopy, as well as any accompanying
      libraries and include files. Generally speaking on a package based
-     system using RPM or PKG, you will need the C compiler package, the
+     system using RPM or DEB, you will need the C compiler package, the
      include file package, the C library package, the assembler package
      and the binutils package (this may include the assembler). In
      addition, if you intend to modify the assembler files you will need
@@ -1337,8 +1384,6 @@
   3. I get an error from as saying data32 (and others) should be
      prefixes.
 
-
-
      Support for extended directives changed in syntax between gas 2.9.1
      and gas 2.9.5. Disable -DGAS291 in Config to allow for the new
      syntax. In recent versions of Etherboot, this should be
@@ -1350,9 +1395,11 @@
 
 
 
-     These are utilities <mknbi.html> in the mknbi-1.0 directory.  You
-     need to cd into this directory, edit Makefile and run make and make
-     install to install the utilities in their final location.
+     These are utilities <mknbi.html> in the mknbi-<version> directory.
+     You need to cd into this directory, edit Makefile and run make then
+     make install to install the utilities in their final location.  You
+     cannot use them until they have been installed as they rely on a
+     library directory.
 
 
   5. Why don't you provide prebuilt ROM images?
@@ -1375,7 +1422,8 @@
 
   1. I put the ROM image on floppy like you wrote (cat
      floppyload.bin.pre bin32/foo.rom > /dev/fd0, or make bin32/foo.fd0)
-     but the floppy prints out hex numbers when it boots.
+     but the floppy prints out a bunch of register names and hex numbers
+     when it boots.
 
 
 
@@ -1449,7 +1497,6 @@
      world readable? Case of the filename is important too.
 
 
-
   5. I made this kernel and put it in /tftpdir like you wrote but
      Etherboot says Unable to load file.
 
@@ -1509,7 +1556,7 @@
      Linux, since 0.0.83 there has been support for making a tagged
      image and a ramdisk. However there are few applications for ELKS.
      For more details please go to the ELKS web site and mailing lists.
-     Note that there is no networking in ELKS yet.
+     Note that there is no networking in ELKS yet (and probably never).
 
   +o  On a 286 you can run DOS. With 384kB of extended memory you can run
      a 320kB ramdisk that can hold NCSA telnet with a VT100 terminal
@@ -1521,7 +1568,8 @@
 
   +o  On a 386 with at least 4MB of memory you can boot Linux. With 4MB
      perhaps only a few telnet sessions are possible. With 8MB you might
-     be able to run a text based web browser like Lynx or W3M.
+     be able to run a text based web browser like Lynx or W3M. You can
+     also run firewalls such as floppyfw <http://www.zelow.no/floppyfw>.
 
   +o  On a 486 with 16MB of memory you can run X to make an X-terminal.
 
@@ -1573,6 +1621,12 @@
   4. The root filesystem mounts but it says something about not being
      able to open an initial console. Or alternatively, various services
      complain about not being able to write to the filesystem.
+
+
+
+     A common mistake in Linux NFS servers is to put extra spaces in
+     /etc/exports. Please see the NFS FAQ <http://nfs.sourceforge.net/>
+     for frequently answered questions about Linux NFS services.
 
 
 
@@ -1648,6 +1702,7 @@
      XDM's Xaccess file, because for security reasons, the ability for
      clients to connect is usually disabled.
 
+
   3. When I am logged in using an X-terminal, I find that the floppy
      drive, sound card and name of the computer are those of the
      server!?
@@ -1659,8 +1714,6 @@
      display (screen) and input device (keyboard and mouse) services to
      the application. This is one of the beauties of the X Windowing
      system model, it's _n_e_t_w_o_r_k _t_r_a_n_s_p_a_r_e_n_t.
-
-
   4. So how do I run applications on the client? I have this (smartcard
      reader, printer, sound card, etc) program that must execute
      locally.
@@ -1727,9 +1780,6 @@
      time. Remember that you don't have to have one big server for all
      your clients, you can and you should distribute the load across
      servers.
-
-
-
   88..66..  OOtthheerr cclliieenntt aapppplliiccaattiioonnss
 
 
@@ -1846,6 +1896,7 @@
      diskless booting.
 
 
+
   88..99..  HHaarrddwwaarree iissssuueess
 
 
@@ -1855,13 +1906,11 @@
 
 
      Depending on where you live, you might find a supplier listed on
-     the Commercial Links page. Another possibility is to get the help
+     the Commercial Links page. Another possibility is to seek the help
      of someone working in a university or industrial lab who has an
      EPROM programmer.  If you are handy with hardware, you could buy a
      kit or build your own.  There are links to kit suppliers in the
      Commercial Links part of the home page.
-
-
 
      Some high end adapters, for example the 3Com and Intel ones, accept
      an EEPROM in the socket. This can be programmed in-situ using
@@ -1876,12 +1925,29 @@
      cbrom.exe possibly here <http://www.ping.be/bios>. It is also
      reputed to live here
      <http://www.boardrunner.com/download/utility/utility.htm>. Or do a
-     Web search for it.  No success has been reported for AMI BIOSes.
+     Web search for it. No success has been reported for AMI BIOSes.
      Dirk von Suchodoletz maintains a list of successes and failures
      here <http://goe.net/anleitungen/award_board.html>.
 
      Here is some text contributed by Dirk von Suchodoletz. He hopes to
      put it on a web site someday:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1919,14 +1985,14 @@
      seperate EPROMS and therefore without the necessity of having a
      EPROM-programmer[?]. (Heinrich Rebehn wishes to add: Flashing the BIOS
      is always a (small) risk. Flashing with unsupported, hacked BIOS image
-     is *dangerous* and may render your PC unbootable.  If you don't
+     is *dangerous* and may render your PC unbootable. If you don't
      have access to a PROM burner you should stay away from experimenting.) In
      order to do this, you need 2 software tools: awdflash.exe, which should be
      included in your mainboard package, and cbrom.exe, which is an OEM-tool
      that allows modifications of the BIOS. awdflash.exe reads and writes
      the flashrom content, whereas cbrom.exe is used to analyze the content
      of the AWARD BIOS image. cbrom.exe can also add code to the BIOS image
-     or remove components.  This way you can easily integrate etherboot into
+     or remove components. This way you can easily integrate etherboot into
      your mainboards without even opening the PC's case.
 
      After the BIOS image has been saved (e.g. as bios.bin), or in case the
@@ -1935,7 +2001,7 @@
      for your code.
 
      As the flashrom holds the compressed BIOS, cbrom will also compress
-     the code when adding it to the BIOS.  Therefore, 8 to 20 kbyte of free
+     the code when adding it to the BIOS. Therefore, 8 to 20 kbyte of free
      memory is needed, depending on the network adapter's driver. In case not
      enough memory is left, unneeded BIOS components can be removed from the
      BIOS image to regain space: the manufacturer's logo or the Symbios/NCR
@@ -1991,23 +2057,23 @@
 
 
   ______________________________________________________________________
-  Some  more remarks  for cbrom..
+  Some more remarks for cbrom..
 
-  There are several version numbers of cbrom.exe  p.e. 1.x  and 2.x.
-  and there is a cbrom called cbrom6.exe.  First cbrom.exe with Version
-  1.x  (newest 1.32)  is for Award Bios Version 4.5x   and cbrom6.exe is
+  There are several version numbers of cbrom.exe p.e. 1.x and 2.x.
+  and there is a cbrom called cbrom6.exe. First cbrom.exe with Version
+  1.x (newest 1.32) is for Award Bios Version 4.5x  and cbrom6.exe is
   for Award Bios Version 6.xx.
 
-  So because it seems a lot people become confused  and use cbrom 1.x
-  for the new 6.x  Bios Award merged this together  to a cbrom.exe   with
+  So because it seems a lot people become confused and use cbrom 1.x
+  for the new 6.x Bios Award merged this together to a cbrom.exe  with
   Version number 2.x ( newest know 2.04) witch now runs on Award 4.5x and
   6.xx Bioses.
 
-  Now how to find cbrom.exe.  Different  1.x Versions  of cbrom.exe
-  could be found  on the net, cbrom6.exe  seems to be gone.  It seems
+  Now how to find cbrom.exe. Different 1.x Versions of cbrom.exe
+  could be found on the net, cbrom6.exe seems to be gone. It seems
   that Award/Phoenix do all that cbrom is deleted from servers of board
-  manufaktures.  So cbrom.exe Vers 2.04  is not  available on the net.
-  If  somebody need this please try to send a demand question to the list -
+  manufaktures. So cbrom.exe Vers 2.04 is not available on the net.
+  If somebody need this please try to send a demand question to the list -
   I hope somebody will mail it to you.
   ______________________________________________________________________
 
@@ -2094,7 +2160,8 @@
 
 
 
-  1. I have a question not covered by this list.
+  1. I don't understand something, or I have a question not covered by
+     this list.
 
 
 
@@ -2110,13 +2177,18 @@
      general netbooting issues, while LTSP is focused more on the LTSP
      packages. However there is a fair amount of overlap between the
      lists and many key people are on all lists.
-     Posting to a list is preferable to mailing me because: you get the
+
+
+
+     I strongly suggest you post Etherboot questions to the Etherboot-
+     users mailing list instead of mailing me because: you get the
      benefit of a lot of experts seeing your question (no, I don't know
      everything, if only because there are many configurations I have
-     never used); if your question is answered, a lot of people see the
-     answer and this helps them too; and finally you may not get an
-     immediate (or any) reply from me because I may be not reading my
-     email or on holiday or just plain grumpy :-).
+     never used); a lot of people see the question and answer and this
+     helps them too. For these reasons you may not get any reply from me
+     if you email me privately. I want to make the best use of my time
+     and that is by making sure that as many people as possible see the
+     questions and answers.
 
 
 
@@ -2124,7 +2196,9 @@
      has been slack security-wise and had a machine of theirs get onto
      one of the Open Relay Blacklists, then you will not be allowed to
      post. The only things I can suggest are to change your ISP to a
-     more responsible one, or to get a Web based mailbox.
+     more responsible one, or to get a Web based mailbox. I cannot help
+     you with problems here as I do not administer the Netboot mailing
+     list.
 
 
 
@@ -2230,7 +2304,9 @@
      This is passed a pointer to a nic struct.  This is needed to leave
      the adapter in a suitable state for use by the operating system
      which will be run after Etherboot. Some adapters, if left in an
-     active state, cannot be found by the operating system.
+     active state, may crash the operating system at boot time, or
+     cannot be found by the operating system.
+
 
   +o  A transmit routine, to send an Ethernet packet. This is passed a
      pointer to a nic struct, the 6 byte Ethernet address of the
@@ -2298,7 +2374,6 @@
   times.
 
 
-
   There is another method of testing ROM images that does not involve
   walking a floppy disk between the machines and is much nicer. Set up a
   supported NIC with a boot ROM. Put the target NIC on the same machine
@@ -2320,6 +2395,29 @@
 
 
 
+  If you are starting from a Linux driver, usually the hardest part is
+  filtering out all the things you do not need from the Linux driver.
+  Here is a non-exhaustive list: You do not use interrupts. You do not
+  need more than one transmit buffer. You do not need to use the most
+  efficient method of data transfer. You do not need to implement
+  multicasting. You do not need to implement statistics counting.
+
+
+
+  Generally speaking, the probe routine is relatively easy to translate
+  from the Linux driver. The reset routine is tricky because you won't
+  know if it worked until you try to transmit or receive. So check
+  carefully for typographical errors. The transmit is usually
+  straightforward, and the receive a bit more difficult. The main
+  problem is that in the Linux driver, the work is split between
+  routines called from the kernel and routines triggered by hardware
+  interrupts.  As mentioned before, Etherboot does not use interrupts so
+  you have to bring the work of transmitting and receiving back into the
+  main routines. The disable routine is straightforward if you have the
+  hardware commands.
+
+
+
   When coding, first get the probe routine working. You will need to
   refer to the programmer's guide to the adapter when you do this.  You
   can also get some information by reading a Linux or FreeBSD driver.
@@ -2328,15 +2426,18 @@
 
 
   Next, get the transmit routine working. To check that packets are
-  going out on the wire, you can use tcpdump on the development machine
-  to snoop on the Ethernet. The first packet to be sent out by Etherboot
-  will be a broadcast query packet, on UDP port 67. Note that you do not
-  need interrupts at all.  You should ensure the packet is fully
-  transmitted before returning from this routine.  You may also wish to
-  implement a timeout to make sure the driver doesn't get stuck inside
-  transmit if it fails to complete. A couple of timer routines are
-  available for implementing the timeout, see timer.h. You use them like
-  this (in pseudo-code):
+  going out on the wire, you can use tcpdump or ethereal on the
+  development machine to snoop on the Ethernet. The first packet to be
+  sent out by Etherboot will be a broadcast query packet, on UDP port
+  67. Note that you do not need interrupts at all.  You should ensure
+  the packet is fully transmitted before returning from this routine.
+  You may also wish to implement a timeout to make sure the driver
+  doesn't get stuck inside transmit if it fails to complete. A couple of
+  timer routines are available for implementing the timeout, see
+  timer.h. You use them like this (in pseudo-code):
+
+
+
 
 
   ______________________________________________________________________
@@ -2372,6 +2473,7 @@
 
   Finally, get the disable routine working. This may simply be a matter
   of turning off something in the adapter.
+
 
 
   Things that may complicate your coding are constraints imposed by the
@@ -2439,7 +2541,6 @@
         Contributed comboot for making a boot floppy without DOS.
 
 
-
      CCllaauuss--JJuussttuuss HHeeiinnee
         Contributed patch for serial console and NFS swapping. See the
         contrib/nfs-swap directory for his Web page.
@@ -2503,7 +2604,6 @@
      PPeetteerr DDoobbccssaannyyii
         Contributed vendor and device IDs for the Netvin NE2000/PCI
         clone.
-
 
 
      aaddaamm@@mmuuddlliisstt..eeoorrbbiitt..nneett
@@ -2571,7 +2671,6 @@
         4.4.5 to 4.5.5, see doc/maint/LOG.
 
 
-
      RRaaiinneerr BBaawwiiddaammaannnn
         Contributed a Realtek 8139 driver.
 
@@ -2602,6 +2701,7 @@
         Be sure to read the release notes in 3c90x.txt before using.
         Modified loader.S for some BIOSes that don't behave correctly
         with INT19H.
+
 
 
      JJoohhnn FFiinnllaayy
@@ -2638,6 +2738,7 @@
      PPaaoolloo MMaarriinnii
         contributed the Via-Rhine driver.
 
+
      AAddaamm FFrriittzzlleerr
         contributed 3c529 (MCA version of 3c509) support in driver.
 
@@ -2664,13 +2765,44 @@
   Etherboot distribution is in general under the GPL, but you may use
   parts of it derived from FreeBSD under FreeBSD rules.  Simply
   speaking, the GPL says that if you distribute a binary derived from
-  Etherboot code you have to provide, or promise to provide on demand,
-  the source code.  The full conditions of the GPL are specified in the
-  file COPYING.
-
+  Etherboot code (this includes boot ROMs) you have to provide, or
+  promise to provide on demand, the source code.  The full conditions of
+  the GPL are specified in the file COPYING.
 
 
   Here are the copyright details, file by file:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

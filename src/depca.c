@@ -717,7 +717,7 @@ static int depca_probe1(struct nic *nic)
 	}
 	if (adapter != DEPCA)	/* enable shadow RAM */
 		outb(nicsr |= SHE, DEPCA_NICSR);
-	printf("%s base 0x%x, memory [0x%X-0x%X], addr ", adapter_name[adapter],
+	printf("%s base %#x, memory [%#x-%#x], addr ", adapter_name[adapter],
 		ioaddr, mem_start, mem_start + mem_len);
 	for (i = 0; i < ETHER_ADDR_SIZE; i++) {
 		if (i != 0)

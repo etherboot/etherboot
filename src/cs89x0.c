@@ -409,7 +409,7 @@ retry:
 	     (s = readreg(PP_TxEvent)&~0x1F) == 0 && currticks() < tmo;)
 		/* nothing */ ;
 	if ((s & TX_SEND_OK_BITS) != TX_OK) {
-		printf("\ntransmission error 0x%x\n", s);
+		printf("\ntransmission error %#x\n", s);
 	}
 
 	return;
@@ -488,7 +488,7 @@ struct nic *cs89x0_probe(struct nic *nic, unsigned short *probe_addrs)
 		eth_cs_type = rev_type &~ REVISON_BITS;
 		cs_revision = ((rev_type & REVISON_BITS) >> 8) + 'A';
 
-		printf("\ncs: cs89%c0%s rev %c, base 0x%x",
+		printf("\ncs: cs89%c0%s rev %c, base %#x",
 		       eth_cs_type==CS8900?'0':'2',
 		       eth_cs_type==CS8920M?"M":"",
 		       cs_revision,

@@ -1,0 +1,38 @@
+This is a quick and dirty script to convert a floppyfw floppy
+(http://www.zelow.no/floppyfw/) to a tagged image.
+
+This program requires mtools, tar, bzip2, loopback mount in the kernel,
+and root privileges to execute. Hope you have them.
+
+This script only works for the 1.0.6 and 1.1.2 releases, but it should
+not be too hard to make it work for other releases.
+
+First of all you should make the floppy work the way you want before
+converting it to a tagged image. This involves editing the various
+config files on the floppy. Instructions on this are distributed from
+the floppyfw web page mentioned above.
+
+Edit the $tftpdir assignment for the directory where you put your tagged
+images.  Edit the $libdir assignment if you decide to put this package
+somewhere other than /usr/local/lib/mkffwnb/. Adjust the instructions
+below as necessary.
+
+Copy everything to $libdir.
+
+	mkdir -p /usr/local/lib/mkffwnb/
+	cp -a . /usr/local/lib/mkffwnb/
+
+Make a link from /usr/local/lib/mkffwnb/mkffwnb.pl to
+/usr/local/bin/mkffwnb so that it's in your path.
+
+	ln -s /usr/local/lib/mkffwnb/mkffwnb.pl /usr/local/bin/mkffwnb
+
+mkffwnb has to be run as root because it uses loopback mounts and also
+because the files inside the initrd are owned by root.
+
+One bug is that it leaves the working files in /tmp/mkffwnb/. I could do
+a chdir('/'); system("rm -fr $tempdir"); at the end but I'm nervous
+about that in case $tempdir becomes / through a program bug.
+
+Ken Yap
+2000-11-18
