@@ -1017,6 +1017,7 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 	/* Search thoroughly for UNDI drivers */
 	for ( ; hunt_pixies_and_undi_roms(); undi_full_shutdown() ) {
 		/* Try to initialise UNDI driver */
+		printf ( "Initializing UNDI driver.  Please wait...\n" );
 		if ( ! undi_full_startup() ) {
 			if ( undi.pxs->Status ==
 			     PXENV_STATUS_UNDI_MEDIATEST_FAILED ) {
