@@ -4,7 +4,7 @@
 # Do not delete the tag OptionDescription and /OptionDescription
 # It is used to automatically generate the documentation.
 #
-# <OptionDescription>
+# @OptionDescription@
 #	User interaction options:
 #
 #	-DASK_BOOT=n
@@ -230,7 +230,7 @@
 #			Include support for devices using the pci bus.
 #	-DCONFIG_ISA
 #			Include support for devices using isa bus.
-# </OptionDescription>
+# @/OptionDescription@
 
 # These default settings compile Etherboot with a small number of options.
 # You may wish to enable more of the features if the size of your ROM allows.
