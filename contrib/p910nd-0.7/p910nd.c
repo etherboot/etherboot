@@ -74,7 +74,7 @@ extern		int hosts_ctl(char *daemon, char *client_name,
 #define		LOCKFILE	"/var/lock/subsys/p910%cd"
 #endif
 #define		PRINTERFILE	"/dev/lp%c"
-#define		LOGOPTS		(LOG_PERROR|LOG_PID|LOG_LPR|LOG_ERR)
+#define		LOGOPTS		LOG_ERR
 
 static char	*progname;
 static char	version[] = "p910nd Version 0.7";
@@ -197,7 +197,7 @@ void one_job(int lpnumber)
 	socklen_t	clientlen = sizeof(client);
 
 	if (getpeername(0, (struct sockaddr*) &client, &clientlen) >= 0)
-		syslog(LOGOPTS, "Connection from %s port %hd\n",
+		syslog(LOGOPTS, "Connection from %s port %hu\n",
 			inet_ntoa(client.sin_addr),
 			ntohs(client.sin_port));
 	if (get_lock(lpnumber) == 0)
@@ -384,6 +384,11 @@ int main(int argc, char *argv[])
 	/* change the n in argv[0] to match the port so ps will show that */
 	if ((p = strstr(progname, "p910n")) != NULL)
 		p[4] = lpnumber;
+	/* We used to pass (LOG_PERROR|LOG_PID|LOG_LPR|LOG_ERR) to syslog, but
+	 * syslog ignored the LOG_PID and LOG_PERROR option.  I.e. the intention
+	 * was to add both options but the effect was to have neither.
+	 * I disagree with the intention to add PERROR.	 --Stef	 */
+	openlog (p, LOG_PID, LOG_LPR);
 	if (is_standalone())
 		server(lpnumber);
 	else
