@@ -277,11 +277,9 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	cat $(DISKLOADER) $(START16) $< > /dev/fd0
 
 # rule to make a non-emulation ISO boot image
-%.iso:	%.zimg $(START16)
-	mkdir -p $*.dir
-	cat $(START16) $< > $*.dir/$(*F).bin
-	mkisofs -o $@ -c boot.cat -no-emul-boot -b $(*F).bin $*.dir
-	rm -fr $*.dir
+SUFFIXES +=    iso
+%.iso:	util/geniso %.zlilo
+	bash util/geniso $*.iso $*.zlilo
 
 # rule to make a floppy emulation ISO boot image
 SUFFIXES +=    liso
