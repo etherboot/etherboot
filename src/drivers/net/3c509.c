@@ -629,7 +629,7 @@ no3c509:
 #ifdef INCLUDE_3C509
 static struct isa_driver t509_driver __isa_driver = {
 	.type    = NIC_DRIVER,
-	.name    = "3C5x9",
+	.name    = "3C509",
 	.probe   = t509_probe,
 	.ioaddrs = 0,
 };
@@ -638,7 +638,7 @@ static struct isa_driver t509_driver __isa_driver = {
 #ifdef INCLUDE_3C529
 static struct isa_driver t529_driver __isa_driver = {
 	.type    = NIC_DRIVER,
-	.name    = "3C5x9",
+	.name    = "3C529",
 	.probe   = t529_probe,
 	.ioaddrs = 0,
 };
