@@ -999,12 +999,15 @@ GLOBAL DESCRIPTOR TABLE
 	.data
 	.align	4
 
+	.globl	_gdt
+	.globl	gdtarg
 _gdt:
 gdtarg:
 	.word	_gdt_end - _gdt - 1	/* limit */
 	.long	_gdt			/* addr */
 	.word	0
 
+	.globl	_pmcs
 _pmcs:
 	/* 32 bit protected mode code segment */
 	.word	0xffff,0
