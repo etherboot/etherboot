@@ -204,7 +204,7 @@ $(BIN)/%.rom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(
 		$(ROMENTRY) $(PREFIXOBJS) $< $(ROMEXIT)
 
 $(BIN)/%.zrom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(ZPREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS) $(BIN)/%.rom.rt2.zbin
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.rom.rt2.zbin`" -o $@ \
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.rom.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
 		$(ROMENTRY) $(ZPREFIXOBJS) $< $(ROMEXIT)
 
 $(BIN)/%.rom: $(BIN)/%.rom.prf.bin $(BIN)/%.rom.rt.bin
@@ -279,7 +279,7 @@ $(BIN)/%.lilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(PREFIXOBJS) $(LDSCRI
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LILOENTRY) $(PREFIXOBJS) $< $(LILOEXIT)
 
 $(BIN)/%.zlilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(ZPREFIXOBJS) $(BIN)/%.lilo.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.lilo.rt2.zbin`" -o $@ \
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.lilo.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
 		$(LILOENTRY) $(ZPREFIXOBJS) $< $(LILOEXIT)
 
 $(BIN)/%.lilo: $(BIN)/%.lilo.prf.bin $(BIN)/%.lilo.rt.bin
@@ -298,7 +298,7 @@ $(BIN)/%.pxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(PREFIXOBJS) $(LDSCRIPT)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(PXEENTRY) $(PREFIXOBJS) $< $(PXEEXIT)
 
 $(BIN)/%.zpxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(ZPREFIXOBJS) $(BIN)/%.pxe.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.pxe.rt2.zbin`" -o $@ \
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.pxe.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
 		$(PXEENTRY) $(ZPREFIXOBJS) $< $(PXEEXIT)
 
 $(BIN)/%.pxe: $(BIN)/%.pxe.prf.bin $(BIN)/%.pxe.rt.bin
@@ -317,7 +317,7 @@ $(BIN)/%.dsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(PREFIXOBJS) $(LDSCRIPT)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(DSKENTRY) $(PREFIXOBJS) $< $(DSKEXIT)
 
 $(BIN)/%.zdsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(ZPREFIXOBJS) $(BIN)/%.dsk.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.dsk.rt2.zbin`" -o $@ \
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.dsk.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
 		$(DSKENTRY) $(ZPREFIXOBJS) $< $(DSKEXIT)
 
 $(BIN)/%.dsk: $(BIN)/%.dsk.prf.bin $(BIN)/%.dsk.rt.bin
@@ -343,7 +343,7 @@ $(BIN)/%.raw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(PREFIXOBJS) $(LDSCRIP
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(PREFIXOBJS) $< $(NULLEXIT)
 
 $(BIN)/%.zraw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -o $@ \
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
 		$(NULLENTRY) $(ZPREFIXOBJS) $< $(NULLEXIT)
 
 $(BIN)/%.raw: $(BIN)/%.raw.prf.bin $(BIN)/%.raw.rt.bin

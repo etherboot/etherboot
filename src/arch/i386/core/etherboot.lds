@@ -93,7 +93,6 @@ SECTIONS {
 	compressed_copy = . ;
 
 	_zfile_size = DEFINED(_zfile_size) ? _zfile_size : 0 ;
-	decompress = DEFINED(decompress) ? decompress : 0;
 	_verbatim_end = DEFINED(decompress) ? _compressed_verbatim_end : _uncompressed_verbatim_end ;
 	_verbatim_size = _verbatim_end - _verbatim_start + _zfile_size;
 	/* _verbatim_size is the actual amount that has to be copied to
@@ -107,7 +106,8 @@ SECTIONS {
 	/* for some reason _image_size / 16 gives the wrong value, ld bug?
 	_image_size_pgh = _image_size / 16 ;
 	*/
-	_image_size_pgh = (_prefix_size + _runtime_size + _zfile_size) / 16 ;
+	_image_size_pgh = (_prefix_size + _runtime_size + _zfile_size + 15) / 16 ;
+	decompress = DEFINED(decompress) ? decompress : 0;
 	/DISCARD/ : {
 		*(.comment)
 		*(.note)
