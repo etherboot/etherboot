@@ -31,10 +31,18 @@
 #define BOOT_INT_VEC	BOOT_INT*4
 #define SCRATCHVEC	0x300
 
+/* Prefix exit codes.  We store these on the stack so that we will
+ * know how to return control to the BIOS when Etherboot exits.
+ */
+#define EXIT_VIA_LRET  		0x0
+#define EXIT_VIA_INT_18		0x1
+#define EXIT_VIA_BOOT_INT	0x2
+
 	.text
 	.code16
 	.arch i386
 	.org 0
+	.section ".prefix", "ax", @progbits
 	.globl _prefix
 _prefix: 
 	.word 0xAA55			/* BIOS extension signature */
@@ -180,50 +188,59 @@ start_int:				/* clobber magic id, so that we will */
 	movw	%ax, BOOT_INT_VEC+2
 	movw	SCRATCHVEC, %ax
 	movw	%ax, BOOT_INT_VEC
-	call	start16			/* call start16.S */
-	int	$BOOT_INT		/* Try original vector */
+	pushl	%eax			/* padding */
+	pushw	$EXIT_VIA_BOOT_INT
+	jmp	invoke
 #endif	/* DELAYED_INT */
 
 
 
 	
 legacyentry:
-	call	start16			/* call start16.S */
-	lret				/* Hope that stack is ok.... */
-
+	pushw	$EXIT_VIA_LRET
+	jmp	invoke
 
 	
 	
 #ifdef PCI_PNP_HEADER
 pnpentry:
-	call	start16			/* call start16.S */
-	int	$0x18			/* As per BIOS Boot Spec, next dev */
+	pushl	%eax			/* padding */
+	pushw	$EXIT_VIA_INT_18
+	jmp	invoke
 #endif /* PCI_PNP_HEADER */
 
 
+invoke:	
+	/* Relocate to free base memory, switch stacks */
+	pushw	$6			/* Preserve exit code & far ret addr */
+	call	prelocate
+	addw	$2, %sp
+	pushw	$0			/* Set null return address */
+	jmp	_start
 	
-	/*
-	 * Call start16.  We fake the return address so that the
-	 * return goes straight back to whoever called us, since our
-	 * stack may have been destroyed by the time we regain
-	 * control.
-	 */
-start16:
-	/* Convert return offset to return segment:offset */
-	pop	%ax
-	push	%cs
-	push	%ax
-	/* Calculate segment:offset address of payload and do an lret,
-	 * since there's no "calculated ljmp" instruction
-	 */
-	push	%cs
-	pop	%ax
-	add	$((payload-_prefix)/16), %ax
-	push	%ax
-	pushw	$0
-	lret				/* Jump to start16.S */
 
+	.section ".text16", "ax", @progbits
+	.globl	prefix_exit
+prefix_exit:
+	popw	%ax			/* %ax = exit code */
+	cmpw	$EXIT_VIA_LRET, %ax
+	jne	1f
+	/* Exit via LRET */
+	lret
+1:	addw	$4, %sp			/* Strip padding */
+	cmpw	$EXIT_VIA_BOOT_INT, %ax
+	jne	2f
+	/* Exit via int BOOT_INT */
+	int	$BOOT_INT		/* Try original vector */
+2:	/* Exit via int $0x18 */
+	int	$0x18			/* As per BIOS Boot Spec, next dev */
+	.globl	prefix_exit_end
+prefix_exit_end:
+
+	
+	
 #ifdef 	PXE_EXPORT
+	.section ".prefix"
 	/* Placeholder UNDI loader routine: just print out a message
 	 * and return failure.
 	 */
@@ -245,7 +262,3 @@ prloop:
 	lret
 #endif	/* PXE_EXPORT */
 		
-/* Force 16 byte alignment */
-	.balign 16, 0
-payload: 
-/* start16 will be attached here */
