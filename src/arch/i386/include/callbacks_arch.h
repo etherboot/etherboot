@@ -14,17 +14,6 @@
 /* Skip the definitions that won't make sense to the assembler */
 #ifndef ASSEMBLY
 
-/* extcall_stack_is_corrupt_look_in_callbacks_arch_h
- *
- * This is used as a flag to cause an invalid usage of
- * EP_STACK_PASSTHRU() to generate a linker error rather than locking
- * the machine up at runtime.  If you see it, it means that you have a
- * usage of EP_STACK_PASSTHRU(first,last) where one or both of the
- * parameters have sizes that are non multiples of 4.  See definition
- * of WILL_BE_LEFT_ON_STACK() below for more details.
- */
-extern int extcall_stack_is_corrupt_look_in_callbacks_arch_h;
-
 /* Struct to hold general-purpose register values.  PUSHAL and POPAL
  * can work directly with this structure; do not change the order of
  * registers.
@@ -79,22 +68,18 @@ typedef struct {
 		uint32_t eax;
 	};
 } regs_t;
-/* As part of an external_call parameter list */
-#define EP_REGISTERS(regs) EXTCALL_REGISTERS, (regs)
 
 /* Struct to hold segment register values.  Don't change the order;
  * many bits of assembly code rely on it.
  */
 typedef struct {
-	uint16_t gs;
-	uint16_t fs;
-	uint16_t es;
-	uint16_t ds;
-	uint16_t ss;
 	uint16_t cs;
+	uint16_t ss;
+	uint16_t ds;
+	uint16_t es;
+	uint16_t fs;
+	uint16_t gs;
 } PACKED seg_regs_t;
-/* As part of an external_call parameter list */
-#define EP_SEG_REGISTERS(seg_regs) EXTCALL_SEG_REGISTERS, (seg_regs)
 
 /* Struct for a GDT descriptor */
 typedef struct {
@@ -212,40 +197,6 @@ typedef struct {
 		sizeof((structure)->segments) + 8 - 1; \
 	(structure)->descriptor.padding = 0; \
 }
-/* As part of an external_call parameter list */
-/* #define EP_GDT(structure,our_cs) \
-   EXTCALL_GDT, &((structure)->descriptor), our_cs */
-
-/* Stack alignment used by GCC.  Must be a power of 2.
- */
-#define STACK_ALIGNMENT 4
-
-/* GCC seems to sometimes copy a parameter off the call stack to a new
- * temporary area (also on the stack) if you use the & operator to
- * find its address.  This seems not to occur if you simply use the
- * value of the parameter rather than its address.  It doesn't seem to
- * affect parameters whose size is a multiple of STACK_ALIGNMENT.  The
- * macro WILL_BE_LEFT_ON_STACK(x) evalutes to true if this is the
- * case, i.e. if taking &x will *not* cause x to be copied to a new
- * location, i.e. if &x will be the actual address of the original x
- * on the stack.
- */
-#define WILL_BE_LEFT_ON_STACK(x) ( ( sizeof((x)) % STACK_ALIGNMENT ) == 0 )
-
-/* As part of an external_call parameter list.
- *
- * This will automatically check to see that "first" and "last" won't
- * suffer from the "&" problem mentioned above; if they do then
- * extcall_stack_is_corrupt_look_in_callbacks_arch_h will be used as the
- * parameter type, triggering a linker error.  (I can't find a way to
- * make the compiler detect this error).
- */
-#define EP_STACK_PASSTHRU(first,last) \
-	( WILL_BE_LEFT_ON_STACK((first)) && WILL_BE_LEFT_ON_STACK((last)) ? \
-	  EXTCALL_STACK : extcall_stack_is_corrupt_look_in_callbacks_arch_h ),\
-	(void*)&(first), \
-	( ( (void*)&(last) + sizeof((last)) - (void*)&(first) \
-	    + (STACK_ALIGNMENT-1) ) & ~(STACK_ALIGNMENT-1) )
 
 /* Data passed in to in_call() by assembly wrapper.
  */
@@ -287,50 +238,10 @@ typedef struct i386_exit_intercept {
  */
 extern int install_rm_callback_interface ( void *address, size_t available );
 extern void exit_via_prefix ( in_call_data_t *data );
-#define real_call(rm_seg_regs, ...) \
-	_real_call( (rm_seg_regs), __VA_ARGS__, EXTCALL_END_LIST )
-extern uint16_t _real_call ( seg_regs_t *rm_seg_regs, ... );
-extern uint16_t v_real_call ( seg_regs_t *rm_seg_regs, va_list ap );
-
-/* Functions and code blocks in callbacks_asm.S
- */
-extern void rm_callback_interface;
-extern uint16_t rm_callback_interface_size;
-extern uint32_t rm_etherboot_location;
-extern void _rm_in_call ( void );
-extern void _rm_in_call_far ( void );
-
-extern void _real_to_prot ( void );
-extern void _real_to_prot_end ( void );
-
-extern void _prot_to_real ( void );
-extern void _prot_to_real_end ( void );
-
-extern void pxe_callback_interface;
-extern uint16_t pxe_callback_interface_size;
-extern void _pxe_in_call_far ( void );
-extern void _pxenv_in_call_far ( void );
-
-/* Macros to help with defining inline real-mode trampoline fragments.
- */
-#define _append_end(x) x ## _end
-#define BEGIN_RM_FRAGMENT(name) \
-	void name ( void ); \
-	__asm__ ( ".section \".text16\"" ); \
-	__asm__ ( ".code16" ); \
-	__asm__ ( #name ":" );
-#define END_RM_FRAGMENT(name) \
-	void _append_end(name) ( void ); \
-	__asm__ ( #name "_end:" ); \
-	__asm__ ( ".code32" ); \
-	__asm__ ( ".previous" );
 
 #endif /* ASSEMBLY */
 
 #define RM_IN_CALL	(0)
 #define RM_IN_CALL_FAR	(2)
-
-/* Bochs breakpoint instruction */
-#define BOCHSBP xchgw %bx,%bx
 
 #endif /* CALLBACKS_ARCH_H */
