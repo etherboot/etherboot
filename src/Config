@@ -21,8 +21,6 @@
 #	-DBAR_PROGRESS
 #			Use rotating bar instead of sequential dots
 #			to indicate an IP packet transmitted.
-#	-DSHOW_NUMERIC
-#			Display menu item labels as numbers.
 #	-DDELIMITERLINES
 #			Print a line of = characters at the start
 #			and also just before starting an image.
@@ -47,7 +45,8 @@
 #			configuration from the bad old days before the use of
 #			encapsulated Etherboot options.
 #
-#	Nic tuning parameters:
+#	NIC tuning parameters:
+#
 #	-DALLMULTI
 #			Turns on multicast reception in the NICs.
 #
@@ -81,8 +80,8 @@
 #			Can boot from floppy/hd if bootimage matches the
 #			pattern "/dev/[fhs]d*".
 #	-DPC_FLOPPY
-#			Support direct pc flopy controller access.
-#			Instead of going through the BIOS
+#			Support direct PC flopy controller access,
+#			instead of going through the BIOS
 #	-DTRY_FLOPPY_FIRST
 #			If > 0, tries that many times to read the boot
 #			sector from a floppy drive before booting from
@@ -228,7 +227,8 @@
 #			(recommended).
 #	-DUSE_LOWMEM_BUFFER
 #			Define to put some buffers below 0x10000 which
-#			may interfere with other programs (not recommended).
+#			may interfere with other programs.
+#			(Don't use, deprecated.)
 # </OptionDescription>
 
 # These default settings compile Etherboot with a small number of options.
