@@ -416,7 +416,6 @@ static void scan_bus(int type, struct pci_device *dev)
 			pcibios_read_config_dword(bus, devfn, PCI_VENDOR_ID, &l);
 			/* some broken boards return 0 if a slot is empty: */
 			if (l == 0xffffffff || l == 0x00000000) {
-				hdr_type = 0;
 				continue;
 			}
 			vendor = l & 0xffff;
