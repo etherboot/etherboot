@@ -407,7 +407,8 @@ int nfs(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int
 	char dirname[300], *fname;
 	char dirfh[NFS_FHSIZE];		/* file handle of directory */
 	char filefh[NFS_FHSIZE];	/* file handle of kernel image */
-	int block, rlen, size, offs, len;
+	unsigned int block;
+	int rlen, size, offs, len;
 	struct rpc_t *rpc;
 
 	rx_qdrain();

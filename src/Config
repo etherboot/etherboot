@@ -20,8 +20,8 @@
 #			On timeout or Return key from previous
 #			question, selects the order to try to boot from
 #			various devices.
-#			(alternatives: NIC_DRIVER, DISK_DRIVER,
-#			 FLOPPY_DRIVER, NO_DRIVER)
+#			(alternatives: BOOT_NIC, BOOT_DISK,
+#			 BOOT_FLOPPY, BOOT_NOTHING)
 #			See etherboot.h for prompt and answer strings.
 #	-DBAR_PROGRESS
 #			Use rotating bar instead of sequential dots
@@ -40,9 +40,9 @@
 #	-DBOOT_CLASS_THIRD
 #			Select the priority of the boot classes
 #			Valid values are:
-#				NIC_DRIVER
-#				DISK_DRIVER
-#				FLOPPY_DRIVER
+#				BOOT_NIC
+#				BOOT_DISK
+#				BOOT_FLOPPY
 #
 #	Boot autoconfiguration protocol options:
 #
@@ -219,6 +219,10 @@
 #			the BIOS time counter.  This allows Etherboot to work
 #			even without a BIOS.  This only works on late model
 #			486s and above.
+#	-DCONFIG_NO_TIMER2
+#			Some systems do not have timer2 implemented.
+#			If you have a RTC this will allow you to roughly calibrate
+#			it using outb instructions.
 #	-DPXELOADER_KEEP_UNDI
 #			For implementation later with UNDI.
 #	-DIBM_L40
@@ -278,10 +282,11 @@ CFLAGS32+=	-DPCBIOS
 CFLAGS32+=	-DCONFIG_PCI -DCONFIG_ISA
 
 # For prompting and default on timeout
-CFLAGS32+=	-DASK_BOOT=3 -DBOOT_FIRST=NIC_DRIVER
+#CFLAGS32+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # If you would like to attempt to boot from other devices as well as the network.
-# CFLAGS32+=	-DBOOT_SECOND=DISK_DRIVER
-# CFLAGS32+=	-DBOOT_THIRD=FLOPPY_DRIVER
+# CFLAGS32+=	-DBOOT_SECOND=BOOT_DISK
+# CFLAGS32+=	-DBOOT_THIRD=BOTO_FLOPPY
+
 # If you prefer the old style rotating bar progress display
 # CFLAGS32+=	-DBAR_PROGRESS
 
@@ -320,13 +325,15 @@ CFLAGS32+=	-DTAGGED_IMAGE -DELF_IMAGE
 # CFLAGS32+=	-DAOUT_IMAGE -DIMAGE_MULTIBOOT -DIMAGE_FREEBSD
 # CFLAGS32+=	-DAOUT_IMAGE -DAOUT_LYNX_KDI
 
-# Change download protocol to NFS, default is TFTP
+# By default compile in support for booting via TFTP
+CFLAGS32+=	-DDOWNLOAD_PROTO_TFTP
+
+# Add support for booting via NFS
 # CFLAGS32+=	-DDOWNLOAD_PROTO_NFS
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
 #CFLAGS32+= -DFREEBSD_PXEEMU
-
 
 # Options to make a version of Etherboot that will work under linuxBIOS.
 #CFLAGS32+= -DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE 
