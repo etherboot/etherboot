@@ -57,6 +57,10 @@ void relocate(void)
 		if (r_end < r_start) {
 			r_end = MAX_ADDR;
 		}
+		if (r_end < size) {
+			/* Avoid overflow weirdness when r_end - size < 0 */
+			continue;
+		}
 		/* Shrink the range down to use only even megabytes
 		 * (i.e. A20=0).
 		 */
