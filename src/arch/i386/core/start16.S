@@ -1,8 +1,7 @@
 #ifndef PCBIOS
 #error	"16bit code is only supported with the PCBIOS"
 #endif
-#define VERIFY_386 0		/* Costs 82 bytes */
-	
+
 #define	CODE_SEG 0x08
 #define DATA_SEG 0x10
 
@@ -29,53 +28,6 @@ _start:
 	 *
 	 * %esp is converted into a physical address
 	 */
-#if VERIFY_386
-	pushw	%ax			/* Save ax */
-	pushf				/* Save flags */
-/********************************************************************************
- * This CPU checking code is taken from syslinux. - Ken
- * Check that no moron is trying to boot Etherboot/32 on a 286 or so.  According
- * to Intel, the way to check is to see if the high 4 bits of the FLAGS register
- * are either all stuck at 1 (8086/8088) or all stuck at 0 (286 in real mode), if
- * not it is a 386 or higher.  A 186/188 behaves like a 8086/8088 in this check.
- ********************************************************************************
- */
-	pushf				/* Get flags */
-	popw	%ax
-	andw	$0x0fff,%ax		/* Clear top 4 bits */
-	pushw	%ax			/* Load into FLAGS */
-	popf
-	pushf				/* And load back */
-	popw	%ax
-	andw	$0xf000,%ax		/* Get top 4 bits */
-	cmpw	$0xf000,%ax		/* If set -> 8086/8088 */
-	je	not_386
-test_286:
-	pushf				/* Get flags */
-	popw	%ax
-	orw	$0xf000,%ax		/* Set top 4 bits */
-	pushw	%ax
-	popf
-	pushf
-	popw	%ax
-	andw	$0xf000,%ax		/* Get top 4 bits */
-	jnz	is_386			/* If not clear -> 386 */
-not_386:
-	movw	$err_not386_end-err_not386,%cx	/* length of string */
-	movw	$err_not386-_start,%si
-	movw	$0x0007,%bx		/* page 0, attribute 7 (normal) */
-	movb	$0x0e,%ah		/* write char, tty mode */
-err_prloop:
-	lodsb
-	int	$0x10
-	loop	err_prloop
-	popf				/* Restore flags */
-	popw	%ax			/* Restore ax */
-	lret
-is_386:
-	popf				/* Restore flags */
-	popw	%ax			/* Restore ax */
-#endif
 
 	/* Prepare the stack for 32bit code.
 	 */
@@ -114,13 +66,6 @@ is_386:
 
 	DATA32	ljmp	*(start32 - _start)
 	/* flush prefetch queue, and reload %cs:%eip */
-
-#if VERIFY_386	
-err_not386:
-	.ascii	"Etherboot/32 requires 386+"
-	.byte	0x0d, 0x0a
-err_not386_end:
-#endif /* VERIFY_386 */
 
 start32:
 	.long code32_start - _start
