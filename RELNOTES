@@ -18,7 +18,6 @@ etherboot.
 
 We know that these things do not work; they are being fixed:
 
-make bin/etherboot-pci.z*
 return from chained programs like menus (might be mknbi problem)
 support for ELF files (not mkelf images)
 
