@@ -166,9 +166,7 @@ typedef struct undi_base_mem_xmit_data {
 typedef struct undi_base_mem_data {
 	undi_call_info_t	undi_call_info;
 	pxenv_structure_t	pxs;
-	union {
-		undi_base_mem_xmit_data_t xmit;
-	} xmit_recv;
+	undi_base_mem_xmit_data_t xmit;
 } undi_base_mem_data_t;
 
 /* Driver private data structure.
@@ -183,6 +181,11 @@ typedef struct undi {
 	undi_call_info_t	*undi_call_info;
 	pxenv_structure_t	*pxs;
 	undi_base_mem_xmit_data_t *xmit_data;
+	/* Pointers and sizes to keep track of allocated base memory */
+	void	*driver_code;
+	size_t	driver_code_size;
+	void	*driver_data;
+	size_t	driver_data_size;
 	/* Flags.  We keep our own instead of trusting the UNDI driver
 	 * to have implemented PXENV_UNDI_GET_STATE correctly.  Plus
 	 * there's the small issue of PXENV_UNDI_GET_STATE being the
@@ -208,9 +211,6 @@ typedef struct undi {
 
 /* Constants
  */
-
-#define UNDI_DRIVER_DATA_SEGMENT 0x5000
-#define UNDI_DRIVER_CODE_SEGMENT 0x6000
 
 #define HUNT_FOR_PIXIES 0
 #define HUNT_FOR_UNDI_ROMS 1

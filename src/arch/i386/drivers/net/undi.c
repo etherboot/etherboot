@@ -13,8 +13,8 @@ $Id$
  * to allocate significant amounts of storage in base memory for the
  * UNDI driver itself.
  */
-#ifdef RELOCATE
-#error UNDI driver does not yet work with relocation
+#ifndef RELOCATE
+/* #error UNDI driver requires relocation */
 #endif
 
 /*
@@ -35,6 +35,7 @@ $Id$
 
 /* NIC specific static variables go here */
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+		       NULL, 0, NULL, 0,
 		       0, 0, 0, 0, 0,
 		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL } };
 
@@ -82,6 +83,7 @@ int hunt_pnp_bios ( void ) {
 		}
 	}
 	printf ( "none found\n" );
+	undi.pnp_bios = NULL;
 	return 0;
 }
 
@@ -108,6 +110,7 @@ int hunt_pixie ( void ) {
 	}
 	printf ( "none found\n" );
 	ptr = 0;
+	undi.pxe = NULL;
 	return 0;
 }
 
@@ -170,6 +173,7 @@ int hunt_rom ( void ) {
 	}
 	printf ( "none found\n" );
 	ptr = 0;
+	undi.rom = NULL;
 	return 0;
 }
 
@@ -286,9 +290,29 @@ int undi_loader ( void ) {
 	undi.pxs->loader.es = 0xf000;
 	undi.pxs->loader.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
 
-	undi.pxs->loader.undi_ds = UNDI_DRIVER_DATA_SEGMENT;
-	undi.pxs->loader.undi_cs = UNDI_DRIVER_CODE_SEGMENT;
+	/* Allocate space for UNDI driver's code and data segments */
+	undi.driver_code_size = undi.undi_rom_id->code_size;
+	undi.driver_code = allot_base_memory ( undi.driver_code_size );
+	if ( undi.driver_code == NULL ) {
+		printf ( "Could not allocate %d bytes for UNDI code segment\n",
+			 undi.driver_code_size );
+		return 0;
+	}
+	undi.pxs->loader.undi_cs = SEGMENT( undi.driver_code );
 
+	undi.driver_data_size = undi.undi_rom_id->data_size;
+	undi.driver_data = allot_base_memory ( undi.driver_data_size );
+	if ( undi.driver_data == NULL ) {
+		printf ( "Could not allocate %d bytes for UNDI code segment\n",
+			 undi.driver_data_size );
+		return 0;
+	}
+	undi.pxs->loader.undi_ds = SEGMENT( undi.driver_data );
+
+	printf ( "Installing UNDI driver code to %hx:0000, data at %hx:0000\n",
+		undi.pxs->loader.undi_cs, undi.pxs->loader.undi_ds );
+
+	/* Do the API call to install the loader */
 	if ( ! undi_call_loader () ) return 0;
 
 	undi.pxe = VIRTUAL( undi.pxs->loader.undi_cs,
@@ -433,6 +457,7 @@ int eb_pxenv_unload_stack ( void ) {
 }
 
 /* UNDI full initialization
+ *
  * This calls all the various UNDI initialization routines in sequence.
  */
 
@@ -450,10 +475,25 @@ int undi_full_startup ( void ) {
 }
 
 /* UNDI full shutdown
- * This calls all the various UNDI shutdown routines in sequence.
+ *
+ * This calls all the various UNDI shutdown routines in sequence and
+ * also frees any memory that it can.
  */
 
 int undi_full_shutdown ( void ) {
+	/* In case we didn't allocate the driver's memory in the first
+	 * place, try to grab the code and data segments and sizes
+	 * from the !PXE structure.
+	 */
+	if ( ( undi.driver_code == NULL ) && ( undi.pxe != NULL ) ) {
+		undi.driver_code = VIRTUAL( undi.pxe->UNDICode.Seg_Addr, 0 );
+		undi.driver_code_size = undi.pxe->UNDICode.Seg_Size;
+	}
+	if ( ( undi.driver_data == NULL ) && ( undi.pxe != NULL ) ) {
+		undi.driver_data = VIRTUAL( undi.pxe->UNDIData.Seg_Addr, 0 );
+		undi.driver_data_size = undi.pxe->UNDIData.Seg_Size;
+	}
+
 	/* Ignore errors and continue in the hope of shutting down anyway */
 	if ( undi.opened ) eb_pxenv_undi_close();
 	if ( undi.started ) {
@@ -467,7 +507,29 @@ int undi_full_shutdown ( void ) {
 		eb_pxenv_undi_shutdown();
 	}
 	if ( undi.prestarted ) eb_pxenv_stop_undi();
-	if ( undi.loaded ) eb_pxenv_unload_stack();
+	if ( undi.loaded ) {
+		eb_pxenv_unload_stack();
+		/* Success OR Failure indicates that memory can be
+		 * freed.  Any other status code means that it can't.
+		 */
+		if (( undi.pxs->unload_stack.Status!=PXENV_STATUS_SUCCESS ) &&
+		    ( undi.pxs->unload_stack.Status!=PXENV_STATUS_FAILURE )) {
+			printf ( "Could not free memory allocated to UNDI "
+				 "driver: possible memory leak\n" );
+			return 0;
+		}
+	}
+	/* Free memory allocated to UNDI driver */
+	if ( undi.driver_code != NULL ) {
+		forget_base_memory ( undi.driver_code, undi.driver_code_size );
+		undi.driver_code = NULL;
+		undi.driver_code_size = 0;
+	}
+	if ( undi.driver_data != NULL ) {
+		forget_base_memory ( undi.driver_data, undi.driver_data_size );
+		undi.driver_data = NULL;
+		undi.driver_data_size = 0;
+	}
 	return 1;
 }
 
@@ -640,7 +702,7 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 	/* Initialise pointers to base memory structures */
 	undi.undi_call_info = &base_mem_data.undi_call_info;
 	undi.pxs = &base_mem_data.pxs;
-	undi.xmit_data = &base_mem_data.xmit_recv.xmit;
+	undi.xmit_data = &base_mem_data.xmit;
 
 	/* Store PCI parameters; we will need them to initialize the UNDI
 	 * driver later.
