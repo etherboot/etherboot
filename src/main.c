@@ -840,6 +840,7 @@ static int bootp(void)
 
 	for (retry = 0; retry < MAX_BOOTP_RETRIES; ) {
 		long timeout;
+		unsigned char rfc1533_driver_len;
 
 		/* Clear out the Rx queue first.  It contains nothing of
 		 * interest, except possibly ARP requests from the DHCP/TFTP
@@ -865,7 +866,9 @@ static int bootp(void)
 			dhcp_reply = 0;
 			memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
 			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
-			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest, rfc1533_end, sizeof rfc1533_end);
+			rfc1533_driver_len = sprintf(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest,
+						     "%c%c%s", RFC1533_VENDOR_DRIVER, strlen(nic.name), nic.name);
+			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest + rfc1533_driver_len, rfc1533_end, sizeof rfc1533_end);
 			/* Beware: the magic numbers 9 and 15 depend on
 			   the layout of dhcprequest */
 			memcpy(ip.bp.bp_vend + 9, &dhcp_server, sizeof(in_addr));
