@@ -67,7 +67,7 @@ Major changes from 2.0 to 2.1
 + Added LSM for transname-patch to contrib.
 
 + Added patch for serial console from Claus Heine
-<claus@momo.math.rwth-aachen.de>.
+<claus AT momo PERIOD math PERIOD rwth-aachen PERIOD de>.
 
 + Claus Heine contributed patches to the 2.0.21/22 kernel sources to
 allow NFS swap.
@@ -238,11 +238,11 @@ Major changes from 3.0 to 3.1
 
 + Include netboot-0.5.3 distribution from Gero Kuhlmann.
 
-+ Included some contributions from Dickon.Reed@cl.cam.ac.uk: Running
-  display of Kbytes loaded, line of delimiters after loading complete,
-  a temporary hack to address timing problems with the 3C509, and some
-  Makefile cleanup. The first two changes need to be enabled in Config
-  with defines.
++ Included some contributions from Dickon.Reed AT cl PERIOD cam PERIOD
+ac PERIOD uk: Running display of Kbytes loaded, line of delimiters after
+loading complete, a temporary hack to address timing problems with the
+3C509, and some Makefile cleanup. The first two changes need to be
+enabled in Config with defines.
 
 + mknbi-blkdev seems to have been left out by Gero Kuhlmann. Add to
   contrib directory. You probably have to make a symlink to it from
@@ -466,8 +466,8 @@ boot images.
 + Peter Dobcsanyi contributed vendor and device IDs for the Netvin
 NE2000/PCI clone.
 
-+ adam@mudlist.eorbit.net contributed RARP code as alternative to
-BOOTP/DHCP. Activated by RARP_NOT_BOOTP define.
++ adam AT mudlist PERIOD eorbit PERIOD net contributed RARP code as
+alternative to BOOTP/DHCP. Activated by RARP_NOT_BOOTP define.
 
 + Added link to Claus-Justus Heine's NFS swap Web page and updated the
 contrib directory.
@@ -545,8 +545,8 @@ and code32 directives in recent GNU as (so if this file won't assemble
 maybe your as version is not recent enough). Also patches to the menu
 handling code.
 
-+ jluke@deakin.edu.au sent in a fix for the WD/SMC8013 long ago which
-I finally got around to verifying.
++ jluke AT deakin PERIOD edu PERIOD au sent in a fix for the WD/SMC8013
+long ago which I finally got around to verifying.
 
 + start16.o and start32.o are supplied for those people who have problems
 compiling start*.S with as/as86.
@@ -797,10 +797,11 @@ driver.
 
 Released as Etherboot 4.4.2
 
-+ hwilmer@gmx.de found a probe error in 3c507.c, shouldn't mask memory
-size with 0xffffL, this fails with 64kB memory.  Also changed to use
-real-time-clock to timeout on initialisation of i82586 rather than
-relying on decrementing a variable (which is CPU speed dependent).
++ hwilmer AT gmx PERIOD de found a probe error in 3c507.c, shouldn't
+mask memory size with 0xffffL, this fails with 64kB memory.  Also
+changed to use real-time-clock to timeout on initialisation of i82586
+rather than relying on decrementing a variable (which is CPU speed
+dependent).
 
 + James Pearson pointed out that ~ should be escaped as &tilde; in
 vendortags.sgml. Also cleaned up the 8-bit characters while I was at it.
@@ -1068,7 +1069,7 @@ failed before, please test if you can.
 
 + Moved commercial links off main web page into web page of its own.
 
-+ Merged in TRY_FLOPPY_FIRST code from <as@bart.nl>.
++ Merged in TRY_FLOPPY_FIRST code from <as AT bart PERIOD nl>.
 
 Released as Etherboot 4.5.6
 
@@ -1173,9 +1174,10 @@ Released as Etherboot 4.6.2
 
 + Minor spelling corrections to vendortags.sgml.
 
-+ andreas.kabel@slac.stanford.edu pointed out that to be RFC951 compliant,
-the broadcast BOOTP request near line 705 of main.c should use port
-BOOTP_CLIENT and thus stand a better chance of going through firewalls.
++ andreas.kabel AT slac PERIOD stanford PERIOD edu pointed out that to
+be RFC951 compliant, the broadcast BOOTP request near line 705 of main.c
+should use port BOOTP_CLIENT and thus stand a better chance of going
+through firewalls.
 
 + Christoph Plattner found that the 16 bit bus width fix for NEPCI cards
 introduced in 4.5.6 breaks operation for other NEPCI cards. So now the
@@ -2321,3 +2323,51 @@ encounter strange behaviour and complain to the kernel developers.
 Greg also supplied a patch to 3c90x.c to print a warning message.
 
 Released as Etherboot 5.0.6 (production)
+
++ Andrew Bettison sent in a patch and the explanation: Here's a patch
+for some changes I made to Etherboot-5.0.6 because it didn't work with a
+SMC EtherEZ in an old PCI/ISA bybrid bus system.  The ISA shared memory
+isn't accessible on many such systems, so the only way to do I/O to the
+card is in Programmed I/O mode.  I studied the Linux 2.2.19 driver
+(drivers/net/smc-ultra.c) and hacked what I figured was equivalent code
+into src/ns8390.c, and it eventually worked.  All my new code is enabled
+with -DWD-790_PIO.
+
++ Small error in the ADMTEK Comet 983 IDs fixed.
+
++ Michael Rendell sent in patches for 3c90x.c to get the MAC address
+from location 10 of the EEPROM onwards, like the Linux driver does. Some
+905s have the MAC address at both 0 and 10 which is why it worked for
+some boards.
+
++ Michael Brown sent in drivers for 3 wireless NICs based in the prism2
+chipset, and a small patch to rtl8139.c to abort detection on no link.
+
++ Rewrote makerom.c in Perl to give makerom.pl.
+
++ Rewrite genrules.pl to parse a new NIC format.
+
++ Timothy Legge contributed a 3c515 driver. Requires a ISA PnP BIOS.
+
++ Modified call to int15h/e801 in pcbios.S to check for return values in
+CX, DX in case BIOS doesn't return them in AX, BX.
+
++ Richard Chan sent in PCI IDs for another Intel EEPRO100 product.
+Omigawd will they ever run out of EEPRO100 model numbers. :-)
+
++ Changed location of setup header from 0x97e000 to 0x93e000 in
+mkQNXnbi.c for recent Etherboot versions.
+
++ Renamed membase to addr1 to reflect its lack of predefined meaning in
+PCI config space. Should do similar to ioaddr, but too much work.
+
++ Samuel Clememts found another Intel EEPRO100 device ID, 0x1039.
+
++ Updated instructions in contrib/tomsrtbt for latest 2.0.103 release.
+
++ Folded in changes by Michael Brown to send PCI IDs to the server
+and to encapsulate Etherboot specific options.
+
++ Bug in sis900.c, wrongly classifies revisions 0x81 and 0x82 because
+first test catches too many revisions. Changed to match the Linux
+driver.
