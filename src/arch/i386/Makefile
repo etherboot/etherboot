@@ -1,6 +1,6 @@
 ARCH_FORMAT=	elf32-i386
 
-LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES) -Ui386
+LCONFIG+=	-DRELOC=$(RELOCADDR) -Ui386
 
 BUILD_ROMS=	$(ROMS)
 BUILD_ELFS=	$(patsubst %img, %elf, $(IMGS))
@@ -60,18 +60,6 @@ ELFPREFIX=	$(BIN)/elfprefix.o
 #
 ifndef RELOCADDR
 RELOCADDR:=0x20000
-endif
-
-# Until all of the drivers are updated to be relocatable,
-# carefully setup romprefix.S to know start16.bin size
-# 
-# start16 can no longer be built as a standalone binary; start16.o is
-# linked to %.z?img with the linker.  This doesn't matter, because I'm
-# about to rework romprefix and start16 so that romprefix doesn't need
-# to know the size of START16 anyway.
-#
-ifndef START16_BYTES
-START16_BYTES:=112
 endif
 
 # Evaluate ROMLIMIT only once - it is constant during the make run.
