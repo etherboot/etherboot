@@ -940,8 +940,8 @@ static int prism2_find_pci ( hfa384x_t *hw, struct pci_device *p )
   uint32_t membase = 0; /* Prism2.5 Memory Base */
   pcibios_read_config_dword( p->bus, p->devfn, PRISM2_PCI_MEM_BASE, &membase);
   membase &= PCI_BASE_ADDRESS_MEM_MASK;
-  hw->membase = membase;
-  printf ( "Prism2.5 has registers at %#x\n", membase );
+  hw->membase = (uint32_t) phys_to_virt(membase);
+  printf ( "Prism2.5 has registers at %#x\n", hw->membase );
   return 1;
 }
 #endif /* WLAN_PCI */
