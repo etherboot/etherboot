@@ -1,4 +1,4 @@
-#if !defined(ISA_H) && defined(CONFIG_ISA)
+#ifndef	ISA_H
 #define ISA_H
 
 struct dev;
