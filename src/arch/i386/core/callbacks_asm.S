@@ -47,10 +47,10 @@
 	.arch i386
 	.code32
 
-/* v_ext_call : call to an external routine.
+/* _v_ext_call : call to an external routine.
  */
-	.globl v_ext_call
-v_ext_call:
+	.globl _v_ext_call
+_v_ext_call:
 	/* Save registers required to return to C code */
 	pushl	%ebp
 	pushl	%ebx
