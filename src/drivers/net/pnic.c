@@ -22,10 +22,16 @@ Bochs Pseudo NIC driver for Etherboot
 /* PNIC API */
 #include "pnic_api.h"
 
+/* Private data structure */
+typedef struct {
+	uint16_t api_version;
+} pnic_priv_data_t;
+
+/* Function prototypes */
+static int pnic_api_check ( uint16_t api_version );
+
 /* NIC specific static variables go here */
-static uint8_t rx_tx_buffer[ETH_FRAME_LEN];
-uint8_t *rx_buffer = rx_tx_buffer;
-uint8_t *tx_buffer = rx_tx_buffer;
+static uint8_t tx_buffer[ETH_FRAME_LEN];
 
 /* 
  * Utility functions: issue a PNIC command, retrieve result.  Use
@@ -39,10 +45,10 @@ uint8_t *tx_buffer = rx_tx_buffer;
  * of data).
  */
 
-uint16_t pnic_command_quiet ( struct nic *nic, uint16_t command,
-			      void *input, uint16_t input_length,
-			      void *output, uint16_t output_max_length,
-			      uint16_t *output_length ) {
+static uint16_t pnic_command_quiet ( struct nic *nic, uint16_t command,
+				     void *input, uint16_t input_length,
+				     void *output, uint16_t output_max_length,
+				     uint16_t *output_length ) {
 	int i;
 	uint16_t status;
 	uint16_t _output_length;
@@ -86,10 +92,11 @@ uint16_t pnic_command_quiet ( struct nic *nic, uint16_t command,
 	return status;
 }
 
-uint16_t pnic_command ( struct nic *nic, uint16_t command,
-			void *input, uint16_t input_length,
-			void *output, uint16_t output_max_length,
-			uint16_t *output_length ) {
+static uint16_t pnic_command ( struct nic *nic, uint16_t command,
+			       void *input, uint16_t input_length,
+			       void *output, uint16_t output_max_length,
+			       uint16_t *output_length ) {
+	pnic_priv_data_t *priv = (pnic_priv_data_t*)nic->priv_data;
 	uint16_t status = pnic_command_quiet ( nic, command,
 					       input, input_length,
 					       output, output_max_length,
@@ -97,7 +104,22 @@ uint16_t pnic_command ( struct nic *nic, uint16_t command,
 	if ( status == PNIC_STATUS_OK ) return status;
 	printf ( "PNIC command %#hx (len %#hx) failed with status %#hx\n",
 		 command, input_length, status );
+	if ( priv->api_version ) pnic_api_check(priv->api_version);
 	return status;
+}
+
+/* Check API version matches that of NIC */
+static int pnic_api_check ( uint16_t api_version ) {
+	if ( api_version != PNIC_API_VERSION ) {
+		printf ( "Warning: API version mismatch! "
+			 "(NIC's is %d.%d, ours is %d.%d)\n",
+			 api_version >> 8, api_version & 0xff,
+			 PNIC_API_VERSION >> 8, PNIC_API_VERSION & 0xff );
+	}
+	if ( api_version < PNIC_API_VERSION ) {
+		printf ( "*** You may need to update your copy of Bochs ***\n" );
+	}
+	return ( api_version == PNIC_API_VERSION );
 }
 
 /**************************************************************************
@@ -192,10 +214,14 @@ PROBE - Look for an adapter, this routine's visible to the outside
 static int pnic_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *)dev;
+	static pnic_priv_data_t priv;
 	uint16_t status;
-	uint16_t api_version;
 
 	printf(" - ");
+
+	/* Clear private data structure and chain it in */
+	memset ( &priv, 0, sizeof(priv) );
+	nic->priv_data = &priv;
 
 	/* Mask the bit that says "this is an io addr" */
 	nic->ioaddr = pci->ioaddr & ~3;
@@ -204,23 +230,19 @@ static int pnic_probe(struct dev *dev, struct pci_device *pci)
 	adjust_pci_device(pci);
 
 	status = pnic_command_quiet( nic, PNIC_CMD_API_VER, NULL, 0,
-				     &api_version, sizeof(api_version), NULL );
+				     &priv.api_version,
+				     sizeof(priv.api_version), NULL );
 	if ( status != PNIC_STATUS_OK ) {
 		printf ( "PNIC failed installation check, code %#hx\n",
 			 status );
 		return 0;
 	}
+	pnic_api_check(priv.api_version);
 	status = pnic_command ( nic, PNIC_CMD_READ_MAC, NULL, 0,
 				nic->node_addr, ETH_ALEN, NULL );
 	printf ( "Detected Bochs Pseudo NIC MAC %! (API v%d.%d) at %#hx\n",
-		 nic->node_addr, api_version>>8, api_version&0xff,
+		 nic->node_addr, priv.api_version>>8, priv.api_version&0xff,
 		 nic->ioaddr );
-	if ( api_version != PNIC_API_VERSION ) {
-		printf ( "Warning: API version mismatch! "
-			 "(NIC's is %d.%d, ours is %d.%d)\n",
-			 api_version >> 8, api_version & 0xff,
-			 PNIC_API_VERSION >> 8, PNIC_API_VERSION & 0xff );
-	}
 
 	/* point to NIC specific routines */
 	dev->disable  = pnic_disable;
