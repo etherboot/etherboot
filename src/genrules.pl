@@ -202,6 +202,7 @@ family		drivers/net/tulip
 family		drivers/net/davicom
 
 family		drivers/net/rtl8139
+family		drivers/net/r8169
 
 family		drivers/net/via-rhine
 
