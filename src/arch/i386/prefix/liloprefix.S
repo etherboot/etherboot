@@ -4,6 +4,9 @@
         Authors: Gary Byers (gb@thinguin.org)
                  Marty Connor (mdc@thinguin.org)
 
+	Modified: Ken Yap (ken_yap@users.sourceforge.net>
+	Experimental fix for not using START16 any more.
+
         This software may be used and distributed according to the terms
         of the GNU Public License (GPL), incorporated herein by reference.
 
@@ -114,44 +117,13 @@ boot_flag:
 
         This code gets loaded at SETUPSEG:0.  It wants to start
         executing the Etherboot image that's loaded at SYSSEG:0 and
-        whose entry point is SYSSEG:6.
+        whose entry point is SYSSEG:0.
 
         Before jumping to the image, check its signature.
 */
 setup_code: 
-        movw    $SYSSEG, %ax
-        movw    %ax,%es
-        cmpw    $0xAA55, %es:0
-        jne     badsig
-
-/* If there's anything else to do, do it now. */
-
 /* Jump to the bootrom code */
-        jmp     $SYSSEG, $0x0006
-
-badsig: 
-        /* Put the stack at BOOTSEG:0x4000. */
-        movw    $BOOTSEG, %cx
-        movw    $0xfff0, %bx
-        cli
-        movw    %cx,%ss
-        movw    %bx,%sp
-        sti
-        movw    $SETUPSEG, %dx
-        movw    %dx,%ds
-        movw    $badsigend-badsigmsg, %cx
-        movw    $badsigmsg-setup_code, %si
-        movw    $0x0007, %bx                    /* page 0, attribute 7 (normal) */
-        movb    $0x0e, %ah                      /* write char, tty mode */
-prloop2: 
-        lodsb
-        int     $0x10
-        loop    prloop2
-freeze2: 
-        jmp     freeze2
-badsigmsg:
-        .ascii  "No ROM signature\r\n"
-badsigend: 
+        jmp     $SYSSEG, $0x0
 
         .org    (((SETUPSECS+1)*512)-1)
         .byte   0
