@@ -41,6 +41,9 @@ static void scan_drivers(
 			}
 		}
 	}
+	if (!class) {
+		goto out;
+	}
 	for(driver = pci_drivers; driver < pci_drivers_end; driver++) {
 		if (driver->type != type)
 			continue;
