@@ -28,6 +28,7 @@ BOBJS+=		$(BIN)/arm_timer.o
 BOBJS+=		$(BIN)/serial.o
 BOBJS+=		$(BIN)/mem.o
 BOBJS+=		$(BIN)/setjmp.o
+BOBJS+=		$(BIN)/lib1funcs.o
 
 # Utilities
 
