@@ -14,12 +14,9 @@ struct disk disk =
 	{
 		0,				/* dev.disable */
 		{
-			DEV_ID_SIZE-1,
-			RFC1533_VENDOR_NIC_DEV_ID,
-			5,
-			PCI_BUS_TYPE,
 			0,
-			0
+			0,
+			PCI_BUS_TYPE,
 		},				/* dev.devid */
 		0,				/* index */
 		0,				/* type */

@@ -19,6 +19,7 @@ Literature dealing with the network protocols:
 **************************************************************************/
 #include "etherboot.h"
 #include "nic.h"
+#include "elf.h" /* FOR EM_CURRENT */
 
 struct arptable_t	arptable[MAX_ARP];
 #if MULTICAST_LEVEL2
@@ -47,6 +48,14 @@ static int dhcp_reply;
 static in_addr dhcp_server = { 0L };
 static in_addr dhcp_addr = { 0L };
 static unsigned char	rfc1533_cookie[] = { RFC1533_COOKIE };
+static const unsigned char dhcp_machine_info[] = {
+	/* Our enclosing DHCP tag */
+	RFC1533_VENDOR_ETHERBOOT_ENCAP, 11,
+	/* Our boot device */
+	RFC1533_VENDOR_NIC_DEV_ID, 5, PCI_BUS_TYPE, 0, 0, 0, 0,
+	/* Our current architecture */
+	RFC1533_VENDOR_ARCH, 2, EM_CURRENT & 0xff, (EM_CURRENT >> 8) & 0xFF,
+};
 static const unsigned char dhcpdiscover[] = {
 	RFC2132_MSG_TYPE,1,DHCPDISCOVER,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
@@ -140,12 +149,9 @@ struct nic	nic =
 	{
 		0,				/* dev.disable */
 		{
-			DEV_ID_SIZE-1,
-			RFC1533_VENDOR_NIC_DEV_ID,
-			5,
-			PCI_BUS_TYPE,
 			0,
-			0
+			0,
+			PCI_BUS_TYPE,
 		},				/* dev.devid */
 		0,				/* index */
 		0,				/* type */
@@ -741,11 +747,13 @@ static int bootp(void)
 #endif	/* NO_DHCP_SUPPORT */
 	struct bootpip_t ip;
 	unsigned long  starttime;
+	unsigned char *bp_vend;
 
-#if 1
-#warning "I do not currently pass the archtecture etherboot is running on "	
-	printf("FIXME: pass the architecture etherboot is currently running on in DHCP.\n");
-#endif
+	dhcp_machine_info[3] = nic.dev.devid.bus_type;
+	dhcp_machine_info[4] = nic.dev.devid.vendor_id & 0xff;
+	dhcp_machine_info[5] = ((nic.dev.devid.vendor_id) >> 8) & 0xff;
+	dhcp_machine_info[6] = nic.dev.devid.device_id & 0xff;
+	dhcp_machine_info[7] = ((nic.dev.devid.device_id) >> 8) & 0xff;
 	memset(&ip, 0, sizeof(struct bootpip_t));
 	ip.bp.bp_op = BOOTP_REQUEST;
 	ip.bp.bp_htype = 1;
@@ -761,7 +769,11 @@ static int bootp(void)
 #else
 	memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie); /* request RFC-style options */
 	memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcpdiscover, sizeof dhcpdiscover);
-	ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcpdiscover] = RFC1533_END;
+	/* Append machine_info to end, in encapsulated option */
+	bp_vend = ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcpdiscover;
+	memcpy(bp_vend, dhcp_machine_info, sizeof dhcp_machine_info);
+	bp_vend += sizeof dhcp_machine_info;
+	*bp_vend++ = RFC1533_END;
 #endif	/* NO_DHCP_SUPPORT */
 
 	for (retry = 0; retry < MAX_BOOTP_RETRIES; ) {
@@ -788,10 +800,11 @@ static int bootp(void)
 			   the layout of dhcprequest */
 			memcpy(&ip.bp.bp_vend[9], &dhcp_server, sizeof(in_addr));
 			memcpy(&ip.bp.bp_vend[15], &dhcp_addr, sizeof(in_addr));
-			/* Append NIC IDs to end, in encapsulated option */
-			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest] = RFC1533_VENDOR_ETHERBOOT_ENCAP;
-			memcpy(&ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1], &nic.dev.devid, DEV_ID_SIZE);
-			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1 + DEV_ID_SIZE] = RFC1533_END;
+			bp_vend = ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest;
+			/* Append machine_info to end, in encapsulated option */
+			memcpy(bp_vend, dhcp_machine_info, sizeof dhcp_machine_info);
+			bp_vend += sizeof dhcp_machine_info;
+			*bp_vend++ = RFC1533_END;
 			for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
 				udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 					sizeof(struct bootpip_t), &ip);

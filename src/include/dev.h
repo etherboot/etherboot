@@ -7,14 +7,11 @@
 /* Need to check the packing of this struct if Etherboot is ported */
 struct dev_id
 {
-	uint8_t		encap_len;
-	uint8_t		tag;
-	uint8_t		len;
-	uint8_t		bus_type;
+	unsigned short	vendor_id;
+	unsigned short	device_id;
+	unsigned char	bus_type;
 #define	PCI_BUS_TYPE	1
 #define	ISA_BUS_TYPE	2
-	uint16_t	vendor_id;
-	uint16_t	device_id;
 };
 
 /* Dont use sizeof, that will include the padding */
