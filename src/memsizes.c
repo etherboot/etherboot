@@ -26,6 +26,22 @@ void get_memsizes(void)
 		meminfo.map[1].size = meminfo.memsize << 10;
 		meminfo.map[1].type = E820_RAM;
 	}
+#if 0
+	printf("basememsize %d\n", meminfo.basememsize);
+	printf("memsize %d\n",     meminfo.basememsize);
+	printf("Memory regions(%d):\n", meminfo.map_count);
+	for(i = 0; i < meminfo.map_count; i++) {
+		unsigned long long r_start, r_end;
+		r_start = meminfo.map[i].addr;
+		r_end = r_start + meminfo.map[i].size;
+		printf("[%X%X, %X%X) type %d\n", 
+			(unsigned long)(r_start >> 32),
+			(unsigned long)r_start,
+			(unsigned long)(r_end >> 32),
+			(unsigned long)r_end,
+			meminfo.map[i].type);
+	}
+#endif
 	/* Allocate the real mode stack */
 	real_mode_stack = (meminfo.basememsize << 10);
 }

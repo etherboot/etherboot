@@ -397,7 +397,6 @@ _VIRT_TO_PHYS - Transition from virtual to physical addresses
 _virt_to_phys:
 	movl	virt_offset, %ebp	/* Load virt_offset */
 	addl	%ebp, 0(%esp)		/* Adjust the return address */
-	addl	%ebp, %esp		/* Adjust the stack pointer */
 
 	/* reload the code segment */
 	pushl	$FLAT_CODE_SEG
@@ -405,14 +404,18 @@ _virt_to_phys:
 	pushl	%eax
 	lret
 
-1:	
+1:
 	/* reload other segment registers */
 	movl	$FLAT_DATA_SEG, %eax
 	movl	%eax, %ds
 	movl	%eax, %es	
 	movl	%eax, %ss	
 	movl	%eax, %fs	
-	movl	%eax, %gs	
+	movl	%eax, %gs
+
+	/* Adjust the stack pointer, after we have reloaded the stack segment */
+	addl	%ebp, %esp		
+
 	ret
 
 
