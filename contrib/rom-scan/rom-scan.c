@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #ifndef	__TURBOC__
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -94,11 +95,11 @@ int main(void)
 #ifndef	__TURBOC__
   int	fh;
   if ((fh = open("/dev/kmem",O_RDONLY|O_SYNC)) < 0) {
-    fprintf(stderr,"Could not open \"/dev/kmem\": %s\n",strerror(errno));
+    fprintf(stderr,"Could not open \"/dev/kmem\": %s\n",0 );//strerror(errno));
     return(1); }
   if ((rom = mmap(NULL,ROMEND-ROMSTART,PROT_READ,MAP_SHARED,fh,
 		  ROMSTART)) == MAP_FAILED) {
-    fprintf(stderr,"Could not mmap \"/dev/kmem\": %s\n",strerror(errno));
+    fprintf(stderr,"Could not mmap \"/dev/kmem\": %s\n",0); //strerror(errno));
     close(fh);
     return(1); }
   close(fh);
