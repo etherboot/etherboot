@@ -131,11 +131,16 @@ foreach my $pci (sort keys %drivers) {
 	(my $macro = $pci) =~ tr/\-/_/;
 	my $deps = $drivers{$pci};
 	print <<EOF;
+INCLUDE_$pci = -DINCLUDE_\U$macro\E
+
 bin32/$pci.o:	$pci.c \$(MAKEDEPS) pci.h $deps
 	\$(CC32) \$(CFLAGS32) \$(\U$macro\EFLAGS) -o \$@ -c \$<
 
 bin32/config-$pci.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	\$(CC32) \$(CFLAGS32) -DINCLUDE_\U$macro\E -o \$@ -c \$<
+	\$(CC32) \$(CFLAGS32) \$(INCLUDE_$pci) -o \$@ -c \$<
+
+bin32/config-$pci--%.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	\$(CC32) \$(CFLAGS32) \$(INCLUDE_$pci) \$(INCLUDE_\$*) -DTRY_ALL_DEVICES -o \$@ -c \$<
 
 EOF
 }
@@ -145,11 +150,16 @@ foreach my $isa (sort keys %isaent) {
 	my $base = $isaent{$isa};
 	my $deps = $drivers{$base};
 	print <<EOF;
+INCLUDE_$isa = -DINCLUDE_\U$macro\E
+
 bin32/$isa.o:	$base.c \$(MAKEDEPS) $deps
 	\$(CC32) \$(CFLAGS32) \$(\U$macro\EFLAGS) -o \$@ -c \$<
 
 bin32/config-$isa.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
-	\$(CC32) \$(CFLAGS32) -DINCLUDE_\U$macro\E -o \$@ -c \$<
+	\$(CC32) \$(CFLAGS32) \$(INCLUDE_$isa) -o \$@ -c \$<
+
+bin32/config-$isa--%.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	\$(CC32) \$(CFLAGS32) \$(INCLUDE_$isa) \$(INCLUDE_\$*) -o \$@ -c \$<
 
 EOF
 }
@@ -166,7 +176,15 @@ bin32/$rom.rom:	bin32/$family.img \$(PRLOADER)
 	cat \$(PRLOADER) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
+bin32/$rom--%.rom:	bin32/$family--%.img \$(PRLOADER)
+	cat \$(PRLOADER) \$< > \$@
+	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+
 bin32/$rom.lzrom:	bin32/$family.huf \$(PRZLOADER)
+	cat \$(PRZLOADER) \$< > \$@
+	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+
+bin32/$rom--%.lzrom:	bin32/$family--%.huf \$(PRZLOADER)
 	cat \$(PRZLOADER) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
@@ -174,7 +192,15 @@ bin32/$rom.pxe:	bin32/$family.img \$(PXELOADER)
 	cat \$(PXELOADER) \$< > \$@
 	\$(MAKEROM) -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
+bin32/$rom--%.pxe:	bin32/$family--%.img \$(PXELOADER)
+	cat \$(PXELOADER) \$< > \$@
+	\$(MAKEROM) -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+
 bin32/$rom.lzpxe:	bin32/$family.huf \$(PXEZLOADER)
+	cat \$(PXEZLOADER) \$< > \$@
+	\$(MAKEROM) -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+
+bin32/$rom--%.lzpxe:	bin32/$family--%.huf \$(PXEZLOADER)
 	cat \$(PXEZLOADER) \$< > \$@
 	\$(MAKEROM) -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
@@ -210,12 +236,23 @@ bin32/$pci.tmp:	bin32/$pci.o bin32/config-$pci.o bin32/pci.o \$(STDDEPS32)
 	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
+bin32/$pci--%.tmp:	bin32/$pci.o bin32/%.o bin32/config-$pci--%.o bin32/pci.o \$(STDDEPS32)
+	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o bin32/\$*.o bin32/pci.o \$(LIBS32)
+	@\$(SIZE32) \$@ | \$(CHECKSIZE)
+
 bin32/$pci.elf:	bin32/$pci.o bin32/config-$pci.o bin32/pci.o \$(ELF_DEPS32)
 	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
+bin32/$pci--%.elf:	bin32/$pci.o bin32/%.o bin32/config-$pci--%.o bin32/pci.o \$(ELF_DEPS32)
+	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$pci--\$*.o bin32/$pci.o bin32/\$*.o bin32/pci.o \$(LIBS32)
+	@\$(SIZE32) \$@ | \$(CHECKSIZE)
+
 bin32/$pci.img:	bin32/$pci.o bin32/$pci.tmp bin32/config-$pci.o bin32/pci.o \$(STDDEPS32)
 	\$(LD32) \$(LDFLAGS32) \$(LDBINARY32) -o \$@ \$(START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
+
+bin32/$pci--%.img:	bin32/$pci.o bin32/%.o bin32/$pci.tmp bin32/config-$pci--%.o bin32/pci.o \$(STDDEPS32)
+	\$(LD32) \$(LDFLAGS32) \$(LDBINARY32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o bin32/\$*.o bin32/pci.o \$(LIBS32)
 
 EOF
 }
