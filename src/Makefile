@@ -467,8 +467,8 @@ bin32/%.nrv2belf:	bin32/%.nrv2bimgo $(ELFPREFIX) $(MAKEDEPS)
 # a single request.  Not that 18k matters much these days...
 # Probably not required now that boot1a.s is in use, but shouldn't hurt.
 # You must give the directory name, e.g. use bin32/rtl8139.dsk as the target.
-%.dsk:	%.img $(DISKLOADER) $(START16)
-	cat $(DISKLOADER) $(START16) $< > $@.x
+%.dsk:	%.rom $(DISKLOADER) 
+	cat $(DISKLOADER) $< > $@.x
 	dd if=$@.x of=$@ bs=36k conv=sync 2> /dev/null
 	$(RM) $@.x
 
