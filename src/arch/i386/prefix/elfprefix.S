@@ -3,7 +3,7 @@
 	.arch i386
 	.section ".prefix", "a", @progbits
 
-#define LOAD_ADDR 0x20000
+#define LOAD_ADDR 0x10000
 
 	/* ELF Header */
 	.globl elf_header
