@@ -213,10 +213,7 @@ static int main_loop(int state)
 
 	if (!initialized) {
 		console_init();
-		if ((state != 1) && (state != 2)) {
-			dev = 0;
-		}
-		if (dev) {
+		if (dev && (state >= 1) && (state <= 2)) {
 			dev->how_probe = PROBE_AWAKE;
 			dev->how_probe = ops->probe(dev);
 			if (dev->how_probe == PROBE_FAILED) {
