@@ -206,13 +206,27 @@ int hunt_undi_rom ( void ) {
 static inline PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
 					uint16_t routine_off, uint16_t st0,
 					uint16_t st1, uint16_t st2 ) {
+	pxenv_exit_t ret = PXENV_EXIT_FAILURE;
+
 	undi.undi_call_info->routine.segment = routine_seg;
 	undi.undi_call_info->routine.offset = routine_off;
 	undi.undi_call_info->stack[0] = st0;
 	undi.undi_call_info->stack[1] = st1;
 	undi.undi_call_info->stack[2] = st2;
-	return __undi_call ( SEGMENT( undi.undi_call_info ),
-			     OFFSET( undi.undi_call_info ) );
+	ret = __undi_call ( SEGMENT( undi.undi_call_info ),
+			    OFFSET( undi.undi_call_info ) );
+
+	/* UNDI API calls may rudely change the status of A20 and not
+	 * bother to restore it afterwards.  Intel is known to be
+	 * guilty of this.
+	 *
+	 * Note that we will return to this point even if A20 gets
+	 * screwed up by the UNDI driver, because Etherboot always
+	 * resides in an even megabyte of RAM.
+	 */
+	gateA20_set();
+
+	return ret;
 }
 
 /* Make a real-mode call to the UNDI loader routine at
