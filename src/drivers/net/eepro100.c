@@ -45,6 +45,11 @@
  *
  * The driver was finished before Intel got the NDA out of the closet.
  * I still don't have the docs.
+ *
+ *
+ * Datasheet is now published and available from 
+ * ftp://download.intel.com/design/network/manuals/8255X_OpenSDM.pdf
+ *    - Michael Brown
  * */
 
 /* Philosophy of this driver.
