@@ -328,16 +328,23 @@ static int nfs_readlink(int server, int port, char *fh, char *path, char *nfh,
 				return -ntohl(rpc->u.reply.data[0]);
 			} else {
 				// It *is* a link.
-				// Now append everything to dirname, filename TOO!
+				// If it's a relative link, append everything to dirname, filename TOO!
 				retries = strlen ( (char *)(&(rpc->u.reply.data[2]) ));
-				path[pathlen++] = '/';
-				while ( ( retries + pathlen ) > 298 ) {
-					retries--;
+				if ( *((char *)(&(rpc->u.reply.data[2]))) != '/' ) {
+					path[pathlen++] = '/';
+					while ( ( retries + pathlen ) > 298 ) {
+						retries--;
+					}
+					if ( retries > 0 ) {
+						memcpy(path + pathlen, &(rpc->u.reply.data[2]), retries + 1);
+					} else { retries = 0; }
+					path[pathlen + retries] = 0;
+				} else {
+					// Else make it the only path.
+					if ( retries > 298 ) { retries = 298; }
+					memcpy ( path, &(rpc->u.reply.data[2]), retries + 1 );
+					path[retries] = 0;
 				}
-				if ( retries > 0 ) {
-					memcpy(path + pathlen, &(rpc->u.reply.data[2]), retries + 1);
-				} else { retries = 0; }
-				path[pathlen + retries] = 0;
 				return 0;
 			}
 		}
