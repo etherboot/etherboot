@@ -2696,3 +2696,5 @@ James Pearson, Georg Baum and Marty Connor for help resolving this issue.
 
 Released as Etherboot 5.2.5 (production) 2004/07/18
 
++ Change isa and pci linkage section attributes from unused to used
+so that gcc will not optimise it away.
