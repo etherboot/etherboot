@@ -17,7 +17,7 @@ structure: ioaddr, irqno and irq.
   simply be copied from pci->irq.
 
   irq is a function pointer, like poll and transmit.  It must point to
-  the drivers irq() function.
+  the driver's irq() function.
 
 2. The poll() routine.
 
@@ -40,9 +40,13 @@ think that there is no packet to read.
 poll() should also acknowledge and clear the NIC's "packet received"
 interrupt.  It does not need to worry about enabling/disabling
 interrupts; this is taken care of by calls to the driver's irq()
-routine.  Take care that the interrupt is acknowledged only once per
-packet; the easiest way to achieve this is to not acknowledge it when
-called with retrieve==0.
+routine.
+
+Etherboot will forcibly regenerate an interrupt if a packet remains
+pending after all interrupts have been acknowledged.  You can
+therefore get away with having poll() just acknolwedge and clear all
+NIC interrupts, without particularly worrying about exactly when this
+should be done.
 
 3. The irq() routine.
 
@@ -51,8 +55,13 @@ This is a new routine, with prototype
 "action" takes one of three possible values: ENABLE, DISABLE or FORCE.
 ENABLE and DISABLE mean to enable/disable the NIC's "packet received"
 interrupt.  FORCE means that the NIC should be forced to generate a
-fake "packet received" interrupt.  This may not be possible on all
-NICs; there is little to be lost by leaving it out entirely. 
+fake "packet received" interrupt.
+
+If you are unable to implement FORCE, your NIC will not work when
+being driven via the UNDI interface under heavy network traffic
+conditions.  Since Etherboot's UNDI driver (make bin/undi.zpxe) is the
+only program known to use this interface, it probably doesn't really
+matter.
 
 
 QUICK AND DIRTY WAY
