@@ -710,7 +710,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned in
 		prevblock = block;
 		retry = 0;	/* It's the right place to zero the timer? */
 		if ((rc = fnc(tr->u.data.download,
-			      ++bcounter, len, len < packetsize)) >= 0)
+			      ++bcounter, len, len < packetsize)) <= 0)
 			return(rc);
 		if (len < packetsize)		/* End of data */
 			return (1);
@@ -1219,7 +1219,7 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 		p = extdata; endp = extend;
 	}
 	if (!eof)
-		return (-1);
+		return 1;
 	while (p < endp) {
 		unsigned char c = *p;
 		if (c == RFC1533_PAD) {
@@ -1315,7 +1315,7 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 		printf("Loading BOOTP-extension file: %s\n",fname);
 		download(fname, decode_rfc1533);
 	}
-	return (-1);	/* proceed with next block */
+	return 1;	/* proceed with next block */
 }
 
 /**************************************************************************

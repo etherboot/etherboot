@@ -31,8 +31,6 @@ Modifications: Ken Yap (for Etherboot/16)
 
 #include "etherboot.h"
 
-typedef os_download_t (*probe_t)(unsigned char *data, unsigned int len);
-
 /* bootinfo */
 #define BOOTINFO_VERSION 1
 #define NODEV           (-1)    /* non-existent device */
@@ -352,9 +350,11 @@ static char * ce_curaddr;
 #endif /* WINCE_IMAGE */
 
 
+#if defined(IMAGE_FREEBSD)
 static enum {
-	Unknown, Tagged, Aout, Elf, Aout_FreeBSD, Elf_FreeBSD
+	Unknown, Tagged, Aout, Elf, Aout_FreeBSD, Elf_FreeBSD,
 } image_type = Unknown;
+#endif
 
 /* The following are static because os_download is called for each block
    and we need to retain info across calls */
@@ -409,14 +409,13 @@ static struct ebinfo		loaderinfo = {
 };
 
 #ifdef	TAGGED_IMAGE
-static int tagged_download(unsigned char *data, unsigned int len);
-static os_download_t tagged_probe(unsigned char *data, unsigned int len)
+static int tagged_download(unsigned char *data, unsigned int len, int eof);
+static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 {
 	if (*((uint32_t *)data) != 0x1B031336L) {
 		return 0;
 	}
 	printf("(NBI)");
-	image_type = Tagged;
 	/* Zero all context info */
 	memset(&tctx, 0, sizeof(tctx));
 	/* Copy first 4 longwords */
@@ -433,7 +432,7 @@ static os_download_t tagged_probe(unsigned char *data, unsigned int len)
 	return tagged_download;
 
 }
-static int tagged_download(unsigned char *data, unsigned int len)
+static int tagged_download(unsigned char *data, unsigned int len, int eof)
 {
 	int	i,j;
 
@@ -503,21 +502,20 @@ static int tagged_download(unsigned char *data, unsigned int len)
 		len -= i;
 		data += i;
 	} while (len > 0);
-	return (1);
+	return 1;
 }
 #endif
 
 #ifdef	AOUT_IMAGE
-static int aout_download(unsigned char *data, unsigned int len);
-static os_download_t aout_probe(unsigned char *data, unsigned int len)
+static int aout_download(unsigned char *data, unsigned int len, int eof);
+static inline os_download_t aout_probe(unsigned char *data, unsigned int len)
 {
-	if (*((uint16_t)data) != 0x010BL) {
+	if (info.s[0] != 0x010BL) {
 		return 0;
 	}
 	printf("(a.out");
-	image_type = Aout;
-	memcpy(&info, data, sizeof(info));
 #ifdef	IMAGE_FREEBSD
+	image_type = Aout;
 	if (info.s[1] == 0) {
 		/* Some other a.out variants have a different
 		 * value, and use other alignments (e.g. 1K),
@@ -536,43 +534,10 @@ static os_download_t aout_probe(unsigned char *data, unsigned int len)
 	return aout_download;
 }
 
-static int aout_download(unsigned char *data, unsigned int len)
+static int aout_download(unsigned char *data, unsigned int len, int eof)
 {
 	unsigned int offset;	/* working offset in the current data block */
 
-	if (len == 0) {
-		int	j;
-		void	(*entry)();
-
-aout_startkernel:
-		entry = (void *)info.head.a_entry;
-		printf("done\n");
-#ifdef	DELIMITERLINES
-		for (j=0; j<80; j++) putchar('=');
-		putchar('\n');
-#endif
-		cleanup();
-
-#ifdef	IMAGE_FREEBSD
-		if (image_type == Aout_FreeBSD) {
-			memset(&info.bsdinfo, 0, sizeof(info.bsdinfo));
-			info.bsdinfo.bi_basemem = meminfo.basememsize;
-			info.bsdinfo.bi_extmem = meminfo.memsize;
-			info.bsdinfo.bi_memsizes_valid = 1;
-			info.bsdinfo.bi_version = BOOTINFO_VERSION;
-			info.bsdinfo.bi_kernelname = KERNEL_BUF;
-			info.bsdinfo.bi_nfs_diskless = NULL;
-			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
-			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
-			longjmp(restart_etherboot, -2);
-		}
-#endif
-#ifdef AOUT_LYNX_KDI
-		(*entry)();
-#endif
-		printf("unexpected a.out variant\n");
-		longjmp(restart_etherboot, -2);
-	}
 	offset = 0;
 
 #ifdef AOUT_LYNX_KDI
@@ -643,21 +608,54 @@ aout_startkernel:
 	} while (offset < len);
 
 	loc += len;
+
+	if (eof) {
+		int	j;
+		void	(*entry)();
+
+aout_startkernel:
+		entry = (void *)info.head.a_entry;
+		printf("done\n");
+#ifdef	DELIMITERLINES
+		for (j=0; j<80; j++) putchar('=');
+		putchar('\n');
+#endif
+		cleanup();
+
+#ifdef	IMAGE_FREEBSD
+		if (image_type == Aout_FreeBSD) {
+			memset(&info.bsdinfo, 0, sizeof(info.bsdinfo));
+			info.bsdinfo.bi_basemem = meminfo.basememsize;
+			info.bsdinfo.bi_extmem = meminfo.memsize;
+			info.bsdinfo.bi_memsizes_valid = 1;
+			info.bsdinfo.bi_version = BOOTINFO_VERSION;
+			info.bsdinfo.bi_kernelname = KERNEL_BUF;
+			info.bsdinfo.bi_nfs_diskless = NULL;
+			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
+			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
+			longjmp(restart_etherboot, -2);
+		}
+#endif
+#ifdef AOUT_LYNX_KDI
+		(*entry)();
+#endif
+		printf("unexpected a.out variant\n");
+		longjmp(restart_etherboot, -2);
+	}
 	return 1;
 }
 #endif
 
 #ifdef	ELF_IMAGE
-static int elf_download(unsigned char *data, unsigned int len);
-static os_download_t elf_probe(unsigned char *data, unsigned int len)
+static int elf_download(unsigned char *data, unsigned int len, int eof);
+static inline os_download_t elf_probe(unsigned char *data, unsigned int len)
 {
-	if (*((uint32_t *)data) != 0x464C457Fl) {
+	if (info.l[0] != 0x464C457Fl) {
 		return 0;
 	}
 	printf("(ELF");
-	image_type = Elf;
-	memcpy(&info, data, sizeof(info));
 #ifdef	IMAGE_FREEBSD
+	image_type = Elf;
 	if (info.elf32.e_entry & 0xf0000000) {
 		image_type = Elf_FreeBSD;
 		printf("/FreeBSD");
@@ -717,6 +715,7 @@ static os_download_t elf_probe(unsigned char *data, unsigned int len)
 		if (!fit) {
 			printf("\nsegment [%X,%X) does not fit in any memory region\n",
 				start, end);
+#if 0
 			printf("Memory regions(%d):\n", meminfo.map_count);
 			for(i = 0; i < meminfo.map_count; i++) {
 				unsigned long long r_start, r_end;
@@ -727,6 +726,7 @@ static os_download_t elf_probe(unsigned char *data, unsigned int len)
 				printf("[%X, %X) type %d\n", 
 					r_start, r_end, meminfo.map[i].type);
 			}
+#endif
 			return 0;
 		}
 	}
@@ -749,222 +749,10 @@ static os_download_t elf_probe(unsigned char *data, unsigned int len)
 	return elf_download;
 }
 
-static int elf_download(unsigned char *data, unsigned int len)
+static int elf_download(unsigned char *data, unsigned int len, int eof)
 {
 	unsigned int offset;	/* working offset in the current data block */
 	int i;
-
-	if (len == 0) {
-		int	j;
-		void (*entry)();
-#ifdef	IMAGE_MULTIBOOT
-		unsigned char cmdline[512], *c;
-#endif
-
-elf_startkernel:
-		entry = (void *)info.elf32.e_entry;
-		printf("done\n");
-#ifdef	DELIMITERLINES
-		for (j=0; j<80; j++)
-			putchar('=');
-		putchar('\n');
-#endif
-#ifdef IMAGE_FREEBSD
-		if (image_type == Elf_FreeBSD) {
-			cleanup();
-			memset(&info.bsdinfo, 0, sizeof(info.bsdinfo));
-			info.bsdinfo.bi_basemem = meminfo.basememsize;
-			info.bsdinfo.bi_extmem = meminfo.memsize;
-			info.bsdinfo.bi_memsizes_valid = 1;
-			info.bsdinfo.bi_version = BOOTINFO_VERSION;
-			info.bsdinfo.bi_kernelname = KERNEL_BUF;
-			info.bsdinfo.bi_nfs_diskless = NULL;
-			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
-#define RB_BOOTINFO     0x80000000      /* have `struct bootinfo *' arg */  
-			if(freebsd_kernel_env[0] != '\0'){
-				freebsd_howto |= RB_BOOTINFO;
-				info.bsdinfo.bi_envp = (unsigned long)freebsd_kernel_env;
-			}
-
-			/* Check if we have symbols loaded, and if so,
-			 * made the meta_data needed to pass those to
-			 * the kernel. */
-			if ((symtab_load !=0) && (symstr_load != 0))
-			{
-				unsigned long *t;
-
-				info.bsdinfo.bi_symtab = symtab_load;
-
-				/* End of symbols (long aligned...) */
-				/* Assumes size of long is a power of 2... */
-				info.bsdinfo.bi_esymtab = (symstr_load +
-					sizeof(long) +
-					*((long *)symstr_load) +
-					sizeof(long) - 1) & ~(sizeof(long) - 1);
-
-				/* Where we will build the meta data... */
-				t = (unsigned long *)info.bsdinfo.bi_esymtab;
-
-#ifdef	DEBUG_ELF
-				printf("Metadata at %X\n",t);
-#endif
-
-				/* Set up the pointer to the memory... */
-				info.bsdinfo.bi_modulep = (unsigned long)t;
-				
-				/* The metadata structure is an array of 32-bit
-				 * words where we store some information about the
-				 * system.  This is critical, as FreeBSD now looks
-				 * only for the metadata for the extended symbol
-				 * information rather than in the bootinfo.
-				 */
-				/* First, do the kernel name and the kernel type */
-				/* Note that this assumed x86 byte order... */
-
-				/* 'kernel\0\0' */
-				*t++=MODINFO_NAME; *t++= 7; *t++=0x6E72656B; *t++=0x00006C65;
-
-				/* 'elf kernel\0\0' */
-				*t++=MODINFO_TYPE; *t++=11; *t++=0x20666C65; *t++=0x6E72656B; *t++ = 0x00006C65;
-
-				/* Now the symbol start/end - note that they are
-				 * here in local/physical address - the Kernel
-				 * boot process will relocate the addresses. */
-				*t++=MODINFOMD_SSYM | MODINFO_METADATA; *t++=sizeof(*t); *t++=info.bsdinfo.bi_symtab;
-				*t++=MODINFOMD_ESYM | MODINFO_METADATA; *t++=sizeof(*t); *t++=info.bsdinfo.bi_esymtab;
-
-				*t++=MODINFO_END; *t++=0; /* end of metadata */
-
-				/* Since we have symbols we need to make
-				 * sure that the kernel knows its own end
-				 * of memory...  It is not _end but after
-				 * the symbols and the metadata... */
-				info.bsdinfo.bi_kernend = (unsigned long)t;
-
-				/* Signal locore.s that we have a valid bootinfo
-				 * structure that was completely filled in. */
-				freebsd_howto |= 0x80000000;
-			}
-
-			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
-			longjmp(restart_etherboot, -2);
-		}
-#endif
-/*
- *	If IMAGE_MULTIBOOT is not defined, we use a boot protocol for
- *	ELF images with a couple of Etherboot extensions, namely the
- *	use of a flag bit to indicate when the image will return to
- *	Etherboot, and passing certain arguments to the image.
- */
-#ifdef	IMAGE_MULTIBOOT
-		cleanup();
-		/* Etherboot limits the command line to the kernel name,
-		 * default parameters and user prompted parameters.  All of
-		 * them are shorter than 256 bytes.  As the kernel name and
-		 * the default parameters come from the same BOOTP/DHCP entry
-		 * (or if they don't, the parameters are empty), only two
-		 * strings of the maximum size are possible.  Note this buffer
-		 * can overrun if a stupid file name is chosen.  Oh well.  */
-		c = cmdline;
-		for (i = 0; KERNEL_BUF[i] != 0; i++) {
-			switch (KERNEL_BUF[i]) {
-			case ' ':
-			case '\\':
-			case '"':
-				*c++ = '\\';
-				break;
-			default:
-			}
-			*c++ = KERNEL_BUF[i];
-		}
-#ifdef	IMAGE_MENU
-		/* Add the default command line parameters (from the BOOTP/DHCP
-		 * vendor tags specifying the available boot images) first.
-		 * This is half done in bootmenu.c, because it would take a
-		 * considerable amount of code to locate the selected entry and
-		 * go through the colon-separated list of items.  Most of this
-		 * is already done there, so this is the cheap way.  */
-		if (defparams) {
-			*c++ = ' ';
-			for (i = 0; (i < defparams_max) &&
-			            (defparams[i] != ':'); i++) {
-				if (defparams[i] == '~') {
-					i++;
-					if (i >= defparams_max)
-						continue;
-					switch (defparams[i]) {
-					case 'c':
-						*c++ = ':';
-						break;
-					case 'b':
-						*c++ = '\\';
-						break;
-					default:
-						*c++ = defparams[i];
-					}
-				} else {
-					*c++ = defparams[i];
-				}
-			}
-		}
-		/* RFC1533_VENDOR_ADDPARM is always the first option added to
-		 * the BOOTP/DHCP option list.  */
-		if (end_of_rfc1533 &&
-		    (end_of_rfc1533[0] == RFC1533_VENDOR_ADDPARM)) {
-			*c++ = ' ';
-			memcpy(c, end_of_rfc1533 + 2, end_of_rfc1533[1]);
-			c += end_of_rfc1533[1];
-		}
-#endif
-		(void)sprintf(c, " -retaddr %#X", (unsigned long)xend);
-
-		info.mbinfo.flags = MULTIBOOT_MMAP_VALID | MULTIBOOT_MEM_VALID |MULTIBOOT_CMDLINE_VALID;
-		info.mbinfo.memlower = meminfo.basememsize;
-		info.mbinfo.memupper = meminfo.memsize;
-		info.mbinfo.bootdev = 0;	/* not booted from disk */
-		info.mbinfo.cmdline = cmdline;
-		info.mbinfo.e820entry_size = sizeof(struct e820entry);
-		info.mbinfo.mmap_length = 
-			info.mbinfo.e820entry_size * meminfo.map_count;
-		info.mbinfo.mmap_addr = info.mbinfo.mmap;
-		memcpy(info.mbinfo.mmap, meminfo.map, info.mbinfo.mmap_length);
-
-		/* The Multiboot 0.6 spec requires all segment registers to be
-		 * loaded with an unrestricted, writeable segment.  All but two
-		 * are already loaded, just do the rest here.  */
-		__asm__ __volatile__(
-			"pushl %%ds\n\t"
-			"pushl %%ds\n\t"
-			"popl %%fs\n\t"
-			"popl %%gs"
-			: /* no outputs */
-			: /* no inputs */);
-
-		/* Start the kernel, passing the Multiboot information record
-		 * and the magic number.  */
-		__asm__ __volatile__(
-			"call *%2"
-			: /* no outputs */
-			: "a" (0x2BADB002), "b" (&info.mbinfo), "g" (entry)
-			: "ecx","edx","esi","edi","cc","memory");
-		longjmp(restart_etherboot, -2);
-#else	/* !IMAGE_MULTIBOOT, i.e. generic ELF */
-		/* Call cleanup only if program will not return */
-		if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0)
-			cleanup();
-		{	/* new scope so we can have local variables */
-			int result, (*entry)(struct ebinfo *, union infoblock *, struct bootpd_t *);
-			entry = (int (*)())info.elf32.e_entry;
-			result = (*entry)(&loaderinfo, &info, BOOTP_DATA_ADDR);
-			printf("Secondary program returned %d\n", result);
-			if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0) {
-				/* We shouldn't have returned */
-				result = -2;
-			}
-			longjmp(restart_etherboot, result);
-		}
-#endif	/* IMAGE_MULTIBOOT */
-	}
 
 	offset = 0;
 	do {
@@ -1205,12 +993,224 @@ elf_startkernel:
 	} while (offset < len);
 
 	loc += len;
+
+	if (eof) {
+		int	j;
+		void (*entry)();
+#ifdef	IMAGE_MULTIBOOT
+		unsigned char cmdline[512], *c;
+#endif
+
+elf_startkernel:
+		entry = (void *)info.elf32.e_entry;
+		printf("done\n");
+#ifdef	DELIMITERLINES
+		for (j=0; j<80; j++)
+			putchar('=');
+		putchar('\n');
+#endif
+#ifdef IMAGE_FREEBSD
+		if (image_type == Elf_FreeBSD) {
+			cleanup();
+			memset(&info.bsdinfo, 0, sizeof(info.bsdinfo));
+			info.bsdinfo.bi_basemem = meminfo.basememsize;
+			info.bsdinfo.bi_extmem = meminfo.memsize;
+			info.bsdinfo.bi_memsizes_valid = 1;
+			info.bsdinfo.bi_version = BOOTINFO_VERSION;
+			info.bsdinfo.bi_kernelname = KERNEL_BUF;
+			info.bsdinfo.bi_nfs_diskless = NULL;
+			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
+#define RB_BOOTINFO     0x80000000      /* have `struct bootinfo *' arg */  
+			if(freebsd_kernel_env[0] != '\0'){
+				freebsd_howto |= RB_BOOTINFO;
+				info.bsdinfo.bi_envp = (unsigned long)freebsd_kernel_env;
+			}
+
+			/* Check if we have symbols loaded, and if so,
+			 * made the meta_data needed to pass those to
+			 * the kernel. */
+			if ((symtab_load !=0) && (symstr_load != 0))
+			{
+				unsigned long *t;
+
+				info.bsdinfo.bi_symtab = symtab_load;
+
+				/* End of symbols (long aligned...) */
+				/* Assumes size of long is a power of 2... */
+				info.bsdinfo.bi_esymtab = (symstr_load +
+					sizeof(long) +
+					*((long *)symstr_load) +
+					sizeof(long) - 1) & ~(sizeof(long) - 1);
+
+				/* Where we will build the meta data... */
+				t = (unsigned long *)info.bsdinfo.bi_esymtab;
+
+#ifdef	DEBUG_ELF
+				printf("Metadata at %X\n",t);
+#endif
+
+				/* Set up the pointer to the memory... */
+				info.bsdinfo.bi_modulep = (unsigned long)t;
+				
+				/* The metadata structure is an array of 32-bit
+				 * words where we store some information about the
+				 * system.  This is critical, as FreeBSD now looks
+				 * only for the metadata for the extended symbol
+				 * information rather than in the bootinfo.
+				 */
+				/* First, do the kernel name and the kernel type */
+				/* Note that this assumed x86 byte order... */
+
+				/* 'kernel\0\0' */
+				*t++=MODINFO_NAME; *t++= 7; *t++=0x6E72656B; *t++=0x00006C65;
+
+				/* 'elf kernel\0\0' */
+				*t++=MODINFO_TYPE; *t++=11; *t++=0x20666C65; *t++=0x6E72656B; *t++ = 0x00006C65;
+
+				/* Now the symbol start/end - note that they are
+				 * here in local/physical address - the Kernel
+				 * boot process will relocate the addresses. */
+				*t++=MODINFOMD_SSYM | MODINFO_METADATA; *t++=sizeof(*t); *t++=info.bsdinfo.bi_symtab;
+				*t++=MODINFOMD_ESYM | MODINFO_METADATA; *t++=sizeof(*t); *t++=info.bsdinfo.bi_esymtab;
+
+				*t++=MODINFO_END; *t++=0; /* end of metadata */
+
+				/* Since we have symbols we need to make
+				 * sure that the kernel knows its own end
+				 * of memory...  It is not _end but after
+				 * the symbols and the metadata... */
+				info.bsdinfo.bi_kernend = (unsigned long)t;
+
+				/* Signal locore.s that we have a valid bootinfo
+				 * structure that was completely filled in. */
+				freebsd_howto |= 0x80000000;
+			}
+
+			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
+			longjmp(restart_etherboot, -2);
+		}
+#endif
+/*
+ *	If IMAGE_MULTIBOOT is not defined, we use a boot protocol for
+ *	ELF images with a couple of Etherboot extensions, namely the
+ *	use of a flag bit to indicate when the image will return to
+ *	Etherboot, and passing certain arguments to the image.
+ */
+#ifdef	IMAGE_MULTIBOOT
+		cleanup();
+		/* Etherboot limits the command line to the kernel name,
+		 * default parameters and user prompted parameters.  All of
+		 * them are shorter than 256 bytes.  As the kernel name and
+		 * the default parameters come from the same BOOTP/DHCP entry
+		 * (or if they don't, the parameters are empty), only two
+		 * strings of the maximum size are possible.  Note this buffer
+		 * can overrun if a stupid file name is chosen.  Oh well.  */
+		c = cmdline;
+		for (i = 0; KERNEL_BUF[i] != 0; i++) {
+			switch (KERNEL_BUF[i]) {
+			case ' ':
+			case '\\':
+			case '"':
+				*c++ = '\\';
+				break;
+			default:
+			}
+			*c++ = KERNEL_BUF[i];
+		}
+#ifdef	IMAGE_MENU
+		/* Add the default command line parameters (from the BOOTP/DHCP
+		 * vendor tags specifying the available boot images) first.
+		 * This is half done in bootmenu.c, because it would take a
+		 * considerable amount of code to locate the selected entry and
+		 * go through the colon-separated list of items.  Most of this
+		 * is already done there, so this is the cheap way.  */
+		if (defparams) {
+			*c++ = ' ';
+			for (i = 0; (i < defparams_max) &&
+			            (defparams[i] != ':'); i++) {
+				if (defparams[i] == '~') {
+					i++;
+					if (i >= defparams_max)
+						continue;
+					switch (defparams[i]) {
+					case 'c':
+						*c++ = ':';
+						break;
+					case 'b':
+						*c++ = '\\';
+						break;
+					default:
+						*c++ = defparams[i];
+					}
+				} else {
+					*c++ = defparams[i];
+				}
+			}
+		}
+		/* RFC1533_VENDOR_ADDPARM is always the first option added to
+		 * the BOOTP/DHCP option list.  */
+		if (end_of_rfc1533 &&
+		    (end_of_rfc1533[0] == RFC1533_VENDOR_ADDPARM)) {
+			*c++ = ' ';
+			memcpy(c, end_of_rfc1533 + 2, end_of_rfc1533[1]);
+			c += end_of_rfc1533[1];
+		}
+#endif
+		(void)sprintf(c, " -retaddr %#X", (unsigned long)xend);
+
+		info.mbinfo.flags = MULTIBOOT_MMAP_VALID | MULTIBOOT_MEM_VALID |MULTIBOOT_CMDLINE_VALID;
+		info.mbinfo.memlower = meminfo.basememsize;
+		info.mbinfo.memupper = meminfo.memsize;
+		info.mbinfo.bootdev = 0;	/* not booted from disk */
+		info.mbinfo.cmdline = cmdline;
+		info.mbinfo.e820entry_size = sizeof(struct e820entry);
+		info.mbinfo.mmap_length = 
+			info.mbinfo.e820entry_size * meminfo.map_count;
+		info.mbinfo.mmap_addr = info.mbinfo.mmap;
+		memcpy(info.mbinfo.mmap, meminfo.map, info.mbinfo.mmap_length);
+
+		/* The Multiboot 0.6 spec requires all segment registers to be
+		 * loaded with an unrestricted, writeable segment.  All but two
+		 * are already loaded, just do the rest here.  */
+		__asm__ __volatile__(
+			"pushl %%ds\n\t"
+			"pushl %%ds\n\t"
+			"popl %%fs\n\t"
+			"popl %%gs"
+			: /* no outputs */
+			: /* no inputs */);
+
+		/* Start the kernel, passing the Multiboot information record
+		 * and the magic number.  */
+		__asm__ __volatile__(
+			"call *%2"
+			: /* no outputs */
+			: "a" (0x2BADB002), "b" (&info.mbinfo), "g" (entry)
+			: "ecx","edx","esi","edi","cc","memory");
+		longjmp(restart_etherboot, -2);
+#else	/* !IMAGE_MULTIBOOT, i.e. generic ELF */
+		/* Call cleanup only if program will not return */
+		if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0)
+			cleanup();
+		{	/* new scope so we can have local variables */
+			int result, (*entry)(struct ebinfo *, union infoblock *, struct bootpd_t *);
+			entry = (int (*)())info.elf32.e_entry;
+			result = (*entry)(&loaderinfo, &info, BOOTP_DATA_ADDR);
+			printf("Secondary program returned %d\n", result);
+			if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0) {
+				/* We shouldn't have returned */
+				result = -2;
+			}
+			longjmp(restart_etherboot, result);
+		}
+#endif	/* IMAGE_MULTIBOOT */
+	}
 	return 1;
 }
 #endif
 
 #ifdef WINCE_IMAGE
-static int ce_loader(unsigned char *data, unsigned int len);
+static int ce_loader(unsigned char *data, unsigned int len, int eof);
 static os_download_t ce_probe(unsigned char *data, unsigned int len)
 {
 	if (strncmp(ce_signature, data, sizeof(ce_signature)) != 0) {
@@ -1219,7 +1219,7 @@ static os_download_t ce_probe(unsigned char *data, unsigned int len)
 	printf("(WINCE)");
 	return ce_loader;
 }
-static int ce_loader(unsigned char *data, unsigned int len)
+static int ce_loader(unsigned char *data, unsigned int len, int eof)
 {
 	unsigned char dbuffer[DSIZE];
 	int this_write = 0;
@@ -1407,16 +1407,16 @@ static void jump_2ep()
 #ifdef X86_BOOTSECTOR_IMAGE
 int bios_disk_dev = 0;
 #define BOOTSECT ((unsigned char *)0x7C00)
-static int x86_bootsector_download(unsigned char *data, unsigned int len);
+static int x86_bootsector_download(unsigned char *data, unsigned int len, int eof);
 static os_download_t x86_bootsector_probe(unsigned char *data, unsigned int len)
 {
-	if (*((uint16_t *)data) != 0xAA55) {
+	if (*((uint16_t *)(data + 510)) != 0xAA55) {
 		return 0;
 	}
 	printf("(X86)");
 	return x86_bootsector_download;
 }
-static int x86_bootsector_download(unsigned char *data, unsigned int len)
+static int x86_bootsector_download(unsigned char *data, unsigned int len,int eof)
 {
 	if (len != 512) {
 		printf("Wrong size bootsector\n");
@@ -1434,27 +1434,6 @@ static int x86_bootsector_download(unsigned char *data, unsigned int len)
 }
 #endif
 
-
-probe_t probe[] = {
-#ifdef	AOUT_IMAGE
-	aout_probe,
-#endif
-#ifdef ELF_IMAGE
-	elf_probe,
-#endif
-#ifdef WINCE_IMAGE
-	wince_probe,
-#endif
-#ifdef FREEBSD_PXEEMU
-	pxe_probe,
-#endif
-#ifdef TAGGED_IMAGE
-	tagged_probe,
-#endif
-#ifdef X86_BOOTSECTOR_IMAGE
-	x86_bootsector_probe,
-#endif
-};
 
 /**************************************************************************
 LOAD_BLOCK - Try to load file
@@ -1487,29 +1466,41 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 #endif
 	if (block == 1)
 	{
-		const int probes = sizeof(probe)/sizeof(probe[0]);
 		int i;
 		os_download = 0;
-		for(i = 0; !os_download && (i < probes); i++) {
-			os_download = probe[i](data, len);
+#if defined(ELF_IMAGE) || defined(AOUT_IMAGE)
+		memcpy(&info, data, sizeof(info));
+#endif
+#ifdef AOUT_IMAGE
+		if (!os_download) os_download = aout_probe(data, len);
+#endif
+#ifdef ELF_IMAGE
+		if (!os_download) os_download = elf_probe(data, len);
+#endif
+#ifdef WINCE_IMAGE
+		if (!os_download) os_download = wince_probe(data, len);
+#endif
+#ifdef FREEBSD_PXEEMU
+		if (!os_download) os_download = pxe_probe(data, len);
+#endif
+#ifdef TAGGED_IMAGE
+		if (!os_download) os_download = tagged_probe(data, len);
+#endif
+#ifdef X86_BOOTSECTOR_IMAGE
+		if (!os_download) os_download = x86_bootsector_probe(data, len);
+#endif
+		if (!os_download) {
+			printf("error: not a valid image\n");
+#if 0
+			printf("block: %d len: %d\n", block, len);
+			printf("%hhx %hhx %hhx %hhx %hhx %hhx %hhx %hhx %hhx\n",
+				data[0], data[1], data[2], data[3],
+				data[4], data[5], data[6], data[7]);
+#endif
+			return 0;
 		}
 	} /* end of block zero processing */
-	if (!os_download) {
-		printf("error: not a valid image\n");
-		printf("block: %d len: %d\n", block, len);
-		printf("%hhx %hhx %hhx %hhx %hhx %hhx %hhx %hhx %hhx\n",
-			data[0], data[1], data[2], data[3],
-			data[4], data[5], data[6], data[7]);
-		return 0;
-	}
-	if (!os_download(data, len)) { 
-		return 0; /* error */
-	}
-	if (eof) {
-		os_download(data, 0); /* does not return */
-		return 0; /* error */
-	}
-	return -1; /* there is more data */
+	return os_download(data, len, eof);
 }
 
 /*

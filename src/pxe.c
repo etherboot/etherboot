@@ -64,7 +64,7 @@ static __inline unsigned int min(unsigned int a, unsigned int b) { return (a < b
 
 static char *pxeemu_nbp_addr = (char *) 0x7C00;
 
-static int pxe_download(unsigned char *data, unsigned int len);
+static int pxe_download(unsigned char *data, unsigned int len, int eof);
 os_download_t pxe_probe(unsigned char *data, unsigned int len)
 {
 	if (*((uint32_t *)(data +2)) == 0x42455850L) {
@@ -74,9 +74,11 @@ os_download_t pxe_probe(unsigned char *data, unsigned int len)
 	return 0;
 }
 
-static int pxe_download(unsigned char *data, unsigned int len)
+static int pxe_download(unsigned char *data, unsigned int len, int eof)
 {
-	if (len == 0) {
+	memcpy(pxeemu_nbp_addr, data, len);
+	pxeemu_nbp_addr += len;
+	if (eof) {
 		uint8_t val, *ptr, counter;
 		
 		ptr = (uint8_t*) &pxenv;
@@ -100,8 +102,6 @@ static int pxe_download(unsigned char *data, unsigned int len)
 			: : "i" (RELOC >> 4), 
 			"g" (((vm_offset_t)&pxenv) - RELOC));
 	}
-	memcpy(pxeemu_nbp_addr, data, len);
-	pxeemu_nbp_addr += len;
 	return 1;
 }
 

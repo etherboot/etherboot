@@ -487,7 +487,7 @@ int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
 
 		err = fnc((char *)&rpc->u.reply.data[19], block, rlen,
 			(offs+rlen == size));
-		if (err >= 0) {
+		if (err <= 0) {
 			nfs_umountall(ARP_SERVER);
 			return err;
 		}

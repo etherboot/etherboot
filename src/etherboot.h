@@ -552,7 +552,7 @@ extern void selectImage P((char **));
 
 /* osloader.c */
 extern int bios_disk_dev;
-typedef int (*os_download_t)(unsigned char *data, unsigned int len);
+typedef int (*os_download_t)(unsigned char *data, unsigned int len, int eof);
 extern int load_block P((unsigned char *, unsigned int, unsigned int, int ));
 extern os_download_t pxe_probe P((unsigned char *data, unsigned int len));
 
