@@ -284,9 +284,8 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
     /* save for use later in sis900_reset() */
     pci_revision = revision; 
 
-    if (revision == SIS630E_900_REV || revision == SIS630EA1_900_REV 
-	|| revision == SIS630S_900_REV)
-       ret = sis630e_get_mac_addr(pci, nic);
+    if (revision == SIS630E_900_REV)
+        ret = sis630e_get_mac_addr(pci, nic);
     else if ((revision > 0x81) && (revision <= 0x90))
         ret = sis635_get_mac_addr(pci, nic);
     else
