@@ -102,11 +102,6 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 #define byCFGD				ioaddr + 0x7b
 #define wTallyCntMPA			ioaddr + 0x7c
 #define wTallyCntCRC			ioaddr + 0x7d
-#define bySTICKHW			ioaddr + 0x83
-#define byWOLcrClr			ioaddr + 0xA4
-#define byWOLcgClr			ioaddr + 0xA7
-#define byPwrcsrClr			ioaddr + 0xAC
-
 /*---------------------  Exioaddr Definitions -------------------------*/
 
 /*
@@ -857,7 +852,7 @@ rhine_probe (struct dev *dev, struct pci_device *pci)
     struct nic *nic = (struct nic *)dev;
     if (!pci->ioaddr)
 	return 0;
-    rhine_probe1 (nic, pci->ioaddr, pci->dev_id, -1);
+    rhine_probe1 (nic, pci->ioaddr, 0, -1);
 
     adjust_pci_device(pci);
     rhine_reset (nic);
@@ -894,29 +889,6 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 
     if (rhine_debug > 0 && did_version++ == 0)
 	printf (version);
-
-    /* D-Link provided reset code (with comment additions) */
-    if((chip_id != 0x3043) && (chip_id != 0x6100)) {
-	unsigned char byOrgValue;
-	
-	if(rhine_debug > 0)
-		printf("Enabling Sticky Bit Workaround for Chip_id: 0x%hX\n"
-				, chip_id);
-	/* clear sticky bit before reset & read ethernet address */
-	byOrgValue = inb(bySTICKHW);
-	byOrgValue = byOrgValue & 0xFC;
-	outb(byOrgValue, bySTICKHW);
-
-	/* (bits written are cleared?) */
-	/* disable force PME-enable */
-	outb(0x80, byWOLcgClr);
-	/* disable power-event config bit */
-	outb(0xFF, byWOLcrClr);
-	/* clear power status (undocumented in vt6102 docs?) */
-	outb(0xFF, byPwrcsrClr);
-	
-    }
-
     /* Perhaps this should be read from the EEPROM? */
     for (i = 0; i < ETH_ALEN; i++)
 	nic->node_addr[i] = inb (byPAR0 + i);
