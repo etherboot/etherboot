@@ -3,7 +3,7 @@
 #include "nic.h"
 
 #define SLAM_PORT 10000
-#define SLAM_MULTICAST_IP ((232<<24)|(0<<16)|(0<<8)|(128<<0))
+#define SLAM_MULTICAST_IP ((239<<24)|(255<<16)|(1<<8)|(1<<0))
 #define SLAM_MULTICAST_PORT 10000
 #define SLAM_LOCAL_PORT 10000
 
@@ -448,13 +448,7 @@ static int proto_slam(struct slam_info *info)
 		memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);
 	}
 	/* If I'm running over multicast join the multicast group */
-	igmptable[IGMP_SERVER].group.s_addr = 0;
-	igmptable[IGMP_SERVER].time = 0;
-	if ((info->multicast_ip.s_addr != info->server_ip.s_addr) &&
-		(info->multicast_ip.s_addr != IP_BROADCAST)) {
-		igmptable[IGMP_SERVER].group.s_addr = info->multicast_ip.s_addr;
-		igmptable[IGMP_SERVER].time = currticks();
-	}
+	join_group(IGMP_SERVER, info->multicast_ip.s_addr);
 	for(;;) {
 		unsigned char *header;
 		unsigned char *data;
@@ -506,8 +500,7 @@ static int proto_slam(struct slam_info *info)
 	slam_send_disconnect(info);
 
 	/* Leave the multicast group */
-	igmptable[IGMP_SERVER].group.s_addr = 0;
-	igmptable[IGMP_SERVER].time = 0;
+	leave_group(IGMP_SERVER);
 	/* FIXME don't overwrite myself */
 	/* load file to correct location */
 	return info->fnc(state.image, 1, state.total_bytes, 1);

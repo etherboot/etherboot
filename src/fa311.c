@@ -138,8 +138,8 @@ unsigned long mmio_start, mmio_len;
     memset(dev, 0, sizeof(*dev));
     dev->vendor = pci->vendor;
     dev->device = pci->dev_id;
-    mmio_start = pci_bar_start(pci, PCI_BASE_ADDRESS_1);
-    mmio_len   = pci_bar_start(pci, PCI_BASE_ADDRESS_1);
+    mmio_start = pci_bar_start(p, PCI_BASE_ADDRES_1);
+    mmio_len   = pci_bar_start(p, PCI_BASE_ADDRES_1);
     /* FIXME this is an abuse of dev->ioaddr... */
     dev->ioaddr = ioremap(mmio_start, mmio_len);
 

@@ -120,7 +120,8 @@ Author: Martin Renters
 #define TIMEOUT			(10*TICKS_PER_SEC)
 
 /* Max interval between IGMP packets */
-#define IGMP_INTERVAL		(10*TICKS_PER_SEC)
+#define IGMP_INTERVAL			(10*TICKS_PER_SEC)
+#define IGMPv1_ROUTER_PRESENT_TIMEOUT	(400*TICKS_PER_SEC)
 
 /* These settings have sense only if compiled with -DCONGESTED */
 /* total retransmission timeout in ticks */
@@ -351,14 +352,16 @@ struct udphdr {
 
 struct igmp {
 	struct iphdr ip;
-	uint8_t  type_ver;
-	uint8_t  dummy;
+	uint8_t  type;
+	uint8_t  response_time;
 	uint16_t chksum;
 	in_addr group;
 };
 
 #define IGMP_QUERY	0x11
-#define IGMP_REPORT	0x21
+#define IGMPv1_REPORT	0x12
+#define IGMPv2_REPORT	0x16
+#define IGMP_LEAVE	0x17
 #define GROUP_ALL_HOSTS 0xe0000001 /* 224.0.0.1 Host byte order */
 
 /* Format of a bootp packet */
@@ -545,6 +548,8 @@ extern int await_reply P((int (*reply)(int ival, void *ptr,
 		unsigned short ptype, struct iphdr *ip, struct udphdr *udp),
 	int ival, void *ptr, int timeout));
 extern int decode_rfc1533 P((unsigned char *, unsigned int, unsigned int, int));
+extern void join_group(int slot, unsigned long group);
+extern void leave_group(int slot);
 #define RAND_MAX 2147483647L
 extern uint16_t ipchksum P((void *ip, int len));
 extern long random P((void));

@@ -170,28 +170,28 @@ foreach my $family (sort keys %pcient) {
 		print <<EOF;
 bin32/$rom.rom:	bin32/$family.img \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
 bin32/$rom--%.rom:	bin32/$family--%.img \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
 bin32/$rom.lzrom:	bin32/$family.lzimg \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
 bin32/$rom--%.lzrom:	bin32/$family--%.huf \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
 
 bin32/$rom.nrv2brom:	bin32/$family.nrv2bimg \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
 bin32/$rom--%.nrv2brom:	bin32/$family--%.nrv2bimg \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
-	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
+	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
 EOF
 	}

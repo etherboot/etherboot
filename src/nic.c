@@ -13,7 +13,7 @@ Literature dealing with the network protocols:
 	TFTP - RFC1350, RFC2347 (options), RFC2348 (blocksize), RFC2349 (tsize)
 	RPC - RFC1831, RFC1832 (XDR), RFC1833 (rpcbind/portmapper)
 	NFS - RFC1094, RFC1813 (v3, useful for clarifications, not implemented)
-	IGMP - RFC1112
+	IGMP - RFC1112, RFC2365, RFC2236, RFC3171
 
 **************************************************************************/
 #include "etherboot.h"
@@ -21,6 +21,7 @@ Literature dealing with the network protocols:
 
 struct arptable_t	arptable[MAX_ARP];
 #if MULTICAST_LEVEL2
+unsigned long last_igmpv1 = 0;
 struct igmptable_t	igmptable[MAX_IGMP];
 #endif
 /* Currently no other module uses rom, but it is available */
@@ -190,6 +191,12 @@ void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p)
 
 void eth_disable(void)
 {
+#ifdef MULTICAST_LEVEL2
+	int i;
+	for(i = 0; i < MAX_IGMP; i++) {
+		leave_group(i);
+	}
+#endif
 	disable(&nic.dev);
 }
 
@@ -837,6 +844,131 @@ static unsigned short udpchksum(struct iphdr *packet)
 	return (~rval);
 }
 
+#ifdef MULTICAST_LEVEL2
+static void send_igmp_reports(unsigned long now)
+{
+	int i;
+	for(i = 0; i < MAX_IGMP; i++) {
+		if (igmptable[i].time && (now >= igmptable[i].time)) {
+			struct igmp igmp;
+			build_ip_hdr(igmptable[i].group.s_addr, 
+				1, IP_IGMP, sizeof(igmp), &igmp);
+			igmp.type = IGMPv2_REPORT;
+			if (last_igmpv1 && 
+				(now < last_igmpv1 + IGMPv1_ROUTER_PRESENT_TIMEOUT)) {
+				igmp.type = IGMPv1_REPORT;
+			}
+			igmp.response_time = 0;
+			igmp.chksum = 0;
+			igmp.group.s_addr = igmptable[i].group.s_addr;
+			igmp.chksum = ipchksum((unsigned short *)&igmp.type, 8);
+			ip_transmit(sizeof(igmp), &igmp);
+#ifdef	MDEBUG
+			printf("Sent IGMP report to: %@\n", igmp.group.s_addr);
+#endif			       
+			/* Don't send another igmp report until asked */
+			igmptable[i].time = 0;
+		}
+	}
+}
+
+static void process_igmp(struct iphdr *ip, unsigned long now)
+{
+	struct igmp *igmp;
+	int i;
+	if (!ip || (ip->protocol == IP_IGMP) ||
+		nic.packetlen < ETH_HLEN + sizeof(struct igmp)) {
+		return;
+	}
+	igmp = (struct igmp *)&nic.packet[ETH_HLEN];
+	if (ipchksum((unsigned short *)&igmp->type, 8) != 0)
+		return;
+	if ((igmp->type == IGMP_QUERY) && 
+		(ip->dest.s_addr == htonl(GROUP_ALL_HOSTS))) {
+		unsigned long interval = IGMP_INTERVAL;
+		if (igmp->response_time == 0) {
+			last_igmpv1 = now;
+		} else {
+			interval = (igmp->response_time * TICKS_PER_SEC)/10;
+		}
+		
+#ifdef	MDEBUG
+		printf("Received IGMP query for: %@\n", igmp->group.s_addr);
+#endif			       
+		for(i = 0; i < MAX_IGMP; i++) {
+			uint32_t group = igmptable[i].group.s_addr;
+			if ((group == 0) || (group == igmp->group.s_addr)) {
+				unsigned long time;
+				time = currticks() + rfc1112_sleep_interval(interval, 0);
+				if (time < igmptable[i].time) {
+					igmptable[i].time = time;
+				}
+			}
+		}
+	}
+	if (((igmp->type == IGMPv1_REPORT) || (igmp->type == IGMPv2_REPORT)) &&
+		(ip->dest.s_addr == igmp->group.s_addr)) {
+#ifdef	MDEBUG
+		printf("Received IGMP report for: %@\n", igmp->group.s_addr);
+#endif			       
+		for(i = 0; i < MAX_IGMP; i++) {
+			if ((igmptable[i].group.s_addr == igmp->group.s_addr) &&
+				igmptable[i].time != 0) {
+				igmptable[i].time = 0;
+			}
+		}
+	}
+}
+
+void leave_group(int slot)
+{
+	/* Be very stupid and always send a leave group message if 
+	 * I have subscribed.  Imperfect but it is standards
+	 * compliant, easy and reliable to implement.
+	 *
+	 * The optimal group leave method is to only send leave when,
+	 * we were the last host to respond to a query on this group,
+	 * and igmpv1 compatibility is not enabled.
+	 */
+	if (igmptable[slot].group.s_addr) {
+		struct igmp igmp;
+		build_ip_hdr(htonl(GROUP_ALL_HOSTS),
+			1, IP_IGMP, sizeof(igmp), &igmp);
+		igmp.type = IGMP_LEAVE;
+		igmp.response_time = 0;
+		igmp.chksum = 0;
+		igmp.group.s_addr = igmptable[slot].group.s_addr;
+		igmp.chksum = ipchksum((unsigned short *)&igmp.type,8);
+		ip_transmit(sizeof(igmp), &igmp);
+#ifdef	MDEBUG
+		printf("Sent IGMP leave for: %@\n", igmp.group.s_addr);
+#endif	
+	}
+	memset(&igmptable[slot], 0, sizeof(igmptable[0]));
+}
+
+void join_group(int slot, unsigned long group)
+{
+	/* I have already joined */
+	if (igmptable[slot].group.s_addr == group)
+		return;
+	if (igmptable[slot].group.s_addr) {
+		leave_group(slot);
+	}
+	/* Only join a group if we are given a multicast ip, this way
+	 * code can be given a non-multicast (broadcast or unicast ip)
+	 * and still work... 
+	 */
+	if ((group & htonl(MULTICAST_MASK)) == htonl(MULTICAST_NETWORK)) {
+		igmptable[slot].group.s_addr = group;
+		igmptable[slot].time = currticks();
+	}
+}
+#else
+#define send_igmp_reports(now);
+#define process_igmp(ip, now)
+#endif
+
 /**************************************************************************
 AWAIT_REPLY - Wait until we get a response for our request
 ************f**************************************************************/
@@ -848,35 +980,16 @@ int await_reply(int (*reply)(int ival, void *ptr,
 	struct	iphdr *ip;
 	struct	udphdr *udp;
 	unsigned short ptype;
-	int i;
 	int result;
 
 	time = timeout + currticks();
 	/* The timeout check is done below.  The timeout is only checked if
 	 * there is no packet in the Rx queue.  This assumes that eth_poll()
-	 * needs a negligible amount of time.  */
+	 * needs a negligible amount of time.  
+	 */
 	for (;;) {
-#ifdef MULTICAST_LEVEL2
 		now = currticks();
-		for(i = 0; i < MAX_IGMP; i++) {
-			if (igmptable[i].time && (now >= igmptable[i].time)) {
-				struct igmp igmp;
-				build_ip_hdr(igmptable[i].group.s_addr, 
-					1, IP_IGMP, sizeof(igmp), &igmp);
-				igmp.type_ver = IGMP_REPORT;
-				igmp.dummy = 0;
-				igmp.chksum = 0;
-				igmp.group.s_addr = igmptable[i].group.s_addr;
-				igmp.chksum = ipchksum((unsigned short *)&igmp.type_ver, 8);
-				ip_transmit(sizeof(igmp), &igmp);
-#ifdef	MDEBUG
-				printf("Sent IGMP report to: %@\n", igmp.group.s_addr);
-#endif			       
-				/* Don't send another igmp report until asked */
-				igmptable[i].time = 0;
-			}
-		}
-#endif
+		send_igmp_reports(now);
 		result = eth_poll();
 		if (result == 0) {
 			/* We don't have anything */
@@ -958,42 +1071,7 @@ int await_reply(int (*reply)(int ival, void *ptr,
 #endif	/* MDEBUG */
 			}
 		}
-#ifdef MULTICAST_LEVEL2
-		if (ip && (ip->protocol == IP_IGMP) && 
-			nic.packetlen >= ETH_HLEN + sizeof(struct igmp)) {
-			struct igmp * igmp;
-			igmp = (struct igmp *)&nic.packet[ETH_HLEN];
-			if (ipchksum((unsigned short *)&igmp->type_ver, 8) != 0)
-				continue;
-			if ((igmp->type_ver == IGMP_QUERY) && 
-				(ip->dest.s_addr == htonl(GROUP_ALL_HOSTS))) {
-#ifdef	MDEBUG
-				printf("Received IGMP query for: %@\n", igmp->group.s_addr);
-#endif			       
-				for(i = 0; i < MAX_IGMP; i++) {
-					if ((igmptable[i].group.s_addr == igmp->group.s_addr) &&
-						igmptable[i].time == 0) {
-						igmptable[i].time = currticks() + 
-							rfc1112_sleep_interval(IGMP_INTERVAL,0);
-						break;
-					}
-				}
-			}
-			if ((igmp->type_ver == IGMP_REPORT) && 
-				(ip->dest.s_addr == igmp->group.s_addr)) {
-#ifdef	MDEBUG
-				printf("Received IGMP report for: %@\n", igmp->group.s_addr);
-#endif			       
-				for(i = 0; i < MAX_IGMP; i++) {
-					if ((igmptable[i].group.s_addr == igmp->group.s_addr) &&
-						igmptable[i].time != 0) {
-						igmptable[i].time = 0;
-					}
-				}
-			}
-		}
-			
-#endif /* MULTICAST_LEVEL2 */
+		process_igmp(ip, now);
 	}
 	return(0);
 }

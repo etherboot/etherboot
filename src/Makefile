@@ -416,15 +416,15 @@ bin32/%.nrv2bimg:	bin32/%.nrv2bo bin32/unnrv2b.o $(MAKEDEPS)
 # general rules for normal/compressed ROM images, may be overridden
 bin32/%.rom:	bin32/%.img $(RLOADER) $(START16)
 	cat $(RLOADER) $(START16) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT32) $@
 
 bin32/%.lzrom:	bin32/%.lzimg $(RLOADER) $(START16)
 	cat $(RLOADER) $(START16) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT32) $@
 
 bin32/%.nrv2brom: bin32/%.nrv2bimg $(RLOADER) $(START16)
 	cat $(RLOADER) $(START16) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT32) $@
 
 # general rules for ELF images
 bin32/%.imgo:	bin32/%.img $(MAKEDEPS)

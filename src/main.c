@@ -137,15 +137,15 @@ MAIN - Kick off routine
 **************************************************************************/
 int main(void)
 {
-	unsigned long order;
+	unsigned long volatile order;
 	char *p;
 	int boot;
 	int type;
 	int failsafe;
-	struct dev *dev;
-	struct class_operations *ops;
-	int state, i;
-	void *heap_base;
+	struct dev * volatile dev= 0;
+	struct class_operations * volatile ops;
+	int volatile state, i;
+	void *volatile heap_base;
 
 	for (p = _bss; p < _ebss; p++)
 		*p = 0;	/* Zero BSS */
@@ -235,9 +235,6 @@ int main(void)
 		case 3:
 			state = -1;
 			heap_base = allot(0);
-#ifdef MULTICAST_LEVEL2
-			memset(&igmptable, 0, sizeof(igmptable));
-#endif
 			dev->how_probe = ops->probe(dev);
 			if (dev->how_probe == PROBE_FAILED) {
 				dev = 0;
@@ -267,6 +264,10 @@ int main(void)
 			exit(0);
 #endif
 			state = 4;
+			/* At the end goto state 0 */
+			if ((type >= BOOT_NOTHING) || (i >= MAX_BOOT_ENTRIES)) {
+				state = 0;
+			}
 			break;
 		}
 	}

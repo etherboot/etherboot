@@ -166,9 +166,9 @@ int probe(struct dev *dev)
 {
 	char *to_probe;
 	to_probe = "";
-	if ((dev->to_probe >= 0) && 
-		(dev->to_probe < sizeof(driver_name)/sizeof(driver_name[0]))) {
-		to_probe = driver_name[dev->to_probe];
+	if ((dev->type >= 0) && 
+		(dev->type < sizeof(driver_name)/sizeof(driver_name[0]))) {
+		to_probe = driver_name[dev->type];
 	}
 	if (dev->how_probe == PROBE_FIRST) {
 		dev->to_probe = PROBE_PCI;

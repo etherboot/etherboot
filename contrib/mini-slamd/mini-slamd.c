@@ -32,7 +32,7 @@
  *
  */
 #define SLAM_PORT 10000
-#define SLAM_MULTICAST_IP ((232<<24)|(0<<16)|(0<<8)|(128<<0))
+#define SLAM_MULTICAST_IP ((239<<24)|(255<<16)|(1<<8)|(1<<0))
 #define SLAM_MULTICAST_PORT 10000
 #define SLAM_MULTICAST_TTL 1
 #define SLAM_MULTICAST_LOOPBACK 1

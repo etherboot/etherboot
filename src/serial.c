@@ -216,6 +216,10 @@ int serial_init(void)
 void serial_fini(void)
 {
 	int i, status;
+	if (!found) {
+		/* no serial interface */
+		return;
+	}
 	/* Flush the output buffer to avoid dropping characters,
 	 * if we are reinitializing the serial port.
 	 */

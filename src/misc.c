@@ -68,8 +68,9 @@ void sleep(int secs)
 {
 	unsigned long tmo;
 
-	for (tmo = currticks()+secs*TICKS_PER_SEC; currticks() < tmo; )
-		/* Nothing */;
+	for (tmo = currticks()+secs*TICKS_PER_SEC; currticks() < tmo; ) {
+		poll_interruptions();
+	}
 }
 
 /**************************************************************************
