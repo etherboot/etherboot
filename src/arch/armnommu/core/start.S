@@ -177,3 +177,8 @@ _relocate_loop:
 	bcc	_relocate_loop
 	mov	pc, lr
 #endif
+
+
+.global __gccmain
+__gccmain:
+	mov	pc, lr		/* return from subroutine */
