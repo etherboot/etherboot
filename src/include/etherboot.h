@@ -99,6 +99,11 @@
 #define MAX_RPC_RETRIES		20
 #endif
 
+/* Link configuration time in tenths of a second */
+#ifndef VALID_LINK_TIMEOUT
+#define VALID_LINK_TIMEOUT	100 /* 10.0 seconds */
+#endif
+
 /* Inter-packet retry in ticks */
 #ifndef TIMEOUT
 #define TIMEOUT			(10*TICKS_PER_SEC)
