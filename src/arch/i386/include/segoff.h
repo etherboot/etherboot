@@ -8,6 +8,7 @@
 #define SEGOFF_H
 
 #include <stdint.h>
+#include <osdep.h>
 #include <io.h>
 
 /* Segment:offset structure.  Note that the order within the structure
