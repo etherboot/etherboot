@@ -1087,7 +1087,7 @@ static void tulip_transmit(struct nic *nic, const char *d, unsigned int t,
     tx_ring[0].status = cpu_to_le32(0x80000000);
 
     /* Point to transmit descriptor */
-    outl((u32)&tx_ring[0], ioaddr + CSR4);
+    outl(virt_to_le32desc(&tx_ring[0]), ioaddr + CSR4);
 
     /* Enable Tx */
     outl(csr6 | 0x00002000, ioaddr + CSR6);
