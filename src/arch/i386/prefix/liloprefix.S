@@ -37,15 +37,13 @@
 
 */
 
-#include <asm/boot.h>
-
 #define	SETUPSECS 4		/* Minimal nr of setup-sectors */
 #define PREFIXSIZE ((SETUPSECS+1)*512)
 #define PREFIXPGH (PREFIXSIZE / 16 )
-#define	BOOTSEG 0x07C0		/* original address of boot-sector */
-#define	INITSEG DEF_INITSEG	/* we move boot here - out of the way */
-#define	SETUPSEG DEF_SETUPSEG	/* setup starts here */
-#define SYSSEG DEF_SYSSEG	/* system loaded at 0x10000 (65536). */
+#define	BOOTSEG  0x07C0		/* original address of boot-sector */
+#define	INITSEG  0x9000		/* we move boot here - out of the way */
+#define	SETUPSEG 0x9020		/* setup starts here */
+#define SYSSEG   0x7F00		/* system loaded at 0x10000 (65536). */
 
 	.text
 	.code16
