@@ -264,7 +264,7 @@ family		drivers/net/tlan
 
 family		drivers/net/forcedeth
 
-faimly		drivers/net/mtd80x
+family		drivers/net/mtd80x
 
 family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
