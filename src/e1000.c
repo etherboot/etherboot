@@ -94,8 +94,6 @@ typedef unsigned long long u64;
 #include "e1000.h"
 #include "e1000_fxhw.h"
 #include "e1000_phy.h"
-#define udelay(n)       waiton_timer2(((n)*TICKS_PER_MS)/1000)
-#define mdelay(n)       waiton_timer2(((n)*TICKS_PER_MS))
 
 struct pci_device *pci_dev;
 u8 mac_addr[ETH_LENGTH_OF_ADDRESS];

@@ -56,8 +56,6 @@
 #endif
 #include "timer.h"
 
-#define	udelay(n)	waiton_timer2(((n)*TICKS_PER_MS)/1000)
-
 /* ======================================
 Yes I know DELAY is frowned on
 I have a Compaq 486 SX 25 with a

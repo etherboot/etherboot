@@ -54,12 +54,10 @@ extern inline int timer2_running(void)
 {
 	return ((inb(PPC_PORTB) & PPCB_T2OUT) == 0);
 }
+extern void waiton_timer2(unsigned int ticks);
 
-extern inline void waiton_timer2(unsigned int ticks)
-{
-	load_timer2(ticks);
-	while ((inb(PPC_PORTB) & PPCB_T2OUT) == 0)
-		;
-}
+#define mdelay(n)	waiton_timer2(((n)*CLOCK_TICK_RATE)/1000)
+#define udelay(n)	waiton_timer2(((n)*CLOCK_TICK_RATE)/1000000)
+#define ndelay(n)	waiton_timer2(((n)*CLOCK_TICK_RATE)/1000000000)
 
 #endif	/* TIMER_H */

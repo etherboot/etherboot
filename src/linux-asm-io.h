@@ -33,12 +33,12 @@ static inline void *phys_to_virt(unsigned long phys_addr)
 /* ioremap converts a random 32bit bus address into something
  * etherboot can access.
  */
-static inline void *ioremap(unsigned long bus_addr, unsigned long length)
+static inline void *ioremap(unsigned long bus_addr, unsigned long length __unused)
 {
 	return bus_to_virt(bus_addr);
 }
 /* iounmap cleans up anything ioremap had to setup */
-static inline void iounmap(void *virt_addr)
+static inline void iounmap(void *virt_addr __unused)
 {
 	return;
 }

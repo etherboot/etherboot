@@ -1,13 +1,9 @@
 #include "etherboot.h"
-#include <limits.h>
 
 #if defined(RELOCATE)
 
 /* by Eric Biederman */
 
-/* within 1MB of ULONG_MAX is too close */
-
-#define MAX_ADDR (ULONG_MAX - (1024*1024) +1)
 void relocate(void)
 {
 	unsigned long addr, eaddr, size;

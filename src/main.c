@@ -193,7 +193,7 @@ int main(void)
 {
 	char *p;
 	static int card_retries = 0;
-	static int adapter = -1;
+	static int this_adapter, adapter = -1;
 	int i;
 
 	for (p = _bss; p < _ebss; p++)
@@ -215,6 +215,7 @@ int main(void)
 	print_config();
 	get_memsizes();
 	relocate();
+	init_heap();
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
 	   0:	retry booting bootp and tftp
@@ -223,14 +224,17 @@ int main(void)
 	   255: exit Etherboot
 	*/
 	while(1) {
-		i = setjmp(restart_etherboot);
+		void *heap_base;
+		heap_base = allot(0);
 #ifdef MULTICAST_LEVEL2
 		memset(&igmptable, 0, sizeof(igmptable));
 #endif
+		i = setjmp(restart_etherboot);
 		if (i == 0) {
 			/* We just called setjmp ... */
 			ask_boot();
 			try_floppy_first();
+			this_adapter = adapter;
 			if ((adapter = eth_probe(adapter)) < 0) {
 				printf("No adapter found\n");
 				interruptible_sleep(++card_retries);
@@ -243,9 +247,15 @@ int main(void)
 		 * through an explicit longjmp
 		 */
 		else if (i == 1) {
+			if ((adapter = eth_probe(this_adapter)) < 0) {
+				longjmp(restart_etherboot, -1);
+			}
 			load();
 		}
 		else if (i == 2) {
+			if ((adapter = eth_probe(this_adapter)) < 0) {
+				longjmp(restart_etherboot, -1);
+			}
 			load_configuration();
 			load();
 		}
@@ -258,10 +268,12 @@ int main(void)
 #ifdef EMERGENCYDISKBOOT
 			exit(0);
 #endif
-			/* Reset the adapter to it's default state */
-			eth_reset();
 			/* Fall through and restart asking for files */
 		}
+		/* Reset the adapter to it's default state */
+		cleanup();
+		/* Free everything we have allocated */
+		forget(heap_base);
 	}
 }
 
@@ -269,9 +281,42 @@ int main(void)
 /**************************************************************************
 LOADKERNEL - Try to load kernel image
 **************************************************************************/
-static int loadkernel(const char *fname)
+#if 1
+extern int url_file(const char *name,
+	int (*fnc)(unsigned char *, unsigned int, unsigned int, int));
+
+#endif
+struct proto {
+	char *name;
+	int (*load)(const char *name,
+		int (*fnc)(unsigned char *, unsigned int, unsigned int, int));
+};
+static const struct proto protos[] = {
+#ifdef DOWNLOAD_PROTO_TFTM
+	{ "x-tftm", url_tftm },
+#endif
+#ifdef DOWNLOAD_PROTO_SLAM
+	{ "x-slam", url_slam },
+#endif
+#ifdef DOWNLOAD_PROTO_NFS
+	{ "nfs", nfs },
+#endif
+#ifdef DOWNLOAD_PROTO_DISK
+	{ "file", url_file },
+#endif
+};
+
+int loadkernel(const char *fname)
 {
-#ifdef	CAN_BOOT_DISK
+	static const struct proto * const last_proto = 
+		&protos[sizeof(protos)/sizeof(protos[0])];
+	const struct proto *proto;
+	in_addr ip;
+	int len;
+	const char *name;
+	int port;
+
+#if 0 && defined(CAN_BOOT_DISK)
 	if (!memcmp(fname,"/dev/",5) && fname[6] == 'd') {
 		int dev, part = 0;
 		if (fname[5] == 'f') {
@@ -289,25 +334,37 @@ static int loadkernel(const char *fname)
 				goto nodisk; }
 		else
 			goto nodisk;
-		return(bootdisk(dev,part));
+		return(bootdisk(dev, part, load_block));
 	}
 #endif
-#ifdef DOWNLOAD_PROTO_SLAM
-	if (memcmp(fname, "x-slam://", 9) == 0) {
-		fname += 9;
-		return url_slam(fname, download_kernel);
+	ip.s_addr = arptable[ARP_SERVER].ipaddr.s_addr;
+	name = fname;
+	port = -1;
+	len = 0;
+	while(fname[len] && fname[len] != ':') {
+		len++;
 	}
-#endif
-#if 0
-	 if (memcmp(fname, "floppy", 6) == 0) 
-	 {
-		extern int floppy_load(int floppy, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)) ;
-		return floppy_load(0, download_kernel);
+	for(proto = &protos[0]; proto < last_proto; proto++) {
+		if (memcmp(name, proto->name, len) == 0) {
+			break;
+		}
 	}
-
-#endif
-nodisk:
-	return download(fname, load_block);
+	if ((proto < last_proto) && (memcmp(fname + len, "://", 3) == 0)) {
+		name += len + 3;
+		if (name[0] != '/') {
+			name += inet_aton(name, &ip);
+			if (name[0] == ':') {
+				name++;
+				port = strtoul(name, &name, 10);
+			}
+		}
+		if (name[0] == '/') {
+			/* FIXME where do I pass the port? */
+			arptable[ARP_SERVER].ipaddr.s_addr = ip.s_addr;
+			return proto->load(name + 1, load_block);
+		}
+	}
+	return tftp(fname, load_block);
 }
 
 /*
@@ -392,7 +449,7 @@ static inline unsigned long default_netmask(void)
 IP_TRANSMIT - Send an IP datagram
 **************************************************************************/
 static int await_arp(int ival, void *ptr,
-	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+	unsigned short ptype, struct iphdr *ip __unused, struct udphdr *udp __unused)
 {
 	struct	arprequest *arpreply;
 	if (ptype != ARP)
@@ -523,8 +580,9 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 /**************************************************************************
 QDRAIN - clear the nic's receive queue
 **************************************************************************/
-static int await_qdrain(int ival, void *ptr,
-	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+static int await_qdrain(int ival __unused, void *ptr __unused,
+	unsigned short ptype __unused, 
+	struct iphdr *ip __unused, struct udphdr *udp __unused)
 {
 	return 0;
 }
@@ -544,8 +602,8 @@ void rx_qdrain(void)
 /**************************************************************************
 TFTP - Download extended BOOTP data, or kernel image
 **************************************************************************/
-static int await_tftp(int ival, void *ptr,
-	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+static int await_tftp(int ival, void *ptr __unused,
+	unsigned short ptype __unused, struct iphdr *ip, struct udphdr *udp)
 {
 	if (!udp) {
 		return 0;
@@ -632,7 +690,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned in
 			while (*p != '\0' && p < e) {
 				if (!strcasecmp("blksize", p)) {
 					p += 8;
-					if ((packetsize = getdec(&p)) <
+					if ((packetsize = strtoul(p, &p, 10)) <
 					    TFTP_DEFAULTSIZE_PACKET)
 						goto noak;
 					while (p < e && *p) p++;
@@ -768,8 +826,9 @@ static int rarp(void)
 /**************************************************************************
 BOOTP - Get my IP address and load information
 **************************************************************************/
-static int await_bootp(int ival, void *ptr,
-	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+static int await_bootp(int ival __unused, void *ptr __unused,
+	unsigned short ptype __unused, struct iphdr *ip __unused, 
+	struct udphdr *udp)
 {
 	struct	bootp_t *bootpreply;
 	if (!udp) {
@@ -1283,9 +1342,10 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 /**************************************************************************
 IPCHKSUM - Checksum IP Header
 **************************************************************************/
-unsigned short ipchksum(unsigned short *ip, int len)
+uint16_t ipchksum(void *p, int len)
 {
 	unsigned long sum = 0;
+	uint16_t *ip = p;
 	while (len > 1) {
 		len -= 2;
 		sum += *(ip++);
@@ -1293,7 +1353,7 @@ unsigned short ipchksum(unsigned short *ip, int len)
 			sum -= 0xFFFF;
 	}
 	if (len) {
-		unsigned char *ptr = (void *)ip;
+		uint8_t *ptr = (void *)ip;
 		sum += *ptr;
 		if (sum > 0xFFFF)
 			sum -= 0xFFFF;
@@ -1361,7 +1421,11 @@ void cleanup(void)
 	nfs_umountall(ARP_SERVER);
 #endif
 	/* Stop receiving packets */
+	eth_reset();
 	eth_disable();
+#ifdef DOWNLOAD_PROTO_DISK
+	disk_disable();
+#endif
 }
 
 /*

@@ -60,8 +60,6 @@ static struct connector_entry {
 static void vxgetlink(void);
 static void vxsetlink(void);
 
-#define	udelay(n)	waiton_timer2(((n)*TICKS_PER_MS)/1000)
-
 /**************************************************************************
 ETH_RESET - Reset adapter
 ***************************************************************************/

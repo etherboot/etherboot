@@ -1,6 +1,8 @@
 #ifndef	__OSDEP_H__
 #define __OSDEP_H__
 
+#define __unused __attribute__((unused))
+
 /*
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -87,9 +89,25 @@ static inline unsigned short int __swap16(unsigned short int x)
 #include "/sys/boot/i386/btx/lib/btxv86.h"
 #endif
 
+/* Endian defines */
+#define cpu_to_le32(x) (x)
+#define cpu_to_le16(x) (x)
+#define cpu_to_be32(x) (htonl(x))
+#define cpu_to_be16(x) (htons(x))
+#define le32_to_cpu(x) (x)
+#define le16_to_cpu(x) (x)
+#define be32_to_cpu(x) (ntohl(x))
+#define be16_to_cpu(x) (ntohs(x))
+
+
 #include "stdint.h"
 #include "linux-asm-string.h"
 #include "linux-asm-io.h"
+
+
+#define ULONG_MAX 0xffffffffUL
+/* within 1MB of ULONG_MAX is too close */
+#define MAX_ADDR (ULONG_MAX - (1024*1024) +1)
 
 typedef	unsigned long Address;
 

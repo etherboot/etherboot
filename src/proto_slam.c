@@ -84,7 +84,6 @@ struct slam_state {
 
 	unsigned char *image;
 	unsigned char *bitmap;
-	unsigned char *bitmap_end;
 } state;
 
 
@@ -99,8 +98,6 @@ static void init_slam_state(void)
 
 	state.image = 0;
 	state.bitmap = 0;
-	/* Compute the end of memory, FIXME do this more cleanly */
-	state.bitmap_end = (unsigned char *)((1024*1024) + (meminfo.memsize << 10));
 }
 
 struct slam_info {
@@ -117,8 +114,8 @@ struct slam_info {
 #define SLAM_TIMEOUT 0
 #define SLAM_REQUEST 1
 #define SLAM_DATA    2
-static int await_slam(int ival, void *ptr,
-	unsigned short ptye, struct iphdr *ip, struct udphdr *udp)
+static int await_slam(int ival __unused, void *ptr,
+	unsigned short ptype __unused, struct iphdr *ip, struct udphdr *udp)
 {
 	struct slam_info *info = ptr;
 	if (!udp) {
@@ -306,10 +303,12 @@ static unsigned char *reinit_slam_state(
 		printf("ALERT: slam blocksize to large\n");
 		return 0;
 	}
-	/* FIXME come up with a cleaner allocation of the bitmap */
+	if (state.bitmap) {
+		forget(state.bitmap);
+	}
 	bitmap_len   = (state.total_packets + 1 + 7)/8;
-	state.bitmap = state.bitmap_end - bitmap_len;
-	state.image  = state.bitmap     - total_bytes;
+	state.bitmap = allot(bitmap_len);
+	state.image  = allot(total_bytes);
 	if ((unsigned long)state.image < 1024*1024) {
 		printf("ALERT: slam filesize to large for available memory\n");
 		return 0;
@@ -436,7 +435,6 @@ static void slam_send_disconnect(struct slam_info *info)
 
 static int proto_slam(struct slam_info *info)
 {
-	static struct slam_nack nack;
 	int retry;
 	long timeout;
 
@@ -529,21 +527,13 @@ int url_slam(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigne
 	info.fnc                 = fnc;
 	info.sent_nack = 0;
 	/* Now parse the url */
-	if (name[0] != '/') {
-		/* server ip */
-		name += inet_aton(name, &info.server_ip);
-		if (name[0] == ':') {
-			name++;
-			info.server_port = getdec(&name);
-		}
-	}
 	if (name[0] == '/') {
 		/* multicast ip */
 		name++;
 		name += inet_aton(name, &info.multicast_ip);
 		if (name[0] == ':') {
 			name++;
-			info.multicast_port = getdec(&name);
+			info.multicast_port = strtoul(name, &name, 10);
 		}
 	}
 	if (name[0]) {

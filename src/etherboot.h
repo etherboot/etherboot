@@ -519,7 +519,7 @@ extern int await_reply P((int (*reply)(int ival, void *ptr,
 	int ival, void *ptr, int timeout));
 extern int decode_rfc1533 P((unsigned char *, unsigned int, unsigned int, int));
 #define RAND_MAX 2147483647L
-extern unsigned short ipchksum P((uint16_t *ip, int len));
+extern uint16_t ipchksum P((void *ip, int len));
 extern long random P((void));
 extern long rfc2131_sleep_interval P((int base, int exp));
 extern long rfc1112_sleep_interval P((int base, int exp));
@@ -541,9 +541,19 @@ extern int eth_poll(void);
 extern void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p);
 extern void eth_disable(void);
 
+/* heap.c */
+extern void init_heap(void);
+extern void *allot(size_t size);
+void forget(void *ptr);
+/* Physical address of the heap */
+extern size_t heap_ptr, heap_top, heap_bot;
+
 /* osloader.c */
 extern int bios_disk_dev;
-typedef int (*os_download_t)(unsigned char *data, unsigned int len, int eof);
+/* Change sector_t to an unsigned long long to support very large disks */
+typedef unsigned long sector_t;
+typedef sector_t (*os_download_t)(unsigned char *data, unsigned int len, int eof);
+extern os_download_t probe_image(unsigned char *data, unsigned int len);
 extern int load_block P((unsigned char *, unsigned int, unsigned int, int ));
 extern os_download_t pxe_probe P((unsigned char *data, unsigned int len));
 
@@ -553,7 +563,7 @@ extern void sleep P((int secs));
 extern void interruptible_sleep P((int secs));
 extern int strcasecmp P((const char *a, const char *b));
 extern char *substr P((const char *a, const char *b));
-extern int getdec P((const char **));
+extern unsigned long strtoul P((const char *p, const char **, int base));
 extern void printf P((const char *, ...));
 extern int sprintf P((char *, const char *, ...));
 extern int inet_aton P((const char *p, in_addr *i));
@@ -605,6 +615,7 @@ extern void relocate_to(unsigned long phys_dest);
 extern void disk_init P((void));
 extern unsigned int disk_read P((int drv,int c,int h,int s,char *buf));
 extern void xstart16 P((unsigned long, unsigned long, char *));
+
 struct os_entry_regs {
 	/* Be careful changing this structure
 	 * as it is used by assembly language code.
@@ -626,7 +637,7 @@ struct os_entry_regs {
 	uint32_t saved_esp; /* 52 */
 };
 extern struct os_entry_regs os_regs;
-extern void xstart32(unsigned long entry_point, ...);
+extern int xstart32(unsigned long entry_point, ...);
 extern void xend32 P((void));
 extern unsigned long currticks P((void));
 extern int setjmp P((jmpbuf env));
@@ -676,8 +687,9 @@ extern struct nic nic;
 /* osloader.c */
 
 /* created by linker */
-extern char _text[], _etext[], _text16[], _etext16[], 
-	_data[], _edata[], _bss[], _ebss[], _end[];
+extern char _text[], _etext[], _text16[], _etext16[];
+extern char _data[], _edata[], _bss[], _ebss[], _end[];
+
 
 /*
  * Local variables:

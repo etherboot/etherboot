@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /**************************************************************************
 Etherboot -  BOOTP/TFTP Bootstrap Program
 LANCE NIC driver for Etherboot
@@ -291,6 +288,18 @@ static void lance_reset(struct nic *nic)
 	/* Apparently clearing the InitDone bit here triggers a bug
 	   in the '974. (Mark Stockton) */
 	outw(0x2, ioaddr+LANCE_DATA);		/* start */
+#ifdef ALLMULTI
+#warning **** Multicast support is freshly implemented, but yet fairly untested. ****
+	outw( 4, ioaddr+LANCE_DATA );
+	for ( i = 8; i < 12; ++i )
+	{
+		outw ( i, ioaddr+LANCE_ADDR );
+		outw (-1, ioaddr+LANCE_DATA );
+	}
+	outw (15, ioaddr+LANCE_ADDR );
+	outw ( 0, ioaddr+LANCE_DATA ); /* Just in case, unset promisc mode */
+	outw ( 0, ioaddr+LANCE_ADDR );
+#endif
 }
 
 /**************************************************************************

@@ -82,6 +82,9 @@
 #	-DPC_FLOPPY
 #			Support direct PC flopy controller access,
 #			instead of going through the BIOS
+#	-DIDE_DISK
+#			Support direct ide disk controller access,
+#			instead of going through the BIOS
 #	-DTRY_FLOPPY_FIRST
 #			If > 0, tries that many times to read the boot
 #			sector from a floppy drive before booting from
@@ -103,6 +106,8 @@
 #			Add a.out kernel boot support (generic).
 #	-DELF_IMAGE
 #			Add generic ELF kernel boot support (recommended).
+#	-DEL64F_IMAGE
+#			Add generic ELF64 kernel boot support (useful for > 4GB disks).
 #	-DWINCE_IMAGE
 #			Add the ability to boot WINCE.... now only sis630 OK!
 #       -DFREEBSD_PXEEMU
@@ -131,7 +136,9 @@
 #			TFTP loading. Default is DOWNLOAD_PROTO_TFTP
 #			if neither is defined.
 #       -DDOWNLOAD_PROTO_SLAM
-#                       If defined, boots via Scalable Local Area Multicast.
+#			If defined, boots via Scalable Local Area Multicast.
+#       -DDOWNLOAD_PROTO_TFTM
+#			If defined, enables booting via TFTP Multicast mode.
 #
 #	Console options:
 #
@@ -306,7 +313,7 @@ RANLIB32=	ranlib
 CFLAGS32+=	-Os -ffreestanding -fstrength-reduce -fomit-frame-pointer -mcpu=i386
 # Squeeze the code in as little space as possible.
 CFLAGS32+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
-CFLAGS32+=	-Wall -W -Wno-format -Wno-unused
+CFLAGS32+=	-Wall -W -Wno-format
 ASFLAGS32=
 LDFLAGS32+=	-N -Ttext $(RELOCADDR) -T etherboot.lds
 LDBINARY32=	--oformat binary	# flag for headerless binary

@@ -160,9 +160,9 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c relocate.c serial.S
-SRCS+=	main.c pci.c osloader.c nfs.c pxe.c proto_slam.c misc.c config.c
-SRCS+=	floppy.c pc_floppy.c
+SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
+SRCS+=	main.c pci.c osloader.c nfs.c pxe.c misc.c config.c relocate.c heap.c
+SRCS+=	floppy.c pc_floppy.c proto_slam.c proto_tftm.c ide_disk.c
 
 # ROM loaders: LZ version (prefix Z), PCI header version (prefix P)
 RLOADER=	bin/rloader.bin
@@ -178,9 +178,10 @@ LILOPREFIX=	bin/liloprefix.bin
 START32=	bin32/start32.o bin32/pcbios.o bin32/memsizes.o
 ELF_START32=	bin32/start32.o bin32/linuxbios.o
 
-BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/pxe.o bin32/proto_slam.o bin32/misc.o
-BOBJS32+=	bin32/floppy.o bin32/pc_floppy.o
-BOBJS32+=	bin32/serial.o bin32/timer.o  bin32/relocate.o
+BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/pxe.o bin32/misc.o
+BOBJS32+=	bin32/proto_slam.o proto_tftm.o
+BOBJS32+=	bin32/floppy.o bin32/pc_floppy.o bin32/ide_disk.o
+BOBJS32+=	bin32/serial.o bin32/timer.o  bin32/relocate.o bin32/heap.o
 BLIB32=		bin32/bootlib.a
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf
@@ -261,13 +262,21 @@ bin32/nfs.o:		nfs.c etherboot.h osdep.h nic.h
 
 bin32/pxe.o:		pxe.c etherboot.h osdep.h nic.h
 
-bint32/proto_slam.o:	proto_slam.h etherboot.h osdep.h nic.h
+bint32/proto_slam.o:	proto_slam.c etherboot.h osdep.h nic.h
+
+bint32/proto_tftm.o:	proto_tftm.c etherboot.h osdep.h nic.h
 
 bin32/misc.o:		misc.c etherboot.h osdep.h
+
+bin32/relocate.o:	relocate.c etherboot.h osdep.h
+
+bin32/heap.o:		heap.c etherboot.h osdep.h
 
 bin32/floppy.o:		floppy.c etherboot.h osdep.h
 
 bin32/pc_floppy.o:	pc_floppy.c etherboot.h osdep.h timer.h
+
+bin32/ide_disk.o:	ide_disk.c etherboot.h osdep.h timer.h
 
 bin32/timer.o:		timer.c timer.h etherboot.h osdep.h
 
@@ -383,7 +392,7 @@ bin32/%.elf.huf.o: bin32/%.elf.huf huf.lds
 	ld -T huf.lds -b binary $< -o $@
 
 bin32/lbzloader.s: lbzloader.S $(MAKEDEPS)
-	$(CPP) $(CFLAGS32) $(LCONFIG) -o $@ $<
+	$(CPP) $(CFLAGS32) $(LCONFIG) -DASSEMBLY -o $@ $<
 
 bin32/lbzloader.o: bin32/lbzloader.s
 	$(AS32) $(ASFLAGS32) -o $@ $<

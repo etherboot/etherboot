@@ -19,8 +19,6 @@ Ken Yap, January 1998
 #include "cards.h"
 #include "timer.h"
 
-#define	udelay(n)	waiton_timer2(((n)*TICKS_PER_MS)/1000)
-
 /* Sources of information:
 
    Donald Becker's excellent 3c507 driver in Linux

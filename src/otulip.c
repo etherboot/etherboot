@@ -67,6 +67,7 @@ enum tulip_offsets {
    used only with gross over estimations of required delay times unless
    you tune UADJUST to your specific processor and I/O subsystem */
 
+#undef udelay
 #define UADJUST 870
 static void udelay(unsigned long usec) {
   unsigned long i;

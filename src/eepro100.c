@@ -136,8 +136,6 @@ void hd(void *where, int n);
 #define EE_WRITE_1      0x4806
 #define EE_ENB          (0x4800 | EE_CS)
 
-#define udelay(n)       waiton_timer2(((n)*TICKS_PER_MS)/1000)
-
 /* The EEPROM commands include the alway-set leading bit. */
 #define EE_READ_CMD     6
 
@@ -355,7 +353,7 @@ static inline void whereami (const char *str)
  * returns:   void.
  */
 
-static void eepro100_reset(struct nic *nic)
+static void eepro100_reset(struct nic *nic __unused)
 {
 	outl(0, ioaddr + SCBPort);
 }
@@ -378,7 +376,6 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 		unsigned short type;
 	} hdr;
 	unsigned short status;
-	int to;
 	int s1, s2;
 	
 	status = inw(ioaddr + SCBStatus);
@@ -462,7 +459,7 @@ static int eepro100_poll(struct nic *nic)
 	return 1;
 }
 
-static void eepro100_disable(struct nic *nic)
+static void eepro100_disable(struct nic *nic __unused)
 {
     /* See if this PartialReset solves the problem with interfering with
        kernel operation after Etherboot hands over. - Ken 20001102 */
@@ -482,7 +479,6 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 	unsigned short sum = 0;
 	int i;
 	int read_cmd, ee_size;
-	unsigned short value;
 	int options;
 	int rx_mode;
 

@@ -103,51 +103,6 @@ console_putc_exit:
 	popl	%ebp
 	ret
 
-/**************************************************************************
-INT10 - Call Interrupt 0x10
-**************************************************************************/
-#if	defined(ANSIESC) && (defined(CONSOLE_CRT) || defined(CONSOLE_DUAL) || !defined(CONSOLE_SERIAL))
-	.globl	_int10
-_int10:
-	push	%ebp
-	mov	%esp,%ebp
-	push	%ebx
-	push	%esi
-	push	%edi
-	movw	8(%ebp),%si
-	movw	10(%ebp),%bx
-	movw	12(%ebp),%cx
-	movw	14(%ebp),%dx
-
-	pushl	$ 10f
-	pushl	$ 20f - 10f
-	call	_real_call
-	.section ".text16"
-10:	.code16
-	movw	%si,%ax
-	int	$0x10
-	movw	%ax,%si
-	ret
-20:	.code32
-	.previous
-	movl	%esi,%eax
-	andl	$0xFFFF,%eax
-	movw	%ax,int10ret
-	movw	%bx,int10ret+2
-	shl	$16,%ebx
-	orl	%ebx,%eax
-	movw	%cx,int10ret+4
-	movw	%dx,int10ret+6
-	pop	%edi
-	pop	%esi
-	pop	%ebx
-	pop	%ebp
-	ret
-
-	.globl	int10ret
-int10ret:
-	.word	0,0,0,0
-#endif
 
 /**************************************************************************
 CONSOLE_GETC - Get a character from console

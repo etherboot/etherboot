@@ -204,35 +204,38 @@ int inet_aton(const char *start, in_addr *i)
 {
 	const char *p = start;
 	unsigned long ip = 0;
-	int val;
-	if (((val = getdec(&p)) < 0) || (val > 255)) return(0);
-	if (*p != '.') return(0);
-	p++;
-	ip = val;
-	if (((val = getdec(&p)) < 0) || (val > 255)) return(0);
-	if (*p != '.') return(0);
-	p++;
+	unsigned long val;
+	int j;
+	for(j = 0; j < 3; j++) {
+		start = p;
+		val = strtoul(p, &p, 10);
+		if ((p == start) || (val > 255) || (*p != '.')) 
+			return 0;
+		p++;
+		ip = (ip << 8) | val;
+	}
+	start = p;
+	val = strtoul(p, &p, 10);
+	if ((p == start) || (val > 255)) 
+		return 0;
 	ip = (ip << 8) | val;
-	if (((val = getdec(&p)) < 0) || (val > 255)) return(0);
-	if (*p != '.') return(0);
-	p++;
-	ip = (ip << 8) | val;
-	if (((val = getdec(&p)) < 0) || (val > 255)) return(0);
-	i->s_addr = htonl((ip << 8) | val);
+	i->s_addr = htonl(val);
 	return p - start;
 }
 
-int getdec(const char **ptr)
+
+unsigned long strtoul(const char *p, const char **endp, int base)
 {
-	const char *p = *ptr;
-	int ret=0;
-	if ((*p < '0') || (*p > '9')) return(-1);
-	while ((*p >= '0') && (*p <= '9')) {
+	unsigned long ret = 0;
+	if (base != 10) return 0;
+	while((*p >= '0') && (*p <= '9')) {
 		ret = ret*10 + (*p - '0');
 		p++;
 	}
-	*ptr = p;
+	if (endp)
+		*endp = p;
 	return(ret);
+	
 }
 
 #define K_RDWR		0x60		/* keyboard data & cmds (read/write) */
@@ -254,7 +257,7 @@ int getdec(const char **ptr)
 					   disable clock line */
 
 enum { Disable_A20 = 0x2400, Enable_A20 = 0x2401, Query_A20_Status = 0x2402,
-	Query_A20_Support = 0x2403 } Int0x15Arg;
+	Query_A20_Support = 0x2403 };
 
 #if defined(PCBIOS) && !defined(IBM_L40)
 static void empty_8042(void)

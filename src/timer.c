@@ -33,6 +33,16 @@ void load_timer2(unsigned int ticks)
 	outb(ticks >> 8, TIMER2_PORT);
 }
 
+void waiton_timer2(unsigned int ticks)
+{
+	load_timer2(ticks);
+	while((inb(PPC_PORTB) & PPCB_T2OUT) == 0) {
+		if (iskey() && (getchar() == ESC)) {
+			longjmp(restart_etherboot, -1);
+		}
+	}
+}
+
 #if defined(CONFIG_TSC_CURRTICKS)
 #define rdtsc(low,high) \
      __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (high))

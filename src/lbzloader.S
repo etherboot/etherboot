@@ -31,26 +31,10 @@
 #define TABLESZ		(NCHAR+NCHAR-1)
 #define ROOT		(TABLESZ-1)
 
+#include "elf.h"
+
 .text
 #if 1
-
-#define EIN_PROGRAM_NAME	0x00000001
-/* The program in this ELF file */
-#define EIN_PROGRAM_VERSION	0x00000002
-/* The version of the program in this ELF file */
-#define EIN_PROGRAM_CHECKSUM	0x00000003
-/* ip style checksum of the memory image. */
-
-#define ET_EXEC 2
-#define EM_386	3
-#define ELF32_PHDR_SIZE (8*4)
-#define PT_NULL 0
-#define PT_LOAD 1
-#define PT_NOTE 4
-#define PF_X	(1<< 0)
-#define PF_W	(1<< 1)
-#define PF_R	(1<< 2)
-
 		/* ELF Header */
 		.globl elf_header
 elf_header:	
@@ -139,6 +123,7 @@ elf_note:
 	.word 0
 4:
 #endif
+	.balign 4
 elf_note_end:
 
 #endif

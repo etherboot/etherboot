@@ -62,7 +62,7 @@ static int		retval;
 
 static __inline unsigned int min(unsigned int a, unsigned int b) { return (a < b ? a : b); }
 
-static char *pxeemu_nbp_addr = (char *) 0x7C00;
+static unsigned long pxeemu_nbp_addr = 0x7C00;
 
 static int pxe_download(unsigned char *data, unsigned int len, int eof);
 os_download_t pxe_probe(unsigned char *data, unsigned int len)
@@ -76,7 +76,7 @@ os_download_t pxe_probe(unsigned char *data, unsigned int len)
 
 static int pxe_download(unsigned char *data, unsigned int len, int eof)
 {
-	memcpy(pxeemu_nbp_addr, data, len);
+	memcpy(phys_to_virt(pxeemu_nbp_addr), data, len);
 	pxeemu_nbp_addr += len;
 	if (eof) {
 		uint8_t val, *ptr, counter;
@@ -102,7 +102,7 @@ static int pxe_download(unsigned char *data, unsigned int len, int eof)
 			: : "i" (RELOC >> 4), 
 			"g" (((vm_offset_t)&pxenv) - RELOC));
 	}
-	return 1;
+	return 0;
 }
 
 static int await_udp_pxe(int ival, void *ptr,

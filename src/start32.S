@@ -100,8 +100,21 @@ is_386:
  *	contains garbage, it can affect some BIOSes
  */
 	andl	$0xffff,%esp
-	DATA32 call	_real_to_prot
+	
+	cs
+	DATA32 lgdt real_gdtarg
+	movl	%cr0, %eax
+	orb	CR0_PE, %al
+	movl	%eax, %cr0
+	/* flush prefetch queue, and reloac %cs:%eip */
+	DATA32 lcall	$KERN_CODE_SEG, $1f
 	.code32
+1:	movl	$KERN_DATA_SEG, %eax
+	movl	%eax, %ds
+	movl	%eax, %es
+	movl	%eax, %ss
+	movl	%eax, %fs
+	movl	%eax, %gs
 	call	start32
 	call	_prot_to_real
 	.code16
@@ -146,6 +159,10 @@ start32:
 
 	.globl	exit
 exit:
+	/* We relocate to our original address before returning */
+	pushl	$RELOC
+	call	relocate_to
+	
 	/* We reset esp to the location just before entering main
 	 * instead of relying on the return from main because exit
 	 * could have been called from anywhere 
@@ -344,10 +361,13 @@ os_regs_ptr:
 	movl	os_regs + 36, %esi
 	movl	os_regs + 40, %edi
 	movl	os_regs + 44, %ebx
-	movl	os_regs + 48, %eax
+	movl	os_regs + 48, %edx
 	movl	os_regs + 52, %esp
 
-	jmpl	*%eax
+	/* Get the C return value */
+	movl	os_regs + 28, %eax
+
+	jmpl	*%edx
 
 /**************************************************************************
 SETJMP - Save stack context for non-local goto

@@ -30,6 +30,7 @@ Modifications: Ken Yap (for Etherboot/16)
  */
 
 #include "etherboot.h"
+
 struct os_entry_regs os_regs;
 
 /* bootinfo */
@@ -76,136 +77,7 @@ struct exec {
 };
 
 /* ELF */
-#define EI_NIDENT	16	/* Size of e_ident array. */
-
-/* Values for e_type. */
-#define ET_NONE		0	/* No file type */
-#define ET_REL		1	/* Relocatable file */
-#define ET_EXEC		2	/* Executable file */
-#define ET_DYN		3	/* Shared object file */
-#define ET_CORE		4	/* Core file */
-
-/* Values for e_machine (incomplete). */
-#define EM_386		3	/* Intel 80386 */
-#define EM_486		6	/* Intel i486 */
-
-/* Values for p_type. */
-#define PT_NULL		0	/* Unused entry. */
-#define PT_LOAD		1	/* Loadable segment. */
-#define PT_DYNAMIC	2	/* Dynamic linking information segment. */
-#define PT_INTERP	3	/* Pathname of interpreter. */
-#define PT_NOTE		4	/* Auxiliary information. */
-#define PT_SHLIB	5	/* Reserved (not used). */
-#define PT_PHDR		6	/* Location of program header itself. */
-
-/* Values for p_flags. */
-#define PF_X		0x1	/* Executable. */
-#define PF_W		0x2	/* Writable. */
-#define PF_R		0x4	/* Readable. */
-
-/*
- * ELF definitions common to all 32-bit architectures.
- */
-
-typedef unsigned int	Elf32_Addr;
-typedef unsigned short	Elf32_Half;
-typedef unsigned int	Elf32_Off;
-typedef int		Elf32_Sword;
-typedef unsigned int	Elf32_Word;
-typedef unsigned int	Elf32_Size;
-
-/*
- * ELF header.
- */
-typedef struct {
-	unsigned char	e_ident[EI_NIDENT];	/* File identification. */
-	Elf32_Half	e_type;		/* File type. */
-	Elf32_Half	e_machine;	/* Machine architecture. */
-	Elf32_Word	e_version;	/* ELF format version. */
-	Elf32_Addr	e_entry;	/* Entry point. */
-	Elf32_Off	e_phoff;	/* Program header file offset. */
-	Elf32_Off	e_shoff;	/* Section header file offset. */
-	Elf32_Word	e_flags;	/* Architecture-specific flags. */
-	Elf32_Half	e_ehsize;	/* Size of ELF header in bytes. */
-	Elf32_Half	e_phentsize;	/* Size of program header entry. */
-	Elf32_Half	e_phnum;	/* Number of program header entries. */
-	Elf32_Half	e_shentsize;	/* Size of section header entry. */
-	Elf32_Half	e_shnum;	/* Number of section header entries. */
-	Elf32_Half	e_shstrndx;	/* Section name strings section. */
-} Elf32_Ehdr;
-
-#define	ELF_PROGRAM_RETURNS_BIT	0x8000000	/* e_flags bit 31 */
-
-/*
- * Program header.
- */
-typedef struct {
-	Elf32_Word	p_type;		/* Entry type. */
-	Elf32_Off	p_offset;	/* File offset of contents. */
-	Elf32_Addr	p_vaddr;	/* Virtual address (not used). */
-	Elf32_Addr	p_paddr;	/* Physical address. */
-	Elf32_Size	p_filesz;	/* Size of contents in file. */
-	Elf32_Size	p_memsz;	/* Size of contents in memory. */
-	Elf32_Word	p_flags;	/* Access permission flags. */
-	Elf32_Size	p_align;	/* Alignment in memory and file. */
-} Elf32_Phdr;
-
-#ifdef  IMAGE_FREEBSD
-/*
- * FreeBSD has this rather strange "feature" of its design.
- * At some point in its evolution, FreeBSD started to rely
- * externally on private/static/debug internal symbol information.
- * That is, some of the interfaces that software uses to access
- * and work with the FreeBSD kernel are made available not
- * via the shared library symbol information (the .DYNAMIC section)
- * but rather the debug symbols.  This means that any symbol, not
- * just publicly defined symbols can be (and are) used by system
- * tools to make the system work.  (such as top, swapinfo, swapon,
- * etc)
- *
- * Even worse, however, is the fact that standard ELF loaders do
- * not know how to load the symbols since they are not within
- * an ELF PT_LOAD section.  The kernel needs these symbols to
- * operate so the following changes/additions to the boot
- * loading of EtherBoot have been made to get the kernel to load.
- * All of the changes are within IMAGE_FREEBSD such that the
- * extra/changed code only compiles when FREEBSD support is
- * enabled.
- */
-
-/*
- * Section header for FreeBSD (debug symbol kludge!) support
- */
-typedef struct {
-	Elf32_Word	sh_name;	/* Section name (index into the
-					   section header string table). */
-	Elf32_Word	sh_type;	/* Section type. */
-	Elf32_Word	sh_flags;	/* Section flags. */
-	Elf32_Addr	sh_addr;	/* Address in memory image. */
-	Elf32_Off	sh_offset;	/* Offset in file. */
-	Elf32_Size	sh_size;	/* Size in bytes. */
-	Elf32_Word	sh_link;	/* Index of a related section. */
-	Elf32_Word	sh_info;	/* Depends on section type. */
-	Elf32_Size	sh_addralign;	/* Alignment in bytes. */
-	Elf32_Size	sh_entsize;	/* Size of each entry in section. */
-} Elf32_Shdr;
-
-/* sh_type */
-#define SHT_SYMTAB	2		/* symbol table section */
-#define SHT_STRTAB	3		/* string table section */
-
-/*
- * Module information subtypes (for the metadata that we need to build)
- */
-#define MODINFO_END		0x0000		/* End of list */
-#define MODINFO_NAME		0x0001		/* Name of module (string) */
-#define MODINFO_TYPE		0x0002		/* Type of module (string) */
-#define MODINFO_METADATA	0x8000		/* Module-specfic */
-
-#define MODINFOMD_SSYM		0x0003		/* start of symbols */
-#define MODINFOMD_ESYM		0x0004		/* end of symbols */
-
-#endif	/* IMAGE_FREEBSD */
+#include "elf.h"
 
 struct multiboot_mods {
 	unsigned mod_start;
@@ -267,6 +139,7 @@ union infoblock
 	struct bootinfo bsdinfo;
 	struct multiboot_info mbinfo;
 	Elf32_Ehdr elf32;
+	Elf64_Ehdr elf64;
 };
 
 struct segheader
@@ -379,12 +252,29 @@ static struct tagged_context
 
 #endif
 
-#if	defined(AOUT_IMAGE) || defined(ELF_IMAGE)
+#if	defined(AOUT_IMAGE) || defined(ELF_IMAGE) || defined(ELF64_IMAGE)
 static union infoblock	info;
 static int segment;		/* current segment number, -1 for none */
-static unsigned int loc;	/* start offset of current block */
-static unsigned int skip;	/* padding to be skipped to current segment */
-static unsigned int toread;	/* remaining data to be read in the segment */
+static unsigned long loc;	/* start offset of current block */
+static unsigned long skip;	/* padding to be skipped to current segment */
+static unsigned long toread;	/* remaining data to be read in the segment */
+#endif
+
+#if defined (ELF_IMAGE) || defined (ELF64_IMAGE)
+#define ELF_NOTES 1
+#define ELF_DEBUG 0
+#endif
+
+#if ELF_NOTES
+int check_ip_checksum;
+uint16_t ip_checksum;
+unsigned long ip_checksum_offset;
+#endif
+
+#ifdef ELF64_IMAGE
+static Elf64_Phdr *phdr64;
+static uint64_t loc64;
+static uint64_t skip64;
 #endif
 
 #ifdef	ELF_IMAGE
@@ -409,10 +299,179 @@ static struct ebinfo		loaderinfo = {
 	0
 };
 
+
+
+static void done(void)
+{
+#ifdef	SIZEINDICATOR
+	printf("K ");
+#endif
+	printf("done\n");
+#ifdef	DELIMITERLINES
+	{
+		int j;
+		for (j=0; j<80; j++)
+			putchar('=');
+		putchar('\n');
+	}
+#endif
+	cleanup();
+}
+
+#if defined(ELF_IMAGE) || defined (ELF64_IMAGE) || defined(AOUT_IMAGE) || defined(TAGGED_IMAGE)
+static int prep_segment(unsigned long start, unsigned long mid, unsigned long end,
+	unsigned long istart, unsigned long iend)
+{
+	int fit, i;
+	if (mid > end) {
+		printf("filesz > memsz\n");
+		return 0;
+	}
+	if ((end > virt_to_phys(_text)) && 
+		(start < virt_to_phys(_end))) {
+		printf("segment [%X, %X) overlaps etherboot [%X, %X)\n",
+			start, end,
+			virt_to_phys(_text), virt_to_phys(_end)
+			);
+		return 0;
+	}
+	if ((end > heap_ptr) && (start < heap_bot)) {
+		printf("segment [%X, %X) overlaps heap [%X, %X)\n",
+			start, end,
+			heap_ptr, heap_bot
+			);
+		return 0;
+	}
+	fit = 0;
+	for(i = 0; i < meminfo.map_count; i++) {
+		unsigned long long r_start, r_end;
+		if (meminfo.map[i].type != E820_RAM)
+			continue;
+		r_start = meminfo.map[i].addr;
+		r_end = r_start + meminfo.map[i].size;
+		if ((start >= r_start) && (end <= r_end)) {
+			fit = 1;
+			break;
+		}
+	}
+	if (!fit) {
+		printf("\nsegment [%X,%X) does not fit in any memory region\n",
+			start, end);
+#if ELF_DEBUG
+		printf("Memory regions(%d):\n", meminfo.map_count);
+		for(i = 0; i < meminfo.map_count; i++) {
+			unsigned long long r_start, r_end;
+			if (meminfo.map[i].type != E820_RAM)
+				continue;
+			r_start = meminfo.map[i].addr;
+			r_end = r_start + meminfo.map[i].size;
+			printf("[%X%X, %X%X) type %d\n", 
+				(unsigned long)(r_start >> 32),
+				(unsigned long)r_start,
+				(unsigned long)(r_end >> 32),
+				(unsigned long)r_end,
+				meminfo.map[i].type);
+		}
+#endif
+		return 0;
+	}
+	/* Zero the bss */
+	if (end > mid) {
+		memset(phys_to_virt(mid), 0, end - mid);
+	}
+#if ELF_NOTES
+	if (check_ip_checksum) {
+		if ((istart <= ip_checksum_offset) && 
+			(iend > ip_checksum_offset)) {
+			/* The checksum note is also loaded in a
+			 * PT_LOAD segment, so the computed checksum
+			 * should be 0.
+			 */
+			ip_checksum = 0;
+		}
+	}
+#endif
+	return 1;
+}
+#endif
+
+#if defined(ELF_IMAGE) || defined (ELF64_IMAGE)
+static void boot(unsigned long entry)
+{
+	/*
+	 *	If IMAGE_MULTIBOOT is not defined, we use a boot protocol for
+	 *	ELF images with a couple of Etherboot extensions, namely the
+	 *	use of a flag bit to indicate when the image will return to
+	 *	Etherboot, and passing certain arguments to the image.
+	 */
+#ifdef	IMAGE_MULTIBOOT
+	unsigned char cmdline[512], *c;
+	int i;
+	/* Etherboot limits the command line to the kernel name,
+	 * default parameters and user prompted parameters.  All of
+	 * them are shorter than 256 bytes.  As the kernel name and
+	 * the default parameters come from the same BOOTP/DHCP entry
+	 * (or if they don't, the parameters are empty), only two
+	 * strings of the maximum size are possible.  Note this buffer
+	 * can overrun if a stupid file name is chosen.  Oh well.  */
+	c = cmdline;
+	for (i = 0; KERNEL_BUF[i] != 0; i++) {
+		switch (KERNEL_BUF[i]) {
+		case ' ':
+		case '\\':
+		case '"':
+			*c++ = '\\';
+			break;
+		default:
+		}
+		*c++ = KERNEL_BUF[i];
+	}
+	(void)sprintf(c, " -retaddr %#X", virt_to_phys(xend32));
+
+	info.mbinfo.flags = MULTIBOOT_MMAP_VALID | MULTIBOOT_MEM_VALID |MULTIBOOT_CMDLINE_VALID;
+	info.mbinfo.memlower = meminfo.basememsize;
+	info.mbinfo.memupper = meminfo.memsize;
+	info.mbinfo.bootdev = 0;	/* not booted from disk */
+	info.mbinfo.cmdline = cmdline;
+	info.mbinfo.e820entry_size = sizeof(struct e820entry);
+	info.mbinfo.mmap_length = 
+		info.mbinfo.e820entry_size * meminfo.map_count;
+	info.mbinfo.mmap_addr = info.mbinfo.mmap;
+	memcpy(info.mbinfo.mmap, meminfo.map, info.mbinfo.mmap_length);
+	
+	/* The Multiboot 0.6 spec requires all segment registers to be
+	 * loaded with an unrestricted, writeable segment.
+	 * xstart32 does this for us.
+	 */
+	
+	/* Start the kernel, passing the Multiboot information record
+	 * and the magic number.  */
+	os_regs.eax = 0x2BADB002;
+	os_regs.ebx = virt_to_phys(&info.mbinfo);
+	xstart32(entry);
+	longjmp(restart_etherboot, -2);
+#else	/* !IMAGE_MULTIBOOT, i.e. generic ELF */
+	int result;
+	/* We cleanup unconditionally, and then reawaken the network
+	 * adapter after the longjmp.
+	 */
+	result = xstart32(entry,
+		virt_to_phys(&loaderinfo),
+		virt_to_phys(&info),
+		virt_to_phys(BOOTP_DATA_ADDR));
+	printf("Secondary program returned %d\n", result);
+	longjmp(restart_etherboot, result);
+#endif	/* IMAGE_MULTIBOOT */
+
+}
+#endif
+
 #ifdef	TAGGED_IMAGE
-static int tagged_download(unsigned char *data, unsigned int len, int eof);
+static sector_t tagged_download(unsigned char *data, unsigned int len, int eof);
 static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 {
+	struct segheader	*sh;
+	unsigned long loc;
 	if (*((uint32_t *)data) != 0x1B031336L) {
 		return 0;
 	}
@@ -422,20 +481,38 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 	/* Copy first 4 longwords */
 	memcpy(&tctx.img, data, sizeof(tctx.img));
 	/* Memory location where we are supposed to save it */
-	tctx.segaddr = tctx.linlocation = ((tctx.img.u.segoff.ds) << 4) + tctx.img.u.segoff.bx;
+	tctx.segaddr = tctx.linlocation = 
+		((tctx.img.u.segoff.ds) << 4) + tctx.img.u.segoff.bx;
 	/* Grab a copy */
-	memcpy((void *)tctx.segaddr, data, 512);
+	memcpy(phys_to_virt(tctx.segaddr), data, 512);
 	/* Advance to first segment descriptor */
 	tctx.segaddr += ((tctx.img.length & 0x0F) << 2)
 		+ ((tctx.img.length & 0xF0) >> 2);
 	/* Remember to skip the first 512 data bytes */
 	tctx.first = 1;
+	
+	/* Walk through the segments and verify the load addresses */
+	loc = 512;
+	for(sh = phys_to_virt(tctx.segaddr); 
+		!(sh->flags & 0x04); 
+		sh = phys_to_virt(virt_to_phys(sh) + 
+			((sh->length & 0x0f) << 2) +
+			((sh->length & 0xf0) >> 2))) {
+		if (!prep_segment(
+			sh->loadaddr,
+			sh->loadaddr + sh->imglength,
+			sh->loadaddr + sh->memlength,
+			loc, loc + sh->imglength)) {
+			return 0;
+		}
+		loc = loc + sh->imglength;
+	}
 	return tagged_download;
 
 }
-static int tagged_download(unsigned char *data, unsigned int len, int eof)
+static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 {
-	int	i,j;
+	int	i;
 
 	if (tctx.first) {
 		tctx.first = 0;
@@ -444,23 +521,13 @@ static int tagged_download(unsigned char *data, unsigned int len, int eof)
 			data += 512;
 			/* and fall through to deal with rest of block */
 		} else 
-			return 1;
+			return 0;
 	}
 	do {
 		while (tctx.seglen == 0) {
 			struct segheader	sh;
 			if (tctx.segflags & 0x04) {
-
-#ifdef	SIZEINDICATOR
-				printf("K ");
-#endif
-				printf("done\n");
-#ifdef	DELIMITERLINES
-				for (j=0; j<80; j++) putchar('=');
-				putchar('\n');
-#endif
-				if (!TAGGED_PROGRAM_RETURNS)
-					cleanup();
+				done();
 				if (LINEAR_EXEC_ADDR) {
 					int result;
 					/* no gateA20_unset for PM call */
@@ -468,7 +535,8 @@ static int tagged_download(unsigned char *data, unsigned int len, int eof)
 						virt_to_phys(&loaderinfo),
 						tctx.linlocation,
 						virt_to_phys(BOOTP_DATA_ADDR));
-					printf("Secondary program returned %d\n", result);
+					printf("Secondary program returned %d\n",
+						result);
 					if (!TAGGED_PROGRAM_RETURNS) {
 						/* We shouldn't have returned */
 						result = -2;
@@ -483,7 +551,7 @@ static int tagged_download(unsigned char *data, unsigned int len, int eof)
 					longjmp(restart_etherboot, -2);
 				}
 			}
-			sh = *((struct segheader *)tctx.segaddr);
+			sh = *((struct segheader *)phys_to_virt(tctx.segaddr));
 			tctx.seglen = sh.imglength;
 			if ((tctx.segflags = sh.flags & 0x03) == 0)
 				curaddr = sh.loadaddr;
@@ -507,14 +575,15 @@ static int tagged_download(unsigned char *data, unsigned int len, int eof)
 		len -= i;
 		data += i;
 	} while (len > 0);
-	return 1;
+	return 0;
 }
 #endif
 
 #ifdef	AOUT_IMAGE
-static int aout_download(unsigned char *data, unsigned int len, int eof);
+static sector_t aout_download(unsigned char *data, unsigned int len, int eof);
 static inline os_download_t aout_probe(unsigned char *data, unsigned int len)
 {
+	unsigned long start, mid, end, istart, iend;
 	if (info.s[0] != 0x010BL) {
 		return 0;
 	}
@@ -532,6 +601,14 @@ static inline os_download_t aout_probe(unsigned char *data, unsigned int len)
 	}
 #endif
 	printf(")... ");
+	/* Check the aout image */
+	start  = info.head.a_entry;
+	mid    = (((start + info.head.a_text) + 4095) & ~4095) + info.head.a_data;
+	end    = ((mid + 4095) & ~4095) + info.head.a_bss;
+	istart = 4096;
+	iend   = istart + (mid - start);
+	if (!prep_segment(start, mid, end, istart, iend))
+		return 0;
 	segment = -1;
 	loc = 0;
 	skip = 0;
@@ -539,7 +616,7 @@ static inline os_download_t aout_probe(unsigned char *data, unsigned int len)
 	return aout_download;
 }
 
-static int aout_download(unsigned char *data, unsigned int len, int eof)
+static sector_t aout_download(unsigned char *data, unsigned int len, int eof)
 {
 	unsigned int offset;	/* working offset in the current data block */
 
@@ -553,7 +630,7 @@ static int aout_download(unsigned char *data, unsigned int len, int eof)
 	}
 	memcpy(phys_to_virt(curaddr), data, len);
 	curaddr += len;
-	return 1;
+	return 0;
 #endif
 
 	do {
@@ -620,12 +697,7 @@ static int aout_download(unsigned char *data, unsigned int len, int eof)
 
 aout_startkernel:
 		entry = info.head.a_entry;
-		printf("done\n");
-#ifdef	DELIMITERLINES
-		for (j=0; j<80; j++) putchar('=');
-		putchar('\n');
-#endif
-		cleanup();
+		done();
 
 #ifdef	IMAGE_FREEBSD
 		if (image_type == Aout_FreeBSD) {
@@ -648,15 +720,261 @@ aout_startkernel:
 		printf("unexpected a.out variant\n");
 		longjmp(restart_etherboot, -2);
 	}
-	return 1;
+	return 0;
 }
 #endif
 
+#ifdef ELF_NOTES
+unsigned long add_ip_checksums(unsigned long offset, unsigned long sum, unsigned long new)
+{
+	unsigned long checksum;
+	sum = ~sum & 0xFFFF;
+	new = ~new & 0xFFFF;
+	if (offset & 1) {
+		/* byte swap the sum if it came from an odd offset 
+		 * since the computation is endian independant this
+		 * works.
+		 */
+		new = ((new >> 8) & 0xff) | ((new << 8) & 0xff00);
+	}
+	checksum = sum + new;
+	if (checksum > 0xFFFF) {
+		checksum -= 0xFFFF;
+	}
+	return (~checksum) & 0xFFFF;
+}
+
+static void process_elf_notes(unsigned char *header,
+	unsigned long offset, unsigned long length)
+{
+	unsigned char *note, *end;
+	char *program, *version;
+
+	check_ip_checksum = 0;
+	note = header + offset;
+	end = note + length;
+	program = version = 0;
+	while(note < end) {
+		Elf_Nhdr *hdr;
+		unsigned char *n_name, *n_desc, *next;
+		hdr = (Elf_Nhdr *)note;
+		n_name = note + sizeof(*hdr);
+		n_desc = n_name + ((hdr->n_namesz + 3) & ~3);
+		next = n_desc + ((hdr->n_descsz + 3) & ~3);
+		if (next > end) {
+			break;
+		}
+		if ((hdr->n_namesz == sizeof(ELF_NOTE_BOOT)) && 
+			(memcmp(n_name, ELF_NOTE_BOOT, sizeof(ELF_NOTE_BOOT)) == 0)) {
+			switch(hdr->n_type) {
+			case EIN_PROGRAM_NAME:
+				if (n_desc[hdr->n_descsz -1] == 0) {
+					program = n_desc;
+				}
+				break;
+			case EIN_PROGRAM_VERSION:
+				if (n_desc[hdr->n_descsz -1] == 0) {
+					version = n_desc;
+				}
+				break;
+			case EIN_PROGRAM_CHECKSUM:
+				check_ip_checksum = 1;
+				ip_checksum = *((uint16_t *)n_desc);
+				/* Remember where the segment is so
+				 * I can detect segment overlaps.
+				 */
+				ip_checksum_offset = n_desc - header;
+				break;
+			}
+		}
+#if ELF_DEBUG
+		printf("n_type: %x n_name(%d): %s n_desc(%d): %s\n", 
+			hdr->n_type,
+			hdr->n_namesz, n_name,
+			hdr->n_descsz, n_desc);
+#endif
+		note = next;
+	}
+	if (program && version) {
+		printf("Loading %s version: %s\n",
+			program, version);
+	}
+}
+#endif
+
+#ifdef  ELF64_IMAGE
+static sector_t elf64_download(unsigned char *data, unsigned int len, int eof);
+static inline os_download_t elf64_probe(unsigned char *data, unsigned int len)
+{
+	if ((info.elf64.e_ident[EI_MAG0] != ELFMAG0) ||
+		(info.elf64.e_ident[EI_MAG1] != ELFMAG1) ||
+		(info.elf64.e_ident[EI_MAG2] != ELFMAG2) ||
+		(info.elf64.e_ident[EI_MAG3] != ELFMAG3) ||
+		(info.elf64.e_ident[EI_CLASS] != ELFCLASS64) ||
+		(info.elf64.e_ident[EI_DATA] != ELFDATA_CURRENT) ||
+		(info.elf64.e_ident[EI_VERSION] != EV_CURRENT) ||
+		(info.elf64.e_type != ET_EXEC) ||
+		(info.elf64.e_machine != EM_CURRENT) ||
+		(info.elf64.e_version != EV_CURRENT) ||
+		(info.elf64.e_ehsize != sizeof(Elf64_Ehdr)) ||
+		(info.elf64.e_phentsize != sizeof(Elf64_Phdr))) {
+		return 0;
+	}
+	printf("(ELF64)... ");
+	if (info.elf64.e_phoff +
+		info.elf64.e_phnum * info.elf64.e_phentsize > len) {
+		printf("ELF header outside first block\n");
+		return 0;
+	}
+	if (info.elf64.e_entry > ULONG_MAX) {
+		printf("ELF entry point exceeds address space\n");
+		return 0;
+	}
+	phdr64 = (Elf64_Phdr *)(info.dummy + info.elf64.e_phoff);
+#if ELF_NOTES
+	/* Load ELF notes from the image */
+	for(segment = 0; segment < info.elf32.e_phnum; segment++) {
+		if (phdr[segment].p_type != PT_NOTE)
+			continue;
+		if (phdr[segment].p_offset + phdr[segment].p_filesz > len) {
+			/* Ignore ELF notes outside of the first block */
+			continue;
+		}
+		process_elf_notes(data, 
+			phdr[segment].p_offset, phdr[segment].p_filesz);
+	}
+#endif
+	/* Check for Etherboot related limitations.  Memory
+	 * between _text and _end is not allowed.  
+	 * Reasons: the Etherboot code/data area.
+	 */
+	for (segment = 0; segment < info.elf64.e_phnum; segment++) {
+		unsigned long start, mid, end, istart, iend;
+		if (phdr64[segment].p_type != PT_LOAD) 
+			continue;
+		if ((phdr64[segment].p_paddr > ULONG_MAX) ||
+			((phdr64[segment].p_paddr + phdr64[segment].p_filesz) > ULONG_MAX) ||
+			((phdr64[segment].p_paddr + phdr64[segment].p_memsz) > ULONG_MAX)) {
+			printf("ELF segment exceeds address space\n");
+			return 0;
+		}
+		start = phdr64[segment].p_paddr;
+		mid = start + phdr64[segment].p_filesz;
+		end = start + phdr64[segment].p_memsz;
+		istart = iend = ULONG_MAX;
+		if ((phdr64[segment].p_offset < ULONG_MAX) &&
+			((phdr64[segment].p_offset + phdr64[segment].p_filesz) < ULONG_MAX))
+		{
+			istart = phdr64[segment].p_offset;
+			iend   = istart + phdr64[segment].p_filesz;
+		} 
+		if (!prep_segment(start, mid, end, istart, iend)) {
+			return 0;
+		}
+	}
+	segment = -1;
+	loc64 = 0;
+	skip64 = 0;
+	toread = 0;
+	return elf64_download;
+}
+
+static sector_t elf64_download(unsigned char *data, unsigned int len, int eof)
+{
+	unsigned long skip_sectors = 0;
+	unsigned int offset;	/* working offset in the current data block */
+	int i;
+
+	offset = 0;
+	do {
+		if (segment != -1) {
+			if (skip64) {
+				if (skip64 >= len - offset) {
+					skip64 -= len - offset;
+					break;
+				}
+				offset += skip64;
+				skip64 = 0;
+			}
+			
+			if (toread) {
+				unsigned int cplen;
+				cplen = len - offset;
+				if (cplen >= toread) {
+					cplen = toread;
+				}
+				memcpy(phys_to_virt(curaddr), data+offset, cplen);
+				curaddr += cplen;
+				toread -= cplen;
+				offset += cplen;
+				if (toread)
+					break;
+			}
+		}
+		
+		/* Data left, but current segment finished - look for the next
+		 * segment (in file offset order) that needs to be loaded. 
+		 * We can only seek forward, so select the program headers,
+		 * in the correct order.
+		 */
+		segment = -1;
+		for (i = 0; i < info.elf64.e_phnum; i++) {
+			if (phdr64[i].p_type != PT_LOAD)
+				continue;
+			if (phdr64[i].p_filesz == 0)
+				continue;
+			if (phdr64[i].p_offset < loc64 + offset)
+				continue;	/* can't go backwards */
+			if ((segment != -1) &&
+				(phdr64[i].p_offset >= phdr64[segment].p_offset))
+				continue;	/* search minimum file offset */
+			segment = i;
+		}
+		if (segment == -1) {
+			/* No more segments to be loaded, so just start the
+			 * kernel.  This saves a lot of network bandwidth if
+			 * debug info is in the kernel but not loaded.  */
+			goto elf_startkernel;
+			break;
+		}
+		curaddr = phdr64[segment].p_paddr;
+		skip64 = phdr64[segment].p_offset - (loc64 + offset);
+		toread = phdr64[segment].p_filesz;
+#if ELF_DEBUG
+		printf("PHDR %d, size %#X, curaddr %#X\n",
+			segment, toread, curaddr);
+#endif
+	} while (offset < len);
+	
+	loc64 += len + (skip64 & ~0x1ff);
+	skip_sectors = skip64 >> 9;
+	skip64 &= 0x1ff;
+	
+	if (eof) {
+elf_startkernel:
+		done();
+		boot(info.elf64.e_entry);
+	}
+	return skip_sectors;
+}
+
+#endif /* ELF64_IMAGE */
 #ifdef	ELF_IMAGE
-static int elf_download(unsigned char *data, unsigned int len, int eof);
+static sector_t elf_download(unsigned char *data, unsigned int len, int eof);
 static inline os_download_t elf_probe(unsigned char *data, unsigned int len)
 {
-	if (info.l[0] != 0x464C457Fl) {
+	if ((info.elf32.e_ident[EI_MAG0] != ELFMAG0) ||
+		(info.elf32.e_ident[EI_MAG1] != ELFMAG1) ||
+		(info.elf32.e_ident[EI_MAG2] != ELFMAG2) ||
+		(info.elf32.e_ident[EI_MAG3] != ELFMAG3) ||
+		(info.elf32.e_ident[EI_CLASS] != ELFCLASS32) ||
+		(info.elf32.e_ident[EI_DATA] != ELFDATA_CURRENT) ||
+		(info.elf32.e_ident[EI_VERSION] != EV_CURRENT) ||
+		(info.elf32.e_type != ET_EXEC) ||
+		(info.elf32.e_machine != EM_CURRENT) ||
+		(info.elf32.e_version != EV_CURRENT) ||
+		(info.elf32.e_ehsize != sizeof(Elf32_Ehdr)) ||
+		(info.elf32.e_phentsize != sizeof(Elf32_Phdr))) {
 		return 0;
 	}
 	printf("(ELF");
@@ -670,28 +988,31 @@ static inline os_download_t elf_probe(unsigned char *data, unsigned int len)
 	}
 #endif
 	printf(")... ");
-	if ((info.elf32.e_type != ET_EXEC) ||
-		((info.elf32.e_machine != EM_386) &&
-			(info.elf32.e_machine != EM_486)) ||
-		(info.elf32.e_version != 1)) {
-		printf("invalid ELF file for machine type\n");
-		return 0;
-	}
 	if (info.elf32.e_phoff +
 		info.elf32.e_phnum * info.elf32.e_phentsize > len) {
 		printf("ELF header outside first block\n");
 		return 0;
 	}
-	phdr=(Elf32_Phdr *)((unsigned int)&info
-		+ (unsigned int)(info.elf32.e_phoff));
+	phdr = (Elf32_Phdr *)(info.dummy + info.elf32.e_phoff);
+#if ELF_NOTES
+	/* Load ELF notes from the image */
+	for(segment = 0; segment < info.elf32.e_phnum; segment++) {
+		if (phdr[segment].p_type != PT_NOTE)
+			continue;
+		if (phdr[segment].p_offset + phdr[segment].p_filesz > len) {
+			/* Ignore ELF notes outside of the first block */
+			continue;
+		}
+		process_elf_notes(data, 
+			phdr[segment].p_offset, phdr[segment].p_filesz);
+	}
+#endif
 	/* Check for Etherboot related limitations.  Memory
-	 * between _text and _end is not allowed.  
+	 * between _text and _end is not allowed.
 	 * Reasons: the Etherboot code/data area.
 	 */
-	for (segment = 0; segment < info.elf32.e_phnum;
-	     segment++) {
-		unsigned long start, end;
-		int fit, i;
+	for (segment = 0; segment < info.elf32.e_phnum; segment++) {
+		unsigned long start, mid, end, istart, iend;
 		if (phdr[segment].p_type != PT_LOAD)
 			continue;
 #ifdef	IMAGE_FREEBSD
@@ -700,46 +1021,11 @@ static inline os_download_t elf_probe(unsigned char *data, unsigned int len)
 		}
 #endif
 		start = phdr[segment].p_paddr;
-		end = phdr[segment].p_paddr+phdr[segment].p_memsz;
-		if ((end > virt_to_phys(_text)) && 
-			(start < virt_to_phys(_end))) {
-			printf("segment [%X, %X) overlaps etherboot [%X, %X)\n",
-				start, end,
-				virt_to_phys(_text), virt_to_phys(_end)
-				);
-			return 0;
-		}
-		fit = 0;
-		for(i = 0; i < meminfo.map_count; i++) {
-			unsigned long long r_start, r_end;
-			if (meminfo.map[i].type != E820_RAM)
-				continue;
-			r_start = meminfo.map[i].addr;
-			r_end = r_start + meminfo.map[i].size;
-			if ((start >= r_start) && (end <= r_end)) {
-				fit = 1;
-				break;
-			}
-		}
-		if (!fit) {
-			printf("\nsegment [%X,%X) does not fit in any memory region\n",
-				start, end);
-#if 0
-			printf("Memory regions(%d):\n", meminfo.map_count);
-			for(i = 0; i < meminfo.map_count; i++) {
-				unsigned long long r_start, r_end;
-				if (meminfo.map[i].type != E820_RAM)
-					continue;
-				r_start = meminfo.map[i].addr;
-				r_end = r_start + meminfo.map[i].size;
-				printf("[%X%X, %X%X) type %d\n", 
-					(unsigned long)(r_start >> 32),
-					(unsigned long)r_start,
-					(unsigned long)(r_end >> 32),
-					(unsigned long)r_end,
-					meminfo.map[i].type);
-			}
-#endif
+		mid = start + phdr[segment].p_filesz;
+		end = start + phdr[segment].p_memsz;
+		istart = phdr[segment].p_offset;
+		iend = istart + phdr[segment].p_filesz;
+		if (!prep_segment(start, mid, end, istart, iend)) {
 			return 0;
 		}
 	}
@@ -762,8 +1048,9 @@ static inline os_download_t elf_probe(unsigned char *data, unsigned int len)
 	return elf_download;
 }
 
-static int elf_download(unsigned char *data, unsigned int len, int eof)
+static sector_t elf_download(unsigned char *data, unsigned int len, int eof)
 {
+	unsigned long skip_sectors = 0;
 	unsigned int offset;	/* working offset in the current data block */
 	int i;
 
@@ -778,18 +1065,20 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 				offset += skip;
 				skip = 0;
 			}
-
+			
 			if (toread) {
-				if (toread >= len - offset) {
-					memcpy(phys_to_virt(curaddr), data+offset,
-					       len - offset);
-					curaddr += len - offset;
-					toread -= len - offset;
-					break;
+				unsigned int cplen;
+				cplen = len - offset;
+				if (cplen >= toread) {
+					cplen = toread;
 				}
-				memcpy(phys_to_virt(curaddr), data+offset, toread);
-				offset += toread;
-#ifdef	IMAGE_FREEBSD
+				memcpy(phys_to_virt(curaddr), data+offset, cplen);
+				curaddr += cplen;
+				toread -= cplen;
+				offset += cplen;
+				if (toread)
+					break;
+#ifdef IMAGE_FREEBSD
 				/* Count the bytes read even for the last block
 				 * as we will need to know where the last block
 				 * ends in order to load the symbols correctly.
@@ -797,35 +1086,32 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 				 * Note that we need to count the actual size,
 				 * not just the end of the disk image size.
 				 */
-				curaddr += toread;
-				if (segment) curaddr += (phdr[segment].p_memsz - phdr[segment].p_filesz);
+				if (segment) {
+					curaddr += phdr[segment].p_memsz - phdr[segment].p_filesz;
+				}
 #endif
-				toread = 0;
 			}
 		}
-
+		
 		/* Data left, but current segment finished - look for the next
-		 * segment (in file offset order) that needs to be loaded.  The
-		 * entries in the program header table are usually sorted by
-		 * file offset, but someone should check the ELF specs to make
-		 * sure this is actually part of the spec.  We cannot seek, so
-		 * read the data in the correct order.  If the debug info is to
-		 * be loaded (as per Multiboot 0.6 spec), there must be a PHDR
-		 * for it that loads it to a suitable address.  There is no
-		 * other simple solution, as the section headers may be
-		 * somewhere in the middle of the executable file.  */
-		segment = 0;
-		for (i = 1; i < info.elf32.e_phnum; i++) {
+		 * segment (in file offset order) that needs to be loaded. 
+		 * We can only seek forward, so select the program headers,
+		 * in the correct order.
+		 */
+		segment = -1;
+		for (i = 0; i < info.elf32.e_phnum; i++) {
 			if (phdr[i].p_type != PT_LOAD)
+				continue;
+			if (phdr[i].p_filesz == 0)
 				continue;
 			if (phdr[i].p_offset < loc + offset)
 				continue;	/* can't go backwards */
-			if ((phdr[segment].p_type == PT_LOAD) &&
-			    (phdr[i].p_offset >= phdr[segment].p_offset))
+			if ((segment != -1) &&
+				(phdr[i].p_offset >= phdr[segment].p_offset))
 				continue;	/* search minimum file offset */
 			segment = i;
 		}
-		if (phdr[segment].p_type != PT_LOAD) {
+		if (segment == -1) {
 #ifdef	IMAGE_FREEBSD
 			/* No more segments to be loaded - time to start the
 			 * nasty state machine to support the loading of
@@ -874,13 +1160,13 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 				skip = info.elf32.e_shoff - (loc + offset);
 				if (toread)
 				{
-#ifdef	DEBUG_ELF
+#if ELF_DEBUG
 					printf("shdr *, size %X, curaddr %X\n", toread, curaddr);
 #endif
 
 					/* Start reading at the curaddr and make that the shdr */
 					shdr = (Elf32_Shdr *)curaddr;
-
+					
 					/* Start to read... */
 					continue;
 				}
@@ -894,7 +1180,7 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 					/* Make sure that the address is page aligned... */
 					/* Symbols need to start in their own page(s)... */
 					curaddr = (curaddr + 4095) & ~4095;
-
+					
 					/* Need to make new indexes... */
 					for (i=0; i < info.elf32.e_shnum; i++)
 					{
@@ -908,8 +1194,8 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 								{
 									/* Only the extra symbols */
 									if ((shdr[i].sh_offset >= phdr[j].p_offset) &&
-									    ((shdr[i].sh_offset + shdr[i].sh_size) <=
-									     (phdr[j].p_offset + phdr[j].p_filesz)))
+										((shdr[i].sh_offset + shdr[i].sh_size) <=
+											(phdr[j].p_offset + phdr[j].p_filesz)))
 									{
 										shdr[i].sh_offset=0;
 										shdr[i].sh_size=0;
@@ -925,12 +1211,12 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 						}
 					}
 				}
-
+				
 				/* Check if we have a symbol table index and have not loaded it */
                                 if ((symtab_load == 0) && (symtabindex >= 0))
 				{
 					/* No symbol table yet?  Load it first... */
-
+					
 					/* This happens to work out in a strange way.
 					 * If we are past the point in the file already,
 					 * we will skip a *large* number of bytes which
@@ -939,21 +1225,21 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 					 * the state machine work in a cleaner way but this
 					 * is a nasty side-effect trick... */
 					skip = shdr[symtabindex].sh_offset - (loc + offset);
-
+					
 					/* And we need to read this many bytes... */
 					toread = shdr[symtabindex].sh_size;
-
+					
 					if (toread)
 					{
-#ifdef	DEBUG_ELF
+#if ELF_DEBUG
 						printf("db sym, size %X, curaddr %X\n", toread, curaddr);
 #endif
 						/* Save where we are loading this... */
 						symtab_load = curaddr;
-
+						
 						*((long *)phys_to_virt(curaddr)) = toread;
 						curaddr += sizeof(long);
-
+						
 						/* Start to read... */
 						continue;
 					}
@@ -962,25 +1248,25 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 				{
 					/* We have already loaded the symbol table, so
 					 * now on to the symbol strings... */
-
-
+					
+					
 					/* Same nasty trick as above... */
 					skip = shdr[symstrindex].sh_offset - (loc + offset);
-
+					
 					/* And we need to read this many bytes... */
 					toread = shdr[symstrindex].sh_size;
-
+					
 					if (toread)
 					{
-#ifdef	DEBUG_ELF
+#if ELF_DEBUG
 						printf("db str, size %X, curaddr %X\n", toread, curaddr);
 #endif
 						/* Save where we are loading this... */
 						symstr_load = curaddr;
-
+						
 						*((long *)phys_to_virt(curaddr)) = toread;
 						curaddr += sizeof(long);
-
+						
 						/* Start to read... */
 						continue;
 					}
@@ -994,37 +1280,26 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 			goto elf_startkernel;
 			break;
 		}
-		/* May have to fix before calling program */
-		phdr[segment].p_type |= 0x80;	/* ignore next time */
 		curaddr = phdr[segment].p_paddr;
-		skip = phdr[segment].p_offset - (loc + offset);
-		toread = phdr[segment].p_filesz;
-#ifdef	DEBUG_ELF
+		skip    = phdr[segment].p_offset - (loc + offset);
+		toread  = phdr[segment].p_filesz;
+#if ELF_DEBUG
 		printf("PHDR %d, size %#X, curaddr %#X\n",
-		       segment, toread, curaddr);
+			segment, toread, curaddr);
 #endif
 	} while (offset < len);
 
-	loc += len;
-
+	loc += len + (skip & ~0x1ff);
+	skip_sectors = skip >> 9;
+	skip &= 0x1ff;
+	
 	if (eof) {
-		int	j;
 		unsigned long entry;
-#ifdef	IMAGE_MULTIBOOT
-		unsigned char cmdline[512], *c;
-#endif
-
 elf_startkernel:
+		done();
 		entry = info.elf32.e_entry;
-		printf("done\n");
-#ifdef	DELIMITERLINES
-		for (j=0; j<80; j++)
-			putchar('=');
-		putchar('\n');
-#endif
 #ifdef IMAGE_FREEBSD
 		if (image_type == Elf_FreeBSD) {
-			cleanup();
 			memset(&info.bsdinfo, 0, sizeof(info.bsdinfo));
 			info.bsdinfo.bi_basemem = meminfo.basememsize;
 			info.bsdinfo.bi_extmem = meminfo.memsize;
@@ -1058,7 +1333,7 @@ elf_startkernel:
 				/* Where we will build the meta data... */
 				t = phys_to_virt(info.bsdinfo.bi_esymtab);
 
-#ifdef	DEBUG_ELF
+#if ELF_DEBUG
 				printf("Metadata at %X\n",t);
 #endif
 
@@ -1104,84 +1379,57 @@ elf_startkernel:
 			longjmp(restart_etherboot, -2);
 		}
 #endif
-/*
- *	If IMAGE_MULTIBOOT is not defined, we use a boot protocol for
- *	ELF images with a couple of Etherboot extensions, namely the
- *	use of a flag bit to indicate when the image will return to
- *	Etherboot, and passing certain arguments to the image.
- */
-#ifdef	IMAGE_MULTIBOOT
-		cleanup();
-		/* Etherboot limits the command line to the kernel name,
-		 * default parameters and user prompted parameters.  All of
-		 * them are shorter than 256 bytes.  As the kernel name and
-		 * the default parameters come from the same BOOTP/DHCP entry
-		 * (or if they don't, the parameters are empty), only two
-		 * strings of the maximum size are possible.  Note this buffer
-		 * can overrun if a stupid file name is chosen.  Oh well.  */
-		c = cmdline;
-		for (i = 0; KERNEL_BUF[i] != 0; i++) {
-			switch (KERNEL_BUF[i]) {
-			case ' ':
-			case '\\':
-			case '"':
-				*c++ = '\\';
-				break;
-			default:
+#if ELF_NOTES
+		if (check_ip_checksum) {
+			unsigned long bytes = 0;
+			uint16_t sum, new_sum;
+
+			sum = ipchksum(&info.elf32, sizeof(info.elf32));
+			bytes = sizeof(info.elf32);
+#if 1
+			printf("Ehdr: %hx sz: %x bytes: %x\n",
+				sum, bytes, bytes);
+#endif
+
+			new_sum = ipchksum(phdr, sizeof(phdr[0]) * info.elf32.e_phnum);
+			sum = add_ip_checksums(bytes, sum, new_sum);
+			bytes += sizeof(phdr[0]) * info.elf32.e_phnum;
+#if 1
+			printf("Phdr: %hx sz: %x bytes: %x\n",
+				new_sum, 
+				sizeof(phdr[0]) * info.elf32.e_phnum, bytes);
+#endif
+
+			for(i = 0; i < info.elf32.e_phnum; i++) {
+				if (phdr[i].p_type != PT_LOAD)
+					continue;
+				new_sum = ipchksum(phys_to_virt(phdr[i].p_paddr),
+						phdr[i].p_memsz);
+				sum = add_ip_checksums(bytes, sum, new_sum);
+				bytes += phdr[i].p_memsz;
+#if 1
+			printf("seg%d: %hx sz: %x bytes: %x\n",
+				i, new_sum, 
+				phdr[i].p_memsz, bytes);
+#endif
+
 			}
-			*c++ = KERNEL_BUF[i];
-		}
-		(void)sprintf(c, " -retaddr %#X", virt_to_phys(xend32));
-
-		info.mbinfo.flags = MULTIBOOT_MMAP_VALID | MULTIBOOT_MEM_VALID |MULTIBOOT_CMDLINE_VALID;
-		info.mbinfo.memlower = meminfo.basememsize;
-		info.mbinfo.memupper = meminfo.memsize;
-		info.mbinfo.bootdev = 0;	/* not booted from disk */
-		info.mbinfo.cmdline = cmdline;
-		info.mbinfo.e820entry_size = sizeof(struct e820entry);
-		info.mbinfo.mmap_length = 
-			info.mbinfo.e820entry_size * meminfo.map_count;
-		info.mbinfo.mmap_addr = info.mbinfo.mmap;
-		memcpy(info.mbinfo.mmap, meminfo.map, info.mbinfo.mmap_length);
-
-		/* The Multiboot 0.6 spec requires all segment registers to be
-		 * loaded with an unrestricted, writeable segment.
-		 * xstart32 does this for us.
-		 */
-
-		/* Start the kernel, passing the Multiboot information record
-		 * and the magic number.  */
-		os_regs.eax = 0x2BADB002;
-		os_regs.ebx = virt_to_phys(&info.mbinfo);
-		xstart32(entry);
-		longjmp(restart_etherboot, -2);
-#else	/* !IMAGE_MULTIBOOT, i.e. generic ELF */
-		/* Call cleanup only if program will not return */
-		if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0) {
-			cleanup();
-		}
-		{	/* new scope so we can have local variables */
-			int result;
-			result = xstart32(entry,
-				virt_to_phys(&loaderinfo), 
-				virt_to_phys(&info), 
-				virt_to_phys(BOOTP_DATA_ADDR));
-			printf("Secondary program returned %d\n", result);
-			if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0) {
-				/* We shouldn't have returned */
-				result = -2;
+			if (ip_checksum != sum) {
+				printf("Image checksum: %hx != computed checksum: %hx\n",
+					ip_checksum, sum);
+				longjmp(restart_etherboot, -2);
 			}
-			longjmp(restart_etherboot, result);
 		}
-#endif	/* IMAGE_MULTIBOOT */
+#endif
+		boot(entry);
 	}
-	return 1;
+	return skip_sectors;
 }
 #endif
 
 #ifdef WINCE_IMAGE
-static int ce_loader(unsigned char *data, unsigned int len, int eof);
-static os_download_t ce_probe(unsigned char *data, unsigned int len)
+static sector_t ce_loader(unsigned char *data, unsigned int len, int eof);
+static os_download_t wince_probe(unsigned char *data, unsigned int len)
 {
 	if (strncmp(ce_signature, data, sizeof(ce_signature)) != 0) {
 		return 0;
@@ -1189,7 +1437,7 @@ static os_download_t ce_probe(unsigned char *data, unsigned int len)
 	printf("(WINCE)");
 	return ce_loader;
 }
-static int ce_loader(unsigned char *data, unsigned int len, int eof)
+static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 {
 	unsigned char dbuffer[DSIZE];
 	int this_write = 0;
@@ -1217,10 +1465,13 @@ static int ce_loader(unsigned char *data, unsigned int len, int eof)
 	if (firsttime) 
 	{
 		d_now = sizeof(ce_signature);
-		printf("String Physical Address = %x \n", *(unsigned long *)(dbuffer+d_now));
+		printf("String Physical Address = %x \n", 
+			*(unsigned long *)(dbuffer+d_now));
 		
 		d_now += sizeof(unsigned long);
-		printf("Image Size = %d [%x]\n", *(unsigned long *)(dbuffer+d_now), *(unsigned long *)(dbuffer+d_now));
+		printf("Image Size = %d [%x]\n", 
+			*(unsigned long *)(dbuffer+d_now), 
+			*(unsigned long *)(dbuffer+d_now));
 		
 		d_now += sizeof(unsigned long);
 		dbuffer_available -= d_now;			
@@ -1238,7 +1489,8 @@ static int ce_loader(unsigned char *data, unsigned int len, int eof)
 	{
 		/* dbuffer do not have enough data to loading, copy all */
 #if 0
-		printf("[0] not_loadin = [%d], dbuffer_available = [%d] \n", not_loadin, dbuffer_available);
+		printf("[0] not_loadin = [%d], dbuffer_available = [%d] \n", 
+			not_loadin, dbuffer_available);
 		printf("[0] d_now = [%d] \n", d_now);
 #endif
 		
@@ -1253,8 +1505,10 @@ static int ce_loader(unsigned char *data, unsigned int len, int eof)
 			dbuffer_available = 0;
 			d_now = 0;
 #if 0
-			printf("[1] not_loadin = [%d], dbuffer_available = [%d] \n", not_loadin, dbuffer_available);
-			printf("[1] d_now = [%d], this_write = [%d] \n", d_now, this_write);
+			printf("[1] not_loadin = [%d], dbuffer_available = [%d] \n", 
+				not_loadin, dbuffer_available);
+			printf("[1] d_now = [%d], this_write = [%d] \n", 
+				d_now, this_write);
 #endif
 				
 			// get the next packet...
@@ -1273,8 +1527,10 @@ static int ce_loader(unsigned char *data, unsigned int len, int eof)
 			dbuffer_available -= this_write;
 			d_now += this_write;
 #if 0
-			printf("[2] not_loadin = [%d], dbuffer_available = [%d] \n", not_loadin, dbuffer_available);
-			printf("[2] d_now = [%d], this_write = [%d] \n\n", d_now, this_write);
+			printf("[2] not_loadin = [%d], dbuffer_available = [%d] \n", 
+				not_loadin, dbuffer_available);
+			printf("[2] d_now = [%d], this_write = [%d] \n\n", 
+				d_now, this_write);
 #endif
 			
 			/* dbuffer not empty, proceed processing... */
@@ -1290,7 +1546,8 @@ static int ce_loader(unsigned char *data, unsigned int len, int eof)
 			{
 #if 0				
 				printf("with remaining data to call get_x \n");
-				printf("dbuffer available = %d , d_now = %d\n", dbuffer_available, d_now);
+				printf("dbuffer available = %d , d_now = %d\n", 
+					dbuffer_available, d_now);
 #endif					
 				d_now = get_x_header(dbuffer, d_now);
 			}
@@ -1330,6 +1587,7 @@ static int get_x_header(unsigned char *dbuffer, unsigned long now)
 	if(X.addr == 0)
 	{
 		entry = X.size;
+		done();
 		printf("Entry Point Address = [%x] \n", entry);
 		jump_2ep();		
 	}
@@ -1377,7 +1635,8 @@ static void jump_2ep()
 #if defined(X86_BOOTSECTOR_IMAGE) && defined(PCBIOS)
 int bios_disk_dev = 0;
 #define BOOTSECT (0x7C00)
-static int x86_bootsector_download(unsigned char *data, unsigned int len, int eof);
+static unsigned long x86_bootsector_download(
+	unsigned char *data, unsigned int len, int eof);
 static os_download_t x86_bootsector_probe(unsigned char *data, unsigned int len)
 {
 	if (*((uint16_t *)(data + 510)) != 0xAA55) {
@@ -1386,24 +1645,63 @@ static os_download_t x86_bootsector_probe(unsigned char *data, unsigned int len)
 	printf("(X86)");
 	return x86_bootsector_download;
 }
-static int x86_bootsector_download(unsigned char *data, unsigned int len,int eof)
+static unsigned long x86_bootsector_download(unsigned char *data, unsigned int len,int eof)
 {
 	if (len != 512) {
 		printf("Wrong size bootsector\n");
 		return 0;
 	}
 	memcpy(phys_to_virt(BOOTSECT), data, len);
-	cleanup();
+	done();
 	gateA20_unset();
 	/* Set %edx to device number to emulate BIOS
 	   Fortunately %edx is not used after this */
 	__asm__("movl %0,%%edx" : : "g" (bios_disk_dev));
 	xstart16(BOOTSECT, 0, 0);
 	printf("Bootsector returned?");
+	longjmp(restart_etherboot, -2);
 	return 0;
 }
 #endif
 
+
+/**************************************************************************
+PROBE_IMAGE - Detect image file type
+**************************************************************************/
+os_download_t probe_image(unsigned char *data, unsigned int len)
+{
+	os_download_t os_download = 0;
+#if defined(ELF_IMAGE) || defined(AOUT_IMAGE) || defined(ELF64_IMAGE)
+	memcpy(&info, data, sizeof(info));
+#endif
+#ifdef AOUT_IMAGE
+	if (!os_download) os_download = aout_probe(data, len);
+#endif
+#ifdef ELF_IMAGE
+	if (!os_download) os_download = elf_probe(data, len);
+#endif
+#ifdef ELF64_IMAGE
+	if (!os_download) os_download = elf64_probe(data, len);
+#endif
+#ifdef WINCE_IMAGE
+	if (!os_download) os_download = wince_probe(data, len);
+#endif
+#ifdef TAGGED_IMAGE
+	if (!os_download) os_download = tagged_probe(data, len);
+#endif
+	/* FIXME merge the PXE loader && the X86_BOOTSECTOR_IMAGE
+	 * loader.  They may need a little BIOS context information
+	 * telling them how they booted, but otherwise they
+	 * are essentially the same code.
+	 */
+#ifdef FREEBSD_PXEEMU
+	if (!os_download) os_download = pxe_probe(data, len);
+#endif
+#ifdef X86_BOOTSECTOR_IMAGE
+	if (!os_download) os_download = x86_bootsector_probe(data, len);
+#endif
+	return os_download;
+}
 
 /**************************************************************************
 LOAD_BLOCK - Try to load file
@@ -1411,6 +1709,8 @@ LOAD_BLOCK - Try to load file
 int load_block(unsigned char *data, unsigned int block, unsigned int len, int eof)
 {
 	static os_download_t os_download;
+	static sector_t skip_sectors;
+	static unsigned int skip_bytes;
 #ifdef	SIZEINDICATOR
 	static int rlen = 0;
 
@@ -1436,29 +1736,9 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 #endif
 	if (block == 1)
 	{
-		int i;
-		os_download = 0;
-#if defined(ELF_IMAGE) || defined(AOUT_IMAGE)
-		memcpy(&info, data, sizeof(info));
-#endif
-#ifdef AOUT_IMAGE
-		if (!os_download) os_download = aout_probe(data, len);
-#endif
-#ifdef ELF_IMAGE
-		if (!os_download) os_download = elf_probe(data, len);
-#endif
-#ifdef WINCE_IMAGE
-		if (!os_download) os_download = wince_probe(data, len);
-#endif
-#ifdef FREEBSD_PXEEMU
-		if (!os_download) os_download = pxe_probe(data, len);
-#endif
-#ifdef TAGGED_IMAGE
-		if (!os_download) os_download = tagged_probe(data, len);
-#endif
-#ifdef X86_BOOTSECTOR_IMAGE
-		if (!os_download) os_download = x86_bootsector_probe(data, len);
-#endif
+		skip_sectors = 0;
+		skip_bytes = 0;
+		os_download = probe_image(data, len);
 		if (!os_download) {
 			printf("error: not a valid image\n");
 #if 0
@@ -1470,7 +1750,25 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 			return 0;
 		}
 	} /* end of block zero processing */
-	return os_download(data, len, eof);
+
+	/* Either len is greater or the skip is greater */
+	if ((skip_sectors > (len >> 9)) ||
+		((skip_sectors == (len >> 9)) && (skip_bytes >= (len & 0x1ff)))) {
+		if (skip_bytes > len) {
+			skip_bytes -= len;
+		}
+		else {
+			skip_sectors -= (len - skip_bytes + 511) >> 9;
+			skip_bytes = 512 - ((len - skip_bytes) & 0x1ff);
+		}
+	}
+	else {
+		len -= (skip_sectors << 9) + skip_bytes;
+		data += (skip_sectors << 9) + skip_bytes;
+		skip_sectors = os_download(data, len, eof);
+		skip_bytes = 0;
+	}
+	return 1;
 }
 
 /*
