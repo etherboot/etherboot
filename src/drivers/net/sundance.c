@@ -25,10 +25,10 @@
 *               Written 1999-2002 by Donald Becker
 *
 *               tulip.c: Tulip and Clone Etherboot Driver
-*               By Marty Conner 
+*               By Marty Conner
 *               Copyright (C) 2001 Entity Cyber, Inc.
-*               
-*    
+*
+*
 *
 *    REVISION HISTORY:
 *    ================
@@ -42,68 +42,36 @@
 /* to get the PCI support functions, if this is a PCI NIC */
 #include "pci.h"
 #include "timer.h"
-/* NIC specific static variables go here */
 
+/* Set the mtu */
+static int mtu = 513;
+
+/* Maximum events (Rx packets, etc.) to handle at each interrupt. */
 static int max_interrupt_work = 20;
+
+/* Maximum number of multicast addresses to filter (vs. rx-all-multicast).
+   The sundance uses a 64 element hash table based on the Ethernet CRC.  */
 static int multicast_filter_limit = 32;
+
+/* Set the copy breakpoint for the copy-only-tiny-frames scheme.
+   Setting to > 1518 effectively disables this feature.
+   This chip can receive into any byte alignment buffers, so word-oriented
+   archs do not need a copy-align of the IP header. */
 static int rx_copybreak = 0;
 
+/* Used to pass the media type, etc.
+   Both 'options[]' and 'full_duplex[]' should exist for driver
+   interoperability.
+   The media type is usually passed in 'options[]'.
+    The default is autonegotation for speed and duplex.
+	This should rarely be overridden.
+    Use option values 0x10/0x20 for 10Mbps, 0x100,0x200 for 100Mbps.
+    Use option values 0x10 and 0x100 for forcing half duplex fixed speed.
+    Use option values 0x20 and 0x200 for forcing full duplex operation.
+*/
 #define MAX_UNITS 8
 static int options[MAX_UNITS] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 static int full_duplex[MAX_UNITS] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-
-enum alta_offsets {
-    TxListPtr = 0x04,
-    TxDescPoll = 0x0a,
-    RxListPtr = 0x10,
-    RxDescPoll = 0x16,
-    ASICCtrl = 0x30,
-    EEData = 0x34,
-    EECtrl = 0x36,
-    TxStatus = 0x46,
-    DownCounter = 0x18,
-    IntrEnable = 0x4c,
-    IntrStatus = 0x4e,
-    MACCtrl0 = 0x50,
-    MACCtrl1 = 0x52,
-    StationAddr = 0x54,
-    MaxFrameSize = 0x5a,
-    RxMode = 0x5c,
-    MIICtrl = 0x5e,
-    RxStatus = 0x0c,
-
-};
-enum intr_status_bits {
-    IntrSummary = 0x0001, IntrPCIErr = 0x0002, IntrMACCtrl = 0x0008,
-    IntrTxDone = 0x0004, IntrRxDone = 0x0010, IntrRxStart = 0x0020,
-    IntrDrvRqst = 0x0040,
-    StatsMax = 0x0080, LinkChange = 0x0100,
-    IntrTxDMADone = 0x0200, IntrRxDMADone = 0x0400,
-};
-
-enum rx_mode_bits {
-    AcceptAllIPMulti = 0x20, AcceptMultiHash = 0x10, AcceptAll = 0x08,
-    AcceptBroadcast = 0x04, AcceptMulticast = 0x02, AcceptMyPhys = 0x01,
-};
-enum mac_ctrl0_bits {
-    EnbFullDuplex = 0x20,
-};
-enum mac_ctrl1_bits {
-    StatsEnable = 0x0020, StatsDisable = 0x0040, StatsEnabled = 0x0080,
-    TxEnable = 0x0100, TxDisable = 0x0200, TxEnabled = 0x0400,
-    RxEnable = 0x0800, RxDisable = 0x1000, RxEnabled = 0x2000,
-};
-
-/* Descriptor Status Bits */
-enum des_status_bits {
-    DescOwn = 0x8000,
-    DescEndPacket = 0x4000,
-    DescEndRing = 0x2000,
-    LastFrag = 0x80000000,
-    DescIntrOnTx = 0x8000,
-    DescIntrOnDMADone = 0x80000000,
-    DisableAlign = 0x00000001,
-};
 
 typedef unsigned char u8;
 typedef signed char s8;
@@ -112,47 +80,158 @@ typedef signed short s16;
 typedef unsigned int u32;
 typedef signed int s32;
 
-#define virt_to_le32desc(addr) cpu_to_le32(virt_to_bus(addr))
-#define le32desc_to_virt(addr) bus_to_virt(le32_to_cpu(addr))
+/* Condensed operations for readability. */
+#define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
+#define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
-#define MII_CNT		4
+/* Operational parameters that are set at compile time. */
 
-#define BUFLEN 1536
+/* Ring sizes are a power of two only for compile efficiency.
+   The compiler will convert <unsigned>'%'<2^N> into a bit mask.
+   There must be at least five Tx entries for the tx_full hysteresis, and
+   more than 31 requires modifying the Tx status handling error recovery.
+   Leave a inactive gap in the Tx ring for better cache behavior.
+   Making the Tx ring too large decreases the effectiveness of channel
+   bonding and packet priority.
+   Large receive rings waste memory and impact buffer accounting.
+   The driver need to protect against interrupt latency and the kernel
+   not reserving enough available memory.
+*/
+#define TX_RING_SIZE	2
+#define TX_QUEUE_LEN	10		/* Limit ring entries actually used.  */
+#define RX_RING_SIZE	4
+
+
+/* Operational parameters that usually are not changed. */
+/* Time in jiffies before concluding the transmitter is hung. */
+#define HZ 100
+#define TX_TIME_OUT	  (6*HZ)
+
+/* Allocation size of Rx buffers with normal sized Ethernet frames.
+   Do not change this value without good reason.  This is not a limit,
+   but a way to keep a consistent allocation size among drivers.
+ */
 #define PKT_BUF_SZ	1536
 
+/* Set iff a MII transceiver on any interface requires mdio preamble.
+   This only set with older tranceivers, so the extra
+   code size of a per-interface flag is not worthwhile. */
+static int mii_preamble_required = 0;
 
-/* Define the transmit and receive descriptor */
+/* Offsets to the device registers.
+   Unlike software-only systems, device drivers interact with complex hardware.
+   It's not useful to define symbolic names for every register bit in the
+   device.  The name can only partially document the semantics and make
+   the driver longer and more difficult to read.
+   In general, only the important configuration values or bits changed
+   multiple times should be defined symbolically.
+*/
+enum alta_offsets {
+	DMACtrl=0x00,     TxListPtr=0x04, TxDMACtrl=0x08, TxDescPoll=0x0a,
+	RxDMAStatus=0x0c, RxListPtr=0x10, RxDMACtrl=0x14, RxDescPoll=0x16,
+	LEDCtrl=0x1a, ASICCtrl=0x30,
+	EEData=0x34, EECtrl=0x36, TxThreshold=0x3c,
+	FlashAddr=0x40, FlashData=0x44, WakeEvent=0x45, TxStatus=0x46,
+	DownCounter=0x48, IntrClear=0x4a, IntrEnable=0x4c, IntrStatus=0x4e,
+	MACCtrl0=0x50, MACCtrl1=0x52, StationAddr=0x54,
+	MaxFrameSize=0x5A, RxMode=0x5c, MIICtrl=0x5e,
+	MulticastFilter0=0x60, MulticastFilter1=0x64,
+	RxOctetsLow=0x68, RxOctetsHigh=0x6a, TxOctetsLow=0x6c, TxOctetsHigh=0x6e,
+	TxFramesOK=0x70, RxFramesOK=0x72, StatsCarrierError=0x74,
+	StatsLateColl=0x75, StatsMultiColl=0x76, StatsOneColl=0x77,
+	StatsTxDefer=0x78, RxMissed=0x79, StatsTxXSDefer=0x7a, StatsTxAbort=0x7b,
+	StatsBcastTx=0x7c, StatsBcastRx=0x7d, StatsMcastTx=0x7e, StatsMcastRx=0x7f,
+	/* Aliased and bogus values! */
+	RxStatus=0x0c,
+};
+
+/* Bits in the interrupt status/mask registers. */
+enum intr_status_bits {
+	IntrSummary=0x0001, IntrPCIErr=0x0002, IntrMACCtrl=0x0008,
+	IntrTxDone=0x0004, IntrRxDone=0x0010, IntrRxStart=0x0020,
+	IntrDrvRqst=0x0040,
+	StatsMax=0x0080, LinkChange=0x0100,
+	IntrTxDMADone=0x0200, IntrRxDMADone=0x0400,
+};
+
+/* Bits in the RxMode register. */
+enum rx_mode_bits {
+	AcceptAllIPMulti=0x20, AcceptMultiHash=0x10, AcceptAll=0x08,
+	AcceptBroadcast=0x04, AcceptMulticast=0x02, AcceptMyPhys=0x01,
+};
+/* Bits in MACCtrl. */
+enum mac_ctrl0_bits {
+	EnbFullDuplex=0x20, EnbRcvLargeFrame=0x40,
+	EnbFlowCtrl=0x100, EnbPassRxCRC=0x200,
+};
+enum mac_ctrl1_bits {
+	StatsEnable=0x0020,	StatsDisable=0x0040, StatsEnabled=0x0080,
+	TxEnable=0x0100, TxDisable=0x0200, TxEnabled=0x0400,
+	RxEnable=0x0800, RxDisable=0x1000, RxEnabled=0x2000,
+};
+
+/* The Rx and Tx buffer descriptors.
+   Using only 32 bit fields simplifies software endian correction.
+   This structure must be aligned, and should avoid spanning cache lines.
+*/
 struct netdev_desc {
     u32 next_desc;
     u32 status;
     u32 addr;
     u32 length;
 };
-#define TX_RING_SIZE	2
 
+/* Bits in netdev_desc.status */
+enum desc_status_bits {
+	DescOwn=0x8000, DescEndPacket=0x4000, DescEndRing=0x2000,
+	DescTxDMADone=0x10000,
+	LastFrag=0x80000000, DescIntrOnTx=0x8000, DescIntrOnDMADone=0x80000000,
+};
+
+
+/* Define the TX Descriptor */
 static struct netdev_desc tx_ring[TX_RING_SIZE]
-    __attribute__ ((aligned(4)));
+    __attribute__ ((aligned(8)));
 
-static unsigned char txb[BUFLEN * TX_RING_SIZE]
-    __attribute__ ((aligned(4)));
+/* Create a static buffer of size PKT_BUF_SZ for each
+TX Descriptor.  All descriptors point to a
+part of this buffer */
+static unsigned char txb[PKT_BUF_SZ * TX_RING_SIZE];
+    __attribute__ ((aligned(8)));
 
-#define RX_RING_SIZE	4
 
+/* Define the RX Descriptor */
 static struct netdev_desc rx_ring[RX_RING_SIZE]
-    __attribute__ ((aligned(4)));
+    __attribute__ ((aligned(8)));
 
-static unsigned char rxb[RX_RING_SIZE * BUFLEN]
-    __attribute__ ((aligned(4)));
+/* Create a static buffer of size PKT_BUF_SZ for each
+RX Descriptor   All descriptors point to a
+part of this buffer */
+static unsigned char rxb[RX_RING_SIZE * PKT_BUF_SZ];
+    __attribute__ ((aligned(8)));
 
-#define TX_TIME_OUT	2*TICKS_PER_SEC
 
-/*******************
-* Global Storage 
-*******************/
-static int mii_preamble_required = 0;
 static u32 BASE;
 #define EEPROM_SIZE	128
-u8 ee_data[EEPROM_SIZE];
+
+enum pci_id_flags_bits {
+	PCI_USES_IO=1, PCI_USES_MEM=2, PCI_USES_MASTER=4,
+	PCI_ADDR0=0<<4, PCI_ADDR1=1<<4, PCI_ADDR2=2<<4, PCI_ADDR3=3<<4,
+};
+
+enum chip_capability_flags {CanHaveMII=1, KendinPktDropBug=2, };
+#define PCI_IOTYPE (PCI_USES_MASTER | PCI_USES_IO  | PCI_ADDR0)
+
+struct pci_id_info {
+    char *name;
+    struct match_info {
+        u32 pci, pci_mask, subsystem, subsystem_mask;
+        u32 revision, revision_mask;                            /* Only 8 bits. */
+    } id;
+    enum pci_id_flags_bits pci_flags;
+    int io_size;                                /* Needed for I/O region check or ioremap(). */
+    int drv_flags;                              /* Driver use, intended as capability flags. */
+};
 
 struct sundance_private {
     unsigned short vendor_id;	/* PCI Vendor code */
@@ -173,7 +252,7 @@ struct sundance_private {
     struct netdev_desc *rx_head_desc;
     unsigned int cur_tx, dirty_tx;
     unsigned int tx_full:1;
-
+	unsigned int mtu;
 
     /* These values keep track of the tranceiver/media in use */
     unsigned int full_duplex:1;	/* Full Duplex Requested */
@@ -207,8 +286,8 @@ static struct sundance_private *sdc;
 
 
 static int eeprom_read(long ioaddr, int location);
-static int mdio_read(struct nic *nic, int phy_id, int location);
-static void mdio_write(struct nic *nic, int phy_id, int location,
+static int mdio_read(struct nic *nic, int phy_id, unsigned int location);
+static void mdio_write(struct nic *nic, int phy_id, unsigned int location,
 		       int value);
 static void set_rx_mode(struct nic *nic);
 
@@ -217,7 +296,7 @@ static void check_duplex(struct nic *nic)
     int mii_reg5 = mdio_read(nic, sdc->phys[0], 5);
     int negociated = mii_reg5 & sdc->advertizing;
     int duplex;
-
+	return;
     if (sdc->duplex_lock || mii_reg5 == 0xffff)
 	return;
     duplex = (negociated & 0x0100) || (negociated & 0x01C0) == 0x0040;
@@ -237,42 +316,43 @@ static void check_duplex(struct nic *nic)
  *************************************************************************/
 static void init_ring(struct nic *nic)
 {
-    int i;
+	    int i;
 
-    sdc->cur_rx = 0;
-    sdc->rx_buf_sz = (PKT_BUF_SZ);
-    sdc->rx_head_desc = &rx_ring[0];
+	    sdc->cur_rx = 0;
+	    sdc->rx_buf_sz = (PKT_BUF_SZ);
+	    sdc->rx_head_desc = &rx_ring[0];
 
-    /* Initialize all the Rx descriptors */
-    for (i = 0; i < RX_RING_SIZE; i++) {
-	rx_ring[i].next_desc = virt_to_le32desc(&rx_ring[i + 1]);
-	rx_ring[i].status = 0;
-	rx_ring[i].length = 0;
-	rx_ring[i].addr = 0;
-    }
+	    /* Initialize all the Rx descriptors */
+	    for (i = 0; i < RX_RING_SIZE; i++) {
+		rx_ring[i].next_desc = virt_to_le32desc(&rx_ring[i + 1]);
+		rx_ring[i].status = 0;
+		rx_ring[i].length = 0;
+		rx_ring[i].addr = 0;
+	    }
 
-    /* Mark the last entry as wrapping the ring */
-    rx_ring[i - 1].next_desc = virt_to_le32desc(&rx_ring[0]);
+	    /* Mark the last entry as wrapping the ring */
+	    rx_ring[i - 1].next_desc = virt_to_le32desc(&rx_ring[0]);
 
-    for (i = 0; i < RX_RING_SIZE; i++) {
-	rx_ring[i].addr = virt_to_le32desc(&rxb[i * BUFLEN]);
-	rx_ring[i].length = cpu_to_le32(sdc->rx_buf_sz | LastFrag);
-    }
-    sdc->dirty_rx = (unsigned int) (i - RX_RING_SIZE);
+	    for (i = 0; i < RX_RING_SIZE; i++) {
+		rx_ring[i].addr = virt_to_le32desc(&rxb[i * PKT_BUF_SZ]);
+		rx_ring[i].length = cpu_to_le32(sdc->rx_buf_sz | LastFrag);
+	    }
+	    sdc->dirty_rx = (unsigned int) (i - RX_RING_SIZE);
 
-    /* We only use one transmit buffer, but two descriptors so
-     * so transmit engines have somewhere to point should they feel the need */
-    tx_ring[0].status = 0;
-    tx_ring[0].addr = virt_to_bus(&txb[0]);
-    tx_ring[0].next_desc = virt_to_bus(&tx_ring[1]);
+	    /* We only use one transmit buffer, but two descriptors so
+	     * so transmit engines have somewhere to point should they feel the need */
+	    tx_ring[0].status = 0;
+	    tx_ring[0].addr = virt_to_bus(&txb[0]);
+	    tx_ring[0].next_desc = virt_to_bus(&tx_ring[1]);
 
-    /* This descriptor is never used */
-    tx_ring[1].status = 0;
-    tx_ring[1].addr = virt_to_bus(&txb[0]);
-    tx_ring[1].next_desc = virt_to_bus(&tx_ring[0]);
+	    /* This descriptor is never used */
+	    tx_ring[1].status = 0;
+	    tx_ring[1].addr = virt_to_bus(&txb[0]);
+	    tx_ring[1].next_desc = virt_to_bus(&tx_ring[0]);
 
-/* Mark the last entry as wrapping the ring, though this should never happen */
-    tx_ring[1].length = cpu_to_le32(LastFrag | BUFLEN);
+	/* Mark the last entry as wrapping the ring, though this should never happen */
+    tx_ring[1].length = cpu_to_le32(LastFrag | PKT_BUF_SZ);
+
 }
 
 /**************************************************************************
@@ -286,8 +366,7 @@ static void sundance_reset(struct nic *nic)
 
     sdc->full_duplex = sdc->duplex_lock;
 
-    outl(virt_to_bus(&rx_ring[sdc->cur_rx % RX_RING_SIZE]),
-	 BASE + RxListPtr);
+    outl(virt_to_le32desc(&rx_ring[0]), BASE + RxListPtr);
     /* The Tx List Pointer is written as packets are queued */
 
     /* Write the MAC address to the StationAddress */
@@ -299,10 +378,8 @@ static void sundance_reset(struct nic *nic)
     /* Write the status to the MACCtrl0 register */
     outw((sdc->full_duplex || (sdc->link_status & 0x20)) ? 0x120 : 0,
 	 BASE + MACCtrl0);
-    /* FIXME Do we need to set the mtu here ? 
-     * It defaults to 1514 upon reset */
-    outw(1514, BASE + MaxFrameSize);
-    if (1514 > 2047)
+    outw(sdc->mtu, BASE + MaxFrameSize);
+    if (sdc->mtu > 2047)
 	outl(inl(BASE + ASICCtrl) | 0x0c, BASE + ASICCtrl);
 
     set_rx_mode(nic);
@@ -313,7 +390,7 @@ static void sundance_reset(struct nic *nic)
 
 
     /* Enable interupts by setting the interrupt mask */
-    outw(IntrRxDMADone | IntrPCIErr | IntrDrvRqst | IntrTxDone
+  outw(IntrRxDMADone | IntrPCIErr | IntrDrvRqst | IntrTxDone
 	 | StatsMax | LinkChange, BASE + IntrEnable);
     outw(StatsEnable | RxEnable | TxEnable, BASE + MACCtrl1);
 
@@ -348,12 +425,12 @@ static int sundance_poll(struct nic *nic)
     u32 frame_status;
     struct netdev_desc *desc;
 /*	int intr_status = inw(BASE + IntrStatus);
-	
+
 	if((intr_status & ~IntrRxDone) == 0 || intr_status == 0xffff)
 		return 0;
 
 	outw(intr_status & (IntrRxDMADone ), BASE + IntrStatus);
-	
+
 	if(!(intr_status & IntrRxDMADone))
 		return 0;
 */
@@ -373,7 +450,7 @@ static int sundance_poll(struct nic *nic)
     }
 
     /* Copy the packet to working buffer */
-    memcpy(nic->packet, rxb + (sdc->cur_rx * BUFLEN), nic->packetlen);
+    memcpy(nic->packet, rxb + (sdc->cur_rx * PKT_BUF_SZ), nic->packetlen);
 
     desc->status = 0x00000000;
     /* return the descriptor and buffer to receive ring */
@@ -387,7 +464,6 @@ static int sundance_poll(struct nic *nic)
     return 1;
 
 }
-
 
 
 /**************************************************************************
@@ -404,8 +480,8 @@ static void sundance_transmit(struct nic *nic, const char *d,	/* Destination */
 	if ((intr_status & ~IntrRxDone) == 0 || intr_status == 0xffff)
 		return;
 
-	outw(intr_status & (IntrRxDMADone | IntrPCIErr | 
-				IntrDrvRqst | IntrTxDone | IntrTxDMADone | 
+	outw(intr_status & (IntrRxDMADone | IntrPCIErr |
+				IntrDrvRqst | IntrTxDone | IntrTxDMADone |
 				StatsMax | LinkChange), BASE + IntrStatus);
 
 	if(!(intr_status & IntrTxDone))
@@ -427,8 +503,8 @@ static void sundance_transmit(struct nic *nic, const char *d,	/* Destination */
 
     /* Setup the transmit descriptor */
     tx_ring[0].length = cpu_to_le32(s | LastFrag);
-    tx_ring[0].status = cpu_to_le32(0x80000000 | DisableAlign);
-    outl(virt_to_bus(&tx_ring[0]), BASE + TxListPtr);
+    tx_ring[0].status = cpu_to_le32(0x80000000 | 0x00000001);
+    outl(virt_to_le32desc(&tx_ring[0]), BASE + TxListPtr);
     /* Enable Tx */
     outw(TxEnable, BASE + MACCtrl1);
 
@@ -441,13 +517,13 @@ static void sundance_transmit(struct nic *nic, const char *d,	/* Destination */
       				if(tx_status & 0x10) {*//* Reset the Tx */
 /*					outl(0x001c0000 | inl(BASE + ASICCtrl),
 							BASE + ASICCtrl);
-					outl(virt_to_bus(&tx_ring[0]), 
+					outl(virt_to_bus(&tx_ring[0]),
 							BASE + TxListPtr);
 				}
       				if(tx_status & 0x1e) *//* Restart the Tx */
 /*					outw(TxEnable, BASE + MACCtrl1);
 			}
-			outw(0, BASE + TxStatus);	
+			outw(0, BASE + TxStatus);
 			if(--txboguscnt <0)
 				break;
 			tx_status = inw(BASE + TxStatus);
@@ -501,6 +577,7 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 {
     struct nic *nic = (struct nic *) dev;
     int card_idx = 1;
+    u8 ee_data[EEPROM_SIZE];
     int i, option = card_idx < MAX_UNITS ? options[card_idx] : 0;
 
     if (pci->ioaddr == 0)
@@ -537,10 +614,7 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
     sdc->vendor_id = pci->vendor;
     sdc->dev_id = pci->dev_id;
     sdc->nic_name = pci->name;
-
-    /* Useful ? */
-    sdc->if_port = 0;
-    sdc->default_port = 0;
+	sdc->mtu = mtu;
 
     if (card_idx < MAX_UNITS && full_duplex[card_idx] > 0)
 	sdc->full_duplex = 1;
@@ -572,19 +646,19 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 
     /* Allow forcing the media type */
     if (option > 0) {
-	if (option & 0x220)
-	    sdc->full_duplex = 1;
-	sdc->default_port = option & 0x3ff;
-	if (sdc->default_port & 0x330) {
-	    sdc->medialock = 1;
-	    printf("%s: Forcing %dMbs %s-duplex operation.\n",
-		   (option & 0x300 ? 100 : 10),
-		   (sdc->full_duplex ? "full" : "half"));
-	    if (sdc->mii_cnt)
-		mdio_write(nic, sdc->phys[0], 0,
-			   ((option & 0x300) ? 0x2000 : 0) |
-			   (sdc->full_duplex ? 0x0100 : 0));
-	}
+	    printf("Trying to force the media type\n");
+	    if (option & 0x220)
+		    sdc->full_duplex = 1;
+	    sdc->default_port = option & 0x3ff;
+	    if (sdc->default_port & 0x330) {
+		    sdc->medialock = 1;
+		    printf("Forcing %dMbs %s-duplex operation.\n",
+			(100),
+			("half"));
+		    if (sdc->mii_cnt)
+			    mdio_write(nic, sdc->phys[0], 0,
+				0x2000|0);
+	    }
     }
 
     /* Reset the chip to erase previous misconfiguration */
@@ -607,7 +681,7 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 }
 
 
-
+/* Read the EEPROM and MII Management Data I/O (MDIO) interfaces. */
 static int eeprom_read(long ioaddr, int location)
 {
     int boguscnt = 2000;	/* Typical 190 ticks */
@@ -621,96 +695,130 @@ static int eeprom_read(long ioaddr, int location)
     return 0;
 }
 
-/* MII transceiver section */
-#define mdio_delay() inb(mdio_addr)
+/*  MII transceiver control section.
+	Read and write the MII registers using software-generated serial
+	MDIO protocol.  See the MII specifications or DP83840A data sheet
+	for details.
 
+	The maximum data clock rate is 2.5 Mhz.
+	The timing is decoupled from the processor clock by flushing the write
+	from the CPU write buffer with a following read, and using PCI
+	transaction time. */
 
-#define MDIO_EnbIn  (0)
-#define MDIO_WRITE0  (MDIO_EnbOutput)
-#define MDIO_WRITE1  (MDIO_Data | MDIO_EnbOutput)
+#define mdio_in(mdio_addr) inb(mdio_addr)
+#define mdio_out(value, mdio_addr) outb(value, mdio_addr)
+#define mdio_delay(mdio_addr) inb(mdio_addr)
 
 enum mii_reg_bits {
-    MDIO_ShiftClk = 0x0001, MDIO_Data = 0x0002, MDIO_EnbOutput = 0x0004,
+	MDIO_ShiftClk=0x0001, MDIO_Data=0x0002, MDIO_EnbOutput=0x0004,
 };
+#define MDIO_EnbIn  (0)
+#define MDIO_WRITE0 (MDIO_EnbOutput)
+#define MDIO_WRITE1 (MDIO_Data | MDIO_EnbOutput)
 
-/* Generate the preamble required for initial synchronization and a few older tranceivers */
+/* Generate the preamble required for initial synchronization and
+   a few older transceivers. */
 static void mdio_sync(long mdio_addr)
 {
-    int bits = 32;
+	int bits = 32;
 
-    /* Establish sync by sending at least 32 logic ones */
-    while (--bits >= 0) {
-	outb(MDIO_WRITE1, mdio_addr);
-	mdio_delay();
-	outb(MDIO_WRITE1 | MDIO_ShiftClk, mdio_addr);
-	mdio_delay();
-    }
+	/* Establish sync by sending at least 32 logic ones. */
+	while (--bits >= 0) {
+		mdio_out(MDIO_WRITE1, mdio_addr);
+		mdio_delay(mdio_addr);
+		mdio_out(MDIO_WRITE1 | MDIO_ShiftClk, mdio_addr);
+		mdio_delay(mdio_addr);
+	}
 }
 
-static int mdio_read(struct nic *nic, int phy_id, int location)
+static int mdio_read(struct nic *nic, int phy_id, unsigned int location)
 {
-    long mdio_addr = BASE + MIICtrl;
-    int mii_cmd = (0xf6 << 10) | (phy_id << 5) | location;
-    int i, retval = 0;
+	long mdio_addr = BASE + MIICtrl;
+	int mii_cmd = (0xf6 << 10) | (phy_id << 5) | location;
+	int i, retval = 0;
 
-    /* Assume that sync is always required */
-    mdio_sync(mdio_addr);
+	if (mii_preamble_required)
+		mdio_sync(mdio_addr);
 
-    /* Shift the read command bits out */
-    for (i = 15; i >= 0; i--) {
-	int dataval = (mii_cmd & (1 << i)) ? MDIO_WRITE1 : MDIO_WRITE0;
-	outb(dataval, mdio_addr);
-	mdio_delay();
-	outb(dataval | MDIO_ShiftClk, mdio_addr);
-	mdio_delay();
-    }
-    /* Read the two transition 16 data and wire-idel bits. */
-    for (i = 19; i > 0; i--) {
-	outb(MDIO_EnbIn, mdio_addr);
-	mdio_delay();
-	retval = (retval << 1) | ((inb(mdio_addr) & MDIO_Data) ? 1 : 0);
-	outb(MDIO_EnbIn | MDIO_ShiftClk, mdio_addr);
-	mdio_delay();
-    }
-    return (retval >> 1) & 0xffff;
+	/* Shift the read command bits out. */
+	for (i = 15; i >= 0; i--) {
+		int dataval = (mii_cmd & (1 << i)) ? MDIO_WRITE1 : MDIO_WRITE0;
+
+		mdio_out(dataval, mdio_addr);
+		mdio_delay(mdio_addr);
+		mdio_out(dataval | MDIO_ShiftClk, mdio_addr);
+		mdio_delay(mdio_addr);
+	}
+	/* Read the two transition, 16 data, and wire-idle bits. */
+	for (i = 19; i > 0; i--) {
+		mdio_out(MDIO_EnbIn, mdio_addr);
+		mdio_delay(mdio_addr);
+		retval = (retval << 1) | ((mdio_in(mdio_addr) & MDIO_Data) ? 1 : 0);
+		mdio_out(MDIO_EnbIn | MDIO_ShiftClk, mdio_addr);
+		mdio_delay(mdio_addr);
+	}
+	return (retval>>1) & 0xffff;
 }
 
-static void
-mdio_write(struct nic *nic, int phy_id, int location, int value)
+static void mdio_write(struct nic *nic, int phy_id,
+					   unsigned int location, int value)
 {
-    long mdio_addr = BASE + MIICtrl;
-    int mii_cmd =
-	(0x5002 << 16) | (phy_id << 23) | (location << 18) | value;
-    int i;
+	long mdio_addr = BASE + MIICtrl;
+	int mii_cmd = (0x5002 << 16) | (phy_id << 23) | (location<<18) | value;
+	int i;
 
-    if (mii_preamble_required)
-	mdio_sync(mdio_addr);
+	if (mii_preamble_required)
+		mdio_sync(mdio_addr);
 
-    /* Shift the bytes out */
-    for (i = 31; i >= 0; i--) {
-	int dataval = (mii_cmd & (1 << i)) ? MDIO_WRITE1 : MDIO_WRITE0;
-	outb(dataval, mdio_addr);
-	mdio_delay();
-	outb(dataval | MDIO_ShiftClk, mdio_addr);
-	mdio_delay();
-    }
+	/* Shift the command bits out. */
+	for (i = 31; i >= 0; i--) {
+		int dataval = (mii_cmd & (1 << i)) ? MDIO_WRITE1 : MDIO_WRITE0;
 
-    /* Clear the extra bits */
-    for (i = 2; i > 0; i--) {
-	outb(MDIO_EnbIn, mdio_addr);
-	mdio_delay();
-	outb(MDIO_EnbIn | MDIO_ShiftClk, mdio_addr);
-	mdio_delay();
-    }
-    return;
+		mdio_out(dataval, mdio_addr);
+		mdio_delay(mdio_addr);
+		mdio_out(dataval | MDIO_ShiftClk, mdio_addr);
+		mdio_delay(mdio_addr);
+	}
+	/* Clear out extra bits. */
+	for (i = 2; i > 0; i--) {
+		mdio_out(MDIO_EnbIn, mdio_addr);
+		mdio_delay(mdio_addr);
+		mdio_out(MDIO_EnbIn | MDIO_ShiftClk, mdio_addr);
+		mdio_delay(mdio_addr);
+	}
+	return;
+}
+
+/* The little-endian AUTODIN II ethernet CRC calculations.
+   A big-endian version is also available.
+   This is slow but compact code.  Do not use this routine for bulk data,
+   use a table-based routine instead.
+   This is common code and should be moved to net/core/crc.c.
+   Chips may use the upper or lower CRC bits, and may reverse and/or invert
+   them.  Select the endian-ness that results in minimal calculations.
+*/
+static unsigned const ethernet_polynomial_le = 0xedb88320U;
+static inline unsigned ether_crc_le(int length, unsigned char *data)
+{
+	unsigned int crc = ~0;	/* Initial value. */
+	while(--length >= 0) {
+		unsigned char current_octet = *data++;
+		int bit;
+		for (bit = 8; --bit >= 0; current_octet >>= 1) {
+			if ((crc ^ current_octet) & 1) {
+				crc >>= 1;
+				crc ^= ethernet_polynomial_le;
+			} else
+				crc >>= 1;
+		}
+	}
+	return crc;
 }
 
 static void set_rx_mode(struct nic *nic)
 {
-/*This could be filled out for Multicast and Promiscuous */
-    outb((AcceptMyPhys | AcceptBroadcast), BASE + RxMode);
-    return;
-
+	outb(AcceptBroadcast | AcceptMyPhys, BASE + RxMode);
+	return;
 }
 
 static struct pci_id sundance_nics[] = {
