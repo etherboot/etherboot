@@ -44,6 +44,8 @@ sub __gendep ($$$)
 			next unless (s/^\s*#include\s*"([^"]*)".*$/$1/);
 # Ignore system includes, like the ones in osdep.h
 			next if ($_ =~ m:^/:);
+# Ignore "special" includes, like .buildserial.h
+		        next if /^\./;
 			push(@collect_dep, $_);
 		}
 		close(INFILE);

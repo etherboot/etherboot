@@ -13,11 +13,23 @@
 #ifdef CONFIG_ISA
 #include	"isa.h"
 #endif
-
+#ifdef BUILD_SERIAL
+#include	".buildserial.h"
+#define xstr(s) str(s)
+#define str(s) #s
+#endif
 
 void print_config(void)
 {
-	printf( "Etherboot " VERSION " (GPL) http://etherboot.org\n"
+	printf( "Etherboot " VERSION
+#ifdef BUILD_SERIAL
+		" [build " 
+#ifdef BUILD_ID
+		BUILD_ID " "
+#endif
+		"#" xstr(BUILD_SERIAL_NUM) "]"
+#endif /* BUILD_SERIAL */
+		" (GPL) http://etherboot.org\n"
 		"Drivers: " );
 #ifdef CONFIG_PCI
 {

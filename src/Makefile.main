@@ -219,7 +219,7 @@ allimgs:	$(BIN)/Roms $(BUILD_IMGS)
 # Common files
 
 $(BLIB):	$(BOBJS)
-	$(AR) rv $@ $(BOBJS)
+	$(AR) r $@ $(BOBJS)
 	$(RANLIB) $@
 
 
@@ -236,10 +236,13 @@ $(BIN)/lzhuf:	util/lzhuf.c
 	$(HOST_CC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -o $@ $<
 
 # Roms file
+# Builds almost silently because this rule is triggered for just about
+# every modification to sources.
 
 $(BIN)/Roms $(BIN)/NIC:	genrules.pl $(SRCS)
-	mkdir -p $(@D)
-	$(PERL) ./genrules.pl $(BIN)/NIC $(ARCH) $(SRCS) > $(BIN)/Roms
+	@mkdir -p $(@D)
+	@echo Scanning for ROMs and dependencies...
+	@$(PERL) ./genrules.pl $(BIN)/NIC $(ARCH) $(SRCS) > $(BIN)/Roms
 
 # Pattern Rules
 
@@ -302,8 +305,49 @@ tarball: ../index.html ../index-berlios.html
 	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
 	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
 
+# Auto-incrementing build serial number.  Is auto-incremented for each
+# make run that specifies a final image file (e.g. bin/undi.zpxe) as a
+# target, or a target of the form "all*".  Enable via -DBUILD_SERIAL
+# in Config.
+
+ifneq ($(findstring -DBUILD_SERIAL,$(CFLAGS)),)
+
+# If no make goals are specified, it means "make all"
+REALGOALS = $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
+
+# Filter to see if there are any targets to trigger an auto-increment
+BUILDGOALS = $(filter all,$(REALGOALS)) $(filter all%,$(REALGOALS)) \
+	     $(foreach SUFFIX,$(SUFFIXES),$(filter %.$(SUFFIX),$(REALGOALS)))
+
+ifneq ($(strip $(BUILDGOALS)),)
+# This is an auto-incrementing build.  Forcibly rebuild .buildserial.h
+# and mark config.o as depending on it to force its rebuilding.
+bin/config.o : include/.buildserial.h
+.PHONY : include/.buildserial.h
+endif # BUILDGOALS
+
+include/.buildserial.h :
+	@if [ ! -f $@ ]; then 	echo '#define BUILD_SERIAL_NUM 0' > $@; fi
+	@perl -pi -e 's/(BUILD_SERIAL_NUM\s+)(\d+)/"$${1} ".($${2}+1)/e' $@
+
+buildserial : include/.buildserial.h
+	@perl -n -e '/BUILD_SERIAL_NUM\s+(\d+)/ && ' \
+		-e 'print "Build serial number is $$1\n";' $<
+
+else # -DBUILD_SERIAL
+
+buildserial : 
+	@echo Build serial number is disabled. Enable -DBUILD_SERIAL in Config.
+
+endif # -DBUILD_SERIAL
+
+bs : buildserial
+
 version:
 	@echo $(VERSION)
 
 romlimit:
 	@echo $(ROMLIMIT)
+
+sources:
+	@echo $(SRCS)

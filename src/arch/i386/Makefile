@@ -226,6 +226,7 @@ $(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
 		-o $@ $< $(BIN)/$*.ztmp.sym
 
 # general rules for normal/compressed ROM images, may be overridden
+SUFFIXES +=	rom zrom
 $(BIN)/%.rom: $(BIN)/%.bin $(ISAPREFIX)
 	cat $(ISAPREFIX) $< > $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT) $@
@@ -235,6 +236,7 @@ $(BIN)/%.zrom: $(BIN)/%.zbin $(ISAPREFIX)
 	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT) $@
 
 # general rules for ELF images
+SUFFIXES +=	elf zelf
 $(BIN)/elfprefix.tmp:	$(BIN)/elfprefix.o arch/i386/prefix/elfprefix.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/elfprefix.lds $< -o $@
 
@@ -250,6 +252,7 @@ $(BIN)/%.zelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/elfprefix arch/i386/prefix/appl
 	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
 # general rules for Long Mode ELF images
+SUFFIXES +=	lmelf zlmelf
 $(BIN)/lmelf_prefix.tmp:	$(BIN)/lmelf_prefix.o arch/i386/prefix/elfprefix.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/elfprefix.lds $< -o $@
 
@@ -265,10 +268,12 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
 # rules to generate a DOS loadable .com executable
+SUFFIXES +=	com
 %.com:	%.zbin $(COMPREFIX)
 	cat $(COMPREFIX) $< > $@
 
 # rules to make a LILO loadable image
+SUFFIXES +=	lilo zlilo
 %.lilo:	%.bin $(LILOPREFIX)
 	$(PERL) util/makelilo.pl $(LILOPREFIX) $< > $@
 
@@ -276,6 +281,7 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	$(PERL) util/makelilo.pl $(LILOPREFIX) $< > $@
 
 # rules to generate a PXE loadable image
+SUFFIXES +=	pxe zpxe
 %.pxe:	%.bin $(PXEPREFIX)
 	cat $(PXEPREFIX) $< > $@
 
@@ -283,6 +289,7 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	cat $(PXEPREFIX) $< > $@
 
 # rules to generate the .dsk/.zdsk floppy images
+SUFFIXES +=	dsk zdsk
 %.dsk:	%.bin $(FLOPPYPREFIX)
 	cat $(FLOPPYPREFIX) $< > $@
 
@@ -290,6 +297,7 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	cat $(FLOPPYPREFIX) $< > $@
 
 # rules to write the .img/.zimg image onto a blank floppy
+SUFFIXES +=	fd0 zfd0
 %.fd0:	%.bin $(FLOPPYPREFIX)
 	cat $(FLOPPYPREFIX) $< > /dev/fd0
 
@@ -297,6 +305,7 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	cat $(FLOPPYPREFIX) $< > /dev/fd0
 
 # rule to make a non-emulation ISO boot image
+SUFFIXES +=	iso
 %.iso:	%.zbin
 	mkdir -p $*.dir
 	cat $< > $*.dir/$(*F).bin

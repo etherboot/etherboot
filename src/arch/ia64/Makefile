@@ -108,6 +108,7 @@ $(BIN)/%.zsym: $(BIN)/%.sym $(MAKEDEPS)
 	cp -f $< $@
 
 # rules to generate efi loadable image
+SUFFIXES += efi zefi
 $(BIN)/efi_prefix.tmp:	$(BIN)/efi_prefix.o arch/ia64/prefix/efi_prefix.lds $(MAKEDEPS)
 	$(LD) -T arch/ia64/prefix/efi_prefix.lds $< -o $@
 

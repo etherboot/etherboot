@@ -2,6 +2,7 @@ ARCH_FORMAT=	coff-e1
 
 BUILD_ROMS=	$(ROMS)
 BUILD_COFFS=	$(patsubst %img, %coff, $(IMGS))
+SUFFIXES+=	rom zrom coff
 
 CC=		e1-coff-gcc
 AS=		e1-coff-as
