@@ -250,7 +250,7 @@ __asm__  __volatile__("cld\n\t" \
  __memset((s),(c),(count)))
 
 #define __HAVE_ARCH_STRNCMP
-static inline int strncmp(const char * cs,const char * ct,size_t count)
+extern inline int strncmp(const char * cs,const char * ct,size_t count)
 {
 register int __res;
 int d0, d1, d2;
@@ -273,7 +273,7 @@ return __res;
 }
 
 #define __HAVE_ARCH_STRLEN
-static inline size_t strlen(const char * s)
+extern inline size_t strlen(const char * s)
 {
 int d0;
 register int __res;
