@@ -1746,19 +1746,19 @@ void TLan_PhyMonitor(struct net_device *dev)
 
 
 static struct pci_id tlan_nics[] = {
-	PCI_ROM(0x0e11, 0xae34, "NETEL10", "Compaq Netelligent 10 T PCI UTP"),
-	PCI_ROM(0x0e11, 0xae32, "NETEL100","Compaq Netelligent 10/100 TX PCI UTP"),
-	PCI_ROM(0x0e11, 0xae35, "NETFLEX3I", "Compaq Integrated NetFlex-3/P"),
-	PCI_ROM(0x0e11, 0xf130, "THUNDER", "Compaq NetFlex-3/P"),
-	PCI_ROM(0x0e11, 0xf150, "NETFLEX3B", "Compaq NetFlex-3/P"),
-	PCI_ROM(0x0e11, 0xae43, "NETEL100PI", "Compaq Netelligent Integrated 10/100 TX UTP"),
-	PCI_ROM(0x0e11, 0xae40, "NETEL100D", "Compaq Netelligent Dual 10/100 TX PCI UTP"),
-	PCI_ROM(0x0e11, 0xb011, "NETEL100I", "Compaq Netelligent 10/100 TX Embedded UTP"),
-	PCI_ROM(0x108d, 0x0013, "OC2183", "Olicom OC-2183/2185"),
-	PCI_ROM(0x108d, 0x0012, "OC2325", "Olicom OC-2325"),
-	PCI_ROM(0x108d, 0x0014, "OC2326", "Olicom OC-2326"),
-	PCI_ROM(0x0e11, 0xb030, "NETELLIGENT_10_100_WS_5100", "Compaq Netelligent 10/100 TX UTP"),
-	PCI_ROM(0x0e11, 0xb012, "NETELLIGENT_10_T2", "Compaq Netelligent 10 T/2 PCI UTP/Coax"),
+	PCI_ROM(0x0e11, 0xae34, "netel10", "Compaq Netelligent 10 T PCI UTP"),
+	PCI_ROM(0x0e11, 0xae32, "netel100","Compaq Netelligent 10/100 TX PCI UTP"),
+	PCI_ROM(0x0e11, 0xae35, "netflex3i", "Compaq Integrated NetFlex-3/P"),
+	PCI_ROM(0x0e11, 0xf130, "thunder", "Compaq NetFlex-3/P"),
+	PCI_ROM(0x0e11, 0xf150, "netflex3b", "Compaq NetFlex-3/P"),
+	PCI_ROM(0x0e11, 0xae43, "netel100pi", "Compaq Netelligent Integrated 10/100 TX UTP"),
+	PCI_ROM(0x0e11, 0xae40, "netel100d", "Compaq Netelligent Dual 10/100 TX PCI UTP"),
+	PCI_ROM(0x0e11, 0xb011, "netel100i", "Compaq Netelligent 10/100 TX Embedded UTP"),
+	PCI_ROM(0x108d, 0x0013, "oc2183", "Olicom OC-2183/2185"),
+	PCI_ROM(0x108d, 0x0012, "oc2325", "Olicom OC-2325"),
+	PCI_ROM(0x108d, 0x0014, "oc2326", "Olicom OC-2326"),
+	PCI_ROM(0x0e11, 0xb030, "netelligent_10_100_ws_5100", "Compaq Netelligent 10/100 TX UTP"),
+	PCI_ROM(0x0e11, 0xb012, "netelligent_10_t2", "Compaq Netelligent 10 T/2 PCI UTP/Coax"),
 };
 
 static struct pci_driver tlan_driver __pci_driver = {
