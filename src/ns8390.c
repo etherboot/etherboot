@@ -866,15 +866,15 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 	nic->disable = ns8390_disable;
         /* Based on PnP ISA map */
 #ifdef	INCLUDE_WD
-        nic->devid.vendor_id = htons(0x10b8);	/* SMC */
+        nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
         nic->devid.device_id = htons(0x812a);
 #endif
 #ifdef	INCLUDE_3C503
-        nic->devid.vendor_id = htons(0x10d7);
+        nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
         nic->devid.device_id = htons(0x80f3);
 #endif
 #ifdef	INCLUDE_NE
-        nic->devid.vendor_id = htons(0x100b);	/* NS */
+        nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
         nic->devid.device_id = htons(0x80d6);
 #endif
 	return(nic);
