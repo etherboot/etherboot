@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /* rtl8139.c - etherboot driver for the Realtek 8139 chipset
 
   ported from the linux driver written by Donald Becker
@@ -278,6 +275,24 @@ static int read_eeprom(int location, int addr_len)
 	return retval;
 }
 
+static const unsigned int rtl8139_rx_config = 
+	(RX_BUF_LEN_IDX << 11) |
+	(RX_FIFO_THRESH << 13) |
+	(RX_DMA_BURST << 8);
+	
+static void set_rx_mode(struct nic *nic) {
+	unsigned int mc_filter[2];
+	int rx_mode;
+	/* !IFF_PROMISC */
+	rx_mode = AcceptBroadcast | AcceptMulticast | AcceptMyPhys;
+	mc_filter[1] = mc_filter[0] = 0xffffffff;
+
+	outl(rtl8139_rx_config | rx_mode, ioaddr + RxConfig);
+
+	outl(mc_filter[0], ioaddr + MAR0 + 0);
+	outl(mc_filter[1], ioaddr + MAR0 + 4);
+}
+	
 static void rtl_reset(struct nic* nic)
 {
 	int i;
@@ -314,15 +329,22 @@ static void rtl_reset(struct nic* nic)
 #endif
 	outl((unsigned long)virt_to_bus(rx_ring), ioaddr + RxBuf);
 
-	/* Start the chip's Tx and Rx process. */
-	outl(0, ioaddr + RxMissed);
-	/* set_rx_mode */
-	outb(AcceptBroadcast|AcceptMyPhys, ioaddr + RxConfig);
+
+
 	/* If we add multicast support, the MAR0 register would have to be
 	 * initialized to 0xffffffffffffffff (two 32 bit accesses).  Etherboot
 	 * only needs broadcast (for ARP/RARP/BOOTP/DHCP) and unicast.  */
-	outb(CmdRxEnb | CmdTxEnb, ioaddr + ChipCmd);
 
+	outb(CmdRxEnb | CmdTxEnb, ioaddr + ChipCmd);
+	
+	outl(rtl8139_rx_config, ioaddr + RxConfig);
+	
+	/* Start the chip's Tx and Rx process. */
+	outl(0, ioaddr + RxMissed);
+
+	/* set_rx_mode */
+	set_rx_mode(nic);
+	
 	/* Disable all known interrupts by setting the interrupt mask. */
 	outw(0, ioaddr + IntrMask);
 }

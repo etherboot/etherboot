@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /* rhine.c:Fast Ethernet driver for Linux. */
 /*
 	Adapted 09-jan-2000 by Paolo Marini (paolom@prisma-eng.it)
@@ -867,6 +864,19 @@ rhine_probe (struct dev *dev, struct pci_device *pci)
     return 1;
 }
 
+static void set_rx_mode(struct nic *nic __unused) {
+    	struct rhine_private *tp = (struct rhine_private *) nic->priv_data;
+	unsigned char rx_mode;
+    	int ioaddr = tp->ioaddr;
+
+	/* ! IFF_PROMISC */
+	outl(0xffffffff, byMAR0);
+	outl(0xffffffff, byMAR4);
+	rx_mode = 0x0C;
+
+	outb(0x60 /* thresh */ | rx_mode, byRCR );
+}
+
 static void
 rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 {
@@ -914,6 +924,7 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 	}
 #endif
 
+    
     /* query MII to know LineSpeed,duplex mode */
     byMIIvalue = inb (ioaddr + 0x6d);
     LineSpeed = byMIIvalue & MIISR_SPEED;
@@ -1059,6 +1070,9 @@ rhine_reset (struct nic *nic)
     /*write TD RD Descriptor to MAC */
     outl (virt_to_bus (tp->rx_ring), dwCurrentRxDescAddr);
     outl (virt_to_bus (tp->tx_ring), dwCurrentTxDescAddr);
+
+    /* Setup Multicast */	
+    set_rx_mode(nic);
 
     /* close IMR */
     outw (0x0000, byIMR0);

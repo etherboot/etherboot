@@ -41,5 +41,5 @@ system("rm -fr $tempdir");
 print "Extracting kernel image from floppy\n";
 system("mtype a:linux > /tmp/lrp.ker");
 print "Creating netboot image in /tmp/lrp.nb\n";
-system("mknbi-linux --append='$append' --output=/tmp/lrp.nb /tmp/lrp.ker /tmp/lrp.lrp");
+system("mkelf-linux --append='$append' --output=/tmp/lrp.nb /tmp/lrp.ker /tmp/lrp.lrp");
 exit 0;
