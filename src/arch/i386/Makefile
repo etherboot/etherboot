@@ -27,8 +27,8 @@ SRCS+=	arch/i386/prefix/comprefix.S
 SRCS+=	arch/i386/prefix/pxeprefix.S
 SRCS+=	arch/i386/prefix/romprefix.S
 
+SRCS+=	arch/i386/core/init.S
 SRCS+=	arch/i386/core/start32.S
-SRCS+=	arch/i386/core/start16.S
 SRCS+=	arch/i386/core/pxe.c
 SRCS+=	arch/i386/core/pci_io.c
 SRCS+=	arch/i386/core/i386_timer.c
@@ -51,17 +51,28 @@ PCIENTRY=	$(BIN)/pciprefix.entry.o
 PCIEXIT=	$(BIN)/pciprefix.exit.o
 # Variables xxx_ROMTYPE are defined by genrules.pl.  ROMENTRY and
 # ROMEXIT will evaluate to give the correct objects to use.
-ROMTYPE=PCI
-ROMENTRY=$(firstword $($(ROMTYPE_$*)ENTRY) $(ISAENTRY))
-ROMEXIT=$(firstword $($(ROMTYPE_$*)EXIT) $(ISAEXIT))
+ROMCARD=$(firstword $(subst --, ,$*))
+ROMTYPE=$(firstword $(ROMTYPE_$(ROMCARD)) ISA)
+ROMENTRY=$($(ROMTYPE)ENTRY)
+ROMEXIT=$($(ROMTYPE)EXIT)
 
+# Other real-mode entry loaders
+FLOPPYPREFIX=	$(BIN)/floppyprefix.o
+FLOPPYENTRY=	$(BIN)/floppyprefix.entry.o
+FLOPPYEXIT=	$(BIN)/floppyprefix.exit.o
+COMPREFIX=	$(BIN)/comprefix.o
+COMENTRY=	$(BIN)/comprefix.entry.o
+COMEXIT=	$(BIN)/comprefix.exit.o
+LILOPREFIX=	$(BIN)/liloprefix.o
+LILOENTRY=	$(BIN)/liloprefix.entry.o
+LILOEXIT=	$(BIN)/liloprefix.exit.o
+PXEPREFIX=	$(BIN)/pxeprefix.o
+PXEENTRY=	$(BIN)/pxeprefix.entry.o
+PXEEXIT=	$(BIN)/pxeprefix.exit.o
 
-
-FLOPPYPREFIX=	$(BIN)/floppyprefix.bin
-COMPREFIX=	$(BIN)/comprefix.bin
-LILOPREFIX=	$(BIN)/liloprefix.bin
-PXEPREFIX=	$(BIN)/pxeprefix.bin
+# ELF loader
 ELFPREFIX=	$(BIN)/elfprefix.o
+
 
 # Make sure that the relocation address is acceptable for all ROM sizes.  
 # The old setting was 0x9400 which left about 45kB of space for Etherboot.
@@ -105,18 +116,12 @@ BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
 BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
 BOBJS+=		$(BIN)/pic8259.o $(BIN)/hooks.o
 
-# Prepended loaders
-$(BIN)/floppyprefix.bin: $(BIN)/floppyprefix.o
-$(BIN)/comprefix.bin:   $(BIN)/comprefix.o
-$(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
-$(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
-
 # ROM loaders
 
-$(BIN)/isaprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
+$(ISAPREFIX):	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
-$(BIN)/pciprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
+$(PCIPREFIX):	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 	$(CPP) -DPCI_PNP_HEADER $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
 # Prefix splitters
@@ -126,54 +131,11 @@ $(BIN)/%prefix.entry.o: $(BIN)/%prefix.o $(MAKEDEPS)
 $(BIN)/%prefix.exit.o: $(BIN)/%prefix.o $(MAKEDEPS)
 	$(OBJCOPY) -R .prefix $< $@
 
-# Prefix objects
+# Generic prefix objects
 PREFIXOBJS = $(BIN)/init.o
 ZPREFIXOBJS = $(BIN)/init.o $(BIN)/unnrv2b.o
 
-# 16 to 32bit transition
-$(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
-	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@
-
-# floppy / hard disk loader (not used)
-
-$(BIN)/boot1a.bin: arch/i386/prefix/boot1a.s $(MAKEDEPS)
-	as --defsym FLAGS=0x80 arch/i386/prefix/boot1a.s -o $(BIN)/boot1a.o
-	ld -nostdlib -static -N -e start -Ttext 0x7c00 -o $(BIN)/boot1a.out $(BIN)/boot1a.o
-	objcopy -S -O binary $(BIN)/boot1a.out $(BIN)/boot1a.bin
-	$(RM) $(BIN)/boot1a.o $(BIN)/boot1a.out
-
-# floppy loader
-
-$(BIN)/floppyprefix.o: arch/i386/prefix/floppyprefix.S $(MAKEDEPS)
-	$(CPP) $< | $(AS) $(ASFLAGS) -o $(BIN)/floppyprefix.o
-
-$(BIN)/floppyprefix.bin: $(BIN)/floppyprefix.o
-	objcopy -O binary $< $(BIN)/floppyprefix.bin
-	$(RM) $(BIN)/floppyprefix.o
-
-# PXE prefix
-
-$(BIN)/pxeprefix.s:	arch/i386/prefix/pxeprefix.S $(MAKEDEPS)
-	$(CPP) -o $@ $<
-
-$(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
-	$(LD) -Ttext 0x7c00 $(LDBINARY) -o $@ $<
-
-# COM prefix
-
-$(BIN)/comprefix.s:	arch/i386/prefix/comprefix.S $(MAKEDEPS)
-	$(CPP) -o $@ $<
-
-# LILO prefix:
-
-$(BIN)/liloprefix.s:	arch/i386/prefix/liloprefix.S $(MAKEDEPS)
-	$(CPP) -o $@ $<
-
-$(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
-	$(LD) -Ttext 0x7c00 $(LDBINARY) -o $@ $<
-
 # Utilities
-
 $(BIN)/nrv2b:	util/nrv2b.c
 	$(HOST_CC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -DNDEBUG -DBITSIZE=32 -DENDIAN=0 -o $@ $<
 
@@ -200,42 +162,10 @@ $(BIN)/%.o:	arch/i386/prefix/%.S $(MAKEDEPS)
 $(BIN)/%.o:	$(BIN)/%.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-# Rules for linking start16 to the compressed or uncompressed images.
-# These are done using the linker rather than cat, because we now want
-# to be able to use symbols from the %.sym files and symbols derived
-# from the size of the image with a linker script.
-$(BIN)/%.bin:	$(BIN)/%.img $(BIN)/%.sym $(BIN)/start16.o \
-		arch/i386/core/start16.lds
-	$(LD) --accept-unknown-input-arch -T arch/i386/core/start16.lds \
-		--oformat binary -o $@ \
-		$(BIN)/start16.o $(BIN)/$*.sym -b binary $<
-
-$(BIN)/%.zbin:	$(BIN)/%.zimg $(BIN)/%.zsym $(BIN)/start16.o \
-		arch/i386/core/start16z.lds
-	$(LD) --accept-unknown-input-arch -T arch/i386/core/start16z.lds \
-		--oformat binary -o $@ \
-		$(BIN)/start16.o $(BIN)/$*.zsym -b binary $<
-
 # general rule for .bin (plain binary loader code), may be overridden
 $(BIN)/%.bin:	$(BIN)/%.o
 	$(LD) -Ttext 0x10000 $(LDBINARY) -o $@ $<
 
-
-
-
-$(BIN)/%.rom.rt: $(BIN)/%.rt.o $(ISAEXIT) $(PCIEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ \
-		$< $(ROMEXIT)
-
-$(BIN)/%.zrom.prtmp: $(ISAENTRY) $(PCIENTRY) $(ZPREFIXOBJS) $(BIN)/%.rom.rt2.zo $(BIN)/%.rt.o $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
-		$(ROMENTRY) $(ZPREFIXOBJS) $(BIN)/$*.rom.rt2.zo $(BIN)/$*.rt.o $(ROMEXIT)
-
-$(BIN)/%.prf: $(BIN)/%.prtmp $(MAKEDEPS)
-	$(OBJCOPY) -j .prefix $< $@
-
-$(BIN)/%.prf.bin: $(BIN)/%.prf $(MAKEDEPS)
-	$(OBJCOPY) -O binary $< $@
 
 # general rule for .z (compressed binary code), may be overridden
 # rule for .z is in top level Makefile
@@ -244,31 +174,28 @@ $(BIN)/%.prf.bin: $(BIN)/%.prf $(MAKEDEPS)
 $(BIN)/%.zo:	$(BIN)/%.zbin arch/i386/core/prefixdata.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/core/prefixdata.lds -b binary $< -o $@
 
-$(BIN)/%.ztmp:	$(BIN)/%.zo $(BIN)/unnrv2b.o \
-		arch/i386/prefix/unhuf.lds $(MAKEDEPS)
-	$(LD) -T arch/i386/prefix/unhuf.lds $(BIN)/unnrv2b.o $< -o $@
-
-$(BIN)/%.zimg: $(BIN)/%.ztmp $(MAKEDEPS)
-	$(OBJCOPY) -O binary $< $@
-
-# Generate .zsym files containing symbols from decompressor alongside
-# symbols from .sym file
-$(BIN)/%.ztmp.allsym: $(BIN)/%.ztmp $(MAKEDEPS)
-	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=__decompressor_ $< $@
-
-$(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
-	$(LD) --accept-unknown-input-arch --oformat symbolsrec -r \
-		-o $@ $< $(BIN)/$*.ztmp.sym
-
 # general rules for normal/compressed ROM images, may be overridden
 SUFFIXES +=	rom zrom
-$(BIN)/%.rom: $(BIN)/%.bin $(ISAPREFIX)
-	$(LDPREFIX) -o $@ $(ISAPREFIX) bin/$*.sym -b binary $< 
-	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) $(MAKEROM_ID_$*) -i$(IDENT) $@
+
+$(BIN)/%.rom.rt: $(BIN)/%.rt.o $(ISAEXIT) $(PCIEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ \
+		$< $(ROMEXIT)
+
+$(BIN)/%.rom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
+		$(ROMENTRY) $(PREFIXOBJS) $< $(ROMEXIT)
+
+$(BIN)/%.zrom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(ZPREFIXOBJS) $(BIN)/%.rom.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
+		$(ROMENTRY) $(ZPREFIXOBJS) $(BIN)/$*.rom.rt2.zo $< $(ROMEXIT)
+
+$(BIN)/%.rom: $(BIN)/%.rom.prf.bin $(BIN)/%.rom.rt.bin
+	cat $^ > $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$(ROMCARD)) $(MAKEROM_ID_$(ROMCARD)) -i$(IDENT) $@
 
 $(BIN)/%.zrom: $(BIN)/%.zrom.prf.bin $(BIN)/%.rom.rt1.bin
 	cat $^ > $@
-	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) $(MAKEROM_ID_$*) -i$(IDENT) $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$(ROMCARD)) $(MAKEROM_ID_$(ROMCARD)) -i$(IDENT) $@
 
 # general rules for ELF images
 SUFFIXES +=	elf zelf

@@ -431,30 +431,15 @@ foreach my $family (sort keys %pcient) {
 		my $img = basename($family);
 		next if ($ids eq '-');
 		print <<EOF;
-\$(BIN)/$rom.rom:	\$(BIN)/$img.bin \$(PCIPREFIX)
-	\$(LDPREFIX) -o \$@ \$(PCIPREFIX) bin/$img.sym -b binary \$<
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
-
-\$(BIN)/$rom--%.rom:	\$(BIN)/$img--%.bin \$(PCIPREFIX)
-	\$(LDPREFIX) -o \$@ \$(PCIPREFIX) bin/$img--\$*.sym -b binary \$<
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
-
 ROMTYPE_$rom = PCI
 MAKEROM_ID_$rom = -p $ids
-
-\$(BIN)/$rom.XXXzrom:	\$(BIN)/$img.zrom.prf.bin \$(BIN)/$img.rt1.bin
-	cat \$^ > \$@
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
-
-\$(BIN)/$rom--%.zrom:	\$(BIN)/$img--%.zbin \$(PCIPREFIX)
-	\$(LDPREFIX) -o \$@ \$(PCIPREFIX) bin/$img--\$*.sym -b binary \$<
-	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
 EOF
 		next if($rom eq $img);
 		print <<EOF;
-\$(BIN)/$rom.img:	\$(BIN)/$img.img
+\$(BIN)/$rom\%rom: \$(BIN)/$img\%rom
 	cat \$< > \$@
+	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$(ROMCARD)) \$(MAKEROM_ID_\$(ROMCARD)) -i\$(IDENT) \$@
 
 EOF
 	}
@@ -463,10 +448,7 @@ EOF
 # ISA ROMs are prepared from the matching code images
 foreach my $isa (sort keys %isalist) {
 	print <<EOF;
-\$(BIN)/$isa.rom:		\$(ISAPREFIX) \$(BIN)/$isa.bin
-
-\$(BIN)/$isa.zrom:	\$(ISAPREFIX) \$(BIN)/$isa.zbin
-
+# Think this can probably be removed, but not sure
 EOF
 }
 

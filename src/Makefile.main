@@ -271,13 +271,15 @@ $(BIN)/etherboot.o: $(DOBJS)
 $(BIN)/etherboot-pci.o: $(PCIOBJS)
 	$(LD) -r $(PCIOBJS) -o $@
 
-# general rules for generating runtime (rt) files
+# General rules for generating runtime (rt) files
 $(BIN)/%.rt.o:  $(BIN)/%.o $(START) $(BIN)/config.o $(LIBS) $(STDDEPS) $(MAKEDEPS)
 	$(LD) -r $(START) $(BIN)/config.o $< $(LIBS) -o $@
 	@$(SIZE) $@ | $(CHECKSIZE)
 
+#   Rule for $(BIN)/%.FORMAT.rt is architecture and target-format specific
+
 $(BIN)/%.rt.bin: $(BIN)/%.rt $(MAKEDEPS)
-	$(OBJCOPY) -O binary $< $@
+	$(OBJCOPY) -O binary -R .prefix $< $@
 
 $(BIN)/%.rt1.bin: $(BIN)/%.rt $(MAKEDEPS)
 	$(OBJCOPY) -O binary -j .text.nocompress $< $@
@@ -285,10 +287,11 @@ $(BIN)/%.rt1.bin: $(BIN)/%.rt $(MAKEDEPS)
 $(BIN)/%.rt2.bin: $(BIN)/%.rt $(MAKEDEPS)
 	$(OBJCOPY) -O binary -R .prefix -R .text.nocompress $< $@
 
-# Rules for generating symbol files
+# Rules for generating prefix binary files
 
-$(BIN)/%.sym: $(BIN)/%.rt $(MAKEDEPS)
-	$(OBJCOPY) -x -O symbolsrec $< $@
+#   Rule for $(BIN)/%.FORMAT.prf is architecture and target-format specific
+$(BIN)/%.prf.bin: $(BIN)/%.prf $(MAKEDEPS)
+	$(OBJCOPY) -j .prefix -O binary $< $@
 
 # general rule for .z (compressed binary code), may be overridden
 $(BIN)/%.zbin: $(BIN)/%.bin $(BIN)/nrv2b $(MAKEDEPS)
