@@ -2546,6 +2546,12 @@ VALID_LINK_TIMEOUT.
 when probing, from information provided by Paolo Salvan, so that the
 super etherboot image is more useful.
 
-+ Proof of concept of a TFTP to HTTP proxy in contrib/t2hproxy/.
++ Proof of concept of a TFTP to HTTP proxy in contrib/t2hproxy/. Usable
+Java version now also available.
+
++ Multicast support for the ns8390 (NE, WD, etc) added by Timothy Legge.
+
++ Provide config access to alternate DHCP/BOOTP ports. The macro
+ALTERNATE_DHCP_PORTS_1067_1068 switches to ports 1067 and 1068.
 
 Released as Etherboot 5.2.2 (production)
