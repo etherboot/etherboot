@@ -2746,4 +2746,9 @@ Released as Etherboot 5.3.10 aka 5.4RC1 (development)
 
 + Changes to segment scheme to make large compressed images work.
 
-+ Patch from Jan Kiszka fixing TFTP blocksize requested.
++ .zelf images can be built now but still don't run properly. .zrom
+image may be broken.
+
++ Start of a .exe prefix which should allow payloads > 64kB.
+
+Released as Etherboot 5.3.11 aka 5.4RC2 (development)

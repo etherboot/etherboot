@@ -24,6 +24,7 @@ SRCS+=	arch/i386/prefix/liloprefix.S
 SRCS+=	arch/i386/prefix/elfprefix.S
 SRCS+=	arch/i386/prefix/lmelf_prefix.S
 SRCS+=	arch/i386/prefix/comprefix.S
+SRCS+=	arch/i386/prefix/exeprefix.S
 SRCS+=	arch/i386/prefix/pxeprefix.S
 SRCS+=	arch/i386/prefix/romprefix.S
 
@@ -64,6 +65,9 @@ DSKEXIT=	$(BIN)/floppyprefix.exit.o
 COMPREFIX=	$(BIN)/comprefix.o
 COMENTRY=	$(BIN)/comprefix.entry.o
 COMEXIT=	$(BIN)/comprefix.exit.o
+EXEPREFIX=	$(BIN)/exeprefix.o
+EXEENTRY=	$(BIN)/exeprefix.entry.o
+EXEEXIT=	$(BIN)/exeprefix.exit.o
 LILOPREFIX=	$(BIN)/liloprefix.o
 LILOENTRY=	$(BIN)/liloprefix.entry.o
 LILOEXIT=	$(BIN)/liloprefix.exit.o
@@ -252,6 +256,17 @@ $(BIN)/%.com.prf: $(BIN)/%.rt.o $(COMENTRY) $(COMEXIT) $(PREFIXOBJS) $(LDSCRIPT)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(COMENTRY) $(PREFIXOBJS) $< $(COMEXIT)
 
 $(BIN)/%.com: $(BIN)/%.com.prf.bin $(BIN)/%.com.rt.bin
+	cat $^ > $@
+
+# rules to generate a DOS loadable .exe executable
+SUFFIXES +=	exe
+$(BIN)/%.exe.rt: $(BIN)/%.rt.o $(EXEEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(EXEEXIT)
+
+$(BIN)/%.exe.prf: $(BIN)/%.rt.o $(EXEENTRY) $(EXEEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(EXEENTRY) $(PREFIXOBJS) $< $(EXEEXIT)
+
+$(BIN)/%.exe: $(BIN)/%.exe.prf.bin $(BIN)/%.exe.rt.bin
 	cat $^ > $@
 
 # rules to make a LILO loadable image

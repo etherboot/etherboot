@@ -1,4 +1,7 @@
-Etherboot 5.3.10 aka 5.4RC1 (Release Date 2004-11-26)
+Etherboot 5.3.11 aka 5.4RC2 (Release Date 2004-12-19)
+
+This release is unstable. Large .z* images like etherboot-pci.zdsk should work
+now, but .zrom may be broken.
 
 To generate ISO images you will to get need syslinux and/or isolinux
 separately. Google for them. If you have a very old BIOS and .liso

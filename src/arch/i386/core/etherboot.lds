@@ -98,6 +98,8 @@ SECTIONS {
 	_verbatim_size = _verbatim_end - _verbatim_start + _zfile_size;
 	/* _verbatim_size is the actual amount that has to be copied to
 	base memory */
+	_verbatim_size_tail = _verbatim_size % 512;
+	_verbatim_size_pages = (_verbatim_size + 511) / 512;
 	_runtime_size = _runtime_end - _runtime_start ;
 	_image_size = _prefix_size + _runtime_size + _zfile_size;
 	/* _image_size is the amount of base memory needed to run,
