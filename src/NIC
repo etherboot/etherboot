@@ -217,6 +217,9 @@ sk_g16		-		Schneider and Koch G16
 family		drivers/net/smc9000
 smc9000		-		SMC9000
 
+family		drivers/net/sundance
+sundance	-		Sundande ST201 Alta
+
 family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
 
