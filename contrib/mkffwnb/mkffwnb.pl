@@ -188,6 +188,7 @@ for my $i (glob('packages/pre-*.ini packages/post-*.ini')) {
 &dostounix("network.ini", "etc/network.init");
 &dostounix("firewall.ini", "etc/firewall.init");
 &dostounix("syslog.cfg", "etc/syslog.conf");
+&dostounix("packages/timeinfo", "etc/localtime");
 system("cp -p licenses/* $tempmount/licenses/");
 # This conditional code is for 1.1.2 and below
 unless (glob('modules/*.bz2')) {

@@ -2507,3 +2507,14 @@ hyperspace.
 + Put http://etherboot.org in prompt and ID string.
 
 Released as Etherboot 5.2.0 (production)
+
++ Print F? if no filename in DHCP offer.
+
++ Make lance.c throw a compile error if -DRELOCATE is used.
+
++ pcnet32 driver ported by Timothy Legge.
+
++ Reinstate boot1a.s in arch/i386/prefix. The binary may have some uses;
+it boots with vmware although the image fails later in the emulation.
+
+Released as Etherboot 5.2.1 (production)

@@ -188,7 +188,8 @@ main.5:		mov %dx,MEM_ARG			# Save args
 		mov $msg_r1,%si
 		callw putstr
 		pop %si
-		ljmp $0x800,$0			# enter the rom code
+		lcall $0x800,$0			# enter the rom code
+		int $0x19
 
 msg_r1:		.asciz " done\r\n"
 		
