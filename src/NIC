@@ -151,10 +151,11 @@ dfe538		0x1186,0x1300	D-Link DFE538TX
 
 family		drivers/net/via-rhine
 dlink-530tx-old	0x1106,0x3043	Rhine-I
-dlink-530tx	0x1106,0x3065
+dlink-530tx	0x1106,0x3065	VIA 6102
 # Rhine-II
-via-rhine-old	0x1106,0x6100
-via-rhine	0x1106,0x3065
+via-rhine-old	0x1106,0x6100	VIA 86C100A
+via-rhine	0x1106,0x3065	VIA 6102
+via-rhine-6105	0x1106,0x3106	VIA 6105
 
 family		drivers/net/w89c840
 winbond840	0x1050,0x0840	Winbond W89c840
