@@ -232,19 +232,17 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	@$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size )
 	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
-
-# rules to write the .rom/.zrom image onto a blank floppy
-# Give the directory name, e.g. $(BIN)/rtl8139.zfd0 as the target.
-%.fd0:	%.rom $(DISKLOADER)
-	cat $(DISKLOADER) $< > /dev/fd0
-
-%.zfd0:	%.zrom $(DISKLOADER)
-	cat $(DISKLOADER) $< > /dev/fd0
-
 # rules to generate a .com executable
 # Give the directory name, e.g. use $(BIN)/rtl8139.com as the target.
 %.com:	%.zimg $(COMPREFIX)
 	cat $(COMPREFIX) $< > $@
+
+# rules to make a LILO-bootable image
+%.lilo:		%.img $(LILOPREFIX) $(START16)
+	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync of=$@
+
+%.zlilo:	%.zimg $(LILOPREFIX) $(START16)
+	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync of=$@
 
 # rules to generate a pxe loadable image
 %.pxe:	%.img $(PXEPREFIX) $(START16)
@@ -253,16 +251,18 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 %.zpxe:	%.zimg $(PXEPREFIX) $(START16)
 	cat $(PXEPREFIX) $(START16) $< > $@
 
-# You must give the directory name, e.g. use $(BIN)/rtl8139.dsk as the target.
-%.dsk:	%.rom $(DISKLOADER) 
-	cat $(DISKLOADER) $< | dd ibs=36k conv=sync > $@
+# Give the directory name, e.g. $(BIN)/rtl8139.dsk as the target.
+%.dsk:	%.img $(DISKLOADER) $(START16)
+	$(PERL) util/builddsk.pl $(DISKLOADER) $(START16) $< > $@
 
-%.zdsk:	%.zrom $(DISKLOADER)
-	cat $(DISKLOADER) $< | dd ibs=36k conv=sync > $@
+%.zdsk:	%.zimg $(DISKLOADER) $(START16)
+	$(PERL) util/builddsk.pl $(DISKLOADER) $(START16) $< > $@
 
-# rules to make a LILO-bootable image
-%.lilo:		%.img $(LILOPREFIX) $(START16)
-	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync > $@
+# rules to write the .img/.zimg image onto a blank floppy
+# Give the directory name, e.g. $(BIN)/rtl8139.zfd0 as the target.
+%.fd0:	%.img $(DISKLOADER) $(START16)
+	$(PERL) util/builddsk.pl $(DISKLOADER) $(START16) $< > /dev/fd0
+	cat $(DISKLOADER) $(START16) $< > /dev/fd0
 
-%.zlilo:	%.zimg $(LILOPREFIX) $(START16)
-	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync > $@
+%.zfd0:	%.zimg $(DISKLOADER) $(START16)
+	$(PERL) util/builddsk.pl $(DISKLOADER) $(START16) $< > /dev/fd0

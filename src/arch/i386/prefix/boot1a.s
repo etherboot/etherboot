@@ -1,6 +1,7 @@
 #
 # Copyright (c) 1998 Robert Nordier
 # All rights reserved.
+#
 # Very small bootrom changes by Luigi Rizzo
 # <comment author="Luigi Rizzo">
 # I recently had the problem of downloading the etherboot code
@@ -10,7 +11,7 @@
 # which works both for floppies and hard disks -- basically you
 # do something like
 # 
-# 	cat boot1a bin32/<yourcard>.lzrom > /dev/ad0s4
+# 	cat boot1a.bin start16.bin bin/<yourcard>.zimg > /dev/ad0s4
 # 
 # (or whatever is the HD partition you are using, I am using slice
 # 4 on FreeBSD) and you are up and running.
@@ -41,8 +42,6 @@
 #
 #
 
-# $FreeBSD: src/sys/boot/i386/boot2/boot1.s,v 1.10.2.2 2000/07/07 21:12:32 jhb Exp $
-
 # Memory Locations
 		.set MEM_REL,0x700		# Relocation address
 		.set MEM_ARG,0x900		# Arguments
@@ -66,45 +65,13 @@
 		.set SIZ_SEC,0x200		# Sector size
 
 		.globl start
-		.globl xread
 		.code16
 
 start:		jmp main			# Start recognizably
 
-		.org 0x4,0x90
-# 
-# Trampoline used by boot2 to call read to read data from the disk via
-# the BIOS.  Call with:
-#
-# %cx:%ax	- long    - LBA to read in
-# %es:(%bx)	- caddr_t - buffer to read data into
-# %dl		- byte    - drive to read from
-# %dh		- byte    - num sectors to read
-# 
+blockcount:	.word	36			# if unmodified loads 18kB
 
-xread:		push %ss			# Address
-		pop %ds				#  data
-#
-# Setup an EDD disk packet and pass it to read
-# 
-xread.1:					# Starting
-		pushl $0x0			#  absolute
-		push %cx			#  block
-		push %ax			#  number
-		push %es			# Address of
-		push %bx			#  transfer buffer
-		xor %ax,%ax			# Number of
-		movb %dh,%al			#  blocks to
-		push %ax			#  transfer
-		push $0x10			# Size of packet
-		mov %sp,%bp			# Packet pointer
-		callw read			# Read from disk
-		lea 0x10(%bp),%sp		# Clear stack
-		lret				# To far caller
-# 
-# Load the rest of boot2 and BTX up, copy the parts to the right locations,
-# and start it all up.
-#
+		.org 0x4,0x90
 
 #
 # Setup the segment registers to flat addressing (segment 0) and setup the
@@ -176,59 +143,52 @@ main.4: 	xor %dx,%dx			# Partition:drive
 # entry point is relative to MEM_USR; thus boot2.bin starts at 0xb000.
 # 
 main.5:		mov %dx,MEM_ARG			# Save args
-		movb $0x2,%dh			# Sector count
-		mov $0x7e00, %bx
-		callw nreadbx			# Read disk
-		cmpw $0xaa55, 0x7e00+0x200	# rom signature ?
-		jnz booterror
-		movb 0x7e00+0x202,%dh		# Sector count
-		incb %dh
-		movb %dh, %al
-		callw puthex
-		mov $0x7e00, %bx
+		xorb %dh,%dh			# 0 means use blockcount
+		mov $0x7e00,%bx
 		callw nreadbx			# Read disk
 		push %si
 		mov $msg_r1,%si
 		callw putstr
 		pop %si
-		ljmp $0x800,$6			# enter the rom code
+		ljmp $0x800,$0			# enter the rom code
 
 msg_r1:		.asciz " done\r\n"
+
+# 
+# Trampoline used to call read to read data from the disk via the BIOS.
+# Call with:
+#
+# %cx:%ax	- long    - LBA to read in
+# %es:(%bx)	- caddr_t - buffer to read data into
+# %dl		- byte    - drive to read from
+# %dh		- byte    - num sectors to read
+# 
+
+#
+# Setup an EDD disk packet and pass it to read
+# 
+xread:						# Starting
+		pushl $0x0			#  absolute
+		push %cx			#  block
+		push %ax			#  number
+		push %es			# Address of
+		push %bx			#  transfer buffer
+		xor %ax,%ax			# Number of
+		movb %dh,%al			#  blocks to transfer
+		cmpw $0,%ax			# 0 means use blockcount
+		jne xread.1
+		movw %cs:MEM_REL+blockcount-start,%ax
+xread.1:
+		push %ax			# putword destroys %ax
+		callw putword
+		push $0x10			# Size of packet
+		mov %sp,%bp			# Packet pointer
+		callw read			# Read from disk
+		lea 0x10(%bp),%sp		# Clear stack
+		lret				# To far caller
 		
-.if 0
-		mov $MEM_BTX,%bx		# BTX
-		mov 0xa(%bx),%si		# Get BTX length and set
-		add %bx,%si			#  %si to start of boot2.bin
-		mov $MEM_USR+SIZ_PAG,%di	# Client page 1
-		mov $MEM_BTX+0xe*SIZ_SEC,%cx	# Byte
-		sub %si,%cx			#  count
-		rep				# Relocate
-		movsb				#  client
-		sub %di,%cx			# Byte count
-		xorb %al,%al			# Zero assumed bss from
-		rep				#  the end of boot2.bin
-		stosb				#  up to 0x10000
-		callw seta20			# Enable A20
-		jmp start+MEM_JMP-MEM_ORG	# Start BTX
 # 
-# Enable A20 so we can access memory above 1 meg.
-# 
-seta20: 	cli				# Disable interrupts
-seta20.1:	inb $0x64,%al			# Get status
-		testb $0x2,%al			# Busy?
-		jnz seta20.1			# Yes
-		movb $0xd1,%al			# Command: Write
-		outb %al,$0x64			#  output port
-seta20.2:	inb $0x64,%al			# Get status
-		testb $0x2,%al			# Busy?
-		jnz seta20.2			# Yes
-		movb $0xdf,%al			# Enable
-		outb %al,$0x60			#  A20
-		sti				# Enable interrupts
-		retw				# To caller
-.endif
-# 
-# Trampoline used to call read from within boot1.
+# Trampoline used to call xread
 # 
 nread:		mov $MEM_BUF,%bx		# Transfer buffer
 nreadbx:					# same but address is in bx
@@ -240,7 +200,7 @@ nreadbx:					# same but address is in bx
 		pop %ax
 		pop %bx
 		push %cs			# Read from
-		callw xread.1	 		#  disk
+		callw xread	 		#  disk
 		jnc return			# If success, return
 		mov $msg_read,%si		# Otherwise, set the error
 						#  message and fall through to
@@ -296,6 +256,7 @@ putchar:	push %ax
 ereturn:	movb $0x1,%ah			# Invalid
 		stc				#  argument
 return: 	retw				# To caller
+
 # 
 # Reads sectors from the disk.  If EDD is enabled, then check if it is
 # installed and use it if it is.  If it is not installed or not enabled, then
