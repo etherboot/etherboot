@@ -119,7 +119,7 @@ close(STDIN);
 
 # Generate the assignments to DOBJS and BINS
 print "# Driver object files and ROM image files\n";
-print "IMG3S2\t:=\n";
+print "IMGS\t:=\n";
 print "DOBJS\t:=\n";
 foreach my $img (sort keys %buildent) {
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
@@ -206,6 +206,11 @@ foreach my $family (sort keys %pcient) {
 	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
+EOF
+		next if($rom eq $img);
+		print <<EOF;
+\$(BIN)/$rom.img:	\$(BIN)/$img.img
+	cat \$< > \$@
 EOF
 	}
 }
