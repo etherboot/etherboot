@@ -69,8 +69,8 @@ mfgstr:
 
 PCI: 
 	.ascii	"PCIR"
-	.word 0x8086			/* vendor ID, filled in by makerom */
-	.word 0x1229			/* device ID, filled in by makerom */
+	.word 0x0000			/* vendor ID, filled in by makerom */
+	.word 0x0000			/* device ID, filled in by makerom */
 	.word 0x0000			/* pointer to vital product data */
 	.word 0x0018			/* PCI data structure length */
 	.byte 0x00			/* PCI data structure revision */
