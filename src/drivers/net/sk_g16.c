@@ -749,7 +749,6 @@ static int SK_probe(struct dev *dev, unsigned short *probe_addrs)
 	unsigned short		*p;
 	static unsigned short	io_addrs[] = SK_IO_PORTS;
 	/* if probe_addrs is 0, then routine can use a hardwired default */
-	putchar('\n');
 	nic->priv_data = &p_data;
 	if (probe_addrs == 0)
 		probe_addrs = io_addrs;

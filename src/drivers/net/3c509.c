@@ -311,7 +311,7 @@ eeprom_rdy(void)
 	for (i = 0; is_eeprom_busy(IS_BASE) && i < MAX_EEPROMBUSY; i++);
 	if (i >= MAX_EEPROMBUSY) {
 		/* printf("3c509: eeprom failed to come ready.\n"); */
-		printf("3c509: eeprom busy.\n"); /* memory in EPROM is tight */
+		/* printf("3c509: eeprom busy.\n"); /* memory in EPROM is tight */
 		return (0);
 	}
 	return (1);
@@ -405,7 +405,7 @@ static int t509_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 
 	__t509_disable();		/* in case board was active */
 
-	for (failcount = 0; failcount < 4000; failcount++) {
+	for (failcount = 0; failcount < 100; failcount++) {
 		int data, j, io_base, id_port;
 		unsigned short k;
 		int ep_current_tag;
@@ -429,7 +429,7 @@ static int t509_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 		 * time option.
 		 *
 		 */
-		printf("\nWarning: Assuming presence of MCA bus\n");
+		/* printf("\nWarning: Assuming presence of MCA bus\n"); */
 
                 /* Make sure motherboard setup is off */
                 outb_p(0xff, MCA_MOTHERBOARD_SETUP_REG);
@@ -469,7 +469,7 @@ static int t509_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 			ep_current_tag--;
 		}
 		else
-			printf("MCA Card not found\n");
+			/*printf("MCA Card not found\n")*/;
 #endif
 	/* Look for the EISA boards, leave them activated */
 	/* search for the first card, ignore all others */
@@ -621,7 +621,7 @@ static int t509_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 	dev->devid.device_id = htons(0x80f7);
 	return 1;
 no3c509:
-	printf("(probe fail)");
+	/* printf("(probe fail)"); */
 	}
 	return 0;
 }

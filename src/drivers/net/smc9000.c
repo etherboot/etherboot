@@ -402,11 +402,6 @@ static int smc9000_probe(struct dev *dev, unsigned short *probe_addrs)
 #endif
       0 };
 
-   printf("\nSMC9000 %s\n", smc9000_version);
-#ifdef	SMC9000_VERBOSE
-   printf("Copyright (C) 1998 Daniel Engstr\x94m\n");
-   printf("Copyright (C) 1996 Eric Stahlman\n");
-#endif
    /* if no addresses supplied, fall back on defaults */
    if (probe_addrs == 0 || probe_addrs[0] == 0)
      probe_addrs = portlist;
@@ -473,6 +468,12 @@ static int smc9000_probe(struct dev *dev, unsigned short *probe_addrs)
    /* now, reset the chip, and put it into a known state */
    smc_reset(smc9000_base);
 
+   printf("SMC9000 %s\n", smc9000_version);
+#ifdef	SMC9000_VERBOSE
+   printf("Copyright (C) 1998 Daniel Engstr\x94m\n");
+   printf("Copyright (C) 1996 Eric Stahlman\n");
+#endif
+
    printf("%s rev:%d I/O port:%hX Interface:%s RAM:%d bytes \n",
 	  version_string, revision & 0xF,
 	  smc9000_base, if_string, memory );
@@ -510,7 +511,7 @@ static int smc9000_probe(struct dev *dev, unsigned short *probe_addrs)
 
 out:
 #ifdef	SMC9000_VERBOSE
-   printf("No SMC9000 adapters found\n");
+   /* printf("No SMC9000 adapters found\n"); */
 #endif
    smc9000_base = 0;
 
