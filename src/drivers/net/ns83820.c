@@ -69,7 +69,7 @@ typedef signed int s32;
 /* NIC specific static variables go here */
 
 /* Global parameters.  See MODULE_PARM near the bottom. */
-static int ihr = 2;
+// static int ihr = 2;
 static int reset_phy = 0;
 static int lnksts = 0;		/* CFG_LNKSTS bit polarity */
 
@@ -330,7 +330,7 @@ static int lnksts = 0;		/* CFG_LNKSTS bit polarity */
 	dprintf(("kick_rx: maybe kicking\n")); \
 		writel(virt_to_le32desc(&rx_ring[ns->cur_rx]), ns->base + RXDP); \
 		if (ns->next_rx == ns->next_empty) \
-			dprintf(("uh-oh: next_rx == next_empty???\n"));\
+			printf("uh-oh: next_rx == next_empty???\n"); \
 		__kick_rx(); \
 } while(0)
 
@@ -670,7 +670,7 @@ static void ns83820_check_intr(struct nic *nic) {
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int ns83820_poll(struct nic *nic)
+static int ns83820_poll(struct nic *nic, int retrieve)
 {
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
@@ -682,26 +682,27 @@ static int ns83820_poll(struct nic *nic)
 
 	cmdsts = le32_to_cpu(rx_ring[entry].cmdsts);
 
-	if ((CMDSTS_OWN & (cmdsts)) && (cmdsts != CMDSTS_OWN)) {
-		if (CMDSTS_OK & cmdsts) {
-			int len = cmdsts & 0xffff;
-			nic->packetlen = len;
-			memcpy(nic->packet,
-			       rxb + (entry * REAL_RX_BUF_SIZE),
-			       nic->packetlen);
-//			rx_ring[entry].link = 0;
-			rx_ring[entry].cmdsts =
-			    cpu_to_le32(CMDSTS_OWN);
+	if ( ! ( (CMDSTS_OWN & (cmdsts)) && (cmdsts != (CMDSTS_OWN)) ) )
+	  return 0;
 
-			ns->cur_rx = ++ns->cur_rx % NR_RX_DESC;
+	if ( ! retrieve ) return 1;
 
-			if (ns->cur_rx == 0)	/* We have wrapped the ring */
-				kick_rx();
-			return 1;
-		}
+	if (! (CMDSTS_OK & cmdsts) )
+	  return 0;
 
-	}
-	return 0;		/* initially as this is called to flush the input */
+	nic->packetlen = cmdsts & 0xffff;
+	memcpy(nic->packet,
+	       rxb + (entry * REAL_RX_BUF_SIZE),
+	       nic->packetlen);
+	//			rx_ring[entry].link = 0;
+	rx_ring[entry].cmdsts = cpu_to_le32(CMDSTS_OWN);
+
+	ns->cur_rx = ++ns->cur_rx % NR_RX_DESC;
+
+	if (ns->cur_rx == 0)	/* We have wrapped the ring */
+	  kick_rx();
+
+	return 1;
 }
 
 static inline void kick_tx(struct nic *nic __unused)
@@ -790,6 +791,21 @@ static void ns83820_disable(struct dev *dev)
 }
 
 /**************************************************************************
+IRQ - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void ns83820_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
+/**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 
@@ -821,6 +837,10 @@ static int ns83820_probe(struct dev *dev, struct pci_device *pci)
 
 	if (!ns->base)
 		return 0;
+
+	nic->irqno  = 0;
+	nic->ioaddr = pci->ioaddr & ~3;
+
 	/* disable interrupts */
 	writel(0, ns->base + IMR);
 	writel(0, ns->base + IER);
@@ -979,9 +999,10 @@ static int ns83820_probe(struct dev *dev, struct pci_device *pci)
 
 	ns83820_reset(nic);
 	/* point to NIC specific routines */
-	dev->disable = ns83820_disable;
-	nic->poll = ns83820_poll;
+	dev->disable  = ns83820_disable;
+	nic->poll     = ns83820_poll;
 	nic->transmit = ns83820_transmit;
+	nic->irq      = ns83820_irq;
 	return 1;
 }
 
