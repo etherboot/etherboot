@@ -350,7 +350,7 @@ typedef struct {
 
 	/* one of these will be returned for PXENV_UNDI_ISR_IN_START */
 #	define PXENV_UNDI_ISR_OUT_OURS		0
-#	define PXENV_UNDI_ISR_OUT_NOT_OUTS	1
+#	define PXENV_UNDI_ISR_OUT_NOT_OURS	1
 
 	/*
 	 * one of these will bre returnd for PXEND_UNDI_ISR_IN_PROCESS
@@ -358,7 +358,7 @@ typedef struct {
 	 */
 #	define PXENV_UNDI_ISR_OUT_DONE		0
 #	define PXENV_UNDI_ISR_OUT_TRANSMIT	2
-#	define PXENV_UNDI_ISR_OUT_RECIEVE	3
+#	define PXENV_UNDI_ISR_OUT_RECEIVE	3
 #	define PXENV_UNDI_ISR_OUT_BUSY		4
 } PACKED t_PXENV_UNDI_ISR;
 
