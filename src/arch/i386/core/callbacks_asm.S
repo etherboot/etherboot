@@ -591,11 +591,22 @@ process_ecr_params_done:
  ****************************************************************************
  */
 
-#define IC_OFFSET_FLAGS ( 0 )
-#define IC_OFFSET_REGISTERS ( IC_OFFSET_FLAGS + 4 )
-#define IC_OFFSET_SEG_REGS ( IC_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
-#define IC_OFFSET_GDT ( IC_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
-#define IC_OFFSET_RETADDR ( IC_OFFSET_GDT + 8 )
+#define IC_OFFSET_VA_LIST_PTR ( 0 )
+#define IC_OFFSET_VA_LIST_PTR_E ( IC_OFFSET_VA_LIST_PTR + 4 )
+#define IC_OFFSET_FLAGS ( IC_OFFSET_VA_LIST_PTR_E )
+#define IC_OFFSET_FLAGS_E ( IC_OFFSET_FLAGS + 4 )
+#define IC_OFFSET_REGISTERS ( IC_OFFSET_FLAGS_E )
+#define IC_OFFSET_REGISTERS_E ( IC_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
+#define IC_OFFSET_SEG_REGS ( IC_OFFSET_REGISTERS_E )
+#define IC_OFFSET_SEG_REGS_E ( IC_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
+#define IC_OFFSET_GDT ( IC_OFFSET_SEG_REGS_E )
+#define IC_OFFSET_GDT_E ( IC_OFFSET_GDT + 8 )
+#define IC_OFFSET_RETADDR ( IC_OFFSET_GDT_E )
+#define IC_OFFSET_RETADDR_E ( IC_OFFSET_RETADDR + 8 )
+#define IC_OFFSET_ORIG_STACK ( IC_OFFSET_RETADDR )
+#define IC_OFFSET_OPCODE ( IC_OFFSET_ORIG_STACK + 8 )
+#define IC_OFFSET_OPCODE_E ( IC_OFFSET_OPCODE + 4 )
+#define IC_OFFSET_VA_LIST ( IC_OFFSET_OPCODE_E )
 	
 	.globl _in_call
 	.globl _in_call_far
@@ -614,8 +625,15 @@ _in_call_far:
 	pushw	%gs
 	/* Store general-purpose register values */
 	pushal
+	/* Replace %esp in store with physical %esp value on entry */
+	leal	(IC_OFFSET_ORIG_STACK - IC_OFFSET_REGISTERS)(%esp), %eax
+	movl	%eax, (IC_OFFSET_REGISTERS - IC_OFFSET_REGISTERS + 12)(%esp)
 	/* Store flags */
 	pushfl
+	/* Store va_list pointer (physical address) */
+	leal	(IC_OFFSET_VA_LIST - IC_OFFSET_VA_LIST_PTR_E)(%esp), %eax
+	pushl	%eax
+	/* IC_OFFSET_*(%esp) are now valid */
 
 	/*
 	 * See where I am running, and compute virt_offset.  Yes,
@@ -627,7 +645,7 @@ _in_call_far:
 1:	popl	%ebp
 	subl	$1b, %ebp
 	movl	%ebp, virt_offset(%ebp)
-	
+
 	/* Fixup the gdt */
 	leal	_pmcs(%ebp), %eax
 	pushl	%eax
@@ -649,17 +667,33 @@ _in_call_far:
 1:
 	/* reload other segment registers */
 	movl	$KERN_DATA_SEG, %eax
-	movl	%eax,%ds
-	movl	%eax,%es
-	movl	%eax,%ss
-	movl	%eax,%fs
-	movl	%eax,%gs
+	movl	%eax, %ds
+	movl	%eax, %es
+	movl	%eax, %ss
+	movl	%eax, %fs
+	movl	%eax, %gs
 
 	/* Fixup the stack pointer */
 	subl	%ebp, %esp
 
 	/* Restore interrupt status */
 	popfl
+
+	/* Fixup the va_list pointer */
+	subl	%ebp, IC_OFFSET_VA_LIST_PTR(%esp)
+
+	/* Check opcode for EB_USE_INTERNAL_STACK flag */
+	movl	IC_OFFSET_OPCODE(%esp), %eax
+	testl	$EB_USE_INTERNAL_STACK, %eax
+	je	1f
+	/* Use internal stack flag set */
+	movl	%esp, %esi		/* %esi = original stack */
+	leal	_estack, %esp		/* %esp = top of internal stack */
+	movl	$IC_OFFSET_OPCODE_E, %ecx /* %ecx = length to transfer */
+	subl	%ecx, %esp		/* %esp = internal stack pos */
+	movl	%esp, %edi		/*  = %edi */
+	rep movsb			/* Copy data to internal stack */
+1:
 
 	/* Call to C code */
 	call	in_call
@@ -680,12 +714,14 @@ _in_call_far:
 	/* Restore caller's GDT */
 	cli				/* Temporarily disable interrupts */
 	lgdt	(8+IC_OFFSET_GDT)(%esp)
+	/* Reset %ss and adjust %esp */
 	movw	%ax, %ss
 	addl	%ebp, %esp
 	lret				/* Reload %cs:eip, flush prefetch */
-	
-1:	/* Reset %ss and adjust %esp */
+1:
 
+	/* Skip va_list ptr */
+	popl	%eax
 	/* Restore flags (including revert of interrupt status) */
 	popfl
 	/* Reload general-purpose registers to be returned */
@@ -696,7 +732,12 @@ _in_call_far:
 	popw	%es
 	popw	%ds
 	addl	$(4+8), %esp	/* Skip %cs, %ss and GDT (already reloaded) */
-	
+
+	/* Restore physical %esp from entry.  It will only be
+	 * different if EB_USE_INTERNAL_STACK was specified.
+	 */
+	movl	( 12 + IC_OFFSET_REGISTERS - IC_OFFSET_RETADDR )(%esp), %esp
+		
 	cmpl	$0, 0(%esp)		/* Check for near/far return */
 	je	2f
 1:	/* far return */
