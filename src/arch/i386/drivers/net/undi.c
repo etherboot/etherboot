@@ -27,10 +27,6 @@ $Id$
 /* 8259 PIC defines */
 #include "pic8259.h"
 
-#ifndef PXELOADER_KEEP_ALL
-#error You must use PXELOADER_KEEP_ALL with the UNDI driver at present
-#endif
-
 /* NIC specific static variables go here */
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 		       NULL, NULL, 0, NULL, 0, NULL,
