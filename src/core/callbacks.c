@@ -68,7 +68,8 @@ int v_ext_call_check ( void *address, va_list ap ) {
 			return 0;
 		}
 	}
-	printf ( "End of argument list\n" );
+	printf ( "End of argument list.  Breakpoint at physical %x\n",
+		 virt_to_phys(extcall_breakpoint) );
 	return 1;
 }
 

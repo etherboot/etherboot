@@ -67,6 +67,7 @@
 /* Function prototypes */
 extern int _ext_call ( void *address, ... );
 extern int _v_ext_call ( void *address, va_list ap );
+extern void extcall_breakpoint ( void );
 #define ext_call(address, ...) \
 	_ext_call( (void*)(address), ##__VA_ARGS__, EXTCALL_END_LIST )
 
