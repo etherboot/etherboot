@@ -29,6 +29,13 @@ To get bochs running you will need:
    time you start bochs, make the script "ifup.tun" in this directory
    setuid-root.  If you don't know how to do this, don't do it.
 
+5. An Etherboot ROM image.  By default, bochs will use the file
+   "ne.zrom" in the Etherboot build directory (i.e. src/bin/ne.zrom).
+   Bochs emulates only an NE2000 ISA NIC, so this is practically the
+   only image that can be used.  You will need to make sure that it is
+   built before starting bochs by running "make bin/ne.zrom" in the
+   src directory.
+
 That should be all that is required.  Start bochs by running "bochs"
 (*not* as root).  Choose option 5 to start simulation.  You should see
 Etherboot start up, detect the NIC and start attempting to boot.
