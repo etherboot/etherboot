@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /**************************************************************************
 ETHERBOOT -  BOOTP/TFTP Bootstrap Program
 
@@ -122,7 +119,7 @@ static void t509_reset(struct nic *nic)
 
 	outw(SET_INTR_MASK, BASE + EP_COMMAND);
 
-	outw(SET_RX_FILTER | FIL_INDIVIDUAL | FIL_BRDCST, BASE + EP_COMMAND);
+	outw(SET_RX_FILTER | FIL_GROUP | FIL_INDIVIDUAL | FIL_BRDCST, BASE + EP_COMMAND);
 
 	/* configure BNC */
 	if (connector == bnc) {

@@ -41,6 +41,7 @@
 *    ================
 *    v1.0	07-08-2003	timlegge	Initial not quite working version
 *    v1.1	07-27-2003	timlegge	Sync 5.0 and 5.1 versions
+*    v1.2	08-19-2003	timlegge	Implement Multicast Support
 *    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -56,6 +57,8 @@
 #include "timer.h"
 #include "tlan.h"
 
+#define drv_version "v1.2"
+#define drv_date "08-19-2003"
 
 /* NIC specific static variables go here */
 #define HZ 100
@@ -805,6 +808,22 @@ static void tlan_disable(struct nic *nic __unused)
 	outl(TLAN_HC_AD_RST, BASE + TLAN_HOST_CMD);
 }
 
+static void TLan_SetMulticastList(struct nic *nic) {
+	int i;
+	u8 tmp;
+
+	/* !IFF_PROMISC */
+	tmp = TLan_DioRead8(BASE, TLAN_NET_CMD);
+	TLan_DioWrite8(BASE, TLAN_NET_CMD, tmp & ~TLAN_NET_CMD_CAF);
+
+	/* IFF_ALLMULTI */
+	for(i = 0; i< 3; i++)
+		TLan_SetMac(nic, i + 1, NULL);
+	TLan_DioWrite32(BASE, TLAN_HASH_1, 0xFFFFFFFF);
+	TLan_DioWrite32(BASE, TLAN_HASH_2, 0xFFFFFFFF);
+
+	
+}
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
@@ -827,6 +846,8 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 		return 0;
 
 	BASE = pci->ioaddr;
+	printf("\n");
+	printf("tlan.c: %s, %s Written by Timothy Legge (tlegge@rogers.com)\n", drv_version, drv_date);
 	printf("%s: Probing for Vendor 0x%hX, Device 0x%hX",
 	       pci->name, pci->vendor, pci->dev_id);
 
@@ -881,6 +902,8 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 	data |= TLAN_HC_INT_OFF;
 	outw(data, BASE + TLAN_HOST_CMD);
 
+	TLan_SetMulticastList(nic);
+	udelay(100);
 	priv->txList = tx_ring;
 	priv->rxList = rx_ring;
 /*	if (board_found && valid_link)
