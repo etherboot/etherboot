@@ -30,10 +30,12 @@ void arch_relocated_from ( uint32_t old_addr ) {
 }
 
 void arch_on_exit ( int exit_status __unused ) {
+#ifdef PCBIOS
 	/* Deallocate the real-mode stack now.  We will probably use
 	 * it after this point, but we need to free up the memory and
 	 * we probably aren't going to allocate any more after this,
 	 * so it should be safe.
 	 */
 	forget_real_mode_stack();
+#endif
 }
