@@ -580,7 +580,7 @@ static int init_drive(struct harddisk_info *info, struct controller *ctrl, int s
 			if ((sizeof(sector_t) < sizeof(uint64_t)) &&
 				drive_info[103] || drive_info[102]) {
 				/* FIXME use a 64bit sector number */
-				printf("Drive to big\n");
+				printf("Drive too big\n");
 				return -1;
 			} 
 			info->sectors = 
@@ -638,7 +638,7 @@ static int init_controller(struct controller *ctrl, int basedrive, unsigned char
 	/* Put the drives ide channel in a know state and wait
 	 * for the drives to spinup.  
 	 *
-	 * In practice IDE disks to not respond to commands until
+	 * In practice IDE disks tend not to respond to commands until
 	 * they have spun up.  This makes IDE hard to deal with
 	 * immediately after power up, as the delays can be quite
 	 * long, so we must be very careful here.
@@ -652,7 +652,7 @@ static int init_controller(struct controller *ctrl, int basedrive, unsigned char
 	 *   BSY_SET_DURING_SPINUP to 0.
 	 *
 	 * - The BSY bit floats high when no drives are plugged in.
-	 *   This case will not be deteced except by timeing out but
+	 *   This case will not be deteced except by timing out but
 	 *   we avoid the problems by only probing devices we are
 	 *   supposed to boot from.  If we don't do the probe we
 	 *   will not experience the problem.
@@ -677,7 +677,7 @@ static int init_controller(struct controller *ctrl, int basedrive, unsigned char
 	 *
 	 * For now I will go with just sending commands to the drives
 	 * and assuming filtering out missing drives by detecting registers
-	 * that won't set and, commands that fail to execute properly.
+	 * that won't set and commands that fail to execute properly.
 	 */
 
 	/* Now initialize the individual drives */
