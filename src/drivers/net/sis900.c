@@ -67,6 +67,7 @@ static BufferDesc rxd[NUM_RX_DESC];
 static unsigned char txb[TX_BUF_SIZE];
 static unsigned char rxb[NUM_RX_DESC * RX_BUF_SIZE];
 
+#if 0
 static struct mac_chip_info {
     const char *name;
     u16 vendor_id, device_id, flags;
@@ -78,6 +79,7 @@ static struct mac_chip_info {
       PCI_COMMAND_IO|PCI_COMMAND_MASTER, SIS900_TOTAL_SIZE},
     {0,0,0,0,0} /* 0 terminated list. */
 };
+#endif
 
 static void sis900_read_mode(struct nic *nic, int phy_addr, int *speed, int *duplex);
 static void amd79c901_read_mode(struct nic *nic, int phy_addr, int *speed, int *duplex);
@@ -132,8 +134,9 @@ static u16  sis900_read_eeprom(int location);
 static void sis900_mdio_reset(long mdio_addr);
 static void sis900_mdio_idle(long mdio_addr);
 static u16  sis900_mdio_read(int phy_id, int location);
+#if 0
 static void sis900_mdio_write(int phy_id, int location, int val);
-
+#endif
 static void sis900_init(struct nic *nic);
 
 static void sis900_reset(struct nic *nic);
@@ -146,9 +149,11 @@ static void sis900_check_mode(struct nic *nic);
 
 static void sis900_transmit(struct nic *nic, const char *d, 
                             unsigned int t, unsigned int s, const char *p);
-static int  sis900_poll(struct nic *nic);
+static int  sis900_poll(struct nic *nic, int retrieve);
 
 static void sis900_disable(struct dev *dev);
+
+static void sis900_irq(struct nic *nic, irq_action_t action);
 
 /**
  *	sis900_get_mac_addr: - Get MAC address for stand alone SiS900 model
@@ -193,7 +198,7 @@ static int sis900_get_mac_addr(struct pci_device * pci_dev __unused, struct nic 
  *	MAC address is read into @net_dev->dev_addr.
  */
 
-static int sis96x_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
+static int sis96x_get_mac_addr(struct pci_device * pci_dev __unused, struct nic *nic)
 {
 /* 	long ioaddr = net_dev->base_addr; */
 	long ee_addr = ioaddr + mear;
@@ -322,6 +327,8 @@ static int sis900_probe(struct dev *dev, struct pci_device *pci)
     if (pci->ioaddr == 0)
         return 0;
 
+    nic->irqno  = 0;
+    nic->ioaddr = pci->ioaddr & ~3;
     ioaddr  = pci->ioaddr & ~3;
     vendor  = pci->vendor;
     dev_id  = pci->dev_id;
@@ -411,6 +418,7 @@ static int sis900_probe(struct dev *dev, struct pci_device *pci)
     dev->disable  = sis900_disable;
     nic->poll     = sis900_poll;
     nic->transmit = sis900_transmit;
+    nic->irq      = sis900_irq;
 
     return 1;
 }
@@ -539,6 +547,7 @@ static u16 sis900_mdio_read(int phy_id, int location)
     return retval;
 }
 
+#if 0
 static void sis900_mdio_write(int phy_id, int location, int value)
 {
     long mdio_addr = ioaddr + mear;
@@ -578,6 +587,7 @@ static void sis900_mdio_write(int phy_id, int location, int value)
     outl(0x00, mdio_addr);
     return;
 }
+#endif
 
 
 /* Function: sis900_init
@@ -1151,7 +1161,7 @@ sis900_transmit(struct nic  *nic,
  */
 
 static int
-sis900_poll(struct nic *nic)
+sis900_poll(struct nic *nic, int retrieve)
 {
     u32 rx_status = rxd[cur_rx].cmdsts;
     int retstat = 0;
@@ -1166,6 +1176,8 @@ sis900_poll(struct nic *nic)
         printf("sis900_poll: got a packet: cur_rx:%d, status:%X\n",
                cur_rx, rx_status);
 
+    if ( ! retrieve ) return 1;
+    
     nic->packetlen = (rx_status & DSIZE) - CRC_SIZE;
 
     if (rx_status & (ABORT|OVERRUN|TOOLONG|RUNT|RXISERR|CRCERR|FAERR)) {
@@ -1216,6 +1228,30 @@ sis900_disable(struct dev *dev)
     
     /* Stop the chip's Tx and Rx Status Machine */
     outl(RxDIS | TxDIS | inl(ioaddr + cr), ioaddr + cr);
+}
+
+
+/* Function: sis900_irq
+ *
+ * Description: Enable, Disable, or Force, interrupts
+ *    
+ * Arguments: struct nic *nic:          NIC data structure
+ *            irq_action_t action:      Requested action       
+ *
+ * Returns:   void.
+ */
+
+static void
+sis900_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
 }
 
 static struct pci_id sis900_nics[] = {
