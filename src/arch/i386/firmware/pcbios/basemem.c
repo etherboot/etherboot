@@ -78,12 +78,21 @@ void * _allot_base_memory ( size_t size ) {
 	/* Calculate address of memory allocated */
 	ptr = phys_to_virt ( FREE_BASE_MEMORY );
 
-#ifdef DEBUG_BASEMEM
 	/* Zero out memory.  We do this so that allocation of
 	 * already-used space will show up in the form of a crash as
 	 * soon as possible.
+	 *
+	 * Update: there's another reason for doing this.  If we don't
+	 * zero the contents, then they could still retain our "free
+	 * block" markers and be liable to being freed whenever a
+	 * base-memory allocation routine is next called.
 	 */
 	memset ( ptr, 0, size_kb << 10 );
+
+#ifdef DEBUG_BASEMEM
+	printf ( "Allocated %d kB at [%x,%x)\n", size_kb,
+		 virt_to_phys ( ptr ),
+		 virt_to_phys ( ptr ) + size_kb * 1024 );
 #endif
 
 	return ptr;
