@@ -2376,6 +2376,32 @@ driver.
 + Fotis Andritsopoulos found a small bug in cs89x0.h, TX_AFTER_ALL
 should be 0x0C0.
 
-+ Brilliant idea by Eric Biederman. Ignore DHCP offers with zero server
++ Great idea by Eric Biederman. Ignore DHCP offers with zero server
 IP, or null filename unless DEFAULT_BOOTFILE is defined. This will
 ignore most Windows DHCP servers.
+
++ Patrik Weiskircher sent in a patch for rtl8139.c to bring it up to
+date with the Linux driver.
+
+Released as Etherboot 5.0.7 (production)
+
++ Andrew Ip sent in a patch to support the VIA 6103 PHY in the SiS900
+driver.
+
++ Change wait_for_cmd_done in eepro100.c to call udelay(1) up to 1000
+times. May fix problems with recent EEPRO100 firmware.
+
++ Add entry for ADMTek Tulip clone with device ID 0x9511.
+
++ Add entry for EEPRO100 with device ID 0x103b.
+
++ Add entry for clone RTL8139 with vendor ID of PCI_ANY_ID. Edit
+pci.c to treat this as a wildcard. But ROM makers will have to
+substitute the real vendor ID before making the ROM.
+
++ Steal serial.c from Eric Biederman's work on 5.1.2. Good, one less
+assembler routine.
+
++ Include fix from Michael Brown for traffic stopping after about
+20MB on downloads via Prism due to unacknowledged INFO events eating
+up memory.
