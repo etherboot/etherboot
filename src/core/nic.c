@@ -757,11 +757,13 @@ static int bootp(void)
 	unsigned long  starttime;
 	unsigned char *bp_vend;
 
+#ifndef	NO_DHCP_SUPPORT
 	dhcp_machine_info[4] = nic.dev.devid.bus_type;
 	dhcp_machine_info[5] = nic.dev.devid.vendor_id & 0xff;
 	dhcp_machine_info[6] = ((nic.dev.devid.vendor_id) >> 8) & 0xff;
 	dhcp_machine_info[7] = nic.dev.devid.device_id & 0xff;
 	dhcp_machine_info[8] = ((nic.dev.devid.device_id) >> 8) & 0xff;
+#endif	/* NO_DHCP_SUPPORT */
 	memset(&ip, 0, sizeof(struct bootpip_t));
 	ip.bp.bp_op = BOOTP_REQUEST;
 	ip.bp.bp_htype = 1;
