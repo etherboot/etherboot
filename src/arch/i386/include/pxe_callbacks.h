@@ -24,6 +24,7 @@ typedef struct {
 /* Function prototypes
  */
 extern pxe_stack_t * install_pxe_stack ( void *base );
+extern void use_undi_ds_for_rm_stack ( uint16_t ds );
 extern int hook_pxe_stack ( void );
 extern int unhook_pxe_stack ( void );
 extern void remove_pxe_stack ( void );
