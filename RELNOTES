@@ -1,0 +1,39 @@
+Etherboot 5.3.0
+
+Here are some things you should be aware of:
+
+There is a bug in the Perl supplied with RH9 (and possibly RH8). It
+assumes UTF-8 even with the use bytes pragma. Either get an updated Perl
+package or set LANG to en_US (or whatever your language name is, the
+important thing is without the .UTF-8 suffix).
+
+You can build an image that contains all the drivers. It's called
+etherboot.zdsk (and other suffixes). It is advisable to restrict the
+drivers to either ISA or PCI to reduce the footprint and also to avoid
+unnecessary probing of the bus you don't have. Also note that if the
+.com image is larger than 64kB, it will not work because .com images can
+only carry 64kB worth of code.
+
+The Quit option (formerly called Local) when ASK_PROMPT is defined will
+take you back to the invoking environment, which is the BIOS for .zrom
+images, DOS for .com images and nothing for .zdsk images.  Therefore if
+you are booting from floppy, the behaviour of Q is undefined.  It is
+unknown what LILO and other bootloaders do if a .zlilo image returns,
+probably they don't expect a return.  Also note that the Q option will
+also become undefined if anything is partially loaded that overwrites
+the return trail to the environment.
+
+The .lzdsk images used to work from a raw hard disk in 5.0 but the 5.1
+.zdsk doesn't any more because it's too hard to support large images
+with the old boot1a.s. Since very few people boot from a raw hard disk
+(flash disks and supporting BIOSes seem to have some kind of filesystem
+on it already rather than work like a raw hard disk) this is not going
+to be fixed. Instead, you should use a bootloader like LILO to launch
+Etherboot. If you feel inclined to write a hdload.S counterpart to
+floppyload.S, feel free.
+
+The Lance driver does not work under -DRELOCATE. This is due to the
+assumption of 24 bit registers in older NICs. The solution for now is to
+not define RELOCATE for Lance ROMs. The longer term solution for PCI
+Lances is to adapt the pcnet32 driver from Linux, which handles 32 bit
+register capability of the newer PCI Lance chips.

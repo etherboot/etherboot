@@ -1,0 +1,313 @@
+#
+# Config for Etherboot/32
+#
+# Do not delete the tag OptionDescription and /OptionDescription
+# It is used to automatically generate the documentation.
+#
+# @OptionDescription@
+#	User interaction options:
+#
+#	-DASK_BOOT=n
+#			Ask "Boot from (N)etwork ... or (Q)uit? " 
+#			at startup, timeout after n seconds (0 = no timeout).
+#			If unset, boot immediately using the default.
+#	-DBOOT_FIRST
+#	-DBOOT_SECOND
+#	-DBOOT_THIRD
+#			On timeout or Return key from previous
+#			question, selects the order to try to boot from
+#			various devices.
+#			(alternatives: BOOT_NIC, BOOT_DISK,
+#			 BOOT_FLOPPY, BOOT_NOTHING)
+#			See etherboot.h for prompt and answer strings.
+#	-DBOOT_INDEX	The device to boot from 0 == any device.
+#			1 == The first nic found.
+#			2 == The second nic found
+#			...
+#			BOOT_INDEX only applies to the BOOT_FIRST.  BOOT_SECOND 
+#			and BOOT_THIRD search through all of the boot devices.
+#	-DBAR_PROGRESS
+#			Use rotating bar instead of sequential dots
+#			to indicate an IP packet transmitted.
+#
+#	Boot order options:
+#
+#	-DBOOT_CLASS_FIRST
+#	-DBOOT_CLASS_SECOND
+#	-DBOOT_CLASS_THIRD
+#			Select the priority of the boot classes
+#			Valid values are:
+#				BOOT_NIC
+#				BOOT_DISK
+#				BOOT_FLOPPY
+#
+#	Boot autoconfiguration protocol options:
+#
+#	-DNO_DHCP_SUPPORT
+#			Use BOOTP instead of DHCP.
+#	-DRARP_NOT_BOOTP
+#			Use RARP instead of BOOTP/DHCP.
+#	-DREQUIRE_VCI_ETHERBOOT
+#			Require an encapsulated Vendor Class Identifier
+#			of "Etherboot" in the DHCP reply
+#			Requires DHCP support.
+#	-DALLOW_ONLY_ENCAPSULATED
+#			Ignore Etherboot-specific options that are not within
+#			the Etherboot encapsulated options field.  This option
+#			should be enabled unless you have a legacy DHCP server
+#			configuration from the bad old days before the use of
+#			encapsulated Etherboot options.
+#	-DDEFAULT_BOOTFILE="default_bootfile_name"
+#			Define a default bootfile for the case where your DHCP
+#			server does not provide the information.  Example:
+#			  -DDEFAULT_BOOTFILE="tftp:///tftpboot/kernel"
+#			If you do not specify this option, then DHCP offers that
+#			do not specify bootfiles will be ignored.
+#
+#	NIC tuning parameters:
+#
+#	-DALLMULTI
+#			Turns on multicast reception in the NICs.
+#
+#	Boot tuning parameters:
+#
+#	-DCONGESTED
+#			Turns on packet retransmission.	 Use it on a
+#			congested network, where the normal operation
+#			can't boot the image.
+#	-DBACKOFF_LIMIT
+#			Sets the maximum RFC951 backoff exponent to n.
+#			Do not set this unreasonably low, because on networks
+#			with many machines they can saturate the link
+#			(the delay corresponding to the exponent is a random
+#			time in the range 0..3.5*2^n seconds).	Use 5 for a
+#			VERY small network (max. 2 minutes delay), 7 for a
+#			medium sized network (max. 7.5 minutes delay) or 10
+#			for a really huge network with many clients, frequent
+#			congestions (max. 1  hour delay).  On average the
+#			delay time will be half the maximum value.  If in
+#			doubt about the consequences, use a larger value.
+#			Also keep in mind that the number of retransmissions
+#			is not changed by this setting, so the default of 20
+#			may no longer be appropriate.  You might need to set
+#			MAX_ARP_RETRIES, MAX_BOOTP_RETRIES, MAX_TFTP_RETRIES
+#			and MAX_RPC_RETRIES to a larger value.
+#	-DTIMEOUT=n
+#			Use with care!! See above.
+#			Sets the base of RFC2131 sleep interval to n.
+#			This can be used with -DBACKOFF_LIMIT=0 to get a small
+#			and constant (predictable) retry interval for embedded
+#			devices. This is to achieve short boot delays if both
+#			the DHCP Server and the embedded device will be powered
+#			on the same time. Otherwise if the DHCP server is ready
+#			the client could sleep the next exponentially timeout,
+#			e.g. 70 seconds or more. This is not what you want.
+#			n should be a multiple of TICKS_PER_SEC (18).
+#
+#	Boot device options:
+#
+#	-DCAN_BOOT_DISK
+#			Can boot from floppy/hd if bootimage matches the
+#			pattern "/dev/[fhs]d*".
+#	-DTRY_FLOPPY_FIRST
+#			If > 0, tries that many times to read the boot
+#			sector from a floppy drive before booting from
+#			ROM. If successful, does a local boot.
+#			It assumes the floppy is bootable.
+#			Requires -DCAN_BOOT_DISK.
+#	-DEMERGENCYDISKBOOT
+#			If no BOOTP server can be found, then boot from
+#			local disk. The accessibility of the TFTP server
+#			has no effect, though! So configure your BOOTP
+#			server properly. You should probably reduce
+#			MAX_BOOTP_RETRIES to a small number like 3.
+#
+#	Boot image options:
+#
+#	-DTAGGED_IMAGE
+#			Add tagged image kernel boot support (recommended).
+#	-DAOUT_IMAGE
+#			Add a.out kernel boot support (generic).
+#	-DELF_IMAGE
+#			Add generic ELF kernel boot support (recommended).
+#	-DEL64F_IMAGE
+#			Add generic ELF64 kernel boot support (useful for > 4GB disks).
+#	-DWINCE_IMAGE
+#			Add the ability to boot WINCE.... now only sis630 OK!
+#	-DFREEBSD_PXEEMU
+#			Add the ability to boot PXE images... only FreeBSD supported
+#	-DX86_BOOTSECTOR_IMAGE
+#			Add the ability to boot 512 byte x86 boot sectors
+#	-DIMAGE_MULTIBOOT
+#			Add Multiboot image support (currently only
+#			for ELF images).
+#			Without this, generic ELF support is selected.
+#	-DIMAGE_FREEBSD
+#			Add FreeBSD image loading support (requires at least
+#			-DAOUT_IMAGE and/or -DELF_IMAGE).
+#	-DFREEBSD_KERNEL_ENV
+#			Pass in FreeBSD kernel environment
+#	-DAOUT_LYNX_KDI
+#			Add Lynx a.out KDI support
+#	-DMULTICAST_LEVEL1
+#			Support for sending multicast packets
+#	-DMULTICAST_LEVEL2
+#			Support for receiving multicast packets
+#	-DDOWNLOAD_PROTO_TFTP
+#			If defined, boots by TFTP (recommended).
+#	-DDOWNLOAD_PROTO_NFS
+#			If defined, boots from a NFS mount and disables
+#			TFTP loading. Default is DOWNLOAD_PROTO_TFTP
+#			if neither is defined.
+#	-DDOWNLOAD_PROTO_SLAM
+#			If defined, boots via Scalable Local Area Multicast.
+#	-DDOWNLOAD_PROTO_TFTM
+#			If defined, enables booting via TFTP Multicast mode.
+#	-DSAFEBOOTMODE
+#			Enables "Safe Boot Mode": Only boot images after verification
+#			with public-key-cryptography, this is WORK IN PROGRESS
+#			must be or'ed from one publickey storage method and
+#			one nbi-digest method value
+#			0  = store key in code (safeboot_key.h)
+#			1  = store key in ROM somewhere else (to do)
+#			0 = crypted digest in first 512 bytes -
+#			    as bytes 446...509 (compatible with most NBIs!?)
+#			16 = crypted digest as ELF block (to do... Eric?)
+#			So for now, only valid mode is "0" 
+#
+#	Console options:
+#
+#	-DCONSOLE_FIRMWARE
+#			Set for firmware/BIOS provided (default if nothing else is set).
+#			Normally this is shows up on your CRT.
+#	-DCONSOLE_SERIAL
+#			Set for serial console.
+#	-DCONSOLE_DUAL
+#			Both of the above
+#	-DCOMCONSOLE
+#			Set port, e.g. 0x3F8.
+#	-DCONSPEED
+#			Set speed, e.g. 57600.
+#	-DCOMPARM
+#			Set Line Control Register value for data bits, stop
+#			bits and parity. See a National Semiconditor 8250/
+#			16450/16550 data sheet for bit meanings.
+#			If undefined, defaults to 0x03 = 8N1.
+#	-DCOMPRESERVE
+#			Ignore COMSPEED and COMPARAM and instead preserve
+#			the com port parameters from the previous user
+#			of the com port.  Examples of previous user are a BIOS
+#			that implements console redirection, lilo and LinuxBIOS.
+#			This makes it trivial to keep the serial port
+#			speed setting in sync between multiple users.
+#			You set the speed in the first user and the
+#			rest follow along.
+#
+#	Obscure options you probably don't need to touch:
+#
+#	-DPOWERSAVE
+#			Halt the processor when waiting for keyboard input
+#			which saves power while waiting for user interaction.
+#			Good for compute clusters and VMware emulation.
+#			But may not work for all CPUs.
+#	-DRELOCATE
+#			After starting etherboot relocate to the top
+#			of memory.  This allows loading fairly arbitrary
+#			rom images.  This doesn't work with a couple of
+#			drivers, e.g. lance.
+#
+#	BUS options:
+#	
+#	-DCONFIG_PCI
+#			Include support for devices using the pci bus.
+#	-DCONFIG_ISA
+#			Include support for devices using isa bus.
+# @/OptionDescription@
+
+# These default settings compile Etherboot with a small number of options.
+# You may wish to enable more of the features if the size of your ROM allows.
+
+
+# Select which busses etherboot should support
+CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
+
+# For prompting and default on timeout
+CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
+# If you would like to attempt to boot from other devices as well as the network.
+# CFLAGS+=	-DBOOT_SECOND=BOOT_FLOPPY
+# CFLAGS+=	-DBOOT_THIRD=BOOT_DISK
+# CFLAGS+=	-DBOOT_INDEX=0
+
+# If you prefer the old style rotating bar progress display
+# CFLAGS+=	-DBAR_PROGRESS
+
+# Enabling this makes the boot ROM require a Vendor Class Identifier
+# of "Etherboot" in the Vendor Encapsulated Options
+# This can be used to reject replies from servers other than the one
+# we want to give out addresses to us, but it will prevent Etherboot
+# from getting an IP lease until you have configured DHCPD correctly
+# CFLAGS+=	-DREQUIRE_VCI_ETHERBOOT
+
+# Enabling this causes Etherboot to ignore Etherboot-specific options
+# that are not within an Etherboot encapsulated options field.
+# This option should be enabled unless you have a legacy DHCP server
+# configuration from the bad old days before the use of
+# encapsulated Etherboot options.
+CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
+
+# Specify a default bootfile to be used if the DHCP server does not
+# provide the information.  If you do not specify this option, then
+# DHCP offers that do not contain bootfiles will be ignored.
+# CFLAGS+=	-DDEFAULT_BOOTFILE="tftp:///tftpboot/kernel"
+
+# Limit the delay on packet loss/congestion to a more bearable value. See
+# description above.  If unset, do not limit the delay between resend.
+CFLAGS+=	-DBACKOFF_LIMIT=7 -DCONGESTED
+
+# More optional features
+# CFLAGS+=	-DCAN_BOOT_DISK -DTRY_FLOPPY_FIRST=4
+
+# For a serial console, which can run in parallel with FIRMWARE console
+# CFLAGS+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
+
+# Enable tagged image, generic ELF, Multiboot ELF
+# or FreeBSD ELF/a.out boot image support
+CFLAGS+=	-DTAGGED_IMAGE -DELF_IMAGE
+# CFLAGS+=	-DAOUT_IMAGE -DIMAGE_MULTIBOOT -DIMAGE_FREEBSD
+# CFLAGS+=	-DAOUT_IMAGE -DAOUT_LYNX_KDI
+
+# Download files via TFTP
+CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
+# Change download protocol to NFS, default is TFTP
+# CFLAGS+=	-DDOWNLOAD_PROTO_NFS
+
+# Support for PXE emulation. Works only with FreeBSD to load the kernel
+# via pxeboot, use only with DOWNLOAD_PROTO_NFS
+# CFLAGS+=	-DFREEBSD_PXEEMU
+
+# Relocate etherboot to just below 4GB.
+# A couple of drivers do not work with relocation, notably lance.
+CFLAGS+=	-DRELOCATE
+
+# you should normally not need to change these
+HOST_CC=	gcc
+CPP=		gcc -E -Wp,-Wall
+RM=		rm -f
+TOUCH=		touch
+PERL=		/usr/bin/perl
+CC=		gcc
+AS=		as
+LD=		ld
+SIZE=		size
+AR=		ar
+RANLIB=		ranlib
+OBJCOPY=	objcopy
+
+CFLAGS+=	-Os -ffreestanding 
+CFLAGS+=	-Wall -W -Wno-format
+ASFLAGS+=
+LDFLAGS+=
+LDBINARY=	--oformat binary	# flag for headerless binary
+
+# Location to place generated binaries, and files
+BIN=bin
