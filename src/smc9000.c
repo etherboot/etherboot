@@ -508,7 +508,9 @@ struct nic *smc9000_probe(struct nic *nic, unsigned short *probe_addrs)
    nic->poll = smc9000_poll;
    nic->transmit = smc9000_transmit;
    nic->disable = smc9000_disable;
-
+   /* Based on PnP ISA map */
+   nic->devid.vendor_id = htons(0x10b8);
+   nic->devid.device_id = htons(0x8228);
 
    return nic;
 

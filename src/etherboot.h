@@ -269,8 +269,6 @@ Author: Martin Renters
 #define TFTP_CODE_BOOT	4
 #define TFTP_CODE_CFG	5
 
-#define NIC_DEVID_MAX_LEN 20
-
 /* Helper macros used to identify when DHCP options are valid/invalid in/outside of encapsulation */
 #define NON_ENCAP_OPT in_encapsulated_options == 0 &&
 #ifdef ALLOW_ONLY_ENCAPSULATED

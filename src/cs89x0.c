@@ -651,6 +651,10 @@ struct nic *cs89x0_probe(struct nic *nic, unsigned short *probe_addrs)
 	nic->poll = cs89x0_poll;
 	nic->transmit = cs89x0_transmit;
 	nic->disable = cs89x0_disable;
+	/* Based on PnP ISA map */
+	/* Does anybody know the right PnP IDs for CS89x0? */
+	nic->devid.vendor_id = htons('C'*256|'S');
+	nic->devid.device_id = htons(0x8900);
 	return (nic);
 }
 

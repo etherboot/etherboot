@@ -666,6 +666,9 @@ struct nic *t515_probe(struct nic *nic, unsigned short *probe_addrs)
 	nic->poll = t515_poll;
 	nic->transmit = t515_transmit;
 	nic->disable = t515_disable;
+	/* Based on PnP ISA map */
+	nic->devid.vendor_id = htons(0x10b7);
+	nic->devid.device_id = htons(0x5051);
 	return nic;
     } else
 	return 0;

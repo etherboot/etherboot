@@ -751,5 +751,8 @@ struct nic *depca_probe(struct nic *nic, unsigned short *probe_addrs)
 	nic->poll = depca_poll;
 	nic->transmit = depca_transmit;
 	nic->disable = depca_disable;
+	/* Based on PnP ISA map */
+	nic->devid.vendor_id = htons(0x1011);
+	nic->devid.device_id = htons(0x80f7);
 	return (nic);
 }

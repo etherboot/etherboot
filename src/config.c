@@ -448,7 +448,7 @@ struct nic	nic =
 	arptable[ARP_CLIENT].node,	/* node_addr */
 	packet,			/* packet */
 	0,			/* packetlen */
-	"",			/* devid */
+	{ NIC_ID_SIZE-1, PCI_BUS_TYPE, 0, 0 },	/* devid */
 	0,			/* priv_data */
 };
 
@@ -520,11 +520,13 @@ int eth_probe(int last_adapter)
 #endif
 		pci_ioaddrs[0] = dev.ioaddr;
 		pci_ioaddrs[1] = 0;
-		sprintf(nic.devid, "PCI:%hx:%hx", dev.vendor, dev.dev_id);
+		nic.devid.vendor_id = htons(dev.vendor);
+		nic.devid.device_id = htons(dev.dev_id);
 		if ((*t->eth_probe)(&nic, pci_ioaddrs, &dev))
 			return (0);
 #else
-		sprintf(nic.devid, "ISA:%s", t->nic_name); /* What numbers might we use for ISA NICs? */
+		nic.devid.bus_type = ISA_BUS_TYPE;
+		/* driver will fill in vendor and device IDs */
 		if ((*t->eth_probe)(&nic, t->probe_ioaddrs))
 			return (0);
 #endif	/* INCLUDE_PCI */

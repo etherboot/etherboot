@@ -846,7 +846,6 @@ static int bootp(void)
 
 	for (retry = 0; retry < MAX_BOOTP_RETRIES; ) {
 		long timeout;
-		unsigned char etherboot_encap_len;
 
 		rx_qdrain();
 
@@ -864,16 +863,16 @@ static int bootp(void)
 				return(1);
 			dhcp_reply = 0;
 			memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
-			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
-			etherboot_encap_len = sprintf(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest + 2,
-						      "%c%c%s", RFC1533_VENDOR_NIC_DEV_ID, strlen(nic.devid), nic.devid);
-			*(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest) = RFC1533_VENDOR_ETHERBOOT_ENCAP;
-			TAG_LEN(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest) = etherboot_encap_len;
-			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest + etherboot_encap_len + 2, rfc1533_end, sizeof rfc1533_end);
 			/* Beware: the magic numbers 9 and 15 depend on
 			   the layout of dhcprequest */
 			memcpy(ip.bp.bp_vend + 9, &dhcp_server, sizeof(in_addr));
 			memcpy(ip.bp.bp_vend + 15, &dhcp_addr, sizeof(in_addr));
+			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
+			/* Append NIC IDs to end, in encapsulated option */
+			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest] = RFC1533_VENDOR_ETHERBOOT_ENCAP;
+			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1] = NIC_ID_SIZE + 1;
+			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 2] = RFC1533_VENDOR_NIC_DEV_ID;
+			memcpy(&ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 3], &nic.devid, NIC_ID_SIZE);
 			for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
 				udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 					sizeof(struct bootpip_t), &ip);
