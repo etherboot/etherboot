@@ -644,7 +644,6 @@ static int t515_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 	    outw(EEPROM_Read + 7, ioaddr + Wn0EepromCmd);
 	    /* Pause for at least 162 us. for the read to take place. */
 	    for (timer = 4; timer >= 0; timer--) {
-		udelay(162);
 		DELAY(350);
 		if ((inw(ioaddr + Wn0EepromCmd) & 0x0200) == 0)
 		    break;
@@ -660,7 +659,7 @@ static int t515_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 			       options[cards_found], nic);
 	cards_found++;
     }
-    if (corkscrew_debug)
+    if (corkscrew_debug) 
 	printf("%d 3c515 cards found.\n", cards_found);
 
     if (cards_found > 0) {
@@ -706,7 +705,8 @@ corkscrew_probe1(int ioaddr, int irq, int product_index __unused, struct nic *ni
     unsigned int eeprom[0x40], checksum = 0;	/* EEPROM contents */
     int i;
     ioaddr = BASE;
-    printf("3Com %s at 0x%hX, ", vp->product_name, ioaddr);
+
+    printf("3Com %s at 0x%hX, ", vp->product_name, ioaddr); 
 
     /* Read the station address from the EEPROM. */
     EL3WINDOW(0);
@@ -725,14 +725,8 @@ corkscrew_probe1(int ioaddr, int irq, int product_index __unused, struct nic *ni
 	printf("Value %d: %hX        ", i, eeprom[i]);
 #endif
 	checksum ^= eeprom[i];
-#ifdef ISA_PNP
-	phys_addr[0] = htons(eeprom[11]);
-	phys_addr[1] = htons(eeprom[12]);
-	phys_addr[2] = htons(eeprom[13]);
-#else
 	if (i < 3)
 	    phys_addr[i] = htons(eeprom[i]);
-#endif
     }
     checksum = (checksum ^ (checksum >> 8)) & 0xff;
     if (checksum != 0x00)
