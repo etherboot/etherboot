@@ -18,7 +18,7 @@ typedef union {
 } PACKED reg16_t;
 
 typedef union {
-	reg16_t;
+	reg16_t w;
 	uint32_t dword;
 } PACKED reg32_t;
 
