@@ -312,9 +312,6 @@ AR=		ar
 RANLIB=		ranlib
 OBJCOPY=	objcopy
 
-
-# If you use egcs or gcc-2.8, using -Os may help to reduce the code size.
-# Otherwise use -O2 (under no circumstance use -O3 or above!).
 CFLAGS+=	-Os -ffreestanding 
 CFLAGS+=	-Wall -W -Wno-format
 ASFLAGS+=

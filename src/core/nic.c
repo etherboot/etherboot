@@ -1,8 +1,5 @@
 /**************************************************************************
-Etherboot -  BOOTP/TFTP Bootstrap Program
-
-Author: Martin Renters
-  Date: Dec/93
+Etherboot -  Network Bootstrap Program
 
 Literature dealing with the network protocols:
 	ARP - RFC826

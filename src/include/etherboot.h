@@ -1,22 +1,4 @@
-/**************************************************************************
-Etherboot -  BOOTP/TFTP Bootstrap Program
-
-Author: Martin Renters
-  Date: Dec/93
-
-**************************************************************************/
-
 #include "osdep.h"
-
-/* These could be customised for different languages perhaps */
-#define	ASK_PROMPT	\
-		"Boot from (N)etwork (D)isk (F)loppy or (Q)uit? "
-
-#define	ANS_NETWORK	'N'
-#define ANS_DISK	'D'
-#define ANS_FLOPPY	'F'
-#define	ANS_QUIT	'Q'
-#define ANS_DEFAULT	'\n'
 
 #ifndef BOOT_FIRST
 #define BOOT_FIRST	BOOT_NIC
