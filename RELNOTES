@@ -25,6 +25,8 @@ the versions of gcc and binutils used.
 gcc 2.x is not supported anymore. You need at least gcc 3.0.x to compile
 etherboot.
 
+Menuing using DHCP options (mknbi/menu.c) has been removed.
+
 We know that these things do not work; they are being worked on:
 
 return from chained programs like menus (might be mknbi problem)
