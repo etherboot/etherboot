@@ -2700,3 +2700,9 @@ Released as Etherboot 5.2.5 (production) 2004/07/18
 so that gcc will not optimise it away.
 
 + Patch from Tim Fletcher for another eepro100 model.
+
++ Timothy Legge contributed a new driver for Davicom cards based on 
+the Linux dmfe driver
+
++ Erdem Guven contributed a new driver for the mtd80x Ethernet chip 
+based on the Linux fealnx driver
