@@ -119,10 +119,14 @@ boot_flag:
 	whose entry point is SYSSEG:0.
 */
 setup_code: 
-/* Call to the bootrom code, if return, boot next device */
-
 	pushl	$0		/* No parameters to preserve for exit path */
 	pushw	$0		/* Use prefix exit path mechanism */
+	/* Etherboot expects to be contiguous in memory once loaded.
+	 * LILO doesn't do this, but since we don't need any
+	 * information that's left in the prefix, it doesn't matter:
+	 * we just have to ensure that %cs:0000 is where the start of
+	 * the Etherboot image *would* be.
+	 */
 	ljmp	$(SYSSEG-(PREFIXSIZE/16)), $_start
 
 	.section ".text16", "ax", @progbits
