@@ -335,7 +335,6 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
 
     cur_tx++;
 
-    outl(cpu_to_le32(virt_to_bus(&tx_ring[entry])), ptcdar);
     /* Trigger an immediate transmit demand. */
     outl(CR_QUEUE_TX, command); 
     
