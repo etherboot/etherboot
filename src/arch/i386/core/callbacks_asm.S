@@ -133,7 +133,7 @@ _ext_call:
 process_ec_params:
 	movl	0(%ebx), %eax		/* %eax = type */
 	addl	$4, %ebx
-	cmpl	$EXTCALL_END_LIST, %eax
+	cmpw	$EXTCALL_END_LIST, %ax
 	je	process_ec_params_done
 	cmpl	$EXTCALL_NONE, %eax
 	je	process_ec_params
@@ -145,6 +145,8 @@ process_ec_params:
 	je	process_ec_params_gdt
 	cmpl	$EXTCALL_STACK, %eax
 	je	process_ec_params_stack
+	cmpl	$EXTCALL_RET_STACK, %eax
+	je	process_ec_params_ret_stack
 	/* fall through to error */
 process_ec_params_error: 
 	/* Lockup machine.  Drastic, but since we may have reloaded
@@ -216,6 +218,10 @@ process_ec_params_stack:
 	addl	%edx, 4(%ebp)		/* Update length */
 	addl	$8, %ebx
 	jmp	process_ec_params
+process_ec_params_ret_stack:
+	/* Nothing to do */
+	addl	$12, %ebx
+	jmp	process_ec_params
 process_ec_params_done:
 	/* Stack is all set up as described above.  Set up the
 	 * register values and jump to the function.
@@ -277,7 +283,7 @@ ec_return:
 	popw	%es
 	
 	/* Locate signature.  It is guaranteed to be on a dword
-	 * boundary, but %ebp may not be.
+	 * boundary, but %esp may not be.
 	 */
 	movl	$EC_SIGNATURE, %eax
 	leal	ECR_OFFSET_PARAMS(%esp), %edi /* Returned %esp */
@@ -298,6 +304,7 @@ ec_return:
 	movl	%ecx, 4(%ebp)	/* Store length */
 
 	/* Align stack by shifting down */
+	addl	$ECR_OFFSET_PARAMS, %ecx /* Length to copy */
 	movl	%esp, %esi
 	andl	$~0x3, %esp
 	movl	%esp, %edi
@@ -340,6 +347,8 @@ process_ecr_params:
 	je	process_ecr_params_gdt
 	cmpl	$EXTCALL_STACK, %eax
 	je	process_ecr_params_stack
+	cmpl	$EXTCALL_RET_STACK, %eax
+	je	process_ecr_params_ret_stack
 	/* fall through to error */
 process_ecr_params_error:
 	/* Lockup machine.  Drastic, but since we may have the wrong
@@ -377,6 +386,24 @@ process_ecr_params_stack:
 	/* Nothing to do */
 	addl	$8, %ebx
 	jmp	process_ecr_params
+process_ecr_params_ret_stack: 
+	/* Copy returned stack to C structure.  Be careful of maximum
+	 * structure length
+	 */
+	movl	4(%ebp), %ecx		/* %ecx = returned stack length */
+	leal	ECR_OFFSET_PARAMS(%esp), %esi /* %esi = &(returned stack) */
+	movl	0(%ebx), %edi		/* %edi = &(C structure) */
+	movl	8(%ebx), %eax		/* %eax = &(C length variable) */
+	testl	%eax, %eax
+	je	1f
+	movl	%ecx, (%eax)		/* Store length if applicable */
+1:	movl	4(%ebx), %eax		/* %eax = max length allowed */
+	cmpl	%eax, %ecx		/* Check length against max length */
+	jbe	2f
+	movl	%eax, %ecx		/* ...and truncate if necessary */
+2:	rep movsb			/* Copy data */
+	addl	$12, %ebx
+	jmp	process_ecr_params
 process_ecr_params_done:
 
 	/* Grab %eax from the register store on the stack to return as
@@ -404,5 +431,13 @@ demo_extcall:
 	addl	12(%esp), %eax
 	addl	16(%esp), %eax
 	movl	%ebx, %ecx
+	mov	$0x18, %dx
+	mov	%dx, %ds
+	mov	%dx, %es
+	popl	%ebx			/* return address */
+	pushw	$0x12
+	pushw	$0x34
+	pushw	$0x56
+	pushl	%ebx
 	ret
 	
