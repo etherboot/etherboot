@@ -549,6 +549,10 @@ rm_callback_interface_size:
 	.code16
 pxe_callback_interface:	
 
+/****************************************************************************
+ * PXE entry points (!PXE and PXENV+ APIs)
+ ****************************************************************************
+ */
 	/* in_call mechanism for !PXE API calls */
 	.globl	_pxe_in_call_far
 _pxe_in_call_far:
@@ -567,6 +571,79 @@ _pxenv_in_call_far:
 	addw	$8, %sp
 	lret
 
+/****************************************************************************
+ * Memory map mangling code
+ ****************************************************************************
+ */
+
+/****************************************************************************
+ * Exclude an address range from a potentially overlapping address range
+ *
+ * Parameters:
+ *  %eax	Base address of memory range
+ *  %ecx	Length of memory range
+ *  %ebx	Base address of memory range to exclude
+ *  %edx	Length of memory range to exclude
+ * Returns:
+ *  %eax	Updated base address of range
+ *  %ecx	Updated length of range
+ *  %ebx,%edx	Undefined
+ ****************************************************************************
+ */
+	.code32
+exclude_memory_range:
+	/* Convert (start,length) to (start,end) */
+	addl	%eax, %ecx
+	addl	%ebx, %edx
+	subl	%eax, %ebx		/* %ebx = "prefix" length */
+	jg	1f
+	xorl	%ebx, %ebx		/* Truncate to zero if negative */
+1:	negl	%edx
+	addl	%ecx, %edx		/* %edx = "suffix" length */
+	jg	2f
+	xorl	%edx, %edx		/* Truncate to zero if negative */
+2:	cmpl	%ebx, %edx
+	jg	20f
+10:	/* Use prefix, discard suffix */
+	addl	%eax, %ebx		/* %ebx = candidate end address */
+	cmpl	%ecx, %ebx		/* %ecx = min ( %ebx, %ecx ) */
+	jg	11f
+	movl	%ebx, %ecx
+11:	jmp	30f
+20:	/* Use suffix, discard prefix */
+	negl	%edx
+	addl	%ecx, %edx		/* %edx = candidate start address */
+	cmpl	%eax, %edx		/* %eax = max ( %eax, %edx ) */
+	jl	21f
+	movl	%edx, %eax
+21:	
+30:	subl	%eax, %ecx		/* Convert back to (start,length) */
+	ret
+
+	.globl	_test_exclude
+_test_exclude:
+	pushl	%ebx
+	movl	8(%esp), %eax
+	movl	12(%esp), %ecx
+	movl	16(%esp), %ebx
+	movl	20(%esp), %edx
+	call	exclude_memory_range
+	shll	$16, %eax
+	orl	%ecx, %eax
+	popl	%ebx
+	ret
+	.code16
+	
+pxe_intercepted_e820:	.word 0,0
+pxe_intercept_e820:
+	/* Call to original E820 routine */
+	pushw	%bp
+	call	1f
+1:	pushfw			/* Original routine will return via iret */
+	lcall	%cs:*(pxe_intercepted_e820-1b)(%bp)
+	/* If >4GB, return immed (we don't use this mem), else use exclude_memory_range */
+	
+	
 pxe_rm_in_call:	
 pxe_attach_rm:
 	/* rm_callback_interface must be appended here */
