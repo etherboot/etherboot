@@ -1,7 +1,7 @@
 /**************************************************************************
 *
 *    mtd80x.c: Etherboot device driver for the mtd80x Ethernet chip.
-*    Written 2004-2004 by Erdem Güven <zuencap@yahoo.com>
+*    Written 2004-2004 by Erdem Guven <zuencap@yahoo.com>
 *
 *    This program is free software; you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
@@ -651,11 +651,9 @@ DISABLE - Turn off ethernet interface
 ***************************************************************************/
 static void mtd_disable(struct dev *dev)
 {
-    /* put the card in its initial state */
-    /* Disable Tx Rx*/
+    /* Disable Tx & Rx*/
     outl( mtdx.crvalue & (~TxEnable) & (~RxEnable), mtdx.ioaddr + TCRRCR);
-    /* Reset the chip to erase previous misconfiguration. */
-    mtd_reset((struct nic *) dev);
+
     DBGPRNT(("DISABLE\n"));
 }
 
@@ -1094,3 +1092,4 @@ struct pci_driver mtd80x_driver __pci_driver ={
         .id_count = sizeof(mtd80x_nics)/sizeof(mtd80x_nics[0]),
         .class    = 0,
 };
+
