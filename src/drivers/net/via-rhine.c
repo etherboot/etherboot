@@ -879,9 +879,7 @@ enum intr_status_bits {
         IntrTxErrSummary=0x082218,
 };
 #define DEFAULT_INTR IntrRxDone | IntrRxErr | IntrRxEmpty| IntrRxOverflow | \
-                   IntrRxDropped | IntrRxNoBuf | IntrTxAborted | \
-                   IntrTxDone | IntrTxError | IntrTxUnderrun | \
-                   IntrPCIErr | IntrStatsMax | IntrLinkChange
+                   IntrRxDropped | IntrRxNoBuf 
 
 /***************************************************************************
  IRQ - PXE IRQ Handler
@@ -890,7 +888,6 @@ void rhine_irq ( struct nic *nic, irq_action_t action ) {
      struct rhine_private *tp = (struct rhine_private *) nic->priv_data;
      /* Enable interrupts by setting the interrupt mask. */
      unsigned int intr_status;
-
 
      switch ( action ) {
           case DISABLE :
@@ -905,7 +902,7 @@ void rhine_irq ( struct nic *nic, irq_action_t action ) {
                outw(intr_status, nic->ioaddr + IntrEnable);
                break;
          case FORCE :
-               outw(IntrRxEarly, nic->ioaddr + IntrStatus);
+               outw(0x0010, nic->ioaddr + 0x84);
                break;
          }
 }
@@ -1202,19 +1199,21 @@ rhine_poll (struct nic *nic, int retreive)
     if (tp->rx_ring[tp->cur_rx].rx_status.bits.own_bit == 0)
     {
         unsigned int intr_status;
+        /* There is a packet ready */
         if(!retreive)
             return 1;
 
         intr_status = inw(nic->ioaddr + IntrStatus);
         /* On Rhine-II, Bit 3 indicates Tx descriptor write-back race. */
-        if (tp->chip_id == 0x3065)
-            intr_status |= inb(nic->ioaddr + IntrStatus2) << 16;
+//      if (tp->chip_id == 0x3065)
+  //        intr_status |= inb(nic->ioaddr + IntrStatus2) << 16;
 
         /* Acknowledge all of the current interrupt sources ASAP. */
         if (intr_status & IntrTxDescRace)
            outb(0x08, nic->ioaddr + IntrStatus2);
         outw(intr_status & 0xffff, nic->ioaddr + IntrStatus);
 	IOSYNC;
+
 	rxstatus = tp->rx_ring[tp->cur_rx].rx_status.lw;
 	if ((rxstatus & 0x0300) != 0x0300)
 	{
@@ -1237,6 +1236,11 @@ rhine_poll (struct nic *nic, int retreive)
 	tp->cur_rx++;
 	tp->cur_rx = tp->cur_rx % RX_RING_SIZE;
     }
+        /* Acknowledge all of the current interrupt sources ASAP. */
+        outw(DEFAULT_INTR & ~IntrRxDone, nic->ioaddr + IntrStatus);
+
+        IOSYNC;
+
     return good;
 }
 
