@@ -137,10 +137,13 @@ void get_memsizes(void)
 		if (meminfo.map[i].type != E820_RAM) {
 			continue;
 		}
-		/* Ensure we don't stomp the interrupt table */
-		if (meminfo.map[i].addr < 0x7c0) {
+		/* Ensure we don't stomp the interrupt table.
+		 * 0x400 - 0x502 is the Bios data area.
+		 * Reserve memory through 
+		 */
+		if (meminfo.map[i].addr < 0x600) {
 			unsigned long delta;
-			delta = 0x7c0 - meminfo.map[i].addr;
+			delta = 0x600 - meminfo.map[i].addr;
 			meminfo.map[i].addr += delta;
 			meminfo.map[i].size -= delta;
 		}
