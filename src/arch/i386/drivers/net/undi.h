@@ -67,8 +67,11 @@ typedef union pxenv_structure {
 	t_PXENV_UNDI_CLEANUP		undi_cleanup;
 	t_PXENV_UNDI_INITIALIZE		undi_initialize;
 	t_PXENV_UNDI_SHUTDOWN		undi_shutdown;
+	t_PXENV_UNDI_OPEN		undi_open;
+	t_PXENV_UNDI_CLOSE		undi_close;
 	t_PXENV_UNDI_GET_INFORMATION	undi_get_information;
 	t_PXENV_STOP_UNDI		stop_undi;
+	t_PXENV_UNLOAD_STACK		unload_stack;
 } pxenv_structure_t;
 
 /* BIOS PnP parameter block.  We scan for this so that we can pass it
@@ -143,10 +146,23 @@ typedef struct undi_rom_id {
  */
 
 typedef struct undi {
-	pnp_bios_t	*pnp_bios;
-	rom_t		*rom;
-	undi_rom_id_t	*undi_rom_id;
-	pxe_t		*pxe;
+	/* Pointers to various data structures */
+	pnp_bios_t		*pnp_bios;
+	rom_t			*rom;
+	undi_rom_id_t		*undi_rom_id;
+	pxe_t			*pxe;
+	undi_call_info_t	*undi_call_info;
+	pxenv_structure_t	*pxs;
+	/* Flags.  We keep our own instead of trusting the UNDI driver
+	 * to have implemented PXENV_UNDI_GET_STATE correctly.  Plus
+	 * there's the small issue of PXENV_UNDI_GET_STATE being the
+	 * same API call as PXENV_STOP_UNDI...
+	 */
+	uint8_t	loaded;		/* undi_loader() has been called */
+	uint8_t prestarted;	/* pxenv_start_undi() has been called */
+	uint8_t started;	/* pxenv_undi_startup() has been called */
+	uint8_t	initialized;	/* pxenv_undi_initialize() has been called */
+	uint8_t opened;		/* pxenv_undi_open() has been called */
 } undi_t;
 
 /* Constants
