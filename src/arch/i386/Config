@@ -96,7 +96,7 @@ CFLAGS+=	-DPCBIOS
 # driver is probably the best one to try.
 # CFLAGS+=	-DCONFIG_PCI_DIRECT
 
-CFLAGS+= -fstrength-reduce -fomit-frame-pointer -mcpu=i386 -march=i386
+CFLAGS+= -fstrength-reduce -fomit-frame-pointer -march=i386
 # Squeeze the code in as little space as possible.
 # gcc3 needs a different syntax to gcc2 if you want to avoid spurious warnings.
 GCC_VERSION	 = $(subst ., ,$(shell $(CC) -dumpversion))
@@ -105,6 +105,10 @@ ifeq ($(GCC_MAJORVERSION),2)
 CFLAGS+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
 else
 CFLAGS+=	-falign-jumps=1 -falign-loops=1 -falign-functions=1
+endif
+GCC_MINORVERSION = $(word 2, $(GCC_VERSION))
+ifneq ($(GCC_MINORVERSION),4)
+CFLAGS+=	-mcpu=i386
 endif
 
 LDFLAGS+=	-N
