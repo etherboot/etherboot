@@ -1,7 +1,4 @@
-Etherboot 5.3.13 aka 5.4RC4 (Release Date 2005-01-31)
-
-This release is the release candidate.  Unless there are brown paper bag
-bugs, it will become 5.4.0 by renumbering.
+Etherboot 5.3.14
 
 PXE is now supported.  You will also need to configure your server to
 provide a pxelinux.0 loader file, kernel and initrd images, and a
@@ -13,8 +10,6 @@ See the PXELINUX home page at:
 
 for more information. 
 
-LinuxBIOS .*elf images work now.
-
 There is no longer a default target for make.  You must specify an
 argument to make. Help text is now provided to indicate possible make
 targets.
@@ -24,8 +19,8 @@ gcc 3.4.x now that a couple of bugs have been tracked down. Please mail
 reports of success or failure to the etherboot-users list, together with
 the versions of gcc and binutils used.
 
-gcc 2.x is not supported anymore. You need at least gcc 3.0.x to compile
-etherboot.
+gcc 2.x is not supported anymore. You need at least gcc 3.x to compile
+etherboot due to C99 constructs.
 
 Removed etherboot(-pci)?.* rule because there are too many drivers and
 the image will no longer fit in memory. I don't want to choose a subset
@@ -44,10 +39,3 @@ EMERGENCYDISKBOOT has been renamed EXIT_IF_NO_OFFER, which describes it
 better.
 
 Menuing using DHCP options (mknbi/menu.c) has been removed.
-
-We know that these things do not work; they will have to wait for 5.4.x
-to be fixed.
-
-386 and 486 processor support (seems to be assembly code issue)
-return from chained programs like menus (might be mknbi problem)
-return from .com programs

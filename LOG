@@ -2811,17 +2811,9 @@ compiled into the image.
 
 Released as Etherboot 5.3.13 aka 5.4RC4 (development)
 
-+ Eric fixed some bugs in the assembly code preventing running on
-3/486s. One case of write through %cs and two cases of failures to jump
-to flush the prefetch queue.
++ Lots of fixes by Eric Biederman and a couple by Michael Brown. Please
+see the CVS comments for details.
 
-+ Eric added support for dynamically relocatable images, which have new
-suffixes.
++ Will complete this section of the LOG later.
 
-+ Eric fixed some bugs in real_to_prot and prot_to_real.
-
-+ Kenneth Sumrall fixed up the all* rules in genrules.pl and
-arch/i386/Makefile.
-
-+ Barry Shaw added a missing PCI descriptor to the internal tulip.c
-tables.
+Released as Etherboot 5.3.14 aka 5.4RC5 (development)
