@@ -60,7 +60,7 @@ detected_none:
 	movw	$10f-_start, %si
 	movw	$20f-10f, %cx
 	call	print_message
-	jmp	finished
+	jmp	finished_with_error
 10:	.ascii	"No PXE"
 20:
 
@@ -172,23 +172,39 @@ zero_mem_loop:
 	add	$(1024 / 16), %bx
 	dec	%dx
 	jnz	zero_mem_loop
-
+	/* Will exit here with zero flag set, so no need to set it explicitly
+	 * in order to indicate success.
+	 */
+	
 do_not_free_base_mem:
+	pushf				/* Save success (zero) flag status */
 	mov	%fs:(0x13), %ax		/* Free base memory in %ax */
 	call	print_hex_word		/* Print free base memory */
+	popf				/* Restore success (zero) flag */
 
+#else  /* PXELOADER_KEEP_ALL */
+	xor	%ax, %ax		/* Force zero flag to show success */
 #endif /* PXELOADER_KEEP_ALL */
 
 /*****************************************************************************
  * Exit point
+ * Jump to finished with the zero flag set to indicate success, or to
+ * finished_with_error to always report an error
  *****************************************************************************
  */	
 finished:
-	mov	$0x0d, %al		/* '\r' */
-	call	print_character
-	mov	$0x0a, %al		/* '\n' */
-	call	print_character
+	movw	$10f-_start, %si
+	jz	1f
+finished_with_error:
+	movw	$11f-_start, %si
+1:	movw	$20f-10f,%cx
+	call	print_message
 	ljmp	$FLOPPY_SEGMENT + (512/16), $0
+
+10:	.ascii " ok \r\n"
+20:	
+11:	.ascii " err\r\n" /* Must be same length as "OK" string */
+21:	
 
 /*****************************************************************************
  * Subroutine: print character in %al (with LF -> LF,CR translation)
