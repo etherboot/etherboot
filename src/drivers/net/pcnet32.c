@@ -1,8 +1,3 @@
-#define EB52
-
-#ifdef EB50
-#define __unused __attribute__((unused))
-#endif
 /**************************************************************************
 *
 *    pcnet32.c -- Etherboot device driver for the AMD PCnet32
@@ -39,6 +34,7 @@
 *    v1.0	08-06-2003	timlegge	Initial port of Linux driver
 *    v1.1	08-23-2003	timlegge	Add multicast support
 *    v1.2	01-17-2004	timlegge	Initial driver output cleanup
+*    v1.3	03-29-2004	timlegge	More driver cleanup
 *    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -51,12 +47,12 @@
 #include "pci.h"
 /* Include the time functions */
 #include "timer.h"
-
+#include "mii.h"
 /* void hex_dump(const char *data, const unsigned int len); */
 
 /* Etherboot Specific definations */
-#define drv_version "v1.2"
-#define drv_date "01-17-2004"
+#define drv_version "v1.3"
+#define drv_date "03-29-2004"
 
 typedef unsigned char u8;
 typedef signed char s8;
@@ -67,12 +63,10 @@ typedef signed int s32;
 
 static u32 ioaddr;		/* Globally used for the card's io address */
 
-#ifdef EB50
-#define cpu_to_le32(val) (val)
-#define le16_to_cpu(val) (val)
-#define le32_to_cpu(val) (val)
-#define virt_to_bus(x) ((unsigned long)x)
-#define bus_to_virt(x) ((unsigned long) x)
+#ifdef EDEBUG
+#define dprintf(x) printf x
+#else
+#define dprintf(x)
 #endif
 
 /* Condensed operations for readability. */
@@ -191,14 +185,14 @@ static int full_duplex[MAX_UNITS];
 /* Create a static buffer of size PKT_BUF_SZ for each
 TX Descriptor.  All descriptors point to a
 part of this buffer */
-static unsigned char txb[PKT_BUF_SZ * TX_RING_SIZE]
-    __attribute__ ((aligned(16)));
+static unsigned char txb[PKT_BUF_SZ * TX_RING_SIZE];
+//    __attribute__ ((aligned(16)));
 
 /* Create a static buffer of size PKT_BUF_SZ for each
 RX Descriptor   All descriptors point to a
 part of this buffer */
-static unsigned char rxb[RX_RING_SIZE * PKT_BUF_SZ]
-    __attribute__ ((aligned(16)));
+static unsigned char rxb[RX_RING_SIZE * PKT_BUF_SZ];
+//    __attribute__ ((aligned(16)));
 
 /* The PCNET32 Rx and Tx ring descriptors. */
 struct pcnet32_rx_head {
@@ -247,10 +241,19 @@ static struct pcnet32_tx_head tx_ring[TX_RING_SIZE]
 /* Define the RX Descriptor */
 static struct pcnet32_rx_head rx_ring[RX_RING_SIZE]
     __attribute__ ((aligned(16)));
+
+/* May need to be moved to mii.h */
+struct mii_if_info {
+	int phy_id;
+	int advertising;
+	unsigned int full_duplex:1;	/* is full duplex? */
+};
+
 /*
  * The first three fields of pcnet32_private are read by the ethernet device 
  * so we allocate the structure should be allocated by pci_alloc_consistent().
  */
+#define MII_CNT 4
 struct pcnet32_private {
 	struct pcnet32_init_block init_block;
 	struct pci_dev *pci_dev;	/* Pointer to the associated pci device structure */
@@ -260,18 +263,23 @@ struct pcnet32_private {
 	struct sk_buff *rx_skbuff[RX_RING_SIZE];
 	struct pcnet32_access a;
 	unsigned int cur_rx, cur_tx;	/* The next free ring entry */
-	unsigned int dirty_rx, dirty_tx;	/* The ring entries to be free()ed. */
 	char tx_full;
 	int options;
 	int shared_irq:1,	/* shared irq possible */
 	 ltint:1,		/* enable TxDone-intr inhibitor */
 	 dxsuflo:1,		/* disable transmit stop on uflo */
 	 mii:1;			/* mii port available */
+	struct mii_if_info mii_if;
+	unsigned char phys[MII_CNT];
 	struct net_device *next;
 	int full_duplex:1;
 } lpx;
 
 static struct pcnet32_private *lp;
+
+static int mdio_read(struct nic *nic __unused, int phy_id, int reg_num);
+static void mdio_write(struct nic *nic __unused, int phy_id, int reg_num,
+		       int val);
 
 enum pci_flags_bit {
 	PCI_USES_IO = 1, PCI_USES_MEM = 2, PCI_USES_MASTER = 4,
@@ -326,13 +334,13 @@ static int pcnet32_wio_check(unsigned long addr)
 }
 
 static struct pcnet32_access pcnet32_wio = {
-	read_csr:pcnet32_wio_read_csr,
-	write_csr:pcnet32_wio_write_csr,
-	read_bcr:pcnet32_wio_read_bcr,
-	write_bcr:pcnet32_wio_write_bcr,
-	read_rap:pcnet32_wio_read_rap,
-	write_rap:pcnet32_wio_write_rap,
-	reset:pcnet32_wio_reset
+      read_csr:pcnet32_wio_read_csr,
+      write_csr:pcnet32_wio_write_csr,
+      read_bcr:pcnet32_wio_read_bcr,
+      write_bcr:pcnet32_wio_write_bcr,
+      read_rap:pcnet32_wio_read_rap,
+      write_rap:pcnet32_wio_write_rap,
+      reset:pcnet32_wio_reset
 };
 
 static u16 pcnet32_dwio_read_csr(unsigned long addr, int index)
@@ -381,13 +389,13 @@ static int pcnet32_dwio_check(unsigned long addr)
 }
 
 static struct pcnet32_access pcnet32_dwio = {
-	read_csr:pcnet32_dwio_read_csr,
-	write_csr:pcnet32_dwio_write_csr,
-	read_bcr:pcnet32_dwio_read_bcr,
-	write_bcr:pcnet32_dwio_write_bcr,
-	read_rap:pcnet32_dwio_read_rap,
-	write_rap:pcnet32_dwio_write_rap,
-	reset:pcnet32_dwio_reset
+      read_csr:pcnet32_dwio_read_csr,
+      write_csr:pcnet32_dwio_write_csr,
+      read_bcr:pcnet32_dwio_read_bcr,
+      write_bcr:pcnet32_dwio_write_bcr,
+      read_rap:pcnet32_dwio_read_rap,
+      write_rap:pcnet32_dwio_write_rap,
+      reset:pcnet32_dwio_reset
 };
 
 
@@ -398,7 +406,6 @@ static int pcnet32_init_ring(struct nic *nic)
 
 	lp->tx_full = 0;
 	lp->cur_rx = lp->cur_tx = 0;
-	lp->dirty_rx = lp->dirty_tx = 0;
 
 	for (i = 0; i < RX_RING_SIZE; i++) {
 		rx_ring[i].base = (u32) virt_to_le32desc(&rxb[i]);
@@ -524,7 +531,7 @@ static void pcnet32_reset(struct nic *nic)
 	 */
 	lp->a.write_csr(ioaddr, 0, 0x0042);
 
-	printf("pcnet32 open, csr0 %hX.\n", lp->a.read_csr(ioaddr, 0));
+	dprintf(("pcnet32 open, csr0 %hX.\n", lp->a.read_csr(ioaddr, 0)));
 
 }
 
@@ -624,11 +631,7 @@ static void pcnet32_transmit(struct nic *nic __unused, const char *d,	/* Destina
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-#ifdef EB50
-static void pcnet32_disable(struct nic *nic __unused)
-#else
 static void pcnet32_disable(struct dev *dev __unused)
-#endif
 {
 	/* Stop the PCNET32 here -- it ocassionally polls memory if we don't */
 	lp->a.write_csr(ioaddr, 0, 0x0004);
@@ -644,20 +647,13 @@ static void pcnet32_disable(struct dev *dev __unused)
 PROBE - Look for an adapter, this routine's visible to the outside
 You should omit the last argument struct pci_device * for a non-PCI NIC
 ***************************************************************************/
-#ifdef EB50
-struct nic *pcnet32_probe(struct nic *nic, unsigned short *io_addr, struct pci_device *pci)
-{
-#else
 static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *) dev;
-#endif
-
 	int i, media;
 	int fdx, mii, fset, dxsuflo, ltint;
 	int chip_version;
 	char *chipname;
-	/* struct net_device *dev; */
 	struct pcnet32_access *a = NULL;
 	u8 promaddr[6];
 
@@ -667,9 +663,7 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 
 	/* BASE is used throughout to address the card */
 	ioaddr = pci->ioaddr;
-	printf("\n");	
-	printf("pcnet32.c: %s, %s\n", drv_version, drv_date);
-	printf("%s: Probing for Vendor=%hX   Device=%hX\n",
+	printf("pcnet32.c: Found %s, Vendor=0x%hX Device=0x%hX\n",
 	       pci->name, pci->vendor, pci->dev_id);
 
 	/* reset the chip */
@@ -685,16 +679,14 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 		    && pcnet32_dwio_check(ioaddr)) {
 			a = &pcnet32_dwio;
 		} else
-			/* return -ENODEV; */
 			return 0;
 	}
 
 	chip_version =
 	    a->read_csr(ioaddr, 88) | (a->read_csr(ioaddr, 89) << 16);
 
-	printf("PCnet chip version is %#x.\n", chip_version);
+	dprintf(("PCnet chip version is %0xhX\n", chip_version));
 	if ((chip_version & 0xfff) != 0x003)
-		/*return -ENODEV; */
 		return 0;
 
 	/* initialize variables */
@@ -757,7 +749,6 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	default:
 		printf("PCnet version %#x, no PCnet32 chip.\n",
 		       chip_version);
-		/* return -ENODEV; */
 		return 0;
 	}
 
@@ -777,7 +768,7 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 		ltint = 1;
 	}
 
-	printf("%s at %hX,", chipname, ioaddr);
+	dprintf(("%s at %hX,", chipname, ioaddr));
 
 	/* read PROM address */
 	for (i = 0; i < 6; i++)
@@ -788,58 +779,59 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 		nic->node_addr[i] = promaddr[i];
 	}
 	/* Print out some hardware info */
-	printf("%s: %! at ioaddr %hX\n", pci->name, nic->node_addr,
+	printf("%s: %! at ioaddr %hX, ", pci->name, nic->node_addr,
 	       ioaddr);
 
-	/* I really must find out what this does */
+	/* Set to pci bus master */
 	adjust_pci_device(pci);
 
 	/* point to private storage */
 	lp = &lpx;
 
+#if EBDEBUG
 	if (((chip_version + 1) & 0xfffe) == 0x2624) {	/* Version 0x2623 or 0x2624 */
 		i = a->read_csr(ioaddr, 80) & 0x0C00;	/* Check tx_start_pt */
-		printf("    tx_start_pt(0x%hX):", i);
+		dprintf(("    tx_start_pt(0x%hX):", i));
 		switch (i >> 10) {
 		case 0:
-			printf("  20 bytes,");
+			dprintf(("  20 bytes,"));
 			break;
 		case 1:
-			printf("  64 bytes,");
+			dprintf(("  64 bytes,"));
 			break;
 		case 2:
-			printf(" 128 bytes,");
+			dprintf((" 128 bytes,"));
 			break;
 		case 3:
-			printf("~220 bytes,");
+			dprintf(("~220 bytes,"));
 			break;
 		}
 		i = a->read_bcr(ioaddr, 18);	/* Check Burst/Bus control */
-		printf(" BCR18(%hX):", i & 0xffff);
+		dprintf((" BCR18(%hX):", i & 0xffff));
 		if (i & (1 << 5))
-			printf("BurstWrEn ");
+			dprintf(("BurstWrEn "));
 		if (i & (1 << 6))
-			printf("BurstRdEn ");
+			dprintf(("BurstRdEn "));
 		if (i & (1 << 7))
-			printf("DWordIO ");
+			dprintf(("DWordIO "));
 		if (i & (1 << 11))
-			printf("NoUFlow ");
+			dprintf(("NoUFlow "));
 		i = a->read_bcr(ioaddr, 25);
-		printf("    SRAMSIZE=0x%hX,", i << 8);
+		dprintf(("    SRAMSIZE=0x%hX,", i << 8));
 		i = a->read_bcr(ioaddr, 26);
-		printf(" SRAM_BND=0x%hX,", i << 8);
+		dprintf((" SRAM_BND=0x%hX,", i << 8));
 		i = a->read_bcr(ioaddr, 27);
 		if (i & (1 << 14))
-			printf("LowLatRx");
+			dprintf(("LowLatRx"));
 	}
-
-	lp = &lpx;
+#endif
 	lp->name = chipname;
 	lp->shared_irq = shared;
 	lp->full_duplex = fdx;
 	lp->dxsuflo = dxsuflo;
 	lp->ltint = ltint;
 	lp->mii = mii;
+	/* FIXME: Fix Options for only one card */
 	if ((cards_found >= MAX_UNITS)
 	    || (options[cards_found] > sizeof(options_mapping)))
 		lp->options = PCNET32_PORT_ASEL;
@@ -861,7 +853,7 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	    && nic->node_addr[2] == 0x75)
 		lp->options = PCNET32_PORT_FD | PCNET32_PORT_GPSI;
 
-	lp->init_block.mode = le16_to_cpu(0x0003); 	/* Disable Rx and Tx. */
+	lp->init_block.mode = le16_to_cpu(0x0003);	/* Disable Rx and Tx. */
 	lp->init_block.tlen_rlen =
 	    le16_to_cpu(TX_RING_LEN_BITS | RX_RING_LEN_BITS);
 	for (i = 0; i < 6; i++)
@@ -889,23 +881,84 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	mdelay(1);
 
 	cards_found++;
-	
+
 	/* point to NIC specific routines */
 	pcnet32_reset(nic);
+	if (1) {
+		int phy, phy_idx = 0;
+		u16 mii_advertise, mii_lpa;
+		lp->phys[0] = 1;	/* Default Setting */
+		for (phy = 1; phy < 32 && phy_idx < MII_CNT; phy++) {
+			int mii_status = mdio_read(nic, phy, MII_BMSR);
+			if (mii_status != 0xffff && mii_status != 0x0000) {
+				lp->phys[phy_idx++] = phy;
+				lp->mii_if.advertising =
+				    mdio_read(nic, phy, MII_ADVERTISE);
+				if ((mii_status & 0x0040) == 0)
+					dprintf
+					    (("MII PHY found at address %d, status " "%hX advertising %hX\n", phy, mii_status, lp->mii_if.advertising));
+			}
+		}
+		if (phy_idx == 0)
+			printf("No MII transceiver found!\n");
+		lp->mii_if.phy_id = lp->phys[0];
 
-#ifdef EB50
-	nic->poll = pcnet32_poll;
-	nic->transmit = pcnet32_transmit;
-	nic->disable = pcnet32_disable;
-	return nic;
-#else
+		lp->mii_if.advertising =
+		    mdio_read(nic, lp->phys[0], MII_ADVERTISE);
+
+		mii_lpa = mdio_read(nic, lp->phys[0], MII_LPA);
+		lp->mii_if.advertising &= mii_lpa;
+		if (lp->mii_if.advertising & ADVERTISE_100FULL)
+			printf("100Mbps Full-Duplex\n");
+		else if (lp->mii_if.advertising & ADVERTISE_100HALF)
+			printf("100Mbps Half-Duplex\n");
+		else if (lp->mii_if.advertising & ADVERTISE_10FULL)
+			printf("10Mbps Full-Duplex\n");
+		else if (lp->mii_if.advertising & ADVERTISE_10HALF)
+			printf("10Mbps Half-Duplex\n");
+		else
+			printf("\n");
+	}
+
 	nic->poll = pcnet32_poll;
 	nic->transmit = pcnet32_transmit;
 	dev->disable = pcnet32_disable;
 	return 1;
-#endif
 }
-#ifndef EB50
+static int mdio_read(struct nic *nic __unused, int phy_id, int reg_num)
+{
+	u16 val_out;
+	int phyaddr;
+
+	if (!lp->mii)
+		return 0;
+
+	phyaddr = lp->a.read_bcr(ioaddr, 33);
+
+	lp->a.write_bcr(ioaddr, 33,
+			((phy_id & 0x1f) << 5) | (reg_num & 0x1f));
+	val_out = lp->a.read_bcr(ioaddr, 34);
+	lp->a.write_bcr(ioaddr, 33, phyaddr);
+
+	return val_out;
+}
+
+static void mdio_write(struct nic *nic __unused, int phy_id, int reg_num,
+		       int val)
+{
+	int phyaddr;
+
+	if (!lp->mii)
+		return;
+
+	phyaddr = lp->a.read_bcr(ioaddr, 33);
+
+	lp->a.write_bcr(ioaddr, 33,
+			((phy_id & 0x1f) << 5) | (reg_num & 0x1f));
+	lp->a.write_bcr(ioaddr, 34, val);
+	lp->a.write_bcr(ioaddr, 33, phyaddr);
+}
+
 static struct pci_id pcnet32_nics[] = {
 	PCI_ROM(0x1022, 0x2000, "lancepci", "AMD Lance/PCI"),
 	PCI_ROM(0x1022, 0x2625, "pcnetfastiii", "AMD Lance/PCI PCNet/32"),
@@ -920,4 +973,3 @@ static struct pci_driver pcnet32_driver __pci_driver = {
 	.id_count = sizeof(pcnet32_nics) / sizeof(pcnet32_nics[0]),
 	.class = 0,
 };
-#endif
