@@ -232,6 +232,13 @@ static int prep_segment(unsigned long start, unsigned long mid, unsigned long en
 	 * anything, it shows up now, when the debug message is
 	 * visible, rather than when we're partway through downloading
 	 * the file.
+	 *
+	 * If you see an entire screen full of exclamation marks, then
+	 * you've almost certainly written all over the display RAM.
+	 * This is likely to happen if the status of the A20 line gets
+	 * screwed up.  Of course, if this happens, it's a good bet
+	 * that you've also trashed the whole of low memory, so expect
+	 * interesting things to happen...
 	 */
 	memset(phys_to_virt(start), '!', mid - start);
 #endif
