@@ -114,29 +114,31 @@ int pci_probe(int last_adapter, struct dev *dev, int type)
 		state->dev.bus    = 0;
 		state->dev.devfn  = 0;
 	}
-	if (state->advance) {
-		find_pci(type, &state->dev);
-		dev->index = 0;
-	}
-	state->advance = 1;
-
-	if (state->dev.driver == 0)
-		return -1;
-
+	for(;;) {
+		if (state->advance) {
+			find_pci(type, &state->dev);
+			dev->index = 0;
+		}
+		state->advance = 1;
+		
+		if (state->dev.driver == 0)
+			return -1;
+		
 #if 0
-	/* FIXME the romaddr code needs a total rethought to be useful */
-	if (state->dev.romaddr != ((unsigned long) rom.rom_segment << 4)) {
-		continue;
-	}
+		/* FIXME the romaddr code needs a total rethought to be useful */
+		if (state->dev.romaddr != ((unsigned long) rom.rom_segment << 4)) {
+			continue;
+		}
 #endif
-	dev->devid.bus_type = PCI_BUS_TYPE;
-	dev->devid.vendor_id = htons(state->dev.vendor);
-	dev->devid.device_id = htons(state->dev.dev_id);
-	
-	printf("[%s]", state->dev.name);
-	if (state->dev.driver->probe(dev, &state->dev)) {
-		state->advance = !dev->index;
-		return 0;
+		dev->devid.bus_type = PCI_BUS_TYPE;
+		dev->devid.vendor_id = htons(state->dev.vendor);
+		dev->devid.device_id = htons(state->dev.dev_id);
+		
+		printf("[%s]", state->dev.name);
+		if (state->dev.driver->probe(dev, &state->dev)) {
+			state->advance = !dev->index;
+			return 0;
+		}
 	}
 	return -1;
 }

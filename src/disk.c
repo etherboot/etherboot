@@ -20,7 +20,7 @@ static int disk_read(
 	/* See if I need to update the track cache */
 	if ((sector < disk->sector) ||
 		sector >= disk->sector + (disk->bytes >> 9)) {
-		printf(".");
+		twiddle();
 		result = disk->read(disk, base_sector);
 		if (result < 0)
 			return result;

@@ -109,7 +109,9 @@ close(STDIN);
 # Generate the assignments to DOBJS and BINS
 print "# Driver object files and ROM image files\n";
 print "IMG3S2\t:=\n";
+print "DOBJS\t:=\n";
 foreach my $img (sort keys %buildent) {
+	print "DOBJS\t+= bin32/$img.o\n";
 	print "IMGS32\t+= bin32/$img.img bin32/$img.lzimg\n"
 }
 

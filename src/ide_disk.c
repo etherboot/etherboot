@@ -706,62 +706,59 @@ static int ide_pci_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct disk *disk = (struct disk *)dev;
 	struct harddisk_info *info;
+	int index;
+
 	adjust_pci_device(pci);
 	
-	if (dev->index < 2) {
-		if ((pci->class & 1) == 0) {
+	for(index = dev->index; index < 4; index++) {
+		unsigned mask;
+		mask = (index < 2)? (1 << 0) : (1 << 2);
+		if ((pci->class & mask) == 0) {
 			/* IDE special pci mode */
-			controller.cmd_base  = IDE_BASE0;
-			controller.ctrl_base = IDE_BASE0 + IDE_REG_EXTENDED_OFFSET;
+			uint16_t base;
+			base = (index < 2)?IDE_BASE0:IDE_BASE1;
+			controller.cmd_base  = base;
+			controller.ctrl_base = base + IDE_REG_EXTENDED_OFFSET;
 		} else {
 			/* IDE normal pci mode */
-			uint32_t base;
-			pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_0, &base);
-			controller.cmd_base = base & ~3;
-			pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_1, &base);
-			controller.ctrl_base = base & ~3;
+			unsigned cmd_reg, ctrl_reg;
+			uint32_t cmd_base, ctrl_base;
+			if (index < 2) {
+				cmd_reg  = PCI_BASE_ADDRESS_0;
+				ctrl_reg = PCI_BASE_ADDRESS_1;
+			} else {
+				cmd_reg  = PCI_BASE_ADDRESS_2;
+				ctrl_reg = PCI_BASE_ADDRESS_3;
+			}
+			pcibios_read_config_dword(pci->bus, pci->devfn, cmd_reg, &cmd_base);
+			pcibios_read_config_dword(pci->bus, pci->devfn, ctrl_reg, &ctrl_base);
+			controller.cmd_base  = cmd_base  & ~3;
+			controller.ctrl_base = ctrl_base & ~3;
 		}
-	} 
-	else if (dev->index < 4) {
-		if ((pci->class & (1 << 2)) == 0) {
-			/* IDE special pci mode */
-			controller.cmd_base  = IDE_BASE1;
-	 		controller.ctrl_base = IDE_BASE1 + IDE_REG_EXTENDED_OFFSET;
-		} else {
-			/* IDE normal pci mode */
-			uint32_t base;
-			pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_2, &base);
-			controller.cmd_base = base & ~3;
-			pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_3, &base);
-			controller.ctrl_base = base & ~3;
+		if ((index & 1) == 0) {
+			if (init_controller(&controller, disk->drive, disk->buffer) < 0) {
+				/* nothing behind the controller */
+				continue;
+			}
 		}
-	}
-	else {
-		/* past all of the drives */
-		dev->index = 0;
-		return 0;
-	}
-	if ((dev->index & 1) == 0) {
-		if (init_controller(&controller, disk->drive, disk->buffer) < 0) {
-			/* nothing behind the controller */
-			dev->index += 2;
-			return 0;
+		info = &harddisk_info[dev->index & 1];
+		if (!info->drive_exists) {
+			/* unknown driver */
+			continue;
 		}
+		disk->hw_sector_size   = IDE_SECTOR_SIZE;
+		disk->sectors_per_read = 1;
+		disk->sectors          = info->sectors;
+		dev->index   = index;
+		dev->disable = ide_disable;
+		disk->read   = ide_read;
+		disk->priv   = info;
+		
+		return 1;
 	}
-	info = &harddisk_info[dev->index & 1];
-	if (!info->drive_exists) {
-		/* unknown driver */
-		return 0;
-	}
-	disk->hw_sector_size   = IDE_SECTOR_SIZE;
-	disk->sectors_per_read = 1;
-	disk->sectors          = info->sectors;
-	dev->index++;
-	dev->disable = ide_disable;
-	disk->read   = ide_read;
-	disk->priv   = info;
-	
-	return 1;
+	/* past all of the drives */
+	dev->index = 0;
+	return 0;
 }
 static struct pci_id ide_controllers[] = {
 { PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82801CA_11,    "PIIX4" },
@@ -838,27 +835,25 @@ static struct pci_driver ide_driver __pci_driver = {
 };
 #endif
 
+/* The isa driver works but it causes disks to show up twice.
+ * comment it out for now.
+ */
 #if 0 && defined(CONFIG_ISA)
 static int ide_isa_probe(struct dev * dev, unsigned short *probe_addrs)
 {
 	struct disk *disk = (struct disk *)dev;
 	int index;
-	unsigned short *addr;
+	unsigned short addr;
 	struct harddisk_info *info;
 
-	for(index = 0, addr = probe_addrs; *addr; addr++, index += 2) {
-		if (index +1 < dev->index)
-			continue;
-		if (index == dev->index) {
-			controller.cmd_base = *addr;
-			controller.ctrl_base = *addr + IDE_REG_EXTENDED_OFFSET;
+	for(index = dev->index; addr = probe_addrs[index >> 1]; index += 2) {
+		if ((index & 1) == 0) {
+			controller.cmd_base = addr;
+			controller.ctrl_base = addr + IDE_REG_EXTENDED_OFFSET;
 			if (init_controller(&controller, disk->drive, disk->buffer) < 0) {
 				/* nothing behind the controller */
-				dev->index += 2;
-				return 0;
+				continue;
 			}
-		} else {
-			index++;
 		}
 		info = &harddisk_info[index & 1];
 		if (!info->drive_exists) {
@@ -867,13 +862,14 @@ static int ide_isa_probe(struct dev * dev, unsigned short *probe_addrs)
 		}
 		disk->sectors_per_read = 1;
 		disk->sectors = info->sectors;
-		dev->index++;
+		dev->index = index;
 		dev->disable = ide_disable;
 		disk->read   = ide_read;
 		disk->priv   = info;
 		
 		return 1;
 	}
+	/* past all of the drives */
 	dev->index = 0;
 	return 0;
 }

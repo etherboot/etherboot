@@ -1082,7 +1082,9 @@ static int floppy_init(void)
 		return -1;
 	}
 	floppy_reset();
+#ifdef MDEBUG
 	printf("fdc_state.version = %x\n", fdc_state.version);
+#endif
 	return 0;
 }
 

@@ -188,7 +188,7 @@ BOBJS32+=	bin32/serial.o bin32/timer.o  bin32/relocate.o bin32/heap.o
 BOBJS32+=	bin32/disk.o
 BLIB32=		bin32/bootlib.a 
 LIBS32=		$(BLIB32) $(LIBC32)
-UTILS+=		bin/makerom bin/lzhuf
+UTILS+=		bin/makerom bin/lzhuf bin/nrv2b
 STDDEPS32=	$(START32) $(BLIB32) $(UTILS)
 ELF_DEPS32=	$(ELF_START32) $(BLIB32)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
@@ -348,6 +348,9 @@ bin/makerom: makerom.c
 bin/lzhuf:	lzhuf.c
 	$(GCC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -o $@ $<
 
+bin/nrv2b:	nrv2b.c
+	$(GCC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -DNDEBUG -DBITSIZE=32 -DENDIAN=0 -o $@ $<
+
 # Roms file
 
 Roms:	NIC genrules.pl
@@ -371,6 +374,10 @@ bin/%.o:	bin/%.s
 bin/%.bin:	bin/%.o
 	$(LD32) -Ttext 0x10000 $(LDBINARY32) -o $@ $<
 
+# Rule for the super etherboot image.
+bin32/etherboot.o: $(DOBJS)
+	$(LD32) -r $(DOBJS) -o $@
+
 # general ruls for generating .img files
 bin32/%.tmp: bin32/%.o bin32/config.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config.o $< bin32/pci.o $(LIBS32)
@@ -390,6 +397,17 @@ bin32/%.lzimg: bin32/%.hufo bin32/unhuf.o $(MAKEDEPS)
 	ld -T unhuf.lds bin32/unhuf.o $< -o $@
 
 
+# general rule for .nrv2b (compressed binary code), may be overridden
+bin32/%.nrv2b:	bin32/%.img bin/nrv2b $(MAKEDEPS)
+	bin/nrv2b e $< $@
+
+bin32/%.nrv2bo:	bin32/%.nrv2b huf.lds $(MAKEDEPS)
+	ld -T huf.lds -b binary $< -o $@
+
+bin32/%.nrv2bimg:	bin32/%.nrv2bo bin32/unnrv2b.o $(MAKEDEPS)
+	ld -T unhuf.lds bin32/unnrv2b.o $< -o $@
+
+
 # general rules for normal/compressed ROM images, may be overridden
 bin32/%.rom:	bin32/%.img $(RLOADER) $(START16)
 	cat $(RLOADER) $(START16) $< > $@
@@ -407,10 +425,17 @@ bin32/%.imgo:	bin32/%.imgo $(MAKEDEPS)
 bin32/%.lzimgo:	bin32/%.lzimg $(MAKEDEPS)
 	ld -T img.lds -b binary $< -o $@
 
+
+bin32/%.nrv2bimgo:	bin32/%.nrv2bimg $(MAKEDEPS)
+	ld -T img.lds -b binary $< -o $@
+
 bin32/%.elf:	bin32/%.imgo $(ELFPREFIX) $(MAKEDEPS)
 	ld -T elfprefix.lds $(ELFPREFIX) $< -o $@
 
 bin32/%.lzelf:	bin32/%.lzimgo $(ELFPREFIX) $(MAKEDEPS)
+	ld -T elfprefix.lds $(ELFPREFIX) $< -o $@
+
+bin32/%.nrv2belf:	bin32/%.nrv2bimgo $(ELFPREFIX) $(MAKEDEPS)
 	ld -T elfprefix.lds $(ELFPREFIX) $< -o $@
 
 
@@ -472,6 +497,8 @@ clean:
 	$(RM) bin32/*.lilo bin32/*.lzlilo
 	$(RM) bin32/*.pxe bin32/*.lzpxe
 	$(RM) bin32/*.elf bin32/*.lzelf bin32/*.s
+	$(RM) bin32/*.nrv2b bin32/*.nrv2bo bin32/*.nrv2bimg 
+	$(RM) bin32/*.nrv2bimgo bin32/*.nrv2belf
 	$(RM) gcccheck
 
 ../index.html:	../index.xhtml
