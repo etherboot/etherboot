@@ -446,7 +446,7 @@ struct nic	nic =
 	arptable[ARP_CLIENT].node,	/* node_addr */
 	packet,			/* packet */
 	0,			/* packetlen */
-	0,			/* name */
+	"",			/* devid */
 	0,			/* priv_data */
 };
 
@@ -506,7 +506,6 @@ int eth_probe(int last_adapter)
 	for (t = NIC; t->nic_name != 0; ++t)
 	{
 		printf("[%s]", t->nic_name);
-		nic.name = t->nic_name;
 #ifdef	INCLUDE_PCI
 		eth_find_pci(t->pci_ids, t->pci_id_count, &dev);
 		if (dev.probe_id == 0) {
@@ -519,9 +518,11 @@ int eth_probe(int last_adapter)
 #endif
 		pci_ioaddrs[0] = dev.ioaddr;
 		pci_ioaddrs[1] = 0;
+		sprintf(nic.devid, "PCI:%hx:%hx", dev.vendor, dev.dev_id);
 		if ((*t->eth_probe)(&nic, &pci_ioaddrs, &dev))
 			return (0);
 #else
+		sprintf(nic.devid, "ISA:%s", t->nic_name); /* What numbers might we use for ISA NICs? */
 		if ((*t->eth_probe)(&nic, t->probe_ioaddrs))
 			return (0);
 #endif	/* INCLUDE_PCI */

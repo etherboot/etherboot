@@ -25,7 +25,7 @@ struct nic
 	unsigned char	*node_addr;
 	char		*packet;
 	unsigned int	packetlen;
-	char		*name;		/* Pointer to NIC driver name */
+	char		devid[NIC_DEVID_MAX_LEN];  /* NIC device ID string (sent to DHCP server) */
 	void		*priv_data;	/* driver can hang private data here */
 };
 

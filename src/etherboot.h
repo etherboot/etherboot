@@ -227,8 +227,9 @@ Author: Martin Renters
 #define RFC1533_VENDOR_HOWTO    132
 #define RFC1533_VENDOR_KERNEL_ENV    133
 #endif
+#define RFC1533_VENDOR_ETHERBOOT_ENCAP 150
 #define RFC1533_VENDOR_MNUOPTS	160
-#define RFC1533_VENDOR_DRIVER	175
+#define RFC1533_VENDOR_NIC_DEV_ID 175
 #define RFC1533_VENDOR_SELECTION 176
 #define RFC1533_VENDOR_MOTD	184
 #define RFC1533_VENDOR_NUMOFMOTD 8
@@ -266,6 +267,16 @@ Author: Martin Renters
 #define AWAIT_QDRAIN	5	/* drain queue, process ARP requests */
 #ifdef FREEBSD_PXEEMU
 #define AWAIT_UDP	6
+#endif
+
+#define NIC_DEVID_MAX_LEN 20
+
+/* Helper macros used to identify when DHCP options are valid/invalid in/outside of encapsulation */
+#define NON_ENCAP_OPT in_encapsulated_options == 0 &&
+#ifdef ALLOW_ONLY_ENCAPSULATED
+#define ENCAP_OPT in_encapsulated_options == 1 &&
+#else
+#define ENCAP_OPT
 #endif
 
 typedef struct {
