@@ -180,16 +180,24 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_OLICOM_OC2326	0x0014
 #define PCI_DEVICE_ID_OLICOM_OC6151	0x0021
 
+struct pci_id {
+	unsigned short vendor, dev_id;
+	const char *name;
+};
+
 struct pci_device {
 	unsigned short	vendor, dev_id;
 	const char	*name;
+	/* membase and ioaddr are silly and depricated */
 	unsigned int	membase;
 	unsigned int	ioaddr;
 	unsigned char	devfn;
 	unsigned char	bus;
+	struct pci_id *	probe_id;
+	unsigned int	romaddr;
 };
 
-extern void	eth_pci_init(struct pci_device *);
+extern void eth_find_pci(struct pci_id *idlist, int ids, struct pci_device *dev);
 
 extern int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned char *value);
 extern int pcibios_write_config_byte (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned char value);

@@ -112,10 +112,9 @@ static struct mii_phy {
 
 
 // PCI to ISA bridge for SIS640E access
-static struct pci_device   pci_isa_bridge_list[] = {
+static struct pci_id   pci_isa_bridge_list[] = {
 	{ 0x1039, 0x0008,
-		"SIS 85C503/5513 PCI to ISA bridge", 0, 0, 0, 0},
-	{0, 0, NULL, 0, 0, 0, 0}
+		"SIS 85C503/5513 PCI to ISA bridge"},
 };
 
 /* Function Prototypes */
@@ -185,13 +184,15 @@ static int sis630e_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
 {
 	u8 reg;
 	int i;
-	struct pci_device	*p;
+	struct pci_device	p[1];
 
-	// find PCI to ISA bridge
-	eth_pci_init(pci_isa_bridge_list);
+	/* find PCI to ISA bridge */
+	eth_find_pci(pci_isa_bridge_list, 
+	    sizeof(pci_isa_bridge_list)/sizeof(pci_isa_bridge_list[0]), p);
 
-    /* the firts entry in this list should contain bus/devfn */
-    p = pci_isa_bridge_list;
+	/* error on failure */
+	if (!p->probe_id)
+	    return 0;
 
 	pcibios_read_config_byte(p->bus,p->devfn, 0x48, &reg);
 	pcibios_write_config_byte(p->bus,p->devfn, 0x48, reg | 0x40);

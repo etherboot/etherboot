@@ -355,8 +355,9 @@ static void pcibios_init(void)
 }
 #endif	/* CONFIG_PCI_DIRECT not defined*/
 
-static void scan_bus(struct pci_device *pcidev)
+static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 {
+	unsigned int first_bus, first_devfn, first_i;
 	unsigned int devfn, l, bus, buses;
 	unsigned char hdr_type = 0;
 	unsigned short vendor, device;
@@ -364,15 +365,27 @@ static void scan_bus(struct pci_device *pcidev)
 	int i, reg;
 	unsigned int pci_ioaddr = 0;
 
+	first_bus = 0;
+	first_devfn = 0;
+	first_i = 0;
+	if (dev->probe_id) {
+		first_bus = dev->bus;
+		first_devfn = dev->devfn;
+		first_i = dev->probe_id - id +1;
+		dev->probe_id = 0;
+		dev->bus = 0;
+		dev->devfn = 0;
+	}
+		
 	/* Scan all PCI buses, until we find our card.
-	 * We could be smart only scan the required busses but that
+	 * We could be smart only scan the required buses but that
 	 * is error prone, and tricky.
-	 * By scanning all possible pci busses in order we should find
+	 * By scanning all possible pci buses in order we should find
 	 * our card eventually. 
 	 */
 	buses=256;
-	for (bus = 0; bus < buses; ++bus) {
-		for (devfn = 0; devfn < 0xff; ++devfn) {
+	for (bus = first_bus; bus < buses; ++bus) {
+		for (devfn = first_devfn; devfn < 0xff; ++devfn) {
 			if (PCI_FUNC (devfn) == 0)
 				pcibios_read_config_byte(bus, devfn, PCI_HEADER_TYPE, &hdr_type);
 			else if (!(hdr_type & 0x80))	/* not a multi-function device */
@@ -390,50 +403,67 @@ static void scan_bus(struct pci_device *pcidev)
 			printf("bus %hhX, function %hhX, vendor %hX, device %hX\n",
 				bus, devfn, vendor, device);
 #endif
-			for (i = 0; pcidev[i].vendor != 0; i++) {
-				if (vendor != pcidev[i].vendor
-				    || device != pcidev[i].dev_id)
+			for (i = first_i; i < ids; i++) {
+				if (vendor != id[i].vendor)
 					continue;
-				pcidev[i].devfn = devfn;
-				pcidev[i].bus = bus;
+				if (device != id[i].dev_id)
+					continue;
+
+				dev->devfn = devfn;
+				dev->bus = bus;
+				dev->vendor = id[i].vendor;
+				dev->dev_id = id[i].dev_id;
+				dev->name = id[i].name;
+				dev->probe_id = &id[i];
+
+				
+				/* Get the ROM base address */
+				pcibios_read_config_dword(bus, devfn, PCI_ROM_ADDRESS, &romaddr);
+				romaddr >>= 10;
+				dev->romaddr = romaddr;
+				
+				/* Get the ``membase'' */
+				pcibios_read_config_dword(bus, devfn,
+					PCI_BASE_ADDRESS_1, &membase);
+				dev->membase = membase;
+				
+				/* Get the ``ioaddr'' */
 				for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
 					pcibios_read_config_dword(bus, devfn, reg, &ioaddr);
-
-					/* Intel e1000 need the mem base address */
-					if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0)
+					if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0 || (ioaddr & PCI_BASE_ADDRESS_SPACE_IO) == 0)
 						continue;
+
+
 					/* Strip the I/O address out of the returned value */
 					ioaddr &= PCI_BASE_ADDRESS_IO_MASK;
-					/* Get the memory base address */
-					pcibios_read_config_dword(bus, devfn,
-						PCI_BASE_ADDRESS_1, &membase);
-					/* Get the ROM base address */
-					pcibios_read_config_dword(bus, devfn, PCI_ROM_ADDRESS, &romaddr);
-					romaddr >>= 10;
-					printf("Found %s at %#x, ROM address %#hx\n",
-						pcidev[i].name, ioaddr, romaddr);
+
 					/* Take the first one or the one that matches in boot ROM address */
-					if (pci_ioaddr == 0 || romaddr == ((unsigned long) rom.rom_segment << 4)) {
-						pcidev[i].membase = membase;
-						pcidev[i].ioaddr = ioaddr;
-						return;
-					}
+					dev->ioaddr = ioaddr;
 				}
+				printf("Found %s ROM address %#hx\n",
+					dev->name, romaddr);
+				return;
+
 			}
+			first_i = 0;
 		}
+		first_devfn = 0;
 	}
+	first_bus = 0;
 }
 
-void eth_pci_init(struct pci_device *pcidev)
+void eth_find_pci(struct pci_id *idlist, int ids, struct pci_device *dev)
 {
 #ifndef	CONFIG_PCI_DIRECT
-	pcibios_init();
+	if (!pcibios_entry) {
+		pcibios_init();
+	}
 	if (!pcibios_entry) {
 		printf("pci_init: no BIOS32 detected\n");
 		return;
 	}
 #endif
-	scan_bus(pcidev);
+	scan_bus(idlist, ids, dev);
 	/* return values are in pcidev structures */
 }
 

@@ -321,10 +321,11 @@ e1000_probe (struct nic *nic, unsigned short *probe_addrs, struct pci_device *p)
 	u8 revision;
 	int i;
 
-	if (p == 0 || p->ioaddr == 0)
+	if (p == 0)
 		return 0;
 	pci_dev = p;
-	ioaddr = p->ioaddr & ~3;	/* Mask the bit that says "this is an io addr" */
+	pcibios_read_config_dword(p->bus, p->devfn, PCI_BASE_ADDRESS_0, &ioaddr);
+	ioaddr &= ~3;	/* Mask the bit that says "this is an io addr" */
 	/* From Matt Hortman <mbhortman@acpthinclient.com> */
 	/* MAC and Phy settings */
 
@@ -402,7 +403,7 @@ e1000_probe (struct nic *nic, unsigned short *probe_addrs, struct pci_device *p)
 	ReadNodeAddress (mac_addr);
 	memcpy (nic->node_addr, mac_addr, ETH_ALEN);
 	
-	printf("MAC address %!\n",nic);
+	printf("MAC address %!\n", mac_addr);
 
 	if (!InitializeHardware ()) {
 		E1000_ERR ("Hardware Initialization Failed\n");
