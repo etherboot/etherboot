@@ -208,7 +208,7 @@ done:
 		if ((c >= ' ') && (c <= '~')) putchar(c);
 		putchar('\n');
 		if (c == ANS_LOCAL)
-			exit(0);
+			eb_exit(0);
 		if (c == ANS_NETWORK)
 			break;
 	}
@@ -225,7 +225,7 @@ static inline void try_floppy_first(void)
 		putchar('.');
 		if (disk_read(0, 0, 0, 0, ((char *)FLOPPY_BOOT_LOCATION)) != 0x8000) {
 			printf("using floppy\n");
-			exit(0);
+			eb_exit(0);
 		}
 	}
 	printf("no floppy\n");
@@ -292,7 +292,7 @@ int main(void)
 			load();
 		}
 		else if (i == 255) {
-			exit(0);
+			eb_exit(0);
 			longjmp(restart_etherboot, -1);
 		}
 		else {
@@ -301,7 +301,7 @@ int main(void)
 #endif
 			printf("<abort>\n");
 #ifdef EMERGENCYDISKBOOT
-			exit(0);
+			eb_exit(0);
 #endif
 			/* Reset the adapter to it's default state */
 			eth_reset();
@@ -310,6 +310,16 @@ int main(void)
 	}
 }
 
+/**************************************************************************
+EB_EXIT - Disable A20, then exit
+**************************************************************************/
+void eb_exit(int status)
+{
+#ifdef	PCBIOS
+	gateA20_unset();
+#endif
+	exit(status);
+}
 
 /**************************************************************************
 LOADKERNEL - Try to load kernel image

@@ -660,6 +660,7 @@ extern unsigned char *end_of_rfc1533;
 extern int freebsd_howto;
 extern char freebsd_kernel_env[];
 #endif
+extern void eb_exit P((int status));
 
 /* config.c */
 extern struct nic nic;

@@ -367,7 +367,7 @@ img:
 	if ((len = d - s) <= 0 || len > (int)sizeof(KERNEL_BUF)-1 || !*s) {
 	local_disk:
 		cleanup();
-		exit(0);
+		eb_exit(0);
 	}
 
 

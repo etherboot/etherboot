@@ -76,7 +76,8 @@ eepro100	0x8086,0x1229	Intel EtherExpressPro100
 82559er		0x8086,0x1209	Intel EtherExpressPro100 82559ER
 id1029		0x8086,0x1029	Intel EtherExpressPro100 ID1029
 id1030		0x8086,0x1030	Intel EtherExpressPro100 InBusiness 10/100
-id1038		0x8086,0x1038	Intel(R) PRO/100 VM Network Connection
+id1031		0x8086,0x1031	Intel Pro/100 VE (LOM)
+id1038		0x8086,0x1038	Intel PRO/100 VM Network Connection
 82562et		0x8086,0x1039	Intel PRO100 VE 82562ET
 82562etb	0x8086,0x103b	Intel PRO100 VE 82562ET
 82562em		0x8086,0x2449	Intel EtherExpressPro100 82562EM
