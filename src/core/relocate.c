@@ -20,7 +20,11 @@ void relocate(void)
 	unsigned long addr, eaddr, size;
 	int i;
 	/* Walk through the memory map and find the highest address
-	 * below 4GB that etherboot will fit into.
+	 * below 4GB that etherboot will fit into.  Ensure etherboot
+	 * lies entirely within a range with A20=0.  This means that
+	 * even if something screws up the state of the A20 line, the
+	 * etherboot code is still visible and we have a chance to
+	 * diagnose the problem.
 	 */
 	/* First find the size of etherboot */
 	addr = virt_to_phys(_text);
@@ -52,6 +56,28 @@ void relocate(void)
 		r_end = r_end & ~15;
 		if (r_end < r_start) {
 			r_end = MAX_ADDR;
+		}
+		/* Shrink the range down to use only even megabytes
+		 * (i.e. A20=0).
+		 */
+		if ( r_end & 0x100000 ) {
+			/* If r_end is in an odd megabyte, round down
+			 * r_end to the top of the next even megabyte.
+			 */
+			r_end = r_end & ~0xfffff;
+		} else if ( ( r_end - size ) & 0x100000 ) {
+			/* If r_end is in an even megabyte, but the
+			 * start of Etherboot would be in an odd
+			 * megabyte, round down to the top of the next
+			 * even megabyte.
+			*/
+			r_end = ( r_end - 0x100000 ) & ~0xfffff;
+		}
+		/* If we have rounded down r_end below r_ start, skip
+		 * this block.
+		 */
+		if ( r_end < r_start ) {
+			continue;
 		}
 		if (eaddr < r_end - size) {
 			addr = r_end - size;
