@@ -10,6 +10,7 @@
  * who implemented the original compressor and decompressor in C code
  *
  * Converted to 32bit assembly 16 July 2002 Eric Biederman <ebiederman@lnxi.com>
+ * Made PIC 10 Aug 2002 Eric Biederman <ebiederman@lnxi.com>
  *
  * Copyright 1997 by M. Gutschke <gutschk@math.uni-muenster.de>
  *
@@ -31,118 +32,21 @@
 #define TABLESZ		(NCHAR+NCHAR-1)
 #define ROOT		(TABLESZ-1)
 
-#include "elf.h"
-
-.text
-#if 1
-		/* ELF Header */
-		.globl elf_header
-elf_header:	
-e_ident:	.byte	0x7f, 'E', 'L', 'F', 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
-e_type:		.short	ET_EXEC
-e_machine:	.short	EM_386
-e_version:	.long	1
-e_entry:	.long	init
-e_phoff:	.long	elf_program_header - elf_header
-e_shoff:	.long	0
-e_flags:	.long	0
-e_ehsize:	.short	elf_header_end - elf_header
-e_phentsize:	.short	ELF32_PHDR_SIZE
-e_phnum:	.short	(elf_program_header_end - elf_program_header)/ELF32_PHDR_SIZE
-e_shentsize:	.short	0
-e_shnum:	.short	0
-e_shstrndx:	.short	0
-elf_header_end:
-	
-elf_program_header:
-phdr1_p_type:	.long	PT_NOTE
-phdr1_p_offset:	.long	elf_note - elf_header
-phdr1_p_vaddr:	.long	elf_note
-phdr1_p_paddr:	.long	elf_note
-phdr1_p_filesz:	.long	elf_note_end - elf_note
-phdr1_p_memsz:	.long	elf_note_end - elf_note
-phdr1_p_flags:	.long	PF_R | PF_W | PF_X
-phdr1_p_align:	.long	0
-
-/* The decompressor */
-phdr2_p_type:	.long	PT_LOAD
-phdr2_p_offset:	.long	init - elf_header
-phdr2_p_vaddr:	.long	init
-phdr2_p_paddr:	.long	init
-phdr2_p_filesz:	.long	_edata - init
-phdr2_p_memsz:	.long	_end - init
-phdr2_p_flags:	.long	PF_R | PF_W | PF_X
-phdr2_p_align:	.long	0
-
-/* Claim space for the decompressed code */
-phdr3_p_type:	.long	PT_LOAD
-phdr3_p_offset:	.long	0
-phdr3_p_vaddr:	.long	spaces
-phdr3_p_paddr:	.long	spaces
-phdr3_p_filesz:	.long	0
-phdr3_p_memsz:	.long	0x10000 - 3072 - (spaces & 0xFFFF)
-phdr3_p_flags:	.long	PF_R | PF_W | PF_X
-phdr3_p_align:	.long	0
-
-elf_program_header_end:
-
-	.globl elf_note
-elf_note:
-	.balign 4
-	.int 2f - 1f
-	.int 4f - 3f
-	.int EIN_PROGRAM_NAME
-1:	.asciz "ELFBoot"
-2:
-	.balign 4
-3:	
-	.asciz "Etherboot"
-4:
-
-
-	.balign 4
-	.int 2f - 1f
-	.int 4f - 3f
-	.int EIN_PROGRAM_VERSION
-1:	.asciz "ELFBoot"
-2:
-	.balign 4
-3:	
-	.asciz VERSION
-4:
-
-#if 0
-	.balign 4
-	.int 2f - 1f
-	.int 4f - 3f
-	.int EIN_PROGRAM_CHECKSUM
-1:	.asciz "ELFBoot"
-2:
-	.balign 4
-3:	
-	.word 0
-4:
-#endif
-	.balign 4
-elf_note_end:
-
-#endif
-start:
+	.text
+	.globl _start
+_start:
 	cli
-/*
- * Save the initial register contents
- */
-	movl	%eax, initial_regs+0
-	movl	%ebx, initial_regs+4
-	movl	%ecx, initial_regs+8
-	movl	%edx, initial_regs+12
-	movl	%esi, initial_regs+16
-	movl	%edi, initial_regs+20
-	movl	%esp, initial_regs+24
-	movl	%ebp, initial_regs+28
 
-	movl	$_estack, %esp
-	
+	/* Save the initial register values */
+	pushal
+
+	/*
+	 * See where I am running, and compute %ebp
+	 */
+	call	1f
+1:	pop	%ebp
+	subl	$1b, %ebp
+
 /*
  * INIT -- initializes all data structures
  * ====
@@ -150,8 +54,8 @@ start:
 
 init:	
 	cld
-	movl	$dcodrle, %esi		/* uncompress run length encoded */
-	movl	$dcode, %edi		/* lookup table for codes */
+	leal	dcodrle(%ebp), %esi	/* uncompress run length encoded */
+	leal	dcode(%ebp), %edi			/* lookup table for codes */
 	movb	$6, %dl
 	movb	$0x20, %dh
 	xorb	%bh,%bh
@@ -187,7 +91,7 @@ init2:
 	movw	$1, %ax			/* to one */
 	rep
 	stosw
-	movl	$freq, %esi
+	leal	freq(%ebp), %esi
 	movl	$ROOT+1-NCHAR, %ecx
 init3:	
 	lodsw				/* update frequencies of non-leaf nodes */
@@ -228,21 +132,20 @@ init7:
 	stosb				/* clear getlen */
 	stosw				/* clear getbuf */
 	movb	$0x20, %al		/* fill text buffer with spaces */
-	movl	$spaces, %edi
+	leal	spaces(%ebp), %edi
 	movl	$BUFSZ-LOOKAHEAD, %ecx
 	rep
 	
 	stosb
 	/* fall thru */
 
-
 /* 
  * MAIN -- reads compressed codes and writes decompressed data
  * ====
  */
 
-	movl	$_payload, %esi		/* get length of compressed data stream */
-	movl	$uncompressed, %edi
+	leal	_payload(%ebp), %esi	/* get length of compressed data stream */
+	leal	uncompressed(%ebp), %edi
 
 	lodsl
 	movl	%eax, %ecx
@@ -273,15 +176,8 @@ main2:
 	jnz	main1			/* proceed with next compressed code */
 done:
 	/* Start Etherboot */
-	movl	initial_regs+0,  %eax
-	movl	initial_regs+4,  %ebx
-	movl	initial_regs+8,  %ecx
-	movl	initial_regs+12, %edx
-	movl	initial_regs+16, %esi
-	movl	initial_regs+20, %edi
-	movl	initial_regs+24, %esp
-	movl	initial_regs+28, %ebp
-	jmp	RELOC
+	popal
+	jmp	uncompressed
 /*
  * GETBIT -- gets one bit pointed to by DS:ESI
  * ======
@@ -291,24 +187,24 @@ done:
 
 getbit:
 	movb	$8, %cl
-	movb	getlen, %dl		/* compute number of bits required */
+	movb	getlen(%ebp), %dl	/* compute number of bits required */
 	subb	%dl,%cl			/* to fill read buffer */
 	jae	getbit1
-	movw	getbuf, %ax		/* there is still enough read ahead data */
+	movw	getbuf(%ebp), %ax	/* there is still enough read ahead data */
 	jmp	getbit2
 getbit1:
 	lodsb				/* get next byte from input stream */
 	xorb	%ah,%ah
 	shlw	%cl,%ax			/* shift, so that it will fit into */
-	movw	getbuf, %cx		/* read ahead buffer */
+	movw	getbuf(%ebp), %cx	/* read ahead buffer */
 	orw	%cx,%ax
 	addb	$8, %dl			/* update number of bits in buffer */
 getbit2:
 	movw	%ax,%cx
 	shlw	%cx			/* extract one bit from buffer */
-	movw	%cx, getbuf
+	movw	%cx, getbuf(%ebp)
 	decb	%dl
-	movb	%dl, getlen		/* and update number of bits */
+	movb	%dl, getlen(%ebp)	/* and update number of bits */
 	shlw	%ax			/* return in carry flag */
 	ret
 
@@ -333,8 +229,8 @@ dcdpos2:
 	movb	%bl,%dh			/* read length of code from table */
 	xorb	%bh,%bh
 	xorl	%ecx, %ecx
-	movb	dlen(%ebx),%cl
-	movb	dcode(%ebx),%bl		/* get top six bits from table */
+	movb	dlen(%ebx, %ebp),%cl
+	movb	dcode(%ebx, %ebp),%bl	/* get top six bits from table */
 	shll	$6, %ebx
 dcdpos3:
 	pushl	%ecx			/* read the rest from the input stream */
@@ -359,14 +255,14 @@ dcdpos4:
 dcdchr:
 	movl	$ROOT, %ebx		/* start at root entry */
 	shll	%ebx
-	movzwl	son(%ebx),%ebx
+	movzwl	son(%ebx, %ebp),%ebx
 dcdchr1:
 	call	getbit			/* get a single bit */
 	jnc	dcdchr2
 	incl	%ebx			/* travel left or right */
 dcdchr2:
 	shll	%ebx
-	movzwl	son(%ebx), %ebx
+	movzwl	son(%ebx, %ebp), %ebx
 	cmpl	$TABLESZ, %ebx		/* until we come to a leaf node */
 	jb	dcdchr1
 	movl	%ebx, %eax
@@ -390,16 +286,14 @@ update:
 	pushl	%esi
 	pushl	%eax
 	shll	%ebx
-	movzwl	parent(%ebx),%ebx
+	movzwl	parent(%ebx, %ebp),%ebx
 update1:
 	shll	%ebx
-	movzwl	freq(%ebx), %edx
-	incl	%edx			/* increment frequency count by one */
-	movw	%dx, freq(%ebx)
-	movl	%ebx, %esi
-	movl	%ebx, %esi
-	addl	$freq+2, %esi
-	lodsw				/* check if nodes need reordering */
+	movzwl	freq(%ebx, %ebp), %edx
+	incl	%edx				/* increment frequency count by one */
+	movw	%dx, freq(%ebx, %ebp)
+	leal	2+freq(%ebx, %ebp), %esi
+	lodsw					/* check if nodes need reordering */
 	cmpw	%ax, %dx
 	jbe	update5
 update2:
@@ -407,39 +301,42 @@ update2:
 	cmpw	%dx, %ax
 	jb	update2
 	movzwl	-4(%esi), %ecx
-	movw	%cx, freq(%ebx)		/* swap frequency of entries */
+	movw	%cx, freq(%ebx, %ebp)		/* swap frequency of entries */
 	movw	%dx, -4(%esi)
-	movl	%esi, %eax		/* compute index of new entry */
+
+	movl	%esi, %eax			/* compute index of new entry */
 	subl	$freq+4, %eax
+	subl	%ebp, %eax
+	
 	movl	%eax, %edx
 	shrl	%eax
-	movzwl	son(%ebx), %ecx		/* get son of old entry */
+	movzwl	son(%ebx, %ebp), %ecx		/* get son of old entry */
 	movl	%ecx, %esi
 	addl	%esi, %esi
-	movw	%ax, parent(%esi)	/* and update the ptr to new parent */
+	movw	%ax, parent(%esi, %ebp)		/* and update the ptr to new parent */
 	cmpl	$TABLESZ, %ecx
-	jae	update3			/* do this for both branches */
-	movw	%ax, parent+2(%esi)	/* if not a leaf node */
+	jae	update3				/* do this for both branches */
+	movw	%ax, parent+2(%esi, %ebp)	/* if not a leaf node */
 update3:
 	movl	%edx, %esi
-	movzwl	son(%esi), %edx		/* get son of new entry */
-	movw	%cx, son(%esi)		/* update its contents */
+	movzwl	son(%esi, %ebp), %edx		/* get son of new entry */
+	movw	%cx, son(%esi, %ebp)		/* update its contents */
 	movl	%edx, %esi
 	addl	%esi, %esi
 	movl	%ebx, %ecx
 	shrl	%ecx
-	movw	%cx, parent(%esi)	/* and update the ptr to new paren */
+	movw	%cx, parent(%esi, %ebp)		/* and update the ptr to new paren */
 	cmpl	$TABLESZ, %edx
-	jae	update4			/* do this for both branches */
-	movw	%cx, parent+2(%esi)	/* if not a leaf node */
+	jae	update4				/* do this for both branches */
+	movw	%cx, parent+2(%esi, %ebp)	/* if not a leaf node */
 update4:
-	movw	%dx, son(%ebx)		/* update son of old entry */
-	movl	%eax, %ebx		/* continue with new entry */
+	movw	%dx, son(%ebx, %ebp)		/* update son of old entry */
+	movl	%eax, %ebx			/* continue with new entry */
 	shll	%ebx
 update5:
-	movzwl	parent(%ebx), %ebx	/* continue with parent */
+	movzwl	parent(%ebx, %ebp), %ebx	/* continue with parent */
 	orl	%ebx, %ebx
-	jnz	update1			/* until we found the root entry */
+	jnz	update1				/* until we found the root entry */
 	popl	%eax
 	popl	%esi
 	ret
@@ -485,19 +382,10 @@ parent:	.skip	2*(TABLESZ+NCHAR)
 getlen:	.skip	1
 getbuf:	.skip	1
 
+	/* the initial buffer has to be filled with spaces  */
 	.balign 4
-initial_regs:
-	.skip	8*4
-
-	.p2align 3
-	/* Allocate a 4K stack in the bss segment */
-_stack:
-	.skip 4096
-_estack:
-			
-	/* uncompressed data will be written to RELOC */
-.equ	uncompressed, RELOC
-
-/* the initial buffer has to be filled with spaces (size: BUFSZ+LOOKAHEAD) */
-.equ	spaces, uncompressed-BUFSZ+LOOKAHEAD
+spaces:
+	.skip	BUFSZ - LOOKAHEAD
+	/* uncompressed data will be written here */
+uncompressed:
 

@@ -1,11 +1,15 @@
+#ifdef PCBIOS
+
 #ifdef GAS291
 #define DATA32 data32;
 #else
 #define DATA32 data32
 #endif
 
-
-	.section ".text16"
+	.section ".text"
+	.section ".text16", "ax", @progbits
+	.previous
+	.code32
 
 #if defined(CONFIG_TSC_CURRTICKS)
 #undef CONFIG_BIOS_CURRTICKS
@@ -241,7 +245,6 @@ cpu_nap:
 10:	.code16
 	hlt
 	ret
-	.code32
 20:	.code32
 	.previous
 	popl	%edi
@@ -392,9 +395,9 @@ BASEMEMSIZE - Get size of the conventional (base) memory
 	.globl	basememsize
 basememsize:
 	pushl	$ 10f
-	pushl	$ 20f
+	pushl	$ 20f - 10f
 	call	_real_call
-	.section ".text"
+	.section ".text16"
 10:	.code16
 	int	$0x12
 	movw	%ax,%cx
@@ -415,9 +418,9 @@ disk_init:
 	pushl	%edi
 
 	pushl	$ 10f
-	pushl	$ 20f
+	pushl	$ 20f - 10f
 	call	_real_call
-	.section ".text"
+	.section ".text16"
 10:	.code16
 	xorw	%ax,%ax
 	movb	$0x80,%dl
@@ -455,7 +458,7 @@ disk_read:
 	pushl	$ 10f
 	pushl	$ 20f - 10f
 	call	_real_call
-	.section ".text"
+	.section ".text16"
 10:	.code16
 	movw	$0x0201,%ax
 	movw	%si,%es
@@ -482,3 +485,5 @@ pxeemu_nbp_active: 	.byte	0
 #endif
 
 days:	.long	0
+
+#endif /* PCBIOS */

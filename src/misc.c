@@ -279,6 +279,7 @@ static void empty_8042(void)
  */
 void gateA20_set(void)
 {
+#warning "gateA20_set should test to see if it is already set"
 	if (int15(Enable_A20) == 0) {
 		printf("A20 enabled via BIOS\n");
 		return;

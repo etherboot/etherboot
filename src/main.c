@@ -186,6 +186,17 @@ static inline void try_floppy_first(void)
 #endif /* TRY_FLOPPY_FIRST */	
 }
 
+static void console_init(void)
+{
+#ifdef	CONSOLE_SERIAL
+	(void)serial_init();
+#endif
+}
+
+static void console_fini(void)
+{
+}
+
 /**************************************************************************
 MAIN - Kick off routine
 **************************************************************************/
@@ -199,22 +210,21 @@ int main(void)
 	for (p = _bss; p < _ebss; p++)
 		*p = 0;	/* Zero BSS */
 
-#ifdef	CONSOLE_SERIAL
-	(void)serial_init();
-#endif
+	console_init();
 
 #ifdef	DELIMITERLINES
 	for (i=0; i<80; i++) putchar('=');
 #endif
-
-	rom = *(struct rom_info *)ROM_INFO_LOCATION;
-	printf("ROM segment %#hx length %#hx reloc %#hx\n", rom.rom_segment,
-		rom.rom_length << 1, ((unsigned long)_text) >> 4);
+	rom = *(struct rom_info *)phys_to_virt(ROM_INFO_LOCATION);
+	printf("ROM segment %#hx length %#hx reloc %#x\n", rom.rom_segment,
+		rom.rom_length << 1, (unsigned long)_text);
 
 	gateA20_set();
 	print_config();
 	get_memsizes();
+	cleanup();
 	relocate();
+	console_init();
 	init_heap();
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
@@ -1426,6 +1436,7 @@ void cleanup(void)
 #ifdef DOWNLOAD_PROTO_DISK
 	disk_disable();
 #endif
+	console_fini();
 }
 
 /*

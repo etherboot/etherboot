@@ -1,3 +1,5 @@
+#ifdef LINUXBIOS
+
 #include "etherboot.h"
 #include "linuxbios_tables.h"
 
@@ -197,3 +199,4 @@ void get_memsizes(void)
 	
 }
 
+#endif /* LINUXBIOS */

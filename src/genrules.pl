@@ -201,41 +201,21 @@ foreach my $family (sort keys %pcient) {
 		my ($rom, $ids, $comment) = @$entry;
 		next if ($ids eq '-');
 		print <<EOF;
-bin32/$rom.rom:	bin32/$family.img \$(PRLOADER)
-	cat \$(PRLOADER) \$< > \$@
+bin32/$rom.rom:	bin32/$family.img \$(PRLOADER) \$(START16)
+	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
-bin32/$rom--%.rom:	bin32/$family--%.img \$(PRLOADER)
-	cat \$(PRLOADER) \$< > \$@
+bin32/$rom--%.rom:	bin32/$family--%.img \$(PRLOADER) \$(START16)
+	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
-bin32/$rom.lzrom:	bin32/$family.huf \$(PRZLOADER)
-	cat \$(PRZLOADER) \$< > \$@
+bin32/$rom.lzrom:	bin32/$family.lzimg \$(PRLOADER) \$(START16)
+	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
 
-bin32/$rom--%.lzrom:	bin32/$family--%.huf \$(PRZLOADER)
-	cat \$(PRZLOADER) \$< > \$@
+bin32/$rom--%.lzrom:	bin32/$family--%.huf \$(PRLOADER) \$(START16)
+	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
-
-bin32/$rom.pxe:	bin32/$family.img \$(PXELOADER)
-	cat \$(PXELOADER) \$< > \$@
-	\$(MAKEROM) -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
-
-bin32/$rom--%.pxe:	bin32/$family--%.img \$(PXELOADER)
-	cat \$(PXELOADER) \$< > \$@
-	\$(MAKEROM) -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
-
-bin32/$rom.lzpxe:	bin32/$family.huf \$(PXEZLOADER)
-	cat \$(PXEZLOADER) \$< > \$@
-	\$(MAKEROM) -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
-
-bin32/$rom--%.lzpxe:	bin32/$family--%.huf \$(PXEZLOADER)
-	cat \$(PXEZLOADER) \$< > \$@
-	\$(MAKEROM) -x \$(MAKEROM_\$*) -p $ids -i\$(IDENT32) \$@
-
-bin32/$rom.ebi:	bin32/$family.elf
-	cp bin32/$family.elf \$@
-	\$(STRIP) -R .comment -R .note \$@
 
 EOF
 	}
@@ -269,20 +249,6 @@ bin32/$pci--%.tmp:	bin32/$pci.o \$(MDROM_ALL_DEPS) bin32/config-$pci--%.o bin32/
 	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o \$(MDROM_ALL_OBJS) bin32/pci.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
 
-bin32/$pci.elf:	bin32/$pci.o bin32/config-$pci.o bin32/pci.o \$(ELF_DEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
-	@\$(SIZE32) \$@ | \$(CHECKSIZE)
-
-bin32/$pci--%.elf:	bin32/$pci.o \$(MDROM_ALL_DEPS) bin32/config-$pci--%.o bin32/pci.o \$(ELF_DEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$pci--\$*.o bin32/$pci.o \$(MDROM_ALL_OBJS) bin32/pci.o \$(LIBS32)
-	@\$(SIZE32) \$@ | \$(CHECKSIZE)
-
-bin32/$pci.img:	bin32/$pci.o bin32/$pci.tmp bin32/config-$pci.o bin32/pci.o \$(STDDEPS32)
-	\$(LD32) \$(LDFLAGS32) \$(LDBINARY32) -o \$@ \$(START32) bin32/config-$pci.o bin32/$pci.o bin32/pci.o \$(LIBS32)
-
-bin32/$pci--%.img:	bin32/$pci.o \$(MDROM_ALL_DEPS) bin32/$pci.tmp bin32/config-$pci--%.o bin32/pci.o \$(STDDEPS32)
-	\$(LD32) \$(LDFLAGS32) \$(LDBINARY32) -o \$@ \$(START32) bin32/config-$pci--\$*.o bin32/$pci.o \$(MDROM_ALL_OBJS) bin32/pci.o \$(LIBS32)
-
 EOF
 }
 foreach my $isa (sort keys %isaent) {
@@ -291,13 +257,6 @@ foreach my $isa (sort keys %isaent) {
 bin32/$isa.tmp:	bin32/$isa.o bin32/config-$isa.o \$(STDDEPS32)
 	\$(LD32) \$(LDFLAGS32) -o \$@ \$(START32) bin32/config-$isa.o bin32/$isa.o \$(LIBS32)
 	@\$(SIZE32) \$@ | \$(CHECKSIZE)
-
-bin32/$isa.elf:	bin32/$isa.o bin32/config-$isa.o \$(ELF_DEPS32)
-	\$(LD32) \$(LDFLAGS32) -o \$@ \$(ELF_START32) bin32/config-$isa.o bin32/$isa.o \$(LIBS32)
-	@\$(SIZE32) \$@ | \$(CHECKSIZE)
-
-bin32/$isa.img:	bin32/$isa.o bin32/$isa.tmp bin32/config-$isa.o \$(STDDEPS32)
-	\$(LD32) \$(LDFLAGS32) \$(LDBINARY32) -o \$@ \$(START32) bin32/config-$isa.o bin32/$isa.o \$(LIBS32)
 
 EOF
 }

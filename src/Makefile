@@ -115,7 +115,7 @@ CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 ifeq "$(shell uname -s)" "FreeBSD"
 CFLAGS32+=	-DIMAGE_FREEBSD -DELF_IMAGE -DAOUT_IMAGE
 endif
-LCONFIG+=	-DRELOC=$(RELOCADDR)
+LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES)
 
 IDENT32=	'$(@F) $(VERSION) Etherboot (GPL)'
 
@@ -166,20 +166,18 @@ SRCS+=	floppy.c pc_floppy.c proto_slam.c proto_tftm.c ide_disk.c
 
 # ROM loaders: LZ version (prefix Z), PCI header version (prefix P)
 RLOADER=	bin/rloader.bin
-PXELOADER=	bin/pxeloader.bin
-PXEZLOADER=	bin/pxezloader.bin
 PRLOADER=	bin/prloader.bin
-RZLOADER=	bin/rzloader.bin
-PRZLOADER=	bin/przloader.bin
+START16=	bin/start16.bin
 DISKLOADER=	bin/boot1a.bin
 COMPREFIX=	bin/comprefix.bin
 LILOPREFIX=	bin/liloprefix.bin
+PXEPREFIX=	bin/pxeprefix.bin
+ELFPREFIX=	bin32/elfprefix.o
 
-START32=	bin32/start32.o bin32/pcbios.o bin32/memsizes.o
-ELF_START32=	bin32/start32.o bin32/linuxbios.o
+START32=	bin32/start32.o bin32/pcbios.o bin32/memsizes.o bin32/linuxbios.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/pxe.o bin32/misc.o
-BOBJS32+=	bin32/proto_slam.o proto_tftm.o
+BOBJS32+=	bin32/proto_slam.o bin32/proto_tftm.o
 BOBJS32+=	bin32/floppy.o bin32/pc_floppy.o bin32/ide_disk.o
 BOBJS32+=	bin32/serial.o bin32/timer.o  bin32/relocate.o bin32/heap.o
 BLIB32=		bin32/bootlib.a
@@ -195,38 +193,42 @@ MAKEDEPS=	Makefile Config Roms gcccheck
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 	{ $(RM) $@; echo "ERROR: code size exceeds limit!"; exit 1; }; exit 0; }
 
-# Make sure that the relocation address is acceptable for all ROM sizes.
-# Setting it to 0x94000 leaves about 45kB of space for the Etherboot program.
-# The check is done based running 'size' on the binary, not ROM size, but
-# roughly this means a ROM of 16kB or a partially used ROM of 32kB,
-# remembering to take compressed ROM images into account.
-#
-# You may also set RELOCADDR to 0x84000 to avoid using 0x94000
-# because of other drivers (e.g. Disk On Chip). In that case, you may
-# only load 512kB of OS, or load in memory above 1MB.
-# This is only the beginning of what you need to do, you also have to
-# use a Linux kernel that has moved segments out of the 0x9xxxx space,
-# notably the boot block and parameter area.
-# Please consult the kernel experts re booting from DOC on this.
-# Please send feedback if you get this to work, I have not tried it.
+# Make sure that the relocation address is acceptable for all ROM sizes.  
+# The old setting was 0x9400 which left about 45kB of space for Etherboot.
+# Now we default to 0x7e00 which is where most disk loaders will load us.
+# Without relocation enabled this means etherboot cannot load images that
+# resize in the low 640KB.  With relocation enabled we Etherboot should be
+# able to load any image.  The size is limited to 320KB to catch really flagrant
+# abuses, and to ensure there is enough room for etherboot to decompress itself.
+# This check may need to be updated to ensure the single driver etherboot will
+# fit in a bootrom.  The check is done based running 'size' on the binary, not
+# ROM size.  With previous incarnations this meant a ROM of 16kB or a partially
+# used ROM of 32kB, remembering to take compressed ROM images into account.
 #
 ifndef RELOCADDR
-RELOCADDR=0x94000
+#RELOCADDR=0x7e00
+# The floppy code uses the rom loader which does an extra memcpy.
+# If we place ourselves at 0x7e00 we will get stomped, so run
+# slightly higher until that can be fixed.
+RELOCADDR:=0x20000
+endif
+
+# Until all of the drivers are updated to be relocateable, 
+# Carefully setup loader.S to loader
+#
+ifndef START16_BYTES
+START16_BYTES:=112
 endif
 
 # Evaluate ROMLIMIT only once - it is constant during the make run.
-# Note that the 3K safety margin below is for the 1K extended BIOS data area
-# and for the Etherboot runtime stack.  Under normal situations, 2K of stack
-# are rarely needed.  If you experience strange behaviour in functions that use
-# many local variables or that call functions that do, check for stack overrun!
+# Under normal situations, 2K of stack are rarely needed.  If you
+# experience strange behaviour in functions that use many local
+# variables or that call functions that do, check for stack overrun! 
 # Make sure that the normal case needs no Perl interpreter - if someone uses a
 # different RELOCADDR, then he has Perl installed anyways (the shell cannot
 # deal with hex numbers, as test/eval don't support non-decimal integers).
-ifeq ($(RELOCADDR),0x94000)
-ROMLIMIT=46080
-else
-ROMLIMIT:=$(shell perl -e 'print 0x10000 - 3072 - ($(RELOCADDR) & 0xFFFF), "\n";')
-endif
+ROMLIMIT:=327680
+
 
 # Start of targets
 
@@ -292,20 +294,12 @@ bin32/pci.o:	pci.c pci.h
 bin/rloader.s:	loader.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) -o $@ $<
 
-bin/rzloader.s:	loader.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) -DZLOADER -o $@ $<
-
-bin/pxeloader.s:	loader.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) -DPXELOADER -o $@ $<
-
-bin/pxezloader.s:	loader.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) -DPXELOADER -DZLOADER -o $@ $<
-
 bin/prloader.s:	loader.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) -DPCI_PNP_HEADER -o $@ $<
 
-bin/przloader.s:	loader.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) -DPCI_PNP_HEADER -DZLOADER -o $@ $<
+# 16 to 32bit transition
+bin/start16.s:	start16.S $(MAKEDEPS)
+	$(CPP) $(CFLAGS32) $(LCONFIG) -o $@ $<
 
 # Old floppy loader, may be required for non-1.44 MB floppies
 
@@ -314,11 +308,16 @@ bin/floppyload.s:	floppyload.S $(MAKEDEPS)
 
 # New floppy / hard disk loader
 
-bin/boot1a.bin: boot1a.s
+bin/boot1a.bin: boot1a.s $(MAKEDEPS)
 	as --defsym FLAGS=0x80 boot1a.s -o boot1a.o
 	ld -nostdlib -static -N -e start -Ttext 0x7c00 -o boot1a.out boot1a.o
 	objcopy -S -O binary boot1a.out bin/boot1a.bin
 	$(RM) boot1a.o boot1a.out
+
+
+# PXE loader
+bin/pxeprefix.s:	pxeprefix.S $(MAKEDEPS)
+	$(CPP) $(LCONFIG) -o $@ $<
 
 # COM loader
 
@@ -351,54 +350,53 @@ bin32/%.o:	%.c $(MAKEDEPS)
 	$(CC32) $(CFLAGS32) -o $@ -c $<
 
 bin32/%.o:	%.S $(MAKEDEPS)
-	$(CPP) $(CFLAGS32) $< | $(AS32) $(ASFLAGS32) -o $@
+	$(CPP) $(CFLAGS32) -D ASSEMBLY $< | $(AS32) $(ASFLAGS32) -o $@
 
-# general rule for .bin (plain binary loader code), may be overridden
-bin/%.bin:	bin/%.s
-	$(AS32) $(ASFLAGS32) -o bin/$*.tmp $<
-	$(OBJCOPY) -O binary bin/$*.tmp $@
-	$(RM) bin/$*.tmp
-
-# general rule for .huf (compressed binary code), may be overridden
-%.huf:	%.img bin/lzhuf
-	bin/lzhuf e $< $@
-
-# general rules for normal/compressed ROM images, may be overridden
-bin32/%.rom:	bin32/%.img $(RLOADER)
-	cat $(RLOADER) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
-
-bin32/%.lzrom:	bin32/%.huf $(RZLOADER)
-	cat $(RZLOADER) $< > $@
-	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
-
-# general rules for normal/compressed PXE images, may be overridden
-bin32/%.pxe:	bin32/%.img $(PXELOADER)
-	cat $(PXELOADER) $< > $@
-	$(MAKEROM) -x $@
-
-bin32/%.lzpxe:	bin32/%.huf $(PXEZLOADER)
-	cat $(PXEZLOADER) $< > $@
-	$(MAKEROM) -x $@
-
-# general rules for LinuxBIOS compressed ROM images, may be overridden
-bin32/%.elf.img: bin32/%.elf
-	objcopy -O binary $< $@
-
-bin32/%.elf.huf: bin32/%.elf.img bin/lzhuf
-	bin/lzhuf e $< $@
-
-bin32/%.elf.huf.o: bin32/%.elf.huf huf.lds
-	ld -T huf.lds -b binary $< -o $@
-
-bin32/lbzloader.s: lbzloader.S $(MAKEDEPS)
-	$(CPP) $(CFLAGS32) $(LCONFIG) -DASSEMBLY -o $@ $<
-
-bin32/lbzloader.o: bin32/lbzloader.s
+# general rule for 16bit .o, may be overridden
+bin/%.o:	bin/%.s
 	$(AS32) $(ASFLAGS32) -o $@ $<
 
-bin32/%.lzebi:	bin32/%.elf.huf.o bin32/lbzloader.o
-	ld -T lbzloader.lds bin32/lbzloader.o $< -o $@
+# general rule for .bin (plain binary loader code), may be overridden
+bin/%.bin:	bin/%.o
+	$(LD32) -Ttext 0x10000 $(LDBINARY32) -o $@ $<
+
+# general ruls for generating .img files
+bin32/%.img: bin32/%.tmp $(MAKEDEPS)
+	$(OBJCOPY) -O binary $< $@
+
+# general rule for .huf (compressed binary code), may be overridden
+%.huf:	%.img bin/lzhuf $(MAKEDEPS)
+	bin/lzhuf e $< $@
+
+%.huf.o: %.huf huf.lds $(MAKEDEPS)
+	ld -T huf.lds -b binary $< -o $@
+
+bin32/%.lzimg: bin32/%.huf.o bin32/unhuf.o $(MAKEDEPS)
+	ld -T unhuf.lds bin32/unhuf.o $< -o $@
+
+
+# general rules for normal/compressed ROM images, may be overridden
+bin32/%.rom:	bin32/%.img $(RLOADER) $(START16)
+	cat $(RLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
+
+bin32/%.lzrom:	bin32/%.lzimg $(RLOADER) $(START16)
+	cat $(RLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
+
+
+# general rules for ELF images
+bin32/%.img.o:	bin32/%.img $(MAKEDEPS)
+	ld -T img.lds -b binary $< -o $@
+
+bin32/%.lzimg.o:	bin32/%.lzimg $(MAKEDEPS)
+	ld -T img.lds -b binary $< -o $@
+
+bin32/%.elf:	bin32/%.img.o $(ELFPREFIX) $(MAKEDEPS)
+	ld -T elfprefix.lds $(ELFPREFIX) $< -o $@
+
+bin32/%.lzelf:	bin32/%.lzimg.o $(ELFPREFIX) $(MAKEDEPS)
+	ld -T elfprefix.lds $(ELFPREFIX) $< -o $@
 
 
 # rules to write the .rom/.lzrom image onto a blank floppy
@@ -411,8 +409,15 @@ bin32/%.lzebi:	bin32/%.elf.huf.o bin32/lbzloader.o
 
 # rules to generate a .com executable
 # You must give the directory name, e.g. use bin32/rtl8139.com as the target.
-%.com:	%.lzrom $(COMPREFIX)
-	cat $(COMPREFIX) $< > $@
+%.com:	%.lzimg $(COMPREFIX) $(START16)
+	cat $(COMPREFIX) $(START16) $< > $@
+
+# rules to generate a pxe loadable image
+%.pxe:	%.img $(PXEPREFIX) $(START16)
+	cat $(PXEPREFIX) $(START16) $< > $@
+
+%.lzpxe:	%.lzimg $(PXEPREFIX) $(START16)
+	cat $(PXEPREFIX) $(START16) $< > $@
 
 # rules to make a disk image (padding to fill an even number of cylinders).
 # VMware reports disk image read errors if it cannot read ahead 36 sectors,
@@ -420,36 +425,36 @@ bin32/%.lzebi:	bin32/%.elf.huf.o bin32/lbzloader.o
 # a single request.  Not that 18k matters much these days...
 # Probably not required now that boot1a.s is in use, but shouldn't hurt.
 # You must give the directory name, e.g. use bin32/rtl8139.dsk as the target.
-%.dsk:	%.rom $(DISKLOADER)
-	cat $(DISKLOADER) $< > $@.x
+%.dsk:	%.img $(DISKLOADER) $(START16)
+	cat $(DISKLOADER) $(START16) $< > $@.x
 	dd if=$@.x of=$@ bs=36k conv=sync 2> /dev/null
 	$(RM) $@.x
 
-%.lzdsk:	%.lzrom $(DISKLOADER)
-	cat $(DISKLOADER) $< > $@.x
+%.lzdsk:	%.lzimg $(DISKLOADER) $(START16)
+	cat $(DISKLOADER) $(START16) $< > $@.x
 	dd if=$@.x of=$@ bs=36k conv=sync 2> /dev/null
 	$(RM) $@.x
 
 # rules to make a LILO-bootable image
-%.lilo:		%.rom $(LILOPREFIX)
+%.lilo:		%.img $(LILOPREFIX) $(START16)
 	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
 
-%.lzlilo:	%.lzrom $(LILOPREFIX)
+%.lzlilo:	%.lzimg $(LILOPREFIX) $(START16)
 	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
 
 # Housekeeping
 
 clean:
-	$(RM) $(UTILS) bin/*.s bin/*.bin
+	$(RM) $(UTILS) bin/*.s bin/*.o bin/*.bin
 	$(RM) $(BLIB32)
 	$(RM) bin32/*.o bin32/*.tmp
-	$(RM) bin32/*.img bin32/*.huf
+	$(RM) bin32/*.img bin32/*.lzimg bin32/*.huf
 	$(RM) bin32/*.rom bin32/*.lzrom
 	$(RM) bin32/*.com
 	$(RM) bin32/*.dsk bin32/*.lzdsk
 	$(RM) bin32/*.lilo bin32/*.lzlilo
 	$(RM) bin32/*.pxe bin32/*.lzpxe
-	$(RM) bin32/*.elf bin32/*.ebi bin32/*.lzebi bin32/*.s
+	$(RM) bin32/*.elf bin32/*.lzelf bin32/*.s
 	$(RM) gcccheck
 
 ../index.html:	../index.xhtml

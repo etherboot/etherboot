@@ -9,6 +9,11 @@
 	.equ	FLAT_DATA_SEG,_pmds2-_gdt
 	.equ	CR0_PE,1
 
+#undef CODE16
+#if defined(PCBIOS) || defined(TAGGED_IMAGE)
+#define	CODE16
+#endif
+	
 #ifdef	GAS291
 #define DATA32 data32;
 #define ADDR32 addr32;
@@ -46,103 +51,52 @@ START - Where all the fun begins....
 	.text
 	.global	_start
 _start:
-#ifdef PCBIOS
-	.global entry16
-entry16:
-	.code16
-	pushw	%ax			/* Save ax */
-	pushf				/* Save flags */
-/**************************************************************************
-This CPU checking code is taken from syslinux. - Ken
-Check that no moron is trying to boot Etherboot/32 on a 286 or so.  According
-to Intel, the way to check is to see if the high 4 bits of the FLAGS register
-are either all stuck at 1 (8086/8088) or all stuck at 0 (286 in real mode), if
-not it is a 386 or higher.  A 186/188 behaves like a 8086/8088 in this check.
-**************************************************************************/
-	pushf				/* Get flags */
-	popw	%ax
-	andw	$0x0fff,%ax		/* Clear top 4 bits */
-	pushw	%ax			/* Load into FLAGS */
-	popf
-	pushf				/* And load back */
-	popw	%ax
-	andw	$0xf000,%ax		/* Get top 4 bits */
-	cmpw	$0xf000,%ax		/* If set -> 8086/8088 */
-	je	not_386
-test_286:
-	pushf				/* Get flags */
-	popw	%ax
-	orw	$0xf000,%ax		/* Set top 4 bits */
-	pushw	%ax
-	popf
-	pushf
-	popw	%ax
-	andw	$0xf000,%ax		/* Get top 4 bits */
-	jnz	is_386			/* If not clear -> 386 */
-not_386:
-	movw	$err_not386_end-err_not386,%cx	/* length of string */
-	movw	$err_not386-_start,%si
-	movw	$0x0007,%bx		/* page 0, attribute 7 (normal) */
-	movb	$0x0e,%ah		/* write char, tty mode */
-err_prloop:
-	lodsb
-	int	$0x10
-	loop	err_prloop
-	popf				/* Restore flags */
-	popw	%ax			/* Restore ax */
-	lret
-is_386:
-	popf				/* Restore flags */
-	popw	%ax			/* Restore ax */
-
-/*
- *	Paul Robertson of Locsoft found that if the top half of %esp
- *	contains garbage, it can affect some BIOSes
- */
-	andl	$0xffff,%esp
-	
-	cs
-	DATA32 lgdt real_gdtarg
-	movl	%cr0, %eax
-	orb	CR0_PE, %al
-	movl	%eax, %cr0
-	/* flush prefetch queue, and reloac %cs:%eip */
-	DATA32 lcall	$KERN_CODE_SEG, $1f
-	.code32
-1:	movl	$KERN_DATA_SEG, %eax
-	movl	%eax, %ds
-	movl	%eax, %es
-	movl	%eax, %ss
-	movl	%eax, %fs
-	movl	%eax, %gs
-	call	start32
-	call	_prot_to_real
-	.code16
-	lret
-#endif
-	.globl start32
-start32:
 	.code32
 	cli
-/*
- * Save the initial register contents
- */
-	movl	%edi,  0 + initial_regs
-	movl	%esi,  4 + initial_regs
-	movl	%ebp,  8 + initial_regs
-	movl	%esp, 12 + initial_regs
-	movl	%ebx, 16 + initial_regs
-	movl	%edx, 20 + initial_regs
-	movl	%ecx, 24 + initial_regs
-	movl	%eax, 28 + initial_regs
+	/* Save the initial ebp value */
+	pushl	%ebp
 
-#ifdef LINUXBIOS
-	movl	$_estack, %esp
-#endif
+	/*
+	 * See where I am running, and compute virt_offset
+	 */
+	call	1f
+1:	popl	%ebp
+	subl	$1b, %ebp
+	movl	%ebp, virt_offset(%ebp)
+
+	/*
+	 * Save the initial register contents
+	 */
+	movl	%edi,  0 + initial_regs(%ebp)
+	movl	%esi,  4 + initial_regs(%ebp)
+	popl	%edi /* original %ebp */
+	movl	%edi,  8 + initial_regs(%ebp)
+	movl	%esp, 12 + initial_regs(%ebp)
+	movl	%ebx, 16 + initial_regs(%ebp)
+	movl	%edx, 20 + initial_regs(%ebp)
+	movl	%ecx, 24 + initial_regs(%ebp)
+	movl	%eax, 28 + initial_regs(%ebp)
+
+	/*
+	 * Setup the stack
+	 */
+	leal	_estack(%ebp), %esp
+
+	/* Fixup the gdt */
+	leal	_pmcs(%ebp), %eax
+	pushl	%eax
+	pushl	%ebp
+	call	set_seg_base
+	addl	$8, %esp
+
+	/* Fixup gdtarg */
+	leal	_gdt(%ebp), %eax
+	movl	%eax, gdtarg +2(%ebp)
 
 	/* Load the global descriptor table */
 	cs
-	lgdt	gdtarg
+	lgdt	gdtarg(%ebp)
+
 	/* reload cs */
 	ljmp	$KERN_CODE_SEG, $1f
 1:
@@ -154,24 +108,53 @@ start32:
 	movl	%eax,%fs
 	movl	%eax,%gs
 
+	/* Fixup the stack pointer */
+	subl	%ebp, %esp
+
 	call	main
 	/* fall through */
 
 	.globl	exit
 exit:
-	/* We relocate to our original address before returning */
-#if defined(RELOCATE)
-	pushl	$RELOC
-	call	relocate_to
-#endif
-	
-	/* We reset esp to the location just before entering main
-	 * instead of relying on the return from main because exit
-	 * could have been called from anywhere 
+	/* Switch back to the original stack */
+	movl	12 + initial_regs, %esp
+	subl	virt_offset, %esp
+
+#ifdef CODE16
+	/* Make certain we don't have a null return address.
 	 */
-	movl	initial_regs+12, %esp
+	cmpl	$0, 0(%esp)
+	je	exit16
+#endif
+
+	/* Revert to flat physical addresses and return */
+	call _virt_to_phys
+	xorl	%eax, %eax
 	ret
-	
+
+#ifdef CODE16
+exit16:
+	/* We have a null return address so assume a 16bit far return
+	 * address is burried deeper on the stack.
+	 */
+	movzwl	4(%esp), %ebx
+	movzwl  6(%esp), %ecx
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
+
+	cli
+	/* Switch back to the callers stack, and return */
+	movw	%bx, %sp
+	movw	%cx, %ss
+	popf
+	lret
+20:	.code32
+	.previous
+#endif /* CODE16 */
+
 	.code32
 
 #if defined(TAGGED_IMAGE)
@@ -228,7 +211,8 @@ relocate_to:
 
 	/* Compute the virtual destination address */
 	movl	16(%esp), %edi	# dest
-	addl	virt_offset, %edi
+	subl	virt_offset, %edi
+	
 
 	/* Compute the new value of virt_offset */
 	movl	16(%esp), %ebp	# virt_offset
@@ -256,13 +240,13 @@ relocate_to:
 	rep 
 	movsb
 
-	/* Reload %cs */
-	ljmp	$KERN_CODE_SEG, $1f
-1:
 	/* Reload the gdt */
 	cs
 	lgdt	gdtarg
 
+	/* Reload %cs */
+	ljmp	$KERN_CODE_SEG, $1f
+1:
 	/* reload other segment registers */
 	movl	$KERN_DATA_SEG, %eax
 	movl	%eax,%ds
@@ -488,17 +472,23 @@ set_seg_base:
 
 	ret
 
-#if defined(PCBIOS) || defined(TAGGED_IMAGE)
+#ifdef CODE16
 /**************************************************************************
 _REAL_CALL - Run some code in real mode.
 **************************************************************************/
-#define MAX_REAL_MODE_STACK 32768
+	/* MAX_REAL_MODE_STACK is carefully tuned to work
+	 * with the stack bottom at 0x7c00 while not chancing
+	 * overwriting data below 0x500.
+	 */
+#define MAX_REAL_MODE_STACK 29696
 #define RADDR(sym)	(((sym) - _end16) + MAX_REAL_MODE_STACK)
 
 	.balign 4
 	.globl real_mode_stack
 real_mode_stack:
-	.long 0x10000 - MAX_REAL_MODE_STACK  /* Basically initss:initsp - MAX_REAL_STACK */
+	.long 0x7c00  /* Put the stack just below the dos load address */
+real_stack_top:
+	.long 0
 _save_esp:
 	.long 0
 
@@ -520,8 +510,12 @@ _real_call:
 	movl	32(%esp), %ecx		/* The 16bit code len */
 	movl	36(%esp), %esi		/* The 16bit code start */
 	movl	virt_offset, %ebp	/* The virtual offset */
+	
+	/* stack top = phys_to_virt(real_mode_stack - MAX_REAL_MODE_STACK) */
 	movl	real_mode_stack, %ebx	/* The stack top */
-	subl	virt_offset, %ebx
+	subl	$MAX_REAL_MODE_STACK, %ebx
+	movl	%ebx, real_stack_top
+	subl	%ebp, %ebx
 
 	/* Save the real mode stack top */
 	movl	%ebx, 24(%esp)
@@ -572,14 +566,14 @@ _real_call:
 	addl	%eax, %esp
 
 	/* Setup for jump to real mode */
-	movl	real_mode_stack, %eax
+	movl	real_stack_top, %eax
 	shrl	$4, %eax
 	pushw	%ax
 	pushw	$RADDR(real16)
 
 	/* Switch stack from %esp 32bit virtual to %sp 16bit physical */
 	addl	virt_offset, %esp
-	subl	real_mode_stack, %esp
+	subl	real_stack_top, %esp
 
 	/* Jump to 16bit code */
 	ljmp	$REAL_CODE_SEG, $RADDR(code16) 	/* jump to a 16 bit segment */
@@ -599,7 +593,7 @@ _real_call_ret:
 	cld
 
 	/* Get the real mode stack pointer */
-	movl	real_mode_stack, %eax
+	movl	real_stack_top, %eax
 	subl	virt_offset, %eax
 	pushl	%eax
 	movzwl	RADDR(real_sp)(%eax), %eax
@@ -676,7 +670,7 @@ __end16:
 _end16:
 	.code32
 
-#endif /* PCBIOS || TAGGED_IMAGE */
+#endif /* CODE16 */
 
 /**************************************************************************
 GLOBAL DESCRIPTOR TABLE
@@ -723,6 +717,7 @@ _gdt_end:
 
 	/* The initial register contents */
 	.balign 4
+	.globl initial_regs
 initial_regs:
 	.fill 8, 4, 0
 
@@ -731,25 +726,10 @@ initial_regs:
 virt_offset:
 	.long  	0
 
-	/* The 16bit code base address */
-	.globl	real_base
-real_base:	
-	.long	_text16
-
-#ifdef PCBIOS
-	.section ".rodata"
-err_not386:
-	.ascii	"Etherboot/32 requires 386+"
-	.byte	0x0d, 0x0a
-err_not386_end:
-#endif
-
-#ifdef LINUXBIOS
 	.section ".bss"
 	.p2align 3
 	/* allocate a 4K stack in the bss segment */
 _stack:
 	.space 4096
 _estack:
-#endif
 	

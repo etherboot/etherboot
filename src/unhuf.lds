@@ -3,16 +3,17 @@ OUTPUT_ARCH(i386)
 
 SECTIONS
 {
-	. = 65536;
-	_text = .;
-	.text (.) : { 
+	. = 0;
+	.text : { 
+		_text = .;
+		*(.head)
 		*(.text) 
 	} = 0x9090
-	.rodata (.): {
-		*(.rodata) 
+	.rodata : {
+		*(.rodata)
 	}
 	_etext = . ;
-	.data (.): { 
+	.data : { 
 		*(.data) 
 		/* Force 4 byte alignment */
 		. = ALIGN(4);
@@ -21,8 +22,10 @@ SECTIONS
 		_epayload = . ;
 	}
 	_edata = . ;
-	.bss (.): { 
+	_data_size = _edata - _start;
+	.bss : { 
 		*(.bss) 
 	}
 	_end = . ;
+	_image_size = _end - _start;
 }

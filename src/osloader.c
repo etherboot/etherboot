@@ -1386,7 +1386,7 @@ elf_startkernel:
 
 			sum = ipchksum(&info.elf32, sizeof(info.elf32));
 			bytes = sizeof(info.elf32);
-#if 1
+#if ELF_DEBUG
 			printf("Ehdr: %hx sz: %x bytes: %x\n",
 				sum, bytes, bytes);
 #endif
@@ -1394,7 +1394,7 @@ elf_startkernel:
 			new_sum = ipchksum(phdr, sizeof(phdr[0]) * info.elf32.e_phnum);
 			sum = add_ip_checksums(bytes, sum, new_sum);
 			bytes += sizeof(phdr[0]) * info.elf32.e_phnum;
-#if 1
+#if ELF_DEBUG
 			printf("Phdr: %hx sz: %x bytes: %x\n",
 				new_sum, 
 				sizeof(phdr[0]) * info.elf32.e_phnum, bytes);
@@ -1407,7 +1407,7 @@ elf_startkernel:
 						phdr[i].p_memsz);
 				sum = add_ip_checksums(bytes, sum, new_sum);
 				bytes += phdr[i].p_memsz;
-#if 1
+#if ELF_DEBUG
 			printf("seg%d: %hx sz: %x bytes: %x\n",
 				i, new_sum, 
 				phdr[i].p_memsz, bytes);

@@ -467,6 +467,9 @@ void print_config(void)
 #ifdef	TAGGED_IMAGE
 		"Tagged "
 #endif
+#ifdef	ELF64_IMAGE
+		"ELF64 "
+#endif
 #ifdef	ELF_IMAGE
 		"ELF "
 #endif
@@ -478,6 +481,9 @@ void print_config(void)
 #endif
 #ifdef	AOUT_IMAGE
 		"a.out "
+#endif
+#ifdef	WINCE_IMAGE
+		"WINCE "
 #endif
 		"for ");
 	for (t = NIC; t->nic_name != 0; ++t)

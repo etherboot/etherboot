@@ -578,7 +578,7 @@ extern void putchar P((int));
 extern int getchar P((void));
 extern int iskey P((void));
 
-/* start*.S */
+/* pcbios.S */
 extern int console_getc P((void));
 extern void console_putc P((int));
 extern int console_ischar P((void));
@@ -611,11 +611,10 @@ extern void relocate_to(unsigned long phys_dest);
 #else
 #define relocate() do {} while(0)
 #endif
-
 extern void disk_init P((void));
 extern unsigned int disk_read P((int drv,int c,int h,int s,char *buf));
-extern void xstart16 P((unsigned long, unsigned long, char *));
 
+/* start32.S */
 struct os_entry_regs {
 	/* Be careful changing this structure
 	 * as it is used by assembly language code.
@@ -636,7 +635,23 @@ struct os_entry_regs {
 	uint32_t saved_eip; /* 48 */
 	uint32_t saved_esp; /* 52 */
 };
+struct regs {
+	/* Be careful changing this structure
+	 * as it is used by assembly language code.
+	 */
+	uint32_t  edi; /*  0 */
+	uint32_t  esi; /*  4 */
+	uint32_t  ebp; /*  8 */
+	uint32_t  esp; /* 12 */
+	uint32_t  ebx; /* 16 */
+	uint32_t  edx; /* 20 */
+	uint32_t  ecx; /* 24 */
+	uint32_t  eax; /* 28 */
+};
 extern struct os_entry_regs os_regs;
+extern struct regs initial_regs;
+extern unsigned long real_mode_stack;
+extern void xstart16 P((unsigned long, unsigned long, char *));
 extern int xstart32(unsigned long entry_point, ...);
 extern void xend32 P((void));
 extern unsigned long currticks P((void));
