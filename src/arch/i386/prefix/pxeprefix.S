@@ -33,10 +33,10 @@ code_start:
 
 	push	%cs			/* Set up data segment */
 	pop	%ds
+	mov	$0x40, %cx		/* Set up %fs for access to 40:13 */
+	mov	%cx, %fs
 	movw	$10b-_start, %si	/* Print welcome message */
 	call	print_message
-
-#ifndef PXELOADER_KEEP_ALL
 
 /*****************************************************************************
  * Detect type of PXE available (!PXE, PXENV+ or none)
@@ -105,11 +105,16 @@ print_structure_information:
 	call	print_segoff
 	les	%ds:(undi_data_segoff - _start), %di
 	call	print_segoff
-	
+
 /*****************************************************************************
  * Unload PXE base code and UNDI driver
  *****************************************************************************
  */
+#ifdef PXELOADER_KEEP_ALL
+	xor	%ax, %ax		/* Force zero flag to show success */
+	jmp	do_not_free_base_mem	/* Skip the unloading */
+#endif /* PXELOADER_KEEP_ALL */
+	
 unload_pxe:
 	mov	$PXENV_UNLOAD_STACK, %bx
 	call	pxe_call
@@ -124,9 +129,6 @@ unload_pxe:
  *****************************************************************************
  */
 free_base_mem:
-	mov	$0x40, %cx		/* Set up %fs for access to 40:13 */
-	mov	%cx, %fs
-
 	jnz	do_not_free_base_mem	/* Using zero flag from unload_pxe */
 
 	mov	undi_code_segment - _start, %bx
@@ -169,10 +171,6 @@ do_not_free_base_mem:
 	call	print_hex_word		/* Print free base memory */
 	popf				/* Restore success (zero) flag */
 
-#else  /* PXELOADER_KEEP_ALL */
-	xor	%ax, %ax		/* Force zero flag to show success */
-#endif /* PXELOADER_KEEP_ALL */
-
 /*****************************************************************************
  * Exit point
  * Jump to finished with the zero flag set to indicate success, or to
@@ -189,6 +187,16 @@ finished_with_error:
 	jmp	99f
 10:	.asciz " ok\n"
 20:	.asciz " err\n"
+
+	
+	/* We place a stack here.  It doesn't get used until after all
+	 * the above code is finished, so we can happily write all
+	 * over it.  Putting the stack here ensures that it doesn't
+	 * accidentally go over the 512 byte threshold, which would
+	 * cause problems when returning via start32's prefix
+	 * relocation mechanism.
+	 */
+_estack:	
 99:
 
 /*****************************************************************************
@@ -220,7 +228,6 @@ return:
 	pop	%ds
 	pop	%di			/* PXE stack pointer to ES:DI */
 	pop	%es
-#ifdef PXELOADER_KEEP_ALL
 	cmpw	$PXE_STACK_MAGIC, %es:0(%di)  /* See if PXE stack intact */
 	jne	exit_via_int18
 exit_via_pxe:				/* Stack OK, return to PXE */
@@ -234,7 +241,6 @@ exit_via_pxe:				/* Stack OK, return to PXE */
 	popa				/* Restore PXE's other registers */
 	lret				/* Return control to PXE ROM */
 10:	.asciz	"EB->PXE\n"
-#endif /* PXELOADER_KEEP_ALL */
 exit_via_int18:				/* Stack damaged, do int 18 */
 	movw	$10f-_start, %si
 	call	print_message
@@ -359,9 +365,4 @@ pxe_parameter_structure:
 end_of_pxeloader:
 
 	.balign 16, 0
-_estack:	/* We place a stack here.  It doesn't get used until after
-		 * all the PXE API calls are finished, so we can happily
-		 * trash the PXE data structures above and even the pxe_call
-		 * routine if necessary.
-		 */
 payload:
