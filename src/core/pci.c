@@ -26,7 +26,7 @@ static void scan_drivers(
 		if (driver->type != type)
 			continue;
 		if (skip_driver) {
-			if (skip_driver == driver) 
+			if (skip_driver == driver)
 				skip_driver = 0;
 			continue;
 		}
@@ -79,7 +79,7 @@ void scan_pci_bus(int type, struct pci_device *dev)
 	first_bus    = 0;
 	first_devfn  = 0;
 	first_driver = 0;
-	if (dev->driver) {
+	if (dev->driver || dev->use_specified) {
 		first_driver = dev->driver;
 		first_bus    = dev->bus;
 		first_devfn  = dev->devfn;
