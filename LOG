@@ -2821,6 +2821,8 @@ prefixes factored. Dynamic relocatable image support.
 
 + Patch to Tulip driver for missing PCI ID.
 
++ Fixes to genrules.pl by Kenneth Sumrall.
+
 Released as Etherboot 5.3.14 aka 5.4RC5 (development)
 
 + Small ARMNOMMU architecture fixes by Toby Lorenz.
