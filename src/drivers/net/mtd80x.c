@@ -768,9 +768,9 @@ static int mtd_probe(struct dev *dev, struct pci_device *pci)
 
 static struct pci_id mtd80x_nics[] =
     {
-        PCI_ROM(0x1516, 0x0800, "Myson MTD800", ""),
-        PCI_ROM(0x1516, 0x0803, "Myson MTD803", "Surecom EP-320X"),
-        PCI_ROM(0x1516, 0x0891, "Myson MTD891", ""),
+        PCI_ROM(0x1516, 0x0800, "MTD800", "Myson MTD800"),
+        PCI_ROM(0x1516, 0x0803, "MTD803", "Surecom EP-320X"),
+        PCI_ROM(0x1516, 0x0891, "MTD891", "Myson MTD891"),
     };
 
 /**************************************************************************/

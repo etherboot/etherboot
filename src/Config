@@ -273,15 +273,19 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 #CFLAGS+= -DCONSOLE_BTEXT 
 # for direct PC kbd support 
 #CFLAGS+= -DCONSOLE_PC_KBD
+# Set to enable FILO Support
 # for FILO support it will make main call pci_init
-#CFLAGS+= -DCONFIG_FILO
+# INCLUDE_FILO=y
+ifdef INCLUDE_FILO
+CFLAGS+= -DCONFIG_FILO
+endif
 
 # Enabling this causes Etherboot to ignore Etherboot-specific options
 # that are not within an Etherboot encapsulated options field.
 # This option should be enabled unless you have a legacy DHCP server
 # configuration from the bad old days before the use of
 # encapsulated Etherboot options.
-CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
+#CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
 
 # Specify a default bootfile to be used if the DHCP server does not
 # provide the information.  If you do not specify this option, then
