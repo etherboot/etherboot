@@ -23,6 +23,8 @@ SECTIONS
 	}
 	_edata = . ;
 	_data_size = _edata - _start;
+	/* Etherboot needs to be 16 byte aligned */
+	. = ALIGN(16);
 	.bss : { 
 		*(.bss) 
 	}

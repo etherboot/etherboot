@@ -14,7 +14,7 @@ SRCS+=	arch/i386/prefix/boot1a.s arch/i386/prefix/comprefix.S
 SRCS+=	arch/i386/prefix/liloprefix.S arch/i386/prefix/loader.S
 SRCS+=	arch/i386/core/start32.S
 
-# ROM loaders: NRV2B version (prefix NRV2B)
+# ROM loaders: PCI header version (prefix P)
 RLOADER=	$(BIN)/rloader.bin
 PRLOADER=	$(BIN)/prloader.bin
 START16=	$(BIN)/start16.bin
@@ -115,6 +115,8 @@ $(BIN)/prloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
 # 16 to 32bit transition
 $(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@
+
+# floppy / hard disk loader
 
 $(BIN)/boot1a.bin: arch/i386/prefix/boot1a.s $(MAKEDEPS)
 	as --defsym FLAGS=0x80 arch/i386/prefix/boot1a.s -o $(BIN)/boot1a.o

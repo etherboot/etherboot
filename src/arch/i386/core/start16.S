@@ -162,14 +162,11 @@ code32_start:
 	/* Remember I don't have a 32bit return address */
 	pushl	$0
 
-#if 1
 	jmp	payload
 	.balign 16
-	/* Weird things happen if start16.bin isn't aligned
-	 * to 16bytes so force it to be 112 bytes.  Hopefully we can
-	 * stop careing at some point and just fall through.
+	/* Etherboot needs to be 16byte aligned or data that
+	 * is virtually aligned is no longer physically aligned
+	 * which is just nasty in general.  16byte alignment 
+	 * should be sufficient though.
 	 */
-#else
-	/* Fall through and start executing my payload */
-#endif
 payload:

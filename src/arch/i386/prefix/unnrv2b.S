@@ -113,5 +113,6 @@ decompr_end_n2b:
 	jmp	uncompressed
 
 .bss
+	.balign16
 	/* uncompressed data will be written here */
 uncompressed:
