@@ -3,8 +3,9 @@
 p910nd \- port 9100+n printer daemon
 .SH SYNOPSIS
 .B p910nd
-[\fB-bv\fR]
 [\fB-f device\fR]
+[\fB-i bindaddr\fR]
+[\fB-bv\fR]
 [\fB0|1|2\fR]
 .SH DESCRIPTION
 .I p910nd
@@ -17,6 +18,9 @@ The default is port 9100 to /dev/lp0.
 .LP
 The \fB-f\fR option can be used to specify a different printer device,
 e.g. /dev/usblp0.
+.LP
+The \fB-i\fR option can be used to specify binding to one address instead
+of all interfaces which is the default.
 .LP
 The \fB-b\fR option turns on bidirectional copying.
 .LP
@@ -86,4 +90,4 @@ is under the GNU Public License
 .SH AUTHOR
 Ken Yap (ken_yap@users.sourceforge.net)
 .SH DATE
-Version 0.7 August 2004
+Version 0.8 October 2004

@@ -14,6 +14,12 @@
  *	Port 9100+n will then be passively opened
  *	n defaults to 0
  *
+ *	Version 0.8
+ *	Allow specifying address to bind to
+ *
+ *	Version 0.7
+ *	Bidirectional data transfer
+ *
  *	Version 0.6
  *	Arne Bernin fixed some cast warnings, corrected the version number
  *	and added a -v option to print the version.
@@ -77,14 +83,15 @@ extern		int hosts_ctl(char *daemon, char *client_name,
 #define		LOGOPTS		LOG_ERR
 
 static char	*progname;
-static char	version[] = "p910nd Version 0.7";
+static char	version[] = "p910nd Version 0.8";
 static int	lockfd = -1;
 static char	*device = 0;
 static int	bidir = 0;
+static char	*bindaddr = 0;
 
 void usage(void)
 {
-	fprintf(stderr, "Usage: %s [-f device] [-bv] [0|1|2]\n", progname);
+	fprintf(stderr, "Usage: %s [-f device] [-i bindaddr] [-bv] [0|1|2]\n", progname);
 	exit(1);
 }
 
@@ -220,6 +227,7 @@ void server(int lpnumber)
 	struct sockaddr_in	netaddr, client;
 	char		pidfilename[sizeof(PIDFILE)];
 	FILE		*f;
+	int		ipret;
 
 #ifndef	TESTING
 	switch (fork())
@@ -283,7 +291,18 @@ void server(int lpnumber)
 		exit(1);
 	}
 	netaddr.sin_port = htons(BASEPORT + lpnumber - '0');
-	netaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	if (bindaddr == 0) {
+		netaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	} else {
+		ipret = inet_pton(AF_INET, bindaddr, &netaddr.sin_addr.s_addr);
+		if (ipret < 0) {
+			syslog(LOGOPTS, "inet_pton: %m\n");
+			exit(1);
+		} else if (ipret == 0) {
+			syslog(LOGOPTS, "inet_pton: invalid bind IP address\n");
+			exit(1);
+		}
+	}
 	memset(netaddr.sin_zero, 0, sizeof(netaddr.sin_zero));
 	if (bind(netfd, (struct sockaddr*) &netaddr, sizeof(netaddr)) < 0)
 	{
@@ -356,7 +375,7 @@ int main(int argc, char *argv[])
 			progname = p + 1;
 	}
 	lpnumber = '0';
-	while ((c = getopt(argc, argv, "bf:v")) != EOF)
+	while ((c = getopt(argc, argv, "bi:f:v")) != EOF)
 	{
 		switch (c)
 		{
@@ -365,6 +384,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'f':
 			device = optarg;
+			break;
+		case 'i':
+			bindaddr = optarg;
 			break;
 		case 'v':
 	      	        show_version();
@@ -384,6 +406,7 @@ int main(int argc, char *argv[])
 	/* change the n in argv[0] to match the port so ps will show that */
 	if ((p = strstr(progname, "p910n")) != NULL)
 		p[4] = lpnumber;
+	
 	/* We used to pass (LOG_PERROR|LOG_PID|LOG_LPR|LOG_ERR) to syslog, but
 	 * syslog ignored the LOG_PID and LOG_PERROR option.  I.e. the intention
 	 * was to add both options but the effect was to have neither.
