@@ -2683,3 +2683,5 @@ Released as Etherboot 5.3.7 (development)
 + Timothy Legge improved image format detection logic.
 
 Released as Etherboot 5.3.8 (development)
+
++ Update to lance.c chip_table from Helge Wagner
