@@ -10,7 +10,7 @@
 use strict;
 use File::Basename;
 
-use vars qw($curfam %drivers %pcient %isaent %buildent $arch $configfile @srcs);
+use vars qw($config @families $curfam %drivers %pcient %isaent %isalist %buildent $arch @srcs);
 
 sub __gendep ($$$)
 {
@@ -79,8 +79,9 @@ sub genroms($) {
 		elsif($_ =~ m/^\s*ISA_ROM\(\s*"([^"]*)"\s*,\s*"([^"]*)"\)/) {
 			my ($rom, $comment) = ($1, $2);
 			# We store the base driver file for each ISA target
-			$isaent{$rom} = $curfam;
+			$isalist{$rom} = $curfam;
 			$buildent{$rom} = 1;
+			push(@{$isaent{$curfam}}, [$rom, $comment]);
 		}
 	}
 }
@@ -88,6 +89,7 @@ sub genroms($) {
 sub addfam ($) {
 	my ($family) = @_;
 
+	push(@families, $family);
 	# We store the list of dependencies in the hash for each family
 	my @deps = &gendep("$family.c");
 	$drivers{$family} = join(' ', @deps);
@@ -102,13 +104,14 @@ sub addrom ($) {
 	# defaults if missing
 	$ids = '-' unless ($ids);
 	$comment = $rom unless ($comment);
-	if ($ids eq '-') {
-		# We store the base driver file for each ISA target
-		$isaent{$rom} = $curfam;
-		$buildent{$rom} = 1;
-	} else {
+	if ($ids ne '-') {
 		# We store a list of PCI IDs and comments for each PCI target
 		push(@{$pcient{$curfam}}, [$rom, $ids, $comment]);
+	} else {
+		# We store the base driver file for each ISA target
+		$isalist{$rom} = $curfam;
+		$buildent{$rom} = 1;
+		push(@{$isaent{$curfam}}, [$rom, $comment]);
 	}
 }
 
@@ -119,14 +122,133 @@ sub isaonly ($) {
 	return ($#$aref < 0);
 }
 
-$#ARGV >= 1 or die "Usage: $0 arch configfile sources...\n";
+$#ARGV >= 0 or die "Usage: $0 arch sources...\n";
 $arch = shift(@ARGV);
-$configfile = shift(@ARGV);
 @srcs = @ARGV;
+$config = <<'EOF';
+# This is the config file for creating Makefile rules for Etherboot ROMs
+#
+# To make a ROM for a supported NIC locate the appropriate family
+# and add a line of the form
+#
+# ROM		PCI-IDs		Comment
+#
+# ROM is the desired output name for both .rom and .lzrom images.
+# PCI IDs are the PCI vendor and device IDs of the PCI NIC
+# For ISA NICs put -
+#
+# All PCI ROMs that share a single driver are only built once (because they
+# only have different PCI-IDs, but identical code).  ISA ROMS are built for
+# each ROM type, because different vendors used a different logic around the
+# basic chip.  The most popular example is the NS8390, which some cards use
+# in PIO mode, some in DMA mode.  Two chips currently don't fit into this nice
+# black-and-white scheme (the Lance and the NS8390).  Their driver deals
+# with both PCI and ISA cards.  These drivers will be treated similarly to
+# ISA only drivers by genrules.pl and are compiled for each ROM type that is
+# ISA, and additionally compiled for the PCI card type.
+#
+# Then do: make clean, make Roms and make
+#
+# Please send additions to this file to <kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net>
 
-open(CONFIG, "<$configfile") or die "Cannot open $configfile";
+# Start of configuration
+
+family		drivers/net/skel
+
+family		arch/ia64/drivers/net/undi_nii
+undi_nii	-
+
+# 3c59x cards (Vortex) and 3c900 cards
+# If your 3c900 NIC detects but fails to work, e.g. no link light, with
+# the 3c90x driver, try using the 3c595 driver. I have one report that the
+# 3c595 driver handles these NICs properly. (The 595 driver uses the
+# programmed I/O mode of operation, whereas the 90x driver uses the bus
+# mastering mode. These NICs are capable of either mode.) When it comes to
+# making a ROM, as usual, you must choose the correct image, the one that
+# contains the same PCI IDs as your NIC.
+family		drivers/net/3c595
+
+# 3Com 3c90x cards
+family		drivers/net/3c90x
+
+# Intel Etherexpress Pro/100
+family		drivers/net/eepro100
+
+#Intel Etherexpress Pro/1000
+family		drivers/net/e1000
+
+#Broadcom Tigon 3
+family		drivers/net/tg3
+
+family		drivers/net/lance
+ne2100		-		Novell NE2100, NE1500
+ni6510		-		Racal-Interlan NI6510
+
+family		drivers/net/tulip
+
+family		drivers/net/davicom
+
+family		drivers/net/rtl8139
+
+family		drivers/net/via-rhine
+
+family		drivers/net/w89c840
+
+family		drivers/net/sis900
+
+family		drivers/net/natsemi
+
+family		drivers/net/fa311
+
+family		drivers/net/prism2_plx
+ma301		0x1385,0x4100	Netgear MA301
+
+family		drivers/net/prism2_pci
+# Various Prism2.5 (PCI) devices that manifest themselves as Harris Semiconductor devices
+# (with the actual vendor appearing as the vendor of the first subsystem)
+prism2_pci	0x1260,0x3873	Generic Prism2.5 PCI device
+hwp01170	0x1260,0x3873	ActionTec HWP01170
+dwl520		0x1260,0x3873	DLink DWL-520
+
+family		drivers/net/ns8390
+wd		-		WD8003/8013, SMC8216/8416, SMC 83c790 (EtherEZ)
+ne		-		NE1000/2000 and clones
+3c503		-		3Com503, Etherlink II[/16]
+
+family		drivers/net/epic100
+
+family		drivers/net/3c509
+3c509		-		3c509, ISA/EISA
+3c529		-		3c529 == MCA 3c509
+
+family		drivers/net/3c515
+3c515		-		3c515, Fast EtherLink ISA
+
+family		drivers/net/eepro
+eepro		-		Intel Etherexpress Pro/10
+
+family		drivers/net/cs89x0
+cs89x0		-		Crystal Semiconductor CS89x0
+
+family		drivers/net/depca
+depca		-		Digital DE100 and DE200
+
+family		drivers/net/sk_g16
+sk_g16		-		Schneider and Koch G16
+
+family		drivers/net/smc9000
+smc9000		-		SMC9000
+
+family		drivers/net/sundance
+
+family		drivers/disk/ide_disk
+ide_disk	0x0000,0x0000	Generic IDE disk support
+
+family		drivers/disk/pc_floppy
+EOF
+
 $curfam = '';
-while(<CONFIG>) {
+for $_ (split(/\n/, $config)) {
 	chomp($_);
 	next if (/^\s*(#.*)?$/);
 	my ($keyword) = split(' ', $_ , 2);
@@ -148,7 +270,35 @@ while(<CONFIG>) {
 		&addrom($_);
 	}
 }
-close(CONFIG);
+
+open(N,">NIC") or die "NIC: $!\n";
+print N <<EOF;
+# This is an automatically generated file, do not edit
+# It does not affect anything in the build, it's only for rom-o-matic
+
+EOF
+foreach my $family (@families) {
+	print N "family\t$family\n";
+	if (exists($pcient{$family})) {
+		my $aref = $pcient{$family};
+		foreach my $entry (@$aref) {
+			my $rom = $entry->[0];
+			my $ids = $entry->[1];
+			my $comment = $entry->[2];
+			print N "$rom\t$ids\t$comment\n";
+		}
+	}
+	if (exists($isaent{$family})) {
+		my $aref = $isaent{$family};
+		foreach my $entry (@$aref) {
+			my $rom = $entry->[0];
+			my $comment = $entry->[1];
+			print N "$rom\t-\t$comment\n";
+		}
+	}
+	print N "\n";
+}
+close(N);
 
 # Generate the normal source dependencies
 print "# Core object file dependencies\n";
@@ -187,7 +337,7 @@ foreach my $family (sort keys %pcient) {
 		print "ROMS\t+= \$(BIN)/$rom.rom \$(BIN)/$rom.zrom\n";
 	}
 }
-foreach my $isa (sort keys %isaent) {
+foreach my $isa (sort keys %isalist) {
 	print "ROMS\t+= \$(BIN)/$isa.rom \$(BIN)/$isa.zrom\n";
 }
 
@@ -212,9 +362,9 @@ EOF
 }
 
 # Do the ISA entries
-foreach my $isa (sort keys %isaent) {
+foreach my $isa (sort keys %isalist) {
 	(my $macro = $isa) =~ tr/\-/_/;
-	my $base = $isaent{$isa};
+	my $base = $isalist{$isa};
 	my $deps = $drivers{$base};
 	print <<EOF;
 \$(BIN)/$isa.o:	$base.c \$(MAKEDEPS) $deps
@@ -261,7 +411,7 @@ EOF
 }
 
 # ISA ROMs are prepared from the matching code images
-foreach my $isa (sort keys %isaent) {
+foreach my $isa (sort keys %isalist) {
 	print <<EOF;
 \$(BIN)/$isa.rom:		\$(BIN)/$isa.img \$(RLOADER)
 
