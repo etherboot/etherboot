@@ -31,8 +31,10 @@
 *    v1.7	04-10-2003	timlegge	Transfers Linux Kernel (30 sec)
 *    v1.8	04-13-2003	timlegge	Fix multiple transmission bug
 *    v1.9	08-19-2003	timlegge	Support Multicast
-*    v1.10	01-17-2004	timlegge	Initial driver output cleanup 
-*    
+*    v1.10	01-17-2004	timlegge	Initial driver output cleanup
+*    v1.11	03-21-2004	timlegge	Remove unused variables 
+*
+*    TODO: Remove secition on options or allow and option to set the speed
 ***************************************************************************/
 
 /* to get some global routines like printf */
@@ -43,19 +45,30 @@
 #include "pci.h"
 #include "timer.h"
 
-#define drv_version "v1.10"
-#define drv_date "2004-01-17"
+#define drv_version "v1.11"
+#define drv_date "2004-03-21"
+
+typedef unsigned char u8;
+typedef signed char s8;
+typedef unsigned short u16;
+typedef signed short s16;
+typedef unsigned int u32;
+typedef signed int s32;
+
+/* Condensed operations for readability. */
+#define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
+#define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
 /* #define EDEBUG */
 /* Set the mtu */
 static int mtu = 1514;
 
 /* Maximum events (Rx packets, etc.) to handle at each interrupt. */
-static int max_interrupt_work = 20;
+// static int max_interrupt_work = 20;
 
 /* Maximum number of multicast addresses to filter (vs. rx-all-multicast).
    The sundance uses a 64 element hash table based on the Ethernet CRC.  */
-static int multicast_filter_limit = 32;
+// static int multicast_filter_limit = 32;
 
 /* Set the copy breakpoint for the copy-only-tiny-frames scheme.
    Setting to > 1518 effectively disables this feature.
@@ -76,17 +89,6 @@ static int rx_copybreak = 0;
 #define MAX_UNITS 8
 static int options[MAX_UNITS] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 static int full_duplex[MAX_UNITS] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-
-typedef unsigned char u8;
-typedef signed char s8;
-typedef unsigned short u16;
-typedef signed short s16;
-typedef unsigned int u32;
-typedef signed int s32;
-
-/* Condensed operations for readability. */
-#define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
-#define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
 /* Operational parameters that are set at compile time. */
 
@@ -203,26 +205,20 @@ enum desc_status_bits {
 
 
 /* Define the TX Descriptor */
-static struct netdev_desc tx_ring[TX_RING_SIZE]
-    __attribute__ ((aligned(8)));
+static struct netdev_desc tx_ring[TX_RING_SIZE];
 
 /* Create a static buffer of size PKT_BUF_SZ for each
 TX Descriptor.  All descriptors point to a
 part of this buffer */
-static unsigned char txb[PKT_BUF_SZ * TX_RING_SIZE]
-    __attribute__ ((aligned(8)));
-
+static unsigned char txb[PKT_BUF_SZ * TX_RING_SIZE];
 
 /* Define the RX Descriptor */
-static struct netdev_desc rx_ring[RX_RING_SIZE]
-    __attribute__ ((aligned(8)));
+static struct netdev_desc rx_ring[RX_RING_SIZE];
 
 /* Create a static buffer of size PKT_BUF_SZ for each
 RX Descriptor   All descriptors point to a
 part of this buffer */
-static unsigned char rxb[RX_RING_SIZE * PKT_BUF_SZ]
-    __attribute__ ((aligned(8)));
-
+static unsigned char rxb[RX_RING_SIZE * PKT_BUF_SZ];
 
 static u32 BASE;
 #define EEPROM_SIZE	128
@@ -248,24 +244,11 @@ struct pci_id_info {
 };
 
 struct sundance_private {
-	unsigned short vendor_id;	/* PCI Vendor code */
-	unsigned short dev_id;	/* PCI Device code */
-	unsigned char ethr[ETH_HLEN];	/* Buffer for ethernet header */
 	const char *nic_name;
-	unsigned int if_port;
 	/* Frequently used values */
-	int msg_level;
-	int chip_id, drv_flags;
 
-	int max_interrupt_word;
-
-	unsigned int cur_rx, dirty_rx;	/* Producer/consumer ring indicies */
+	unsigned int cur_rx;	/* Producer/consumer ring indicies */
 	unsigned rx_buf_sz;	/* Based on mtu + Slack */
-	int rx_copybreak;
-
-	struct netdev_desc *rx_head_desc;
-	unsigned int cur_tx, dirty_tx;
-	unsigned int tx_full:1;
 	unsigned int mtu;
 
 	/* These values keep track of the tranceiver/media in use */
@@ -274,12 +257,10 @@ struct sundance_private {
 	unsigned int medialock:1;	/* Do not sense media */
 	unsigned int default_port:4;
 
-	unsigned int an_enable:1;
-	unsigned int speed;
+        unsigned int speed;
 
 	/* Multicast and receive mode */
 	u16 mcast_filter[4];
-	int multicast_filter_limit;
 
 	/* MII tranceiver section */
 	int mii_cnt;		/* MII device addresses */
@@ -287,8 +268,6 @@ struct sundance_private {
 	u16 advertizing;	/* NWay media advertizing */
 	unsigned char phys[2];
 	int budget;
-
-	int saved_if_port;
 } sdx;
 
 static struct sundance_private *sdc;
@@ -296,14 +275,11 @@ static struct sundance_private *sdc;
 /* Station Address location within the EEPROM */
 #define EEPROM_SA_OFFSET	0x10
 
-
-
 static int eeprom_read(long ioaddr, int location);
 static int mdio_read(struct nic *nic, int phy_id, unsigned int location);
 static void mdio_write(struct nic *nic, int phy_id, unsigned int location,
 		       int value);
 static void set_rx_mode(struct nic *nic);
-static void refill_rx(struct nic *nic);
 
 static void check_duplex(struct nic *nic)
 {
@@ -316,9 +292,6 @@ static void check_duplex(struct nic *nic)
 	duplex = (negotiated & 0x0100) || (negotiated & 0x01C0) == 0x0040;
 	if (sdc->full_duplex != duplex) {
 		sdc->full_duplex = duplex;
-		printf("%s: Setting %s-duplex based on MII #%d "
-		       "negociated capability %hX\n", sdc->nic_name,
-		       duplex ? "full" : "half", sdc->phys[0], negotiated);
 		outw(duplex ? 0x20 : 0, BASE + MACCtrl0);
 
 	}
@@ -333,8 +306,6 @@ static void init_ring(struct nic *nic __unused)
 	int i;
 
 	sdc->cur_rx = 0;
-	sdc->rx_buf_sz = (PKT_BUF_SZ);
-	sdc->rx_head_desc = &rx_ring[0];
 
 	/* Initialize all the Rx descriptors */
 	for (i = 0; i < RX_RING_SIZE; i++) {
@@ -349,9 +320,8 @@ static void init_ring(struct nic *nic __unused)
 
 	for (i = 0; i < RX_RING_SIZE; i++) {
 		rx_ring[i].addr = virt_to_le32desc(&rxb[i * PKT_BUF_SZ]);
-		rx_ring[i].length = cpu_to_le32(sdc->rx_buf_sz | LastFrag);
+		rx_ring[i].length = cpu_to_le32(PKT_BUF_SZ | LastFrag);
 	}
-	sdc->dirty_rx = (unsigned int) (i - RX_RING_SIZE);
 
 	/* We only use one transmit buffer, but two 
 	 * descriptors so transmit engines have somewhere 
@@ -407,7 +377,8 @@ static void sundance_reset(struct nic *nic)
 /* FIXME: Linux Driver has a bug fix for kendin nic */
 
 /* FIXME: Do we really need stats enabled?*/
-	outw(StatsEnable | RxEnable | TxEnable, BASE + MACCtrl1);
+//	outw(StatsEnable | RxEnable | TxEnable, BASE + MACCtrl1);
+	outw(RxEnable | TxEnable, BASE + MACCtrl1);
 
 	/* Construct a perfect filter frame with the mac address as first match
 	 * and broadcast for all others */
@@ -443,73 +414,33 @@ static int sundance_poll(struct nic *nic)
 	/* nic->packet should contain data on return */
 	/* nic->packetlen should contain length of data */
 	int entry = sdc->cur_rx % RX_RING_SIZE;
-	int boguscnt = 32;
-	int received = 0;
-	struct netdev_desc *desc = &(rx_ring[entry]);
-	u32 frame_status = le32_to_cpu(desc->status);
+	u32 frame_status = le32_to_cpu(rx_ring[entry].status);
 	int pkt_len = 0;
 
-	if (--boguscnt < 0) {
-		goto not_done;
-	}
 	if (!(frame_status & DescOwn))
 		return 0;
+
 	pkt_len = frame_status & 0x1fff;
+
 	if (frame_status & 0x001f4000) {
 #ifdef EDEBUG
-		/* FIXME: Do we really care about this */
-		printf("There was an error\n");
+		printf("Polling frame_status error\n"); /* Do we really care about this */
 #endif
 	} else {
 		if (pkt_len < rx_copybreak) {
 			/* FIXME: What should happen Will this ever occur */
-			printf("Problem");
+			printf("Poll Error: pkt_len < rx_copybreak");
 		} else {
 			nic->packetlen = pkt_len;
 			memcpy(nic->packet, rxb +
 			       (sdc->cur_rx * PKT_BUF_SZ), nic->packetlen);
-
 		}
 	}
-	entry = (entry + 1) % RX_RING_SIZE;
-	received++;
-	sdc->cur_rx = entry;
-	refill_rx(nic);
-	sdc->budget -= received;
+	rx_ring[entry].length = cpu_to_le32(PKT_BUF_SZ | LastFrag);
+	rx_ring[entry].status = 0;
+	entry++; 
+	sdc->cur_rx = entry % RX_RING_SIZE;
 	return 1;
-
-
-      not_done:
-	sdc->cur_rx = entry;
-	refill_rx(nic);
-	if (!received)
-		received = 1;
-	sdc->budget -= received;
-	if (sdc->budget <= 0)
-		sdc->budget = 32;
-#ifdef EDEBUG
-	printf("Not Done\n");
-#endif
-	return 0;
-
-}
-static void refill_rx(struct nic *nic __unused)
-{
-	int entry;
-	int cnt = 0;
-
-	/* Refill the Rx ring buffers. */
-	for (;
-	     (sdc->cur_rx - sdc->dirty_rx + RX_RING_SIZE) % RX_RING_SIZE >
-	     0; sdc->dirty_rx = (sdc->dirty_rx + 1) % RX_RING_SIZE) {
-		entry = sdc->dirty_rx % RX_RING_SIZE;
-		/* Perhaps we need not reset this field. */
-		rx_ring[entry].length =
-		    cpu_to_le32(sdc->rx_buf_sz | LastFrag);
-		rx_ring[entry].status = 0;
-		cnt++;
-	}
-	return;
 }
 
 /**************************************************************************
@@ -522,6 +453,7 @@ static void sundance_transmit(struct nic *nic, const char *d,	/* Destination */
 {				/* Packet */
 	u16 nstype;
 	u32 to;
+
 	/* Disable the Tx */
 	outw(TxDisable, BASE + MACCtrl1);
 
@@ -545,7 +477,9 @@ static void sundance_transmit(struct nic *nic, const char *d,	/* Destination */
 
 	/* Enable Tx */
 	outw(TxEnable, BASE + MACCtrl1);
+	/* Trigger an immediate send */
 	outw(0, BASE + TxStatus);
+
 	to = currticks() + TX_TIME_OUT;
 	while(!(tx_ring[0].status & 0x00010000) &&  (currticks() < to))
 		; /* wait */ 
@@ -577,6 +511,57 @@ static void sundance_disable(struct dev *dev)
 	/* Stop the Chipchips Tx and Rx Status */
 	outw(TxDisable | RxDisable | StatsDisable, BASE + MACCtrl1);
 }
+/* Generic MII registers. */
+
+#define MII_BMCR            0x00        /* Basic mode control register */
+#define MII_BMSR            0x01        /* Basic mode status register  */
+#define MII_PHYSID1         0x02        /* PHYS ID 1                   */
+#define MII_PHYSID2         0x03        /* PHYS ID 2                   */
+#define MII_ADVERTISE       0x04        /* Advertisement control reg   */
+#define MII_LPA             0x05        /* Link partner ability reg    */
+#define MII_EXPANSION       0x06        /* Expansion register          */
+#define MII_DCOUNTER        0x12        /* Disconnect counter          */
+#define MII_FCSCOUNTER      0x13        /* False carrier counter       */
+#define MII_NWAYTEST        0x14        /* N-way auto-neg test reg     */
+#define MII_RERRCOUNTER     0x15        /* Receive error counter       */
+#define MII_SREVISION       0x16        /* Silicon revision            */
+#define MII_RESV1           0x17        /* Reserved...                 */
+#define MII_LBRERROR        0x18        /* Lpback, rx, bypass error    */
+#define MII_PHYADDR         0x19        /* PHY address                 */
+#define MII_RESV2           0x1a        /* Reserved...                 */
+#define MII_TPISTATUS       0x1b        /* TPI status for 10mbps       */
+#define MII_NCONFIG         0x1c        /* Network interface config    */
+
+/* Basic mode control register. */
+#define BMCR_RESV               0x007f  /* Unused...                   */
+#define BMCR_CTST               0x0080  /* Collision test              */
+#define BMCR_FULLDPLX           0x0100  /* Full duplex                 */
+#define BMCR_ANRESTART          0x0200  /* Auto negotiation restart    */
+#define BMCR_ISOLATE            0x0400  /* Disconnect DP83840 from MII */
+#define BMCR_PDOWN              0x0800  /* Powerdown the DP83840       */
+#define BMCR_ANENABLE           0x1000  /* Enable auto negotiation     */
+#define BMCR_SPEED100           0x2000  /* Select 100Mbps              */
+#define BMCR_LOOPBACK           0x4000  /* TXD loopback bits           */
+#define BMCR_RESET              0x8000  /* Reset the DP83840           */
+
+
+/* Advertisement control register. */
+#define ADVERTISE_SLCT          0x001f  /* Selector bits               */
+#define ADVERTISE_CSMA          0x0001  /* Only selector supported     */
+#define ADVERTISE_10HALF        0x0020  /* Try for 10mbps half-duplex  */
+#define ADVERTISE_10FULL        0x0040  /* Try for 10mbps full-duplex  */
+#define ADVERTISE_100HALF       0x0080  /* Try for 100mbps half-duplex */
+#define ADVERTISE_100FULL       0x0100  /* Try for 100mbps full-duplex */
+#define ADVERTISE_100BASE4      0x0200  /* Try for 100mbps 4k packets  */
+#define ADVERTISE_RESV          0x1c00  /* Unused...                   */
+#define ADVERTISE_RFAULT        0x2000  /* Say we can detect faults    */
+#define ADVERTISE_LPACK         0x4000  /* Ack link partners response  */
+#define ADVERTISE_NPAGE         0x8000  /* Next page bit               */
+
+#define ADVERTISE_FULL (ADVERTISE_100FULL | ADVERTISE_10FULL | \
+                        ADVERTISE_CSMA)
+#define ADVERTISE_ALL (ADVERTISE_10HALF | ADVERTISE_10FULL | \
+                       ADVERTISE_100HALF | ADVERTISE_100FULL)
 
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
@@ -593,9 +578,7 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 
 	/* BASE is used throughout to address the card */
 	BASE = pci->ioaddr;
-	printf("\n");
-	printf("sundance.c: %s, %s\n", drv_version, drv_date);
-	printf("%s: Probing for Vendor=%hX   Device=%hX\n",
+	printf(" sundance.c: Found %s Vendor=0x%hX Device=0x%hX\n",
 	       pci->name, pci->vendor, pci->dev_id);
 
 	/* Get the MAC Address by reading the EEPROM */
@@ -608,21 +591,14 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 		nic->node_addr[i] = ee_data[i];
 	}
 	/* Print out some hardware info */
-	printf("%s: %! at ioaddr %hX\n", pci->name, nic->node_addr, BASE);
+	printf("%s: %! at ioaddr %hX, ", pci->name, nic->node_addr, BASE);
 
-	/* I really must find out what this does */
+	/* Set the card as PCI Bus Master */
 	adjust_pci_device(pci);
 
 	/* point to private storage */
 	sdc = &sdx;
 
-	sdc->chip_id = 0;	/* Undefined */
-	sdc->drv_flags = 0;	/* Undefined */
-	sdc->rx_copybreak = rx_copybreak;
-	sdc->max_interrupt_word = max_interrupt_work;
-	sdc->multicast_filter_limit = multicast_filter_limit;
-	sdc->vendor_id = pci->vendor;
-	sdc->dev_id = pci->dev_id;
 	sdc->nic_name = pci->name;
 	sdc->mtu = mtu;
 
@@ -697,9 +673,24 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 #ifdef EDEBUG
 	printf("ASIC Control is now %hX\n", (int) inl(BASE + ASICCtrl));
 #endif
-
 	sundance_reset(nic);
 
+        {
+	       u16 mii_ctl, mii_advertise, mii_lpa;
+		mii_advertise = mdio_read (nic, sdc->phys[0], MII_ADVERTISE);
+		mii_lpa= mdio_read (nic, sdc->phys[0], MII_LPA);
+                mii_advertise &= mii_lpa;
+                if (mii_advertise & ADVERTISE_100FULL) 
+                        sdc->speed = 100;
+                else if (mii_advertise & ADVERTISE_100HALF) 
+                        sdc->speed = 100;
+                else if (mii_advertise & ADVERTISE_10FULL) 
+                        sdc->speed = 10;
+                else if (mii_advertise & ADVERTISE_10HALF) 
+                        sdc->speed = 10;
+	}
+	printf("%dMbps, %s-Duplex\n", sdc->speed, sdc->full_duplex ? "Full" : "Half");
+	
 	/* point to NIC specific routines */
 	dev->disable = sundance_disable;
 	nic->poll = sundance_poll;
@@ -821,32 +812,6 @@ mdio_write(struct nic *nic __unused, int phy_id,
 		mdio_delay(mdio_addr);
 	}
 	return;
-}
-
-/* The little-endian AUTODIN II ethernet CRC calculations.
-   A big-endian version is also available.
-   This is slow but compact code.  Do not use this routine for bulk data,
-   use a table-based routine instead.
-   This is common code and should be moved to net/core/crc.c.
-   Chips may use the upper or lower CRC bits, and may reverse and/or invert
-   them.  Select the endian-ness that results in minimal calculations.
-*/
-static unsigned const ethernet_polynomial_le = 0xedb88320U;
-static inline unsigned ether_crc_le(int length, unsigned char *data)
-{
-	unsigned int crc = ~0;	/* Initial value. */
-	while (--length >= 0) {
-		unsigned char current_octet = *data++;
-		int bit;
-		for (bit = 8; --bit >= 0; current_octet >>= 1) {
-			if ((crc ^ current_octet) & 1) {
-				crc >>= 1;
-				crc ^= ethernet_polynomial_le;
-			} else
-				crc >>= 1;
-		}
-	}
-	return crc;
 }
 
 static void set_rx_mode(struct nic *nic __unused)
