@@ -38,7 +38,6 @@ SRCS+=	arch/i386/core/pic8259.c
 ISAPREFIX=	$(BIN)/isaprefix.bin
 PCIPREFIX=	$(BIN)/pciprefix.bin
 
-START16=	$(BIN)/start16.bin
 FLOPPYPREFIX=	$(BIN)/floppyprefix.bin
 COMPREFIX=	$(BIN)/comprefix.bin
 LILOPREFIX=	$(BIN)/liloprefix.bin
@@ -65,6 +64,11 @@ endif
 
 # Until all of the drivers are updated to be relocatable,
 # carefully setup romprefix.S to know start16.bin size
+# 
+# start16 can no longer be built as a standalone binary; start16.o is
+# linked to %.z?img with the linker.  This doesn't matter, because I'm
+# about to rework romprefix and start16 so that romprefix doesn't need
+# to know the size of START16 anyway.
 #
 ifndef START16_BYTES
 START16_BYTES:=112
@@ -180,16 +184,21 @@ $(BIN)/%.o:	arch/i386/prefix/%.S $(MAKEDEPS)
 $(BIN)/%.o:	$(BIN)/%.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-# Rules for linking start16 to the compressed or uncompressed images.  These are done
-# using the linker rather than cat, because we now want to be able to use symbols from
-# the %.sym files and symbols derived from the size of the image with a linker script.
-$(BIN)/%.bin:	$(BIN)/%.img $(BIN)/%.sym $(BIN)/start16.o arch/i386/prefix/start16.lds
+# Rules for linking start16 to the compressed or uncompressed images.
+# These are done using the linker rather than cat, because we now want
+# to be able to use symbols from the %.sym files and symbols derived
+# from the size of the image with a linker script.
+$(BIN)/%.bin:	$(BIN)/%.img $(BIN)/%.sym $(BIN)/start16.o \
+		arch/i386/prefix/start16.lds
 	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16.lds \
-		--oformat binary -o $@ $(BIN)/start16.o $(BIN)/$*.sym -b binary $<
+		--oformat binary -o $@ \
+		$(BIN)/start16.o $(BIN)/$*.sym -b binary $<
 
-$(BIN)/%.zbin:	$(BIN)/%.zimg $(BIN)/%.zsym $(BIN)/start16.o arch/i386/prefix/start16z.lds
+$(BIN)/%.zbin:	$(BIN)/%.zimg $(BIN)/%.zsym $(BIN)/start16.o \
+		arch/i386/prefix/start16z.lds
 	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16z.lds \
-		--oformat binary -o $@ $(BIN)/start16.o $(BIN)/$*.zsym -b binary $<
+		--oformat binary -o $@ \
+		$(BIN)/start16.o $(BIN)/$*.zsym -b binary $<
 
 # general rule for .bin (plain binary loader code), may be overridden
 $(BIN)/%.bin:	$(BIN)/%.o
@@ -212,26 +221,29 @@ $(BIN)/%.lzimg: $(BIN)/%.hufo $(BIN)/unhuf.o arch/i386/prefix/unhuf.lds $(MAKEDE
 $(BIN)/%.zo:	$(BIN)/%.z arch/i386/prefix/huf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/huf.lds -b binary $< -o $@
 
-$(BIN)/%.ztmp:	$(BIN)/%.zo $(BIN)/unnrv2b.o arch/i386/prefix/unhuf.lds $(MAKEDEPS)
+$(BIN)/%.ztmp:	$(BIN)/%.zo $(BIN)/unnrv2b.o \
+		arch/i386/prefix/unhuf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/unhuf.lds $(BIN)/unnrv2b.o $< -o $@
 
 $(BIN)/%.zimg: $(BIN)/%.ztmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
-# Generate .zsym files containing symbols from decompressor alongside symbols from .sym file
+# Generate .zsym files containing symbols from decompressor alongside
+# symbols from .sym file
 $(BIN)/%.ztmp.allsym: $(BIN)/%.ztmp $(MAKEDEPS)
 	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=decompressor_ $< $@
 
 $(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
-	$(LD) --accept-unknown-input-arch --oformat symbolsrec -r -o $@ $< $(BIN)/$*.ztmp.sym
+	$(LD) --accept-unknown-input-arch --oformat symbolsrec -r \
+		-o $@ $< $(BIN)/$*.ztmp.sym
 
 # general rules for normal/compressed ROM images, may be overridden
-$(BIN)/%.rom:	$(BIN)/%.img $(ISAPREFIX) $(START16)
-	cat $(ISAPREFIX) $(START16) $< > $@
+$(BIN)/%.rom: $(ISAPREFIX) $(BIN)/%.bin
+	cat $^ > $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT) $@
 
-$(BIN)/%.zrom: $(BIN)/%.zimg $(ISAPREFIX) $(START16)
-	cat $(ISAPREFIX) $(START16) $< > $@
+$(BIN)/%.zrom: $(ISAPREFIX) $(BIN)/%.zbin
+	cat $^ > $@
 	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT) $@
 
 # general rules for ELF images
@@ -265,40 +277,40 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
 # rules to generate a DOS loadable .com executable
-%.com:	%.zimg $(COMPREFIX) $(START16)
-	cat $(COMPREFIX) $(START16) $< > $@
+%.com:	$(COMPREFIX) %.zbin
+	cat $^ > $@
 
 # rules to make a LILO loadable image
-%.lilo:		%.img $(LILOPREFIX) $(START16)
-	$(PERL) util/makelilo.pl $(LILOPREFIX) $(START16) $< > $@
+%.lilo:	$(LILOPREFIX) %.bin
+	$(PERL) util/makelilo.pl $^ > $@
 
-%.zlilo:	%.zimg $(LILOPREFIX) $(START16)
-	$(PERL) util/makelilo.pl $(LILOPREFIX) $(START16) $< > $@
+%.zlilo:	$(LILOPREFIX) %.zbin
+	$(PERL) util/makelilo.pl $^ > $@
 
 # rules to generate a PXE loadable image
-%.pxe:	%.img $(PXEPREFIX) $(START16)
-	cat $(PXEPREFIX) $(START16) $< > $@
+%.pxe:	$(PXEPREFIX) %.bin
+	cat $^ > $@
 
-%.zpxe:	%.zimg $(PXEPREFIX) $(START16)
-	cat $(PXEPREFIX) $(START16) $< > $@
+%.zpxe:	$(PXEPREFIX) %.zbin
+	cat $^ > $@
 
 # rules to generate the .dsk/.zdsk floppy images
-%.dsk:	%.img $(FLOPPYPREFIX) $(START16)
-	cat $(FLOPPYPREFIX) $(START16) $< > $@
+%.dsk:	$(FLOPPYPREFIX) %.bin
+	cat $^ > $@
 
-%.zdsk:	%.zimg $(FLOPPYPREFIX) $(START16)
-	cat $(FLOPPYPREFIX) $(START16) $< > $@
+%.zdsk:	$(FLOPPYPREFIX) %.zbin
+	cat $^ > $@
 
 # rules to write the .img/.zimg image onto a blank floppy
-%.fd0:	%.img $(FLOPPYPREFIX) $(START16)
-	cat $(FLOPPYPREFIX) $(START16) $< > /dev/fd0
+%.fd0:	$(FLOPPYPREFIX) %.bin
+	cat $^ > /dev/fd0
 
-%.zfd0:	%.zimg $(FLOPPYPREFIX) $(START16)
-	cat $(FLOPPYPREFIX) $(START16) $< > /dev/fd0
+%.zfd0:	$(FLOPPYPREFIX) %.zbin
+	cat $^ > /dev/fd0
 
 # rule to make a non-emulation ISO boot image
-%.iso:	%.zimg $(START16)
+%.iso:	%.zbin
 	mkdir -p $*.dir
-	cat $(START16) $< > $*.dir/$(*F).bin
+	cat $^ > $*.dir/$(*F).bin
 	mkisofs -o $@ -c boot.cat -no-emul-boot -b $(*F).bin $*.dir
 	rm -fr $*.dir
