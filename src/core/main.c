@@ -151,7 +151,7 @@ static inline unsigned long ask_boot(unsigned *index)
 
 static inline void try_floppy_first(void)
 {
-#if (TRY_FLOPPY_FIRST > 0) && defined(CAN_BOOT_DISK)
+#if (TRY_FLOPPY_FIRST > 0)
 	int i;
 	printf("Trying floppy");
 	disk_init();
@@ -460,28 +460,6 @@ int loadkernel(const char *fname)
 	const char *name;
 #ifdef	DNS_RESOLVER
 	const char *resolvt;
-#endif
-
-#if 0 && defined(CAN_BOOT_DISK)
-	if (!memcmp(fname,"/dev/",5) && fname[6] == 'd') {
-		int dev, part = 0;
-		if (fname[5] == 'f') {
-			if ((dev = fname[7] - '0') < 0 || dev > 3)
-				goto nodisk; }
-		else if (fname[5] == 'h' || fname[5] == 's') {
-			if ((dev = 0x80 + fname[7] - 'a') < 0x80 || dev > 0x83)
-				goto nodisk;
-			if (fname[8]) {
-				part = fname[8] - '0';
-				if (fname[9])
-					part = 10*part + fname[9] - '0'; }
-			/* bootdisk cannot cope with more than eight partitions */
-			if (part < 0 || part > 8)
-				goto nodisk; }
-		else
-			goto nodisk;
-		return(bootdisk(dev, part, load_block));
-	}
 #endif
 	ip.s_addr = arptable[ARP_SERVER].ipaddr.s_addr;
 	name = fname;

@@ -91,7 +91,7 @@ void cpu_nap ( void ) {
 }
 #endif	/* POWERSAVE */
 
-#ifdef	CAN_BOOT_DISK
+#if	(TRY_FLOPPY_FIRST > 0)
 /**************************************************************************
 DISK_INIT - Initialize the disk system
 **************************************************************************/
@@ -146,6 +146,6 @@ unsigned int pcbios_disk_read ( int drive, int cylinder, int head, int sector,
 	ret_ax.word = real_call ( rm_pcbios_disk_read, &in_stack, &out_stack );
 	return ( out_stack.flags.word & CF ) ? ret_ax.word : 0;
 }
-#endif /* CAN_BOOT_DISK */
+#endif /* TRY_FLOPPY_FIRST */
 
 #endif /* PCBIOS */

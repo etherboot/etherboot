@@ -1,4 +1,4 @@
-#ifdef	CAN_BOOT_DISK
+#if	(TRY_FLOPPY_FIRST > 0)
 
 /*
  * This program is free software; you can redistribute it and/or

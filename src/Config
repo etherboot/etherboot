@@ -125,15 +125,11 @@
 #
 #	Boot device options:
 #
-#	-DCAN_BOOT_DISK
-#			Can boot from floppy/hd if bootimage matches the
-#			pattern "/dev/[fhs]d*".
 #	-DTRY_FLOPPY_FIRST
 #			If > 0, tries that many times to read the boot
 #			sector from a floppy drive before booting from
 #			ROM. If successful, does a local boot.
 #			It assumes the floppy is bootable.
-#			Requires -DCAN_BOOT_DISK.
 #	-DEMERGENCYDISKBOOT
 #			If no BOOTP server can be found, then boot from
 #			local disk. The accessibility of the TFTP server
@@ -375,7 +371,7 @@ CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
 CFLAGS+=	-DBACKOFF_LIMIT=7 -DCONGESTED
 
 # More optional features
-# CFLAGS+=	-DCAN_BOOT_DISK -DTRY_FLOPPY_FIRST=4
+# CFLAGS+=	-DTRY_FLOPPY_FIRST=4
 
 # For a serial console, which can run in parallel with FIRMWARE console
 # CFLAGS+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
