@@ -25,9 +25,4 @@ typedef struct {
 typedef	uint16_t I386_SEGSEL_t;
 #define SEGSEL_t I386_SEGSEL_t
 
-typedef struct {
-	uint16_t	opcode;
-	segoff_t	segoff;
-} PACKED pxe_call_params_t;
-
 #endif /* PXE_ARCH_H */
