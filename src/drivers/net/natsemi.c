@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /* -*- Mode:C; c-basic-offset:4; -*- */
 
 /* 
@@ -50,6 +47,7 @@
 /* Revision History */
 
 /*
+  13 Dec 2003 timlegge 1.1 Enabled Multicast Support
   29 May 2001  mdc     1.0
      Initial Release.  Tested with Netgear FA311 and FA312 boards
 */
@@ -160,7 +158,8 @@ enum rx_mode_bits {
     AcceptMulticast    = 0x00200000, 
     AcceptAllMulticast = 0x20000000,
     AcceptAllPhys      = 0x10000000, 
-    AcceptMyPhys       = 0x08000000
+    AcceptMyPhys       = 0x08000000,
+    RxFilterEnable     = 0x80000000
 };
 
 typedef struct _BufferDesc {
@@ -558,7 +557,8 @@ natsemi_init_rxd(struct nic *nic __unused)
 
 static void natsemi_set_rx_mode(struct nic *nic __unused)
 {
-    u32 rx_mode = AcceptBroadcast | AcceptMyPhys;
+    u32 rx_mode = RxFilterEnable | AcceptBroadcast |
+	    AcceptAllMulticast | AcceptMyPhys;
 	
     outl(rx_mode, ioaddr + RxFilterAddr);
 }
