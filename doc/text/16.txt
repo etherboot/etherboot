@@ -1,5 +1,6 @@
   16-bit README
-  Ken Yap, ken_yap@users.sourceforge.net
+  Ken Yap, kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD
+  net
   1 July 1997
 
   These are some notes on the 16-bit version of etherboot, a package for
@@ -60,17 +61,19 @@
   ATs anyway.
 
 
-  55..  HHooww ddoo II bbuuiilldd iitt??
 
+
+
+  55..  HHooww ddoo II bbuuiilldd iitt??
 
 
   First of all get a bcc (Bruce Evan's C compiler) distribution, from
   the ELKS tool distribution at http://www.cix.co.uk/ mayday/ There is
-  also a mailing list for Linux-8086 developers at
-  linux-8086@vger.rutgers.edu. Send mail to majordomo@vger.rutgers.edu
-  with the line "subscribe linux-8086" if you want to join. It's very
-  technical though and there won't be anything user friendly for a
-  while.
+  also a mailing list for Linux-8086 developers at linux-8086 AT vger
+  PERIOD rutgers PERIOD edu. Send mail to majordomo AT vger PERIOD
+  rutgers PERIOD edu with the line "subscribe linux-8086" if you want to
+  join. It's very technical though and there won't be anything user
+  friendly for a while.
 
   Look over the Config file to see if you need to alter something. By
   default it builds images for all 4 versions. You can omit the ones you
@@ -95,9 +98,6 @@
   Currently only booting tagged images (see documentation) is supported
   as I don't know when or if Linux/ELKS will support booting off a NFS
   mounted root. To make a tagged image see the directory netboot-*.
-
-
-
 
 
 

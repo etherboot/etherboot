@@ -4,7 +4,7 @@
 
 <title>Etherboot README
 <author>Markus Gutschke
-<tt/gutschk@math.uni-muenster.de/
+<tt/gutschk AT math PERIOD uni-muenster PERIOD de/
 <date>1 July 1997
 
 <abstract>
@@ -254,6 +254,6 @@ in one of my /etc/rc.d/rc... files worked for me).
 
 Good luck and enjoy using your new disk-less workstation
 
-Markus <tt/(gutschk@math.uni-muenster.de)/
+Markus <tt/(gutschk AT math PERIOD uni-muenster PERIOD de)/
 
 </article>

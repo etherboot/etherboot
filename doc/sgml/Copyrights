@@ -8,6 +8,8 @@ File			Copyright status
 
 3c509.c			BSD
 3c509.h			BSD
+3c515.c			GPL
+3c515_isapnp.h		GPL
 3c595.c			BSD
 3c595.h			BSD
 3c90x.c			Open Source
@@ -37,15 +39,19 @@ fa311.c			GPL
 floppy.c		GPL
 floppyload.S		GPL
 genrules.pl		GPL
+hfa384x.h		GPL
 i82586.c		GPL
 lance.c			GPL
 liloprefix.S		GPL
 linux-asm-io.h		GPL
 linux-asm-string.h	None
+linuxbios.c		GPL
+linuxbios_tables.h	GPL
 loader.S		BSD/GPL?
 lzhuf.c			Open Source
 main.c			BSD
 makerom.c		BSD
+makerom.pl/modrom.pl	GPL
 md5.c			GPL
 memsizes.c		None
 misc.c			BSD
@@ -59,8 +65,13 @@ osdep.h			BSD
 osloader.c		GPL
 otulip.c		BSD
 otulip.h		BSD
+p80211hdr.h		GPL
+pcbios.S		GPL
 pci.c			GPL
 pci.h			GPL
+prism2.c		GPL
+prism2_pci.c		GPL
+prism2_plx.c		GPL
 rtl8139.c		GPL
 serial.S		Mach
 sis900.c		GPL
@@ -76,11 +87,9 @@ tiara.c			GPL
 timer.c			GPL
 timer.h			GPL
 tulip.c			BSD
-ube.c			GPL
-ube_start32.S		GPL
-uniform_boot.h		GPL
 via-rhine.c		GPL
 w89c840.c		GPL
+wlan_compat.h		GPL
 
 This lengthy notice is required for serial.S:
 

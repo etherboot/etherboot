@@ -89,15 +89,66 @@ tftp    dgram   udp     wait    root    /usr/sbin/tcpd  in.tftpd /tftpdir
 configuration information to the client.
 <P>
 <P>
+<P>The main requirement of the DHCP server is that it needs to send out
+suitable configuration information. Prior to version 5.0.7, Etherboot
+accepted any DHCP offer (but see REQUIRE_VCI_ETHERBOOT below for an
+exception). In version 5.0.7 and above, Etherboot will not accept any
+DHCP offer where the server IP is empty (all zero) or the filename is
+empty. These offers are useless to Etherboot anyway so ignoring these
+offers will give it a better chance of picking the right DHCP server.
+<P>
+<P>
+<P>If you already have a DHCP server on your network for providing Windows
+clients with IP addresses, chances are that it is not a suitable DHCP
+server because it's only tailored to the single purpose of handing out
+client addresses. Suitable DHCP servers include the ISC DHCPD, available
+for most Unix/Linux systems. You can run such a DHCP server in parallel
+with the Windows one, provided you do not attempt to give Windows
+clients leases, in which case there would be a clash. You can exclude
+Windows clients in two ways. One is to register the only the MAC
+addresses of the diskless clients in /etc/dhcpd.conf, and to make sure
+that the server is declared "not authoritative". The second is to look
+for the Vendor Class Identifier of "Etherboot-5.x" in the DHCP discover
+packet.
+<P>
+<P>
+<P>If you already have a DHCP server on your network that does provide the
+server IP and the filename, then you have to either use that DHCP server
+by editing its configuration file. This may require the cooperation of
+the system admin if you are not the admin. If you are not able to
+configure the DHCP server, then proceed to the section on
+REQUIRE_VCI_ETHERBOOT.
+<P>
+<P>
+<P>The minimum information you need to put in /etc/dhcpd.conf is:
+<P>
+<OL>
+<LI>The domain name of the machine.
+</LI>
+<LI>The Ethernet (MAC) address of the network card, which you generally
+obtain from a sticker on the card, a configuration program for the card,
+or in the last resort, from watching the output of Etherboot or from the
+packets sent from the card when trying to boot, using the debug option
+of DHCPD.
+</LI>
+<LI>The name of the tagged image file, relative to the tftpdir
+directory.
+</LI>
+<LI>The IP address you intend to give it.
+</LI>
+<LI>The TFTP server defaults to the DHCP server if not specified with
+next-server.
+</LI>
+</OL>
 <P>Here is a sample DHCP configuration for ISC dhcpd:
 <P>
 <HR>
 <PRE>
 option domain-name "ken.net.au";
-option domain-name-servers 192.168.26.1;
-option broadcast-address 192.168.26.255;
+option domain-name-servers 192.168.0.1;
+option broadcast-address 192.168.0.255;
 use-host-decl-names on;
-subnet 192.168.26.0 netmask 255.255.255.0 {
+subnet 192.168.0.0 netmask 255.255.255.0 {
         filename "/tftpdir/vmlinuz.xterm";
         host xterm {
                 hardware ethernet 08:00:2B:B7:F3:80;
@@ -132,13 +183,13 @@ bootp request to find the IP address for mounting the NFS filesystem.
 address from the initial DHCP reply, or to use initrds in conjunction
 with a userland DHCP client program to configure the netbooted machine.
 <P>
+<H3>REQUIRE_VCI_ETHERBOOT</H3>
+
 <P>
-<P>Not all DHCP servers can be configured to hand out all the information
-needed. In particular, it is rumoured that some Windows based DHCP
-servers do not have any means of specifying the boot file. The problem
-with using Etherboot in such an environment is that if you install your
-own DHCP server, it may interfere with Windows clients. Etherboot has a
-feature designed to overcome this problem. It consists of two parts:
+<P>You may need to Etherboot in an environment where you have to install
+your own DHCP server, and it may interfere with the existing DHCP
+server. Etherboot has a feature designed to overcome this problem. It
+consists of two parts:
 <P>
 <P>
 <P>The first part is Etherboot contains code that when it sends out a
@@ -173,7 +224,7 @@ Options (Option 43) encloses: Vendor Class Identifier (Option 60 =
 <P>
 <P>
 <P>If you have a DHCP server already running for the subnet, you probably
-should specify that your additional ISC DHCPD server is non
+should specify that your additional ISC DHCPD server is not
 authoritative for the the subnet, or it will veto (NAK) existing client
 IP address allocations, upsetting the status quo. See the ISC DHCPD
 options documentation.
@@ -211,26 +262,7 @@ bootps  dgram   udp     wait    root    /usr/sbin/tcpd  bootpd
 </PRE>
 <HR>
 <P>Then you need to edit /etc/bootptab. The essential pieces of information
-you need to put in bootptab are:
-<P>
-<OL>
-<LI>The domain name of the machine.
-</LI>
-<LI>The Ethernet (MAC) address of the network card, which you generally
-obtain from a sticker on the card, a configuration program for the card,
-or in the last resort, from watching the output of Etherboot or from the
-packets sent from the card when trying to boot, using the debug option
-of bootpd.
-</LI>
-<LI>The name of the tagged image file, relative to the tftpdir
-directory.
-</LI>
-<LI>The IP address you intend to give it.
-</LI>
-<LI>The IP addresses of various servers. You will need at least the
-tftp server's address.
-</LI>
-</OL>
+you need to put in bootptab are similar to /etc/dhcpd.conf.
 <P>
 <P>
 <P>Here is an example of a /etc/bootptab for the bootpd supplied with many
@@ -243,7 +275,7 @@ Linux distributions and probably many versions of Unix:
         :hd=/tftpdir:bf=null:\
         :ds=nameserver:\
         :hn:to=36000:
-xterm.ken.net.au:tc=.default:ha=08002BB7F380:ip=192.168.26.100:bf=vmlinuz.xterm
+xterm.ken.net.au:tc=.default:ha=08002BB7F380:ip=192.168.0.100:bf=vmlinuz.xterm
 </PRE>
 <HR>
 <P>The first entry sets up some common defaults which applies
@@ -252,6 +284,13 @@ tc=.default attribute. The first field is the domain name of the
 machine. The ha attribute is the Ethernet address.  The ip attribute is
 self-explanatory. The bf field specifies the tagged image filename. For
 more details, consult the bootptab man page.
+<P>
+<P>
+<P>There is a bug in some old versions of bootpd where unnecessarily large
+reply packets are sent, causing packet fragmentation at the UDP level,
+and dropping of the packets by Etherboot. Either get a recent bootpd or
+use DHCPD. DHCPD can emulate bootpd if that's what you really want. But
+for various reasons, DHCPD is prefered to bootpd.
 <P>
 <P>
 <P>Please note that if you use the ef (extension file) attribute to be

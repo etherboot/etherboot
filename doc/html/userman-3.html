@@ -109,19 +109,19 @@ User interaction options:
                 to indicate an IP packet transmitted.
 -DMOTD
                 Display message of the day; read vendortags.html
-                for further information.
+                for further information. (Deprecated)
 -DIMAGE_MENU
                 Allow to interactively chose between different
                 bootimages; read vendortags.html for further
-                information.
+                information. (Deprecated)
 -DPASSWD
                 Enable password protection for boot images; this
-                requires -DIMAGE_MENU.
+                requires -DIMAGE_MENU. (Deprecated)
 -DUSRPARMS
                 Allow the user to interactively edit parameters
                 that are passed to the booted kernel; you should
                 probably enable -DPASSWD as well; this feature
-                requires -DIMAGE_MENU.
+                requires -DIMAGE_MENU. (Deprecated)
 -DANSIESC
                 Evaluate a subset of common ANSI escape sequences
                 when displaying the message of the day; this
@@ -132,13 +132,14 @@ User interaction options:
                 no longer use ANSI escapes to be compatible with the
                 serial console. Also be careful with your banners, as
                 they may confuse your serial console. Generally you
-                lose most of the ANSIESC functionality..
+                lose most of the ANSIESC functionality. (Deprecated)
 -DGFX
                 Support extensions to the ANSI escape sequences for
                 displaying graphics (icons or logos); this
                 requires -DANSIESC. It probably does not make sense
                 to use -DGFX if you have -DCONSOLE_DUAL, as the
                 serial console normally cannot handle the GFX stuff.
+                (Deprecated)
 -DSHOW_NUMERIC
                 Display menu item labels as numbers.
 -DDELIMITERLINES
@@ -158,6 +159,12 @@ Boot autoconfiguration protocol options:
                 Require an encapsulated Vendor Class Identifier
                 of "Etherboot" in the DHCP reply
                 Requires DHCP support.
+-DALLOW_ONLY_ENCAPSULATED
+                Ignore Etherboot-specific options that are not within
+                the Etherboot encapsulated options field.  This option
+                should be enabled unless you have a legacy DHCP server
+                configuration from the bad old days before the use of
+                encapsulated Etherboot options.
 
 Boot tuning parameters:
 
@@ -204,11 +211,11 @@ Boot device options:
 Boot image options:
 
 -DTAGGED_IMAGE
-                Add tagged image kernel boot support (recommended).
+                Add tagged image kernel boot support (Recommended).
 -DAOUT_IMAGE
                 Add a.out kernel boot support (generic).
 -DELF_IMAGE
-                Add generic ELF kernel boot support (recommended).
+                Add generic ELF kernel boot support (Recommended).
 -DIMAGE_MULTIBOOT
                 Add Multiboot image support (currently only
                 for ELF images).
@@ -222,7 +229,7 @@ Boot image options:
                 Add Lynx a.out KDI support
 
 -DDOWNLOAD_PROTO_TFTP
-                If defined, boots by TFTP (recommended).
+                If defined, boots by TFTP (Recommended).
 -DDOWNLOAD_PROTO_NFS
                 If defined, boots from a NFS mount and disables
                 TFTP loading. Default is DOWNLOAD_PROTO_TFTP
@@ -319,10 +326,10 @@ Obscure options you probably don't need to touch:
                 uncompressed images. Unless you are very tight on
                 free space, you will usually want to define this
                 option.  This option must be added to LCONFIG!
-                (recommended).
+                (Recommended).
 -DUSE_LOWMEM_BUFFER
                 Define to put some buffers below 0x10000 which
-                may interfere with other programs (not recommended).
+                may interfere with other programs (Deprecated).
 </PRE>
 <HR>
 <P>

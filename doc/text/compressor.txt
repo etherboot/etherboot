@@ -1,5 +1,6 @@
   Compression algorithm
-  Markus Gutschke, gutschk@math.uni-muenster.de
+  Markus Gutschke, gutschk AT math PERIOD uni-muenster PERIOD
+  de
   1 July 1997
 
   Some notes about the compression algorithm
@@ -60,7 +61,6 @@
   compressed data is output, so  it does not  have any impact on our use
   for "etherboot", because  the BOOT Prom  does not support uncompressed
   data of more then 32kB (c.f. doc/spec.doc).
-
 
 
 

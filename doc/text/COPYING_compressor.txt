@@ -1,15 +1,16 @@
   Copying conditions of the compression code
-  Markus Gutschke, gutschk@math.uni-muenster.de
+  Markus Gutschke, gutschk AT math PERIOD uni-muenster PERIOD
+  de
   1 July 1997
 
   This document explains the copying conditions of the compressor code
 
 
   The compression code as implemented in "lzhuf.c" was taken from a BBS
-  program written by Joachim Schurig <jschurig@zedat.fu-berlin.de>. He
-  states that the code can be used freely for programs that are covered
-  by a "freeware" license. This probably includes both BSD style
-  licenses and the GPL.
+  program written by Joachim Schurig <jschurig AT zedat PERIOD fu-berlin
+  PERIOD de>. He states that the code can be used freely for programs
+  that are covered by a "freeware" license. This probably includes both
+  BSD style licenses and the GPL.
 
 
 
@@ -34,7 +35,6 @@
 
   If you are aware of patents that might affect the legality of using
   the code in some parts of the world, please let me know.
-
 
 
 

@@ -1,5 +1,6 @@
   Netbooting a 286 with a ramdisk
-  Ken Yap, ken_yap@users.sourceforge.net
+  Ken Yap, kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD
+  net
   14 September 1999
 
   This document explains how I netbooted a ramdisk onto a 286 and used
@@ -194,7 +195,6 @@
   +o  DOS syslogd.
 
   +o  Network traffic monitors.
-
 
   You can find these and other suggested applications here
   <http://www.geocities.com/SiliconValley/lab/9247/>.

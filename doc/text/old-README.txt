@@ -1,5 +1,6 @@
   Etherboot README
-  Markus Gutschke gutschk@math.uni-muenster.de
+  Markus Gutschke gutschk AT math PERIOD uni-muenster PERIOD
+  de
   1 July 1997
 
   This is the original README file by Markus Gutschke. The information
@@ -62,7 +63,6 @@
      the code, so I had to convert the Makefile manually)
 
   +o  The package assumes that GCC outputs FreeBSD-style aout-files.
-
 
   +o  Not surprisingly, the code does not know how to load a Linux kernel
      image; let alone, how to pass a command line to the linux kernel.
@@ -254,7 +254,7 @@
 
   Good luck and enjoy using your new disk-less workstation
 
-  Markus (gutschk@math.uni-muenster.de)
+  Markus (gutschk AT math PERIOD uni-muenster PERIOD de)
 
 
 

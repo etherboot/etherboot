@@ -3,7 +3,7 @@
 <article>
 
 <title>16-bit README
-<author>Ken Yap, <tt/ken_yap@users.sourceforge.net/
+<author>Ken Yap, <tt/kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net/
 <date>1 July 1997
 
 <abstract>
@@ -54,11 +54,11 @@ anyway.
 
 <p>
 
-First of all get a bcc (Bruce Evan's C compiler) distribution,
-from the ELKS tool distribution at http://www.cix.co.uk/~mayday/
-There is also a mailing list for Linux-8086 developers at
-linux-8086@vger.rutgers.edu. Send mail to majordomo@vger.rutgers.edu
-with the line "subscribe linux-8086" if you want to join. It's very
+First of all get a bcc (Bruce Evan's C compiler) distribution, from the
+ELKS tool distribution at http://www.cix.co.uk/~mayday/ There is also a
+mailing list for Linux-8086 developers at linux-8086 AT vger PERIOD
+rutgers PERIOD edu. Send mail to majordomo AT vger PERIOD rutgers PERIOD
+edu with the line "subscribe linux-8086" if you want to join. It's very
 technical though and there won't be anything user friendly for a while.
 
 Look over the Config file to see if you need to alter something. By

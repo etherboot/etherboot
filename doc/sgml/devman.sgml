@@ -4,8 +4,8 @@
 
 <title>Etherboot Developers Manual
 <author>Ken Yap,
-<tt/&lt;ken_yap@users.sourceforge.net&gt;/
-<date>v5.0.6, 31 March 2002
+<tt/&lt;kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net&gt;/
+<date>v5.0.7, 31 July 2002
 
 <abstract>
 This document explains the internals of the Etherboot package.  The
@@ -59,7 +59,7 @@ changes from 5.0.1 really.
 
 Comments on and corrections for this Developers Manual may be directed
 to the <url name="primary author"
-url="mailto:ken_yap@users.sourceforge.net">.
+url="mailto:kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net">.
 
 <sect1>Copyrights and Trademarks
 

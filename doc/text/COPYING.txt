@@ -1,5 +1,6 @@
   Copying conditions
-  Markus Gutschke, gutschk@math.uni-muenster.de
+  Markus Gutschke, gutschk AT math PERIOD uni-muenster PERIOD
+  de
   1 July 1997
 
   This explains the copyright conditions of the Etherboot package
@@ -63,21 +64,20 @@
 
 
 
-
   ______________________________________________________________________
     Markus Gutschke
     Schlage 5a
     D-48268 Greven-Gimbte
     Germany
 
-    Internet: gutschk@math.uni-muenster.de
+    Internet: gutschk AT math PERIOD uni-muenster PERIOD de
   ______________________________________________________________________
 
 
 
-  Current releases of "etherboot" are co-authored by Ken Yap
-  <ken_yap@users.sourceforge.net> and me; so please send e-mail to both
-  of our addresses.
+  Current releases of Etherboot are co-authored by Ken Yap
+  <kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net> and me; so
+  please send e-mail to both of our addresses.
 
 
 

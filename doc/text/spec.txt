@@ -1,5 +1,6 @@
   Draft Net Boot Image Proposal 0.3
-  Jamie Honan and Gero Kuhlmann, gero@minix.han.de
+  Jamie Honan and Gero Kuhlmann, gero AT minix PERIOD han
+  PERIOD de
   June 15, 1997
 
   This is the specification of the "tagged image" format
@@ -61,7 +62,6 @@
   This is a description of how I will implement the boot rom for Linux.
   I  believe it to be flexible enough for any OS that will be loaded
   when a PC boots from a network in the TCP/IP environment.
-
 
 
   It would be good if this could be turned into some form of standard.

@@ -4,8 +4,8 @@
 
 <title>LILO with Etherboot
 <author>Ken Yap,
-<tt/&lt;ken_yap@users.sourceforge.net&gt;/
-<date>22 July 2001
+<tt/&lt;kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net&gt;/
+<date>10 May 2002
 
 <abstract>
 This HOWTO explains how to install LILO on disks that do not have any
@@ -61,26 +61,30 @@ sbin/ and etc/.
 <item>Copy the .b files to /tmp/lilo/boot.  cp -p /tmp/lilo/boot-menu.b
 /tmp/lilo/boot.b. You can also substitute -text for -menu if you prefer
 a plain text prompt. Copy the lilo executable to /tmp/lilo/sbin.  Create
-/tmp/lilo/etc/lilo.con and add an entry for DOS.
+/tmp/lilo/etc/lilo.con and add an entry for DOS.  Add entries to
+/tmp/lilo/etc/lilo.con for the Etherboot images.
+
+<item>Generate the Etherboot .lzlilo or .lilo images you want and copy
+them to /tmp/lilo/boot.  Remember to alter the names to 8.3 standard as
+necessary.
 
 <item>In /tmp/lilo, zip the contents to say /tmp/lilo.zip. Use a floppy
 or other means to transfer this to the DOS system. To save you work, you
-can find a copy of this zip archive <url name="here"
+can find a copy of this zip archive, minus the Etherboot images and the
+lilo.con modifications, <url name="here"
 url="http://etherboot.sourceforge.net/lilo2175.zip">.
+
+<item>Alternatively pack the archive with tar and gzip. This will allow
+you to transfer this to the DOS system using the wget on the rescue
+floppy, see below.
 
 <item>Unpack the archive in the root directory of the DOS system. If you
 are using pkunzip, remember to use the option that preserves the paths.
 You should end up with three new top level directories: \boot, \sbin and
 \etc.
 
-<item>Generate the Etherboot .lzlilo or .lilo images you want and copy
-them to \boot.  Remember to alter the names to 8.3 standard as necessary.
-
 <item>Reboot the DOS system using the rescue floppy. Mount the DOS
 filesystem, say on /mnt.
-
-<item>Using the editor on your rescue floppy, add entries to
-\etc\lilo.con for the Etherboot images.
 
 <item>Make a symlink from /mnt/boot to /boot. You can't use the -r /mnt
 option of lilo because it will chroot to /mnt and look for /mnt/dev/hda,
@@ -91,6 +95,40 @@ the master boot sector.
 
 <item>Umount /mnt and reboot. Keep the rescue floppy around for future
 modifications to \etc\lilo.con.
+
+<item>If you made a .tar.gz package instead of a .zip package, then you
+can streamline all of the above with a couple of commands if you have a
+web server handy and you can put a shell script and the .tar.gz package
+there. Once you have booted tomsrtbt, issue a wget for the install shell
+script, something like this:
+
+<code>
+	wget http://172.16.2.25/thin/install.sh
+</code>
+
+install.sh contains:
+
+<code>
+#!/bin/sh
+mount -t msdos /dev/hda1 /mnt
+(cd /mnt; wget -O - http://172.16.2.25/thin/lilo2175.tar.gz | gunzip | tar xf - 2>/dev/null)
+rm -f /boot
+ln -s /mnt/boot /boot
+/mnt/sbin/lilo -v -C /mnt/etc/lilo.con
+umount /mnt
+</code>
+
+Run it with:
+
+<code>
+	sh install.sh
+</code>
+
+<item>Advanced: If you have several types of network cards on your
+network, you could provide different install scripts for them which
+would fetch different images. Or you could parameterise install.sh.
+Of if you are really cunning, you could try to extract the network card
+identity out of a lsmod, as tomsrtbt autoprobes for several common NICs.
 
 <item>LILO should take control on boot up and there should be entries for
 DOS and each Etherboot image. You can even have fancy splash graphics,

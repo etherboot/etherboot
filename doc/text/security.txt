@@ -1,5 +1,6 @@
   Security
-  Markus Gutschke, gutschk@math.uni-muenster.de
+  Markus Gutschke, gutschk AT math PERIOD uni-muenster PERIOD
+  de
   1 July 1997
 
   Here are some security considerations relating to network booting.
@@ -39,16 +40,18 @@
   11..  IInnttrroodduuccttiioonn
 
 
-  This documentation has been written  and is copyrighted 1997 by Markus
-  Gutschke <gutschk@math.uni-muenster.de>.  You  are free to  distribute
-  this file as long  as you do  not  change its contents.   I appreciate
-  comments and will consider them in  future revisions.  If you have any
-  questions, comments, or suggestions, please also send carbon copies of
-  your  e-mail message to  both  Ken Yap <ken_yap@users.sourceforge.net>
-  and Gero Kuhlmann <gero@gkminix.han.de>.  I will  happily include  any
-  of your extensions,  but I would like to  avoid the proliferation of
-  different incompatible revisions  of  this document.  If these
-  conditions are a problem to you, then feel free to contact me.
+  This documentation has been written and is copyrighted 1997 by Markus
+  Gutschke <gutschk AT math PERIOD uni-muenster PERIOD de>.  You are
+  free to  distribute this file as long  as you do  not  change its
+  contents.   I appreciate comments and will consider them in  future
+  revisions.  If you have any questions, comments, or suggestions,
+  please also send carbon copies of your  e-mail message to  both  Ken
+  Yap <kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net> and Gero
+  Kuhlmann <gero AT gkminix PERIOD han PERIOD de>.  I will  happily
+  include  any  of your extensions,  but I would like to  avoid the
+  proliferation of different incompatible revisions  of  this document.
+  If these conditions are a problem to you, then feel free to contact
+  me.
 
 
   22..  SSCCOOPPEE OOFF TTHHIISS TTEEXXTT
@@ -257,9 +260,6 @@
   segment, but the majority  of them can be  prevented by installing and
   maintaining a properly configured firewall.  For more information, you
   should regularly monitor security related newsgroups and mailinglists.
-
-
-
 
 
   88..  BBOOOOTTPP//TTFFTTPP

@@ -3,7 +3,7 @@
 <article>
 
 <title>Copying conditions of the compression code
-<author>Markus Gutschke, <tt/gutschk@math.uni-muenster.de/
+<author>Markus Gutschke, <tt/gutschk AT math PERIOD uni-muenster PERIOD de/
 <date>1 July 1997
 
 <abstract>
@@ -13,10 +13,10 @@ This document explains the copying conditions of the compressor code
 <p>
 
 The compression code as implemented in "lzhuf.c" was taken from a BBS
-program written by Joachim Schurig &lt;jschurig@zedat.fu-berlin.de&gt;. He
-states that the code can be used freely for programs that are covered
-by a "freeware" license. This probably includes both BSD style
-licenses and the GPL.
+program written by Joachim Schurig &lt;jschurig AT zedat PERIOD
+fu-berlin PERIOD de&gt;. He states that the code can be used freely for
+programs that are covered by a "freeware" license. This probably
+includes both BSD style licenses and the GPL.
 
 <p>
 

@@ -1,5 +1,6 @@
   Serving SSH sessions
-  Ken Yap, ken_yap@users.sourceforge.net
+  Ken Yap, kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD
+  net
   7 January 1999
 
   This document shows how to provide a login session that directly con-
@@ -62,7 +63,6 @@
   /etc/shadow.
 
   The mgetty-ssh Perl script mentioned above is:
-
 
   ______________________________________________________________________
   #!/usr/bin/perl

@@ -1,6 +1,7 @@
   Etherboot Developers Manual
-  Ken Yap, <ken_yap@users.sourceforge.net>
-  v5.0.6, 31 March 2002
+  Ken Yap, <kenUNDERSCOREyap AT users PERIOD sourceforge
+  PERIOD net>
+  v5.0.7, 31 July 2002
 
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
@@ -62,8 +63,11 @@
   11..11..  PPuurrppoossee // SSccooppee ooff tthhiiss DDeevveellooppeerrss MMaannuuaall
 
 
+
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
+
+
   11..22..  OObbttaaiinniinngg tthhee mmoosstt rreecceenntt vveerrssiioonn ooff tthhiiss ddooccuummeenntt
 
 
@@ -107,7 +111,8 @@
 
 
   Comments on and corrections for this Developers Manual may be directed
-  to the primary author <mailto:ken_yap@users.sourceforge.net>.
+  to the primary author <mailto:kenUNDERSCOREyap AT users PERIOD
+  sourceforge PERIOD net>.
 
 
   11..55..  CCooppyyrriigghhttss aanndd TTrraaddeemmaarrkkss
@@ -124,12 +129,14 @@
   +o  The copyright notice above and this permission notice must be
      preserved complete on all complete or partial copies.
 
+
   +o  Any translation or derived work must be approved by the author in
      writing before distribution.
 
   +o  If you distribute this work in part, instructions for obtaining the
      complete version of this manual must be included, and a means for
      obtaining a complete version provided.
+
   +o  Small portions may be reproduced as illustrations for reviews or
      quotes in other works without this permission notice if proper
      citation is given. Exceptions to these rules may be granted for
@@ -196,6 +203,9 @@
   a special case in terms of ROM address. When network adaptors were
   made for the PC, it was a natural step to put ROMs on them that could
   contact a server for network booting.
+
+
+
   How does the main BIOS know that the code in the ROM is to be executed
   and why does it not execute some random code by accident? The ROM code
   has several conditions placed on it.
@@ -384,7 +394,6 @@
      use a convention like always referencing global entities as offsets
      from a particular register. But we don't want to write in assembler
      and we don't have control over what the C compiler generates.
-
   2. C code assumes that data locations are writable. ROM locations are
      not writable, by definition. One could remedy this by locating the
      writable entities in a RAM segment, but this causes more
@@ -460,6 +469,8 @@
   the .code16 mode of the GNU assembler, so less extra tools are needed
   now.
 
+
+
   In the case of Linux tagged images, the initial segment first32.c runs
   in protected mode. The segment uses the same stack as Etherboot. Since
   the call to the initial segment goes through real mode first, this
@@ -514,9 +525,6 @@
           |              Hardware               |
           +-------------------------------------+
   ______________________________________________________________________
-
-
-
 
   44..11..  EEtthheerrbboooott ccoorree
 
@@ -583,8 +591,6 @@
   of this approach is that the menu system does not have to be compiled
   into Etherboot, which means it can be changed without changing ROMs,
   and can be much larger.
-
-
 
   How does such a menu program indicate to Etherboot which image is to
   be loaded next? Several new features of Etherboot make this possible.
@@ -717,11 +723,11 @@
      the peculiarity of starting at COM_SEGMENT:0x100. All it does
      however is jump to the Etherboot ROM image, again at offset 6.
 
+
   +o  All the preceeding special preloaders have associated Makefile
      rules and are created by asking for images with the appropriate
      suffix.  For example, if one wanted an image for writing onto a
      floppy one would say:
-
 
 
      ___________________________________________________________________
@@ -781,6 +787,7 @@
   In Etherboot, all this must be done by the code in the ROM. What needs
   to be written is a subsystem like the PCI subsystem in Etherboot.
   Volunteers are most welcome.
+
 
 
   77..  WWrriittiinngg aann EEtthheerrbboooott DDrriivveerr
@@ -848,7 +855,6 @@
   Examine the file skel.c, in the src directory, which is a template for
   a driver. You may also want to examine a working driver. You will see
   that an Etherboot driver requires 5 functions to be provided:
-
 
   +o  A probe routine, that determines if the network adapter is present
      on the machine. This is passed a pointer to a `nic' struct, a list
@@ -1051,9 +1057,6 @@
   timer.h. You use them like this (in pseudo-code):
 
 
-
-
-
   ______________________________________________________________________
           for (load_timer2(TIMEOUT_VALUE);
                   transmitter_busy && (status = timer2_running()); )
@@ -1117,9 +1120,6 @@
   Your opus should be released under GPL, BSD or a similar Open Source
   license, otherwise people will have problems using your code, as most
   of the rest of Etherboot is GPLed.
-
-
-
   88..  AA ppootttteedd hhiissttoorryy ooff EEtthheerrbboooott
 
 
