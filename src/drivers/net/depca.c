@@ -1,3 +1,4 @@
+/* Not fixed for relocation yet. Probably won't work relocated above 16MB */
 #ifdef ALLMULTI
 #error multicast support is not yet implemented
 #endif
