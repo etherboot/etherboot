@@ -109,8 +109,8 @@ OBJCOPY=	objcopy
 MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
-VERSION_PATCH=	4
-EXTRAVERSION=
+VERSION_PATCH=	5
+EXTRAVERSION=   -pre1
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -165,8 +165,8 @@ W89C840FLAGS=	-DINCLUDE_W89C840
 SRCS+=	core/serial.c
 SRCS+=	core/main.c core/pci.c core/osloader.c core/nfs.c
 SRCS+=	core/misc.c core/config.c core/relocate.c core/heap.c
-SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/proto_slam.c 
-SRCS+=	core/proto_tftm.c 
+SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/timer.c
+SRCS+=	core/proto_slam.c core/proto_tftm.c 
 
 BOBJS+=		$(BIN)/main.o $(BIN)/osloader.o $(BIN)/nfs.o $(BIN)/misc.o
 BOBJS+=		$(BIN)/proto_slam.o $(BIN)/proto_tftm.o
@@ -183,7 +183,7 @@ ELF_DEPS=	$(ELF_START) $(BLIB)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
 # If you are confident that gcc 2.96 works for you, you can delete gcccheck
 # from the next line
-MAKEDEPS+=	Makefile Makefile.main Config $(BIN)/Roms $(BIN)/gcccheck
+MAKEDEPS+=	Makefile Makefile.main Config genrules.pl $(BIN)/gcccheck
 MAKEDEPS+=	arch/$(ARCH)/Makefile arch/$(ARCH)/Config
 
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
@@ -214,30 +214,6 @@ $(BLIB):	$(BOBJS)
 	$(AR) rv $@ $(BOBJS)
 	$(RANLIB) $@
 
-$(BIN)/main.o:		core/main.c include/etherboot.h include/osdep.h include/nic.h
-$(BIN)/osloader.o:	core/osloader.c include/etherboot.h include/osdep.h \
-	arch/i386/core/freebsd_loader.c \
-	arch/i386/core/multiboot_loader.c \
-	arch/i386/core/wince_loader.c \
-	arch/i386/core/aout_loader.c \
-	arch/i386/core/tagged_loader.c \
-	core/elf_loader.c
-
-$(BIN)/nfs.o:		core/nfs.c include/etherboot.h include/osdep.h include/nic.h
-$(BIN)/proto_slam.o:	core/proto_slam.c include/etherboot.h include/osdep.h include/nic.h
-$(BIN)/proto_tftm.o:	core/proto_tftm.c include/etherboot.h include/osdep.h include/nic.h
-$(BIN)/misc.o:		core/misc.c include/etherboot.h include/osdep.h
-$(BIN)/relocate.o:	core/relocate.c include/etherboot.h include/osdep.h
-$(BIN)/heap.o:		core/heap.c include/etherboot.h include/osdep.h
-$(BIN)/nic.o:		core/nic.c include/nic.h include/etherboot.h include/osdep.h
-$(BIN)/disk.o:		core/disk.c include/disk.h include/etherboot.h include/osdep.h
-$(BIN)/floppy.o:	drivers/disk/floppy.c include/etherboot.h include/osdep.h
-$(BIN)/timer.o:		core/timer.c include/timer.h include/etherboot.h include/osdep.h
-$(BIN)/serial.o:	core/serial.c include/etherboot.h include/osdep.h
-$(BIN)/config.o:	core/config.c include/etherboot.h include/nic.h include/pci.h
-
-# PCI support code (common to all PCI drivers)
-$(BIN)/pci.o:		core/pci.c include/pci.h
 
 # LinuxBIOS support code
 $(BIN)/linuxbios.o:	firmware/linuxbios/linuxbios.c include/etherboot.h include/dev.h firmware/linuxbios/linuxbios_tables.h
@@ -253,9 +229,9 @@ $(BIN)/lzhuf:	util/lzhuf.c
 
 # Roms file
 
-$(BIN)/Roms:	NIC genrules.pl
+$(BIN)/Roms:	NIC genrules.pl $(SRCS)
 	mkdir -p $(@D)
-	$(PERL) ./genrules.pl $(ARCH) NIC > $@
+	$(PERL) ./genrules.pl $(ARCH) NIC $(SRCS) > $@
 
 # Pattern Rules
 

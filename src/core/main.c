@@ -150,6 +150,7 @@ int main(struct Elf_Bhdr *ptr)
 		*p = 0;	/* Zero BSS */
 
 	console_init();
+	arch_main(ptr);
 
 #ifdef	DELIMITERLINES
 	for (i=0; i<80; i++) putchar('=');
@@ -178,6 +179,7 @@ int main(struct Elf_Bhdr *ptr)
 	for(;state != 255;) {
 		state = main_loop(state);
 	}
+	arch_on_exit(exit_status);
 	return exit_status;
 }
 

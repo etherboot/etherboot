@@ -89,7 +89,7 @@ static inline void writeq(uint64_t val, unsigned long addr)
 static inline void memcpy_fromio(void *dest, unsigned long src, size_t n)
 {
 	size_t i;
-	const uint8_t *dp = dest;
+	uint8_t *dp = dest;
 	for(i = 0; i < n; i++) {
 		*dp = readb(src);
 		dp++;

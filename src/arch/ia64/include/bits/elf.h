@@ -5,5 +5,7 @@
 #define	EM_CURRENT	EM_IA_64
 #define ELFDATA_CURRENT	ELFDATA2LSB
 
+#define ELF_CHECK_ARCH(x) \
+	((x).e_machine == EM_CURRENT)
 
 #endif /* IA64_BITS_ELF_H */

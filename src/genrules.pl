@@ -10,61 +10,61 @@
 use strict;
 use File::Basename;
 
-use vars qw($curfam %drivers %pcient %isaent %buildent $arch);
+use vars qw($curfam %drivers %pcient %isaent %buildent $arch $configfile @srcs);
+
+sub __gendep($$$) 
+{
+	my ($file, $deps, $driver_dep) = @_;
+	foreach my $source (@$deps) {
+		my $inc;
+		my @collect_dep = ();
+		$inc = "arch/$arch/include/$source" unless ! -e "arch/$arch/include/$source";
+		$inc = "include/$source" unless ! -e "include/$source";
+		$inc = dirname($file) . "/$source" unless ! -e dirname($file) . "/$source";
+		unless (defined($inc)) {
+			print STDERR "$source from $file not found (shouldn't happen)\n";
+			next;
+		};
+		next if (exists ${$driver_dep}{$inc});
+		${$driver_dep}{$inc} = $inc;
+# Warn about failure to open, then skip, rather than soldiering on with the read
+		unless (open(INFILE, "$inc")) {
+			print STDERR "$inc: $! (shouldn't happen)\n";
+			next;
+		};
+		while (<INFILE>) {
+			chomp($_);
+# This code is not very smart: no C comments or CPP conditionals processing is
+# done.  This may cause unexpected (or incorrect) additional dependencies.
+# However, ignoring the CPP conditionals is in some sense correct: we need to
+# figure out a superset of all the headers for the driver source.  
+			next unless (s/^\s*#include\s*"([^"]*)".*$/$1/);
+# Ignore system includes, like the ones in osdep.h
+			next if ($_ =~ m:^/:);
+			push(@collect_dep, $_);
+		}
+		close(INFILE);
+		if (@collect_dep) {
+			__gendep($inc, \@collect_dep, $driver_dep);
+		}
+	}
+}
 
 sub gendep ($) {
 	my ($driver) = @_;
 
 	# Automatically generate the dependencies for the driver sources.
 	my %driver_dep = ();
-	# The "$driver.c" is never inserted into %driver_dep, because it is
-	# treated specially below.
-	my @new_dep = ("$driver.c");
-	while ($#new_dep >= 0) {
-		my @collect_dep = ();
-		foreach my $source (@new_dep) {
-			my $inc;
-			$inc = "arch/$arch/include/$source" unless ! -e "arch/$arch/include/$source";
-			$inc = "include/$source" unless ! -e "include/$source";
-			$inc = dirname($driver) . "/$source" unless ! -e dirname($driver) . "/$source";
-			$inc = $source unless $source ne "$driver.c";
-			unless (defined($inc)) {
-				print STDERR "$source not found (shouldn't happen)\n";
-				next;
-			};
-# Warn about failure to open, then skip, rather than soldiering on with the read
-			unless (open(INFILE, "$inc")) {
-				print STDERR "$inc: $! (shouldn't happen)\n";
-				next;
-			};
-			$driver_dep{"$source"} = $inc;
-			while (<INFILE>) {
-				chomp($_);
-# This code is not very smart: no C comments or CPP conditionals processing is
-# done.  This may cause unexpected (or incorrect) additional dependencies.
-# However, ignoring the CPP conditionals is in some sense correct: we need to
-# figure out a superset of all the headers for the driver source.  The pci.h
-# file is treated specially, because we know which cards are PCI and not ISA.
-				next unless (s/^\s*#include\s*"([^"]*)".*$/$1/);
-				next if ($_ eq 'pci.h');
-# Ignore system includes, like the ones in osdep.h
-				next if ($_ =~ m:^/:);
-				next if (exists $driver_dep{"$_"});
-				$driver_dep{"$_"} = "$_";
-				push(@collect_dep,($_));
-			}
-			close(INFILE);
-		}
-		@new_dep = @collect_dep;
-	}
-	return (join(' ', sort values %driver_dep));
+	__gendep( "", [ $driver ], \%driver_dep);
+	return sort values %driver_dep
 }
 
 sub addfam ($) {
 	my ($family) = @_;
 
 	# We store the list of dependencies in the hash for each family
-	$drivers{$family} = &gendep($family);
+	my @deps = &gendep("$family.c");
+	$drivers{$family} = join(' ', @deps);
 	$pcient{$family} = [];
 }
 
@@ -93,19 +93,26 @@ sub isaonly ($) {
 	return ($#$aref < 0);
 }
 
-$#ARGV >= 1 or die "Usage: $0 arch configfile\n";
+$#ARGV >= 1 or die "Usage: $0 arch configfile sources...\n";
 $arch = shift(@ARGV);
+$configfile = shift(@ARGV);
+@srcs = @ARGV;
 
+open(CONFIG, "<$configfile") or die "Cannot open $configfile";
 $curfam = '';
-while(<>) {
+while(<CONFIG>) {
 	chomp($_);
 	next if (/^\s*(#.*)?$/);
 	my ($keyword) = split(' ', $_ , 2);
 	if ($keyword eq 'family') {
 		my ($keyword, $driver) = split(' ', $_, 2);
+		$curfam = '';
 		if (! -e "$driver.c") {
-			$curfam = '';
 			print STDERR "Driver file $driver.c not found, skipping...\n";
+			next;
+		}
+		if ($driver =~ "^arch" && $driver !~ "^arch/$arch") {
+			print STDERR "Driver file $driver.c not for arch $arch, skipping...\n";
 			next;
 		}
 		&addfam($curfam = $driver);
@@ -115,7 +122,20 @@ while(<>) {
 		&addrom($_);
 	}
 }
-close(STDIN);
+close(CONFIG);
+
+# Generate the normal source dependencies
+print "# Core object file dependencies\n";
+foreach my $source (@srcs) {
+	next if ($source !~ '[.][cS]$');
+	my @deps = &gendep($source);
+	my $obj = $source;
+	$obj =~ s/[.][cS]/.o/;
+	foreach my $dep (@deps) {
+		print "$obj: $dep\n";
+	}
+	print("\n");
+}
 
 # Generate the assignments to DOBJS and BINS
 print "# Driver object files and ROM image files\n";
@@ -149,7 +169,7 @@ foreach my $pci (sort keys %drivers) {
 	my $deps = $drivers{$pci};
 	print <<EOF;
 
-\$(BIN)/$obj.o:	$pci.c \$(MAKEDEPS) include/pci.h $deps
+\$(BIN)/$obj.o:	$pci.c \$(MAKEDEPS) $deps
 	\$(CC) \$(CFLAGS) \$(\U$macro\EFLAGS) -o \$@ -c \$<
 
 \$(BIN)/$obj--%.o:	\$(BIN)/%.o \$(BIN)/$obj.o \$(MAKEDEPS)

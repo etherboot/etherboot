@@ -29,6 +29,9 @@
 family		drivers/net/skel
 skel		-
 
+family		arch/ia64/drivers/net/undi_nii
+undi_nii	-
+
 family		drivers/net/3c595
 # 3c59x cards (Vortex) and 3c900 cards
 # If your 3c900 NIC detects but fails to work, e.g. no link light, with

@@ -62,6 +62,7 @@ void relocate(void)
 		printf("Relocating _text from: [%lx,%lx) to [%lx,%lx)\n",
 			virt_to_phys(_text), virt_to_phys(_end),
 			addr, eaddr);
+		arch_relocate_to(addr);
 		cleanup();
 		relocate_to(addr);
 	}

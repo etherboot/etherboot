@@ -16,6 +16,7 @@
 #include "byteswap.h"
 #include "setjmp.h"
 #include "latch.h"
+#include "hooks.h"
 
 /* We should not depend on any system header files except possibly
  * compiler supplied std c headers.  Copy headers if you need them.

@@ -12,7 +12,7 @@ SRCS+=	arch/ia64/prefix/efi_prefix.S arch/ia64/prefix/unnrv2b.S
 SRCS+=	arch/ia64/core/__call.S 
 SRCS+=	arch/ia64/core/ia64_timer.c
 SRCS+=	arch/ia64/core/idiv32.S
-SRCS+=	arch/ia64/core/idev64.S
+SRCS+=	arch/ia64/core/idiv64.S
 SRCS+=	arch/ia64/core/longjmp.S
 SRCS+=	arch/ia64/core/memmove.S
 SRCS+=	arch/ia64/core/memset.S
@@ -23,6 +23,7 @@ SRCS+=	arch/ia64/core/relocate_to.S
 SRCS+=	arch/ia64/core/sal.c
 SRCS+=	arch/ia64/core/setjmp.S
 SRCS+=	arch/ia64/core/start.S
+SRCS+=	arch/ia64/core/efi.c
 
 ROMLIMIT:=3276800
 
@@ -34,28 +35,14 @@ allefis:	$(BUILD_EFIS)
 
 
 #BOBJS+=		$(BIN)/acpi.o 
-BOBJS+=		$(BIN)/sal.o $(BIN)/pal.o
+BOBJS+=		$(BIN)/sal.o $(BIN)/pal.o 
+BOBJS+=		$(BIN)/efi.o
 BOBJS+=		$(BIN)/memset.o $(BIN)/memmove.o
 BOBJS+=		$(BIN)/setjmp.o $(BIN)/longjmp.o
 BOBJS+=		$(BIN)/relocate_to.o $(BIN)/__call.o
 BOBJS+=		$(BIN)/pci_io.o $(BIN)/ia64_timer.o
 BOBJS+=		$(BIN)/__divdi3.o $(BIN)/__udivdi3.o $(BIN)/__moddi3.o $(BIN)/__umoddi3.o
 BOBJS+=		$(BIN)/__divsi3.o $(BIN)/__udivsi3.o $(BIN)/__modsi3.o $(BIN)/__umodsi3.o
-
-$(BIN)/pci_io.o:	arch/ia64/core/pci_io.c include/pci.h include/etherboot.h include/osdep.h
-$(BIN)/ia64_timer.o:	arch/ia64/core/ia64_timer.c include/timer.h include/etherboot.h include/osdep.h
-$(BIN)/memmove.o:	arch/ia64/core/memmove.S
-$(BIN)/memset.o:	arch/ia64/core/memset.S
-$(BIN)/setjmp.o:	arch/ia64/core/setjmp.S
-$(BIN)/longjmp.o:	arch/ia64/core/longjmp.S
-$(BIN)/relocate_to.o:	arch/ia64/core/relocate_to.S
-$(BIN)/__call.o:	arch/ia64/core/__call.S
-$(BIN)/start.o:		arch/ia64/core/start.S
-$(BIN)/sal.o:		arch/ia64/core/sal.c
-$(BIN)/pal.o:		arch/ia64/core/pal.c
-
-$(BIN)/efi_prefix.o:	arch/ia64/prefix/efi_prefix.S
-$(BIN)/unnrv2b.o:	arch/ia64/prefix/unnrv2b.S
 
 
 # IA64 Division routines

@@ -148,6 +148,7 @@ return dest;
 }
 
 #define memcmp __builtin_memcmp
+#define __HAVE_ARCH_MEMCMP
 
 extern inline void * __memset_generic(void * s, char c,size_t count)
 {

@@ -142,7 +142,7 @@ void twiddle(void)
 }
 
 
-#ifndef memcmp
+#ifndef __HAVE_ARCH_MEMCMP
 int memcmp(const void *s1, const void *s2, size_t n)
 {
 	size_t i;
@@ -151,6 +151,22 @@ int memcmp(const void *s1, const void *s2, size_t n)
 		if (src1[i] != src2[i]) {
 			return src1[i] - src2[i];
 		}
+	}
+	return 0;
+}
+#endif
+
+#ifndef __HAVE_ARCH_STRNCMP
+int strncmp(const char *s1, const char *s2, size_t n)
+{
+	size_t i;
+	const unsigned char *src1 = s1, *src2 = s2;
+	for(i = 0; i < i; i++) {
+		if (src1[i] != src2[i]) {
+			return src1[i] - src2[i];
+		}
+		if (src1[i] == '\0')
+			break;
 	}
 	return 0;
 }

@@ -10,9 +10,23 @@ BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMG
 
 START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o $(BIN)/linuxbios.o
 
-SRCS+=	arch/i386/prefix/boot1a.s arch/i386/prefix/comprefix.S
-SRCS+=	arch/i386/prefix/liloprefix.S arch/i386/prefix/loader.S
+SRCS+=	arch/i386/prefix/boot1a.s
+SRCS+=	arch/i386/prefix/unhuf.S
+SRCS+=	arch/i386/prefix/unnrv2b.S
+SRCS+=	arch/i386/firmware/pcbios/memsizes.c
+SRCS+=	arch/i386/firmware/pcbios/pcbios.S
+SRCS+=	arch/i386/prefix/liloprefix.S
+SRCS+=	arch/i386/prefix/elfprefix.S
+SRCS+=	arch/i386/prefix/comprefix.S
+SRCS+=	arch/i386/prefix/pxeprefix.S
+SRCS+=	arch/i386/prefix/loader.S
+
 SRCS+=	arch/i386/core/start32.S
+SRCS+=	arch/i386/core/start16.S
+SRCS+=	arch/i386/core/pxe.c
+SRCS+=	arch/i386/core/pci_io.c
+SRCS+=	arch/i386/core/i386_timer.c
+SRCS+=	arch/i386/core/elf.c
 
 # ROM loaders: PCI header version (prefix P)
 RLOADER=	$(BIN)/rloader.bin
@@ -71,30 +85,9 @@ allpxes:	$(BUILD_PXES)
 allcoms:	$(BUILD_COMS)
 alllilos:	$(BUILD_LILOS)
 
-SRCS+=		arch/i386/core/pxe.c arch/i386/core/pci_io.c
 BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
 BOBJS+=		$(BIN)/elf.o
 
-
-$(BIN)/pxe.o:		arch/i386/core/pxe.c include/etherboot.h include/osdep.h include/nic.h
-$(BIN)/pci_io.o:	arch/i386/core/pci_io.c include/pci.h include/etherboot.h include/osdep.h
-$(BIN)/i386_timer.o:	arch/i386/core/i386_timer.c include/timer.h include/etherboot.h include/osdep.h
-$(BIN)/elf.o:		arch/i386/core/elf.c include/etherboot.h include/osdep.h \
-			include/elf.h arch/i386/include/bits/elf.h
-
-# Assembly files
-$(BIN)/start32.o:	arch/i386/core/start32.S
-$(BIN)/start16.o:	arch/i386/core/start16.S
-$(BIN)/unhuf.o:		arch/i386/prefix/unhuf.S
-$(BIN)/unnrv2b.o:	arch/i386/prefix/unnrv2b.S
-$(BIN)/memsizes.o:	arch/i386/firmware/pcbios/memsizes.c
-$(BIN)/pcbios.o:	arch/i386/firmware/pcbios/pcbios.S
-$(BIN)/liloprefix.o:	arch/i386/prefix/liloprefix.S
-$(BIN)/elfprefix.o:	arch/i386/prefix/elfprefix.S
-$(BIN)/floppyload.o:	arch/i386/prefix/floppyload.S
-$(BIN)/comprefix.o:	arch/i386/prefix/comprefix.S
-$(BIN)/pxeprefix.o:	arch/i386/prefix/pxeprefix.S
-$(BIN)/loader.o:	arch/i386/prefix/loader.S
 
 
 # Prepended loaders
