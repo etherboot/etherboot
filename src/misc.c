@@ -414,6 +414,40 @@ int iskey(void)
 	return 0;
 }
 
+#ifdef DEBUG_UTILS
+
+void pause ( void ) {
+	printf ( "\nPress a key" );
+	getchar();
+	printf ( "\r           \r" );
+}
+
+void more ( void ) {
+	printf ( "---more---" );
+	getchar();
+	printf ( "\r          \r" );
+}
+
+/* Produce a paged hex dump of the specified data and length */
+void hex_dump ( const char *data, const unsigned int len ) {
+	unsigned int index;
+	for ( index = 0; index < len; index++ ) {
+		if ( ( index % 16 ) == 0 ) {
+			printf ( "\n" );
+		}
+		if ( ( index % 368 ) == 352 ) {
+			more();
+		}
+		if ( ( index % 16 ) == 0 ) {
+			printf ( "%hX :", index );
+		}
+		printf ( " %hhX", data[index] );
+	}
+	printf ( "\n" );
+}
+
+#endif /* DEBUG_UTILS */
+
 /*
  * Local variables:
  *  c-basic-offset: 8
