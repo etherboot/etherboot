@@ -163,6 +163,11 @@ static int prep_segment(unsigned long start, unsigned long mid, unsigned long en
 {
 	int fit, i;
 
+#if LOAD_DEBUG
+	printf ( "\nAbout to prepare segment [%lX,%lX)\n", start, end );
+	sleep ( 3 );
+#endif
+
 	if (mid > end) {
 		printf("filesz > memsz\n");
 		return 0;
@@ -222,6 +227,14 @@ static int prep_segment(unsigned long start, unsigned long mid, unsigned long en
 #endif
 		return 0;
 	}
+#if LOAD_DEBUG
+	/* Zap the whole lot.  Do this so that if we're treading on
+	 * anything, it shows up now, when the debug message is
+	 * visible, rather than when we're partway through downloading
+	 * the file.
+	 */
+	memset(phys_to_virt(start), '!', mid - start);
+#endif
 	/* Zero the bss */
 	if (end > mid) {
 		memset(phys_to_virt(mid), 0, end - mid);
