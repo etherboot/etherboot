@@ -93,10 +93,11 @@ static struct mii_chip_info {
 } mii_chip_table[] = {
     {"SiS 900 Internal MII PHY", 0x001d, 0x8000, sis900_read_mode},
     {"SiS 7014 Physical Layer Solution", 0x0016, 0xf830,sis900_read_mode},
-    {"AMD 79C901 10BASE-T PHY",  0x0000, 0x35b9, amd79c901_read_mode},
-    {"AMD 79C901 HomePNA PHY",   0x0000, 0x35c8, amd79c901_read_mode},
-    {"ICS 1893 Integrated PHYceiver"   , 0x0015, 0xf441,ics1893_read_mode},
-    {"RTL 8201 10/100Mbps Phyceiver"   , 0x0000, 0x8201,rtl8201_read_mode},
+    {"AMD 79C901 10BASE-T PHY",  0x0000, 0x6B70, amd79c901_read_mode},
+    {"AMD 79C901 HomePNA PHY",   0x0000, 0x6B90, amd79c901_read_mode},
+    {"ICS 1893 Integrated PHYceiver"   , 0x0015, 0xf440,ics1893_read_mode},
+//  {"NS 83851 PHY",0x2000, 0x5C20, MIX },
+    {"RTL 8201 10/100Mbps Phyceiver"   , 0x0000, 0x8200,rtl8201_read_mode},
     {"VIA 6103 10/100Mbps Phyceiver", 0x0101, 0x8f20,vt6103_read_mode},
     {0,0,0,0}
 };
@@ -334,7 +335,7 @@ static int sis900_probe(struct dev *dev, struct pci_device *pci)
     /* get MAC address */
     ret = 0;
     pcibios_read_config_byte(pci->bus,pci->devfn, PCI_REVISION, &revision);
-    
+
     /* save for use later in sis900_reset() */
     pci_revision = revision; 
 
@@ -380,7 +381,8 @@ static int sis900_probe(struct dev *dev, struct pci_device *pci)
         /* search our mii table for the current mii */ 
         for (i = 0; mii_chip_table[i].phy_id1; i++) {
 
-            if (phy_id0 == mii_chip_table[i].phy_id0) {
+            if ((phy_id0 == mii_chip_table[i].phy_id0) && 
+               ((phy_id1 & 0xFFF0) == mii_chip_table[i].phy_id1)){
 
                 printf("sis900_probe: %s transceiver found at address %d.\n",
                        mii_chip_table[i].name, phy_addr);
