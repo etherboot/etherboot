@@ -2791,3 +2791,10 @@ assignment.
 + Thanks to the help of Daniel Nilsson, tracked down and fixed a bug
 where the tftp code did not fall back to 512 byte blocks when an OACK
 was NOT received.
+
++ Removed dead code related to CAN_BOOT_DISK.
+
++ Clarified that BOOT_DISK and BOOT_FLOPPY options only work with
+LinuxBIOS.
+
++ Renamed EMERGENCYDISKBOOT to EXIT_IF_NO_OFFER.
