@@ -94,20 +94,8 @@ union bios32 {
 	char chars[16];
 };
 
-#define KERN_CODE_SEG	0x08	/* This _MUST_ match start.S */
-
-/* Stuff for asm */
-#define save_flags(x) \
-__asm__ __volatile__("pushfl ; popl %0":"=g" (x): /* no input */ :"memory")
-
-#define cli() __asm__ __volatile__ ("cli": : :"memory")
-
-#define restore_flags(x) \
-__asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
-
-
-
 struct pci_device;
+struct dev;
 typedef int (*pci_probe_t)(struct dev *, struct pci_device *);
 
 struct pci_device {

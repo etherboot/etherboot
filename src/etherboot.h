@@ -19,20 +19,20 @@ Author: Martin Renters
 #define ANS_DEFAULT	'\n'
 
 #ifndef BOOT_FIRST
-#define BOOT_FIRST	NIC_DRIVER
+#define BOOT_FIRST	BOOT_NIC
 #endif
 #ifndef BOOT_SECOND
-#define BOOT_SECOND	NO_DRIVER
+#define BOOT_SECOND	BOOT_NOTHING
 #endif
 #ifndef BOOT_THIRD
-#define BOOT_THIRD	NO_DRIVER
+#define BOOT_THIRD	BOOT_NOTHING
 #endif
 
 #define DEFAULT_BOOT_ORDER ( \
-	(BOOT_FIRST  << (0*DRIVER_BITS)) | \
-	(BOOT_SECOND << (1*DRIVER_BITS)) | \
-	(BOOT_THIRD  << (2*DRIVER_BITS)) | \
-	(NO_DRIVER   << (3*DRIVER_BITS)) | \
+	(BOOT_FIRST   << (0*BOOT_BITS)) | \
+	(BOOT_SECOND  << (1*BOOT_BITS)) | \
+	(BOOT_THIRD   << (2*BOOT_BITS)) | \
+	(BOOT_NOTHING << (3*BOOT_BITS)) | \
 	0)
 
 #if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE)

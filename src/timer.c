@@ -10,7 +10,7 @@
 #include	"etherboot.h"
 #include	"timer.h"
 
-void load_timer2(unsigned int ticks)
+void __load_timer2(unsigned int ticks)
 {
 	/*
 	 * Now let's take care of PPC channel 2
@@ -33,17 +33,39 @@ void load_timer2(unsigned int ticks)
 	outb(ticks >> 8, TIMER2_PORT);
 }
 
-void waiton_timer2(unsigned int ticks)
+static int __timer2_running(void)
 {
-	load_timer2(ticks);
-	while((inb(PPC_PORTB) & PPCB_T2OUT) == 0) {
-		if (iskey() && (getchar() == ESC)) {
-			longjmp(restart_etherboot, -1);
-		}
-	}
+	return ((inb(PPC_PORTB) & PPCB_T2OUT) == 0);
 }
 
+#if !defined(CONFIG_TSC_CURRTICKS)
+void setup_timers(void)
+{
+	return;
+}
+
+void load_timer2(unsigned int ticks)
+{
+	return __load_timer2(ticks);
+}
+
+int timer2_running(void)
+{
+	return __timer2_running();
+}
+
+void ndelay(unsigned int nsecs)
+{
+	waiton_timer2((nsecs * CLOCK_TICK_RATE)/1000000000);
+}
+void udelay(unsigned int usecs)
+{
+	waiton_timer2((usecs * CLOCK_TICK_RATE)/1000000);
+}
+#endif /* !defined(CONFIG_TSC_CURRTICKS) */
+
 #if defined(CONFIG_TSC_CURRTICKS)
+
 #define rdtsc(low,high) \
      __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (high))
 
@@ -57,6 +79,12 @@ void waiton_timer2(unsigned int ticks)
 #define LATCHES_PER_SEC ((CLOCK_TICK_RATE + (LATCH/2))/LATCH)
 #define TICKS_PER_LATCH ((LATCHES_PER_SEC + (TICKS_PER_SEC/2))/TICKS_PER_SEC)
 
+static void sleep_latch(void)
+{
+	__load_timer2(LATCH);
+	while(__timer2_running());
+}
+
 /* ------ Calibrate the TSC ------- 
  * Time how long it takes to excute a loop that runs in known time.
  * And find the convertion needed to get to CLOCK_TICK_RATE
@@ -67,20 +95,11 @@ static unsigned long long calibrate_tsc(void)
 {
 	unsigned long startlow, starthigh;
 	unsigned long endlow, endhigh;
-	unsigned long count;
 	
-	load_timer2(LATCH);
 	rdtsc(startlow,starthigh);
-	count = 0;
-	do {
-		count++;
-	} while (timer2_running());
+	sleep_latch();
 	rdtsc(endlow,endhigh);
-	
-	/* Error: ECTCNEVERSET */
-	if (count <= 1)
-		goto bad_ctc;
-	
+
 	/* 64-bit subtract - gcc just messes up with long longs */
 	__asm__("subl %2,%0\n\t"
 		"sbbl %3,%1"
@@ -105,18 +124,20 @@ bad_ctc:
 	return 0;
 }
 
-
-unsigned long currticks(void)
+static unsigned long clocks_per_tick;
+void setup_timers(void)
 {
-	static unsigned long clocks_per_tick;
-	unsigned long clocks_high, clocks_low;
-	unsigned long currticks;
 	if (!clocks_per_tick) {
 		clocks_per_tick = calibrate_tsc();
 		/* Display the CPU Mhz to easily test if the calibration was bad */
 		printf("CPU %d Mhz\n", (clocks_per_tick/1000 * TICKS_PER_SEC)/1000);
 	}
+}
 
+unsigned long currticks(void)
+{
+	unsigned long clocks_high, clocks_low;
+	unsigned long currticks;
 	/* Read the Time Stamp Counter */
 	rdtsc(clocks_low, clocks_high);
 
@@ -129,4 +150,59 @@ unsigned long currticks(void)
 	return currticks;
 }
 
+static unsigned long long timer_timeout;
+static int __timer_running(void)
+{
+	unsigned long long now;
+	rdtscll(now);
+	return now < timer_timeout;
+}
+
+void udelay(unsigned int usecs)
+{
+	unsigned long long now;
+	rdtscll(now);
+	timer_timeout = now + usecs * ((clocks_per_tick * TICKS_PER_SEC)/(1000*1000));
+	while(__timer_running());
+}
+void ndelay(unsigned int nsecs)
+{
+	unsigned long long now;
+	rdtscll(now);
+	timer_timeout = now + nsecs * ((clocks_per_tick * TICKS_PER_SEC)/(1000*1000*1000));
+	while(__timer_running());
+}
+
+void load_timer2(unsigned int timer2_ticks)
+{
+	unsigned long long now;
+	unsigned long clocks;
+	rdtscll(now);
+	clocks = timer2_ticks * ((clocks_per_tick * TICKS_PER_SEC)/CLOCK_TICK_RATE);
+	timer_timeout = now + clocks;
+}
+
+int timer2_running(void)
+{
+	return __timer_running();
+}
+
 #endif /* RTC_CURRTICKS */
+
+void mdelay(unsigned int msecs)
+{
+	int i;
+	for(i = 0; i < msecs; i++) {
+		udelay(1000);
+	}
+}
+
+void waiton_timer2(unsigned int ticks)
+{
+	load_timer2(ticks);
+	while(timer2_running()) {
+		if (iskey() && (getchar() == ESC)) {
+			longjmp(restart_etherboot, -1);
+		}
+	}
+}

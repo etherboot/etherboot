@@ -84,20 +84,12 @@ int pcibios_write_config_dword (unsigned int bus, unsigned int device_fn, unsign
 
 #else	 /* CONFIG_PCI_DIRECT  not defined */
 
-#if defined(RELOCATE)
-#error "32bit bios calls are currently broken with relocation enabled"
+#if !defined(PCBIOS)
+#error "The pcibios can only be used when the PCBIOS support is compiled in"
 #endif
 
-static struct {
-	unsigned long address;
-	unsigned short segment;
-} bios32_indirect = { 0, KERN_CODE_SEG };
-
-static long pcibios_entry;
-static struct {
-	unsigned long address;
-	unsigned short segment;
-} pci_indirect = { 0, KERN_CODE_SEG };
+static unsigned long bios32_entry;
+static unsigned long pcibios_entry;
 
 static unsigned long bios32_service(unsigned long service)
 {
@@ -105,18 +97,15 @@ static unsigned long bios32_service(unsigned long service)
 	unsigned long address;		/* %ebx */
 	unsigned long length;		/* %ecx */
 	unsigned long entry;		/* %edx */
-	unsigned long flags;
 
-	save_flags(flags);
-	__asm__("lcall (%%edi)"
+	__asm__("call bios32_call\n\t"
 		: "=a" (return_code),
 		  "=b" (address),
 		  "=c" (length),
 		  "=d" (entry)
 		: "0" (service),
 		  "1" (0),
-		  "D" (&bios32_indirect));
-	restore_flags(flags);
+		  "S" (bios32_entry));
 
 	switch (return_code) {
 		case 0:
@@ -125,7 +114,7 @@ static unsigned long bios32_service(unsigned long service)
 			printf("bios32_service(%d) : not present\n", service);
 			return 0;
 		default: /* Shouldn't happen */
-			printf("bios32_service(%d) : returned %#X, mail drew@colorado.edu\n",
+			printf("bios32_service(%d) : returned %#X????\n",
 				service, return_code);
 			return 0;
 	}
@@ -136,10 +125,8 @@ int pcibios_read_config_byte(unsigned int bus,
 {
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
-        unsigned long flags;
 
-        save_flags(flags);
-        __asm__("lcall (%%esi)\n\t"
+        __asm__("call bios32_call\n\t"
                 "jc 1f\n\t"
                 "xor %%ah, %%ah\n"
                 "1:"
@@ -148,8 +135,7 @@ int pcibios_read_config_byte(unsigned int bus,
                 : "1" (PCIBIOS_READ_CONFIG_BYTE),
                   "b" (bx),
                   "D" ((long) where),
-                  "S" (&pci_indirect));
-        restore_flags(flags);
+                  "S" (pcibios_entry));
         return (int) (ret & 0xff00) >> 8;
 }
 
@@ -158,10 +144,8 @@ int pcibios_read_config_word(unsigned int bus,
 {
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
-        unsigned long flags;
 
-        save_flags(flags);
-        __asm__("lcall (%%esi)\n\t"
+        __asm__("call bios32_call\n\t"
                 "jc 1f\n\t"
                 "xor %%ah, %%ah\n"
                 "1:"
@@ -170,8 +154,7 @@ int pcibios_read_config_word(unsigned int bus,
                 : "1" (PCIBIOS_READ_CONFIG_WORD),
                   "b" (bx),
                   "D" ((long) where),
-                  "S" (&pci_indirect));
-        restore_flags(flags);
+                  "S" (pcibios_entry));
         return (int) (ret & 0xff00) >> 8;
 }
 
@@ -180,10 +163,8 @@ int pcibios_read_config_dword(unsigned int bus,
 {
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
-        unsigned long flags;
 
-        save_flags(flags);
-        __asm__("lcall (%%esi)\n\t"
+        __asm__("call bios32_call\n\t"
                 "jc 1f\n\t"
                 "xor %%ah, %%ah\n"
                 "1:"
@@ -192,8 +173,7 @@ int pcibios_read_config_dword(unsigned int bus,
                 : "1" (PCIBIOS_READ_CONFIG_DWORD),
                   "b" (bx),
                   "D" ((long) where),
-                  "S" (&pci_indirect));
-        restore_flags(flags);
+                  "S" (pcibios_entry));
         return (int) (ret & 0xff00) >> 8;
 }
 
@@ -202,10 +182,8 @@ int pcibios_write_config_byte (unsigned int bus,
 {
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
-	unsigned long flags;
 
-	save_flags(flags); cli();
-	__asm__("lcall (%%esi)\n\t"
+	__asm__("call bios32_call\n\t"
 		"jc 1f\n\t"
 		"xor %%ah, %%ah\n"
 		"1:"
@@ -214,8 +192,7 @@ int pcibios_write_config_byte (unsigned int bus,
 		  "c" (value),
 		  "b" (bx),
 		  "D" ((long) where),
-		  "S" (&pci_indirect));
-	restore_flags(flags);
+		  "S" (pcibios_entry));
 	return (int) (ret & 0xff00) >> 8;
 }
 
@@ -224,10 +201,8 @@ int pcibios_write_config_word (unsigned int bus,
 {
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
-	unsigned long flags;
 
-	save_flags(flags); cli();
-	__asm__("lcall (%%esi)\n\t"
+	__asm__("call bios32_call\n\t"
 		"jc 1f\n\t"
 		"xor %%ah, %%ah\n"
 		"1:"
@@ -236,8 +211,7 @@ int pcibios_write_config_word (unsigned int bus,
 		  "c" (value),
 		  "b" (bx),
 		  "D" ((long) where),
-		  "S" (&pci_indirect));
-	restore_flags(flags);
+		  "S" (pcibios_entry));
 	return (int) (ret & 0xff00) >> 8;
 }
 
@@ -246,10 +220,8 @@ int pcibios_write_config_dword (unsigned int bus,
 {
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
-	unsigned long flags;
 
-	save_flags(flags); cli();
-	__asm__("lcall (%%esi)\n\t"
+	__asm__("call bios32_call\n\t"
 		"jc 1f\n\t"
 		"xor %%ah, %%ah\n"
 		"1:"
@@ -258,8 +230,7 @@ int pcibios_write_config_dword (unsigned int bus,
 		  "c" (value),
 		  "b" (bx),
 		  "D" ((long) where),
-		  "S" (&pci_indirect));
-	restore_flags(flags);
+		  "S" (pcibios_entry));
 	return (int) (ret & 0xff00) >> 8;
 }
 
@@ -269,14 +240,10 @@ static void check_pcibios(void)
 	unsigned char present_status;
 	unsigned char major_revision;
 	unsigned char minor_revision;
-	unsigned long flags;
 	int pack;
 
 	if ((pcibios_entry = bios32_service(PCI_SERVICE))) {
-		pci_indirect.address = pcibios_entry;
-
-		save_flags(flags);
-		__asm__("lcall (%%edi)\n\t"
+		__asm__("call bios32_call\n\t"
 			"jc 1f\n\t"
 			"xor %%ah, %%ah\n"
 			"1:\tshl $8, %%eax\n\t"
@@ -284,9 +251,8 @@ static void check_pcibios(void)
 			: "=d" (signature),
 			  "=a" (pack)
 			: "1" (PCIBIOS_PCI_BIOS_PRESENT),
-			  "D" (&pci_indirect)
+			  "S" (pcibios_entry)
 			: "bx", "cx");
-		restore_flags(flags);
 
 		present_status = (pack >> 16) & 0xff;
 		major_revision = (pack >> 8) & 0xff;
@@ -311,7 +277,7 @@ static void pcibios_init(void)
 	union bios32 *check;
 	unsigned char sum;
 	int i, length;
-	unsigned long bios32_entry = 0;
+	bios32_entry = 0;
 
 	/*
 	 * Follow the standard procedure for locating the BIOS32 Service
@@ -320,7 +286,7 @@ static void pcibios_init(void)
 	 *
 	 */
 
-	for (check = (union bios32 *) 0xe0000; check <= (union bios32 *) 0xffff0; ++check) {
+	for (check = phys_to_virt(0xe0000); (void *)check <= phys_to_virt(0xffff0); ++check) {
 		if (check->fields.signature != BIOS32_SIGNATURE)
 			continue;
 		length = check->fields.length * 16;
@@ -351,7 +317,6 @@ static void pcibios_init(void)
 				printf("pcibios_init : BIOS32 Service Directory"
 					" entry at %#X\n", bios32_entry);
 #endif
-				bios32_indirect.address = bios32_entry;
 			}
 		}
 	}

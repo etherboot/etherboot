@@ -44,7 +44,9 @@ void get_memsizes(void)
 			(unsigned long)(r_end >> 32),
 			(unsigned long)r_end,
 			meminfo.map[i].type);
+#if 0	/* Careful we might not have the timer calibrated yet */
 		sleep(1); /* No way to see 32 entries on a standard 80x25 screen... */
+#endif
 	}
 #endif
 	/* Allocate the real mode stack */

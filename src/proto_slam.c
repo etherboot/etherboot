@@ -45,7 +45,7 @@
  * Status Request Packet
  *   transaction
  *   total bytes
- *   block packets
+ *   block size
  *
  * Status Packet
  *   received packets
@@ -400,7 +400,7 @@ static void slam_send_nack(struct slam_info *info)
 		int last;
 		/* Compute the last bit and store an inverted trailer */
 		max = state.total_packets;
-		value = ((state.bitmap[(max -1) >> 3] >> ((max -1) & 7)) & 1);
+		value = ((state.bitmap[(max -1) >> 3] >> ((max -1) & 7) ) & 1);
 		value = !value;
 		state.bitmap[max >> 3] &= ~(1 << (max & 7));
 		state.bitmap[max >> 3] |= value << (max & 7);

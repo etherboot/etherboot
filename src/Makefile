@@ -165,7 +165,7 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
+SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.c
 SRCS+=	main.c pci.c osloader.c nfs.c pxe.c misc.c config.c relocate.c heap.c
 SRCS+=	floppy.c nic.c disk.c proto_slam.c proto_tftm.c 
 
@@ -419,6 +419,9 @@ bin32/%.lzrom:	bin32/%.lzimg $(RLOADER) $(START16)
 	cat $(RLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
 
+bin32/%.nrv2brom: bin32/%.nrv2bimg $(RLOADER) $(START16)
+	cat $(RLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
 
 # general rules for ELF images
 bin32/%.imgo:	bin32/%.img $(MAKEDEPS)
@@ -493,7 +496,7 @@ clean:
 	$(RM) bin32/*.img bin32/*.lzimg 
 	$(RM) bin32/*.imgo bin32/.lzimgo 
 	$(RM) bin32/*.huf bin32/%.hufo
-	$(RM) bin32/*.rom bin32/*.lzrom
+	$(RM) bin32/*.rom bin32/*.lzrom bin32/*nrv2brom
 	$(RM) bin32/*.com
 	$(RM) bin32/*.dsk bin32/*.lzdsk
 	$(RM) bin32/*.lilo bin32/*.lzlilo

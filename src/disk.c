@@ -25,6 +25,7 @@ struct disk disk =
 		0,				/* type */
 		PROBE_FIRST,			/* how_probe */
 		PROBE_NONE,			/* to_probe */
+		0,				/* failsafe */
 		{},				/* state */
 	},
 	(int (*)(struct disk *, sector_t ))dummy,		/* read */
@@ -149,7 +150,7 @@ int disk_load_configuration(struct dev *dev)
 {
 	/* Start with the very simplest possible disk configuration */
 	struct disk *disk = (struct disk *)dev;
-	disk->direction = 1;
+	disk->direction = (dev->failsafe)?-1:1;
 	disk->disk_offset = 0;
 }
 

@@ -1,5 +1,6 @@
         .text
         .code16
+	.globl _start
 
 /* Cheat a little with the relocations: .COM files are loaded at 0x100 */
 _start: 

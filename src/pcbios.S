@@ -492,4 +492,29 @@ pxeemu_nbp_active: 	.byte	0
 
 days:	.long	0
 
+#ifndef CONFIG_PCI_DIRECT
+	.globl bios32_call
+bios32_call:
+	pushl	%ebp
+	pushl	%eax
+	call	_virt_to_phys
+	pushl	%ebp
+	movl	8(%esp), %ebp
+	movl	4(%esp), %eax
+	pushl	%cs
+	call	%esi
+	cli
+	cld
+	movl	%ebp, 8(%esp)
+	movl	%eax, 4(%esp)
+	popl	%ebp
+	pushfl
+	call	_phys_to_virt
+	popfl
+	popl	%eax
+	popl	%ebp
+	ret
+
+#endif /* CONFIG_PCI_DIRECT */
+
 #endif /* PCBIOS */

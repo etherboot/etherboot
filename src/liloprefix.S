@@ -50,6 +50,8 @@
         .text
         .code16
         .org     0
+	.globl _start
+_start:
 
 /* 
         This is a minimal boot sector.  If anyone tries to execute it (e.g., if
@@ -57,7 +59,7 @@
 */
 
 bootsector: 
-        jmp     $BOOTSEG, $go           /* reload cs:ip to match relocation addr */
+        jmp     $BOOTSEG, $go - _start  /* reload cs:ip to match relocation addr */
 go: 
         movw    $0x2000, %di            /*  0x2000 is arbitrary value >= length
                                             of bootsect + room for stack */
@@ -72,7 +74,7 @@ go:
         sti
 
         movw    $why_end-why, %cx
-        movw    $why, %si
+        movw    $why - _start, %si
 
         movw    $0x0007, %bx            /* page 0, attribute 7 (normal) */
         movb    $0x0e, %ah              /* write char, tty mode */

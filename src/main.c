@@ -23,6 +23,7 @@ Literature dealing with the network protocols:
 #include "dev.h"
 #include "nic.h"
 #include "disk.h"
+#include "timer.h"
 
 jmpbuf	restart_etherboot;
 int	url_port;		
@@ -62,22 +63,22 @@ done:
 			/* Nothing useful try again */
 			continue;
 		case ANS_LOCAL:
-			order = NO_DRIVER;
+			order = BOOT_NOTHING;
 			break;
 		case ANS_DEFAULT:
 			/* Preserve the default boot order */
 			break;
 		case ANS_NETWORK:
-			order = (NIC_DRIVER << (0*DRIVER_BITS)) | 
-				(NO_DRIVER  << (1*DRIVER_BITS));
+			order = (BOOT_NIC     << (0*BOOT_BITS)) | 
+				(BOOT_NOTHING << (1*BOOT_BITS));
 			break;
 		case ANS_DISK:
-			order = (DISK_DRIVER << (0*DRIVER_BITS)) | 
-				(NO_DRIVER  << (1*DRIVER_BITS));
+			order = (BOOT_DISK    << (0*BOOT_BITS)) | 
+				(BOOT_NOTHING << (1*BOOT_BITS));
 			break;
 		case ANS_FLOPPY:
-			order = (FLOPPY_DRIVER << (0*DRIVER_BITS)) | 
-				(NO_DRIVER  << (1*DRIVER_BITS));
+			order = (BOOT_FLOPPY  << (0*BOOT_BITS)) | 
+				(BOOT_NOTHING << (1*BOOT_BITS));
 			break;
 		}
 		break;
@@ -136,7 +137,9 @@ int main(void)
 {
 	unsigned long order;
 	char *p;
+	int boot;
 	int type;
+	int failsafe;
 	struct dev *dev;
 	struct class_operations *ops;
 	int state, i;
@@ -160,6 +163,7 @@ int main(void)
 	cleanup();
 	relocate();
 	console_init();
+	setup_timers();
 	init_heap();
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
@@ -193,12 +197,14 @@ int main(void)
 			cleanup();
 			forget(heap_base);
 			i += 1;
-			type = (order >> (i * DRIVER_BITS)) & DRIVER_MASK;
-			if ((i == 0) && (type == NO_DRIVER)) {
+			boot = (order >> (i * BOOT_BITS)) & BOOT_MASK;
+			type = boot & BOOT_TYPE_MASK;
+			failsafe = (boot & BOOT_FAILSAFE) != 0;
+			if ((i == 0) && (type == BOOT_NOTHING)) {
 				/* Return to caller */
 				exit(0);
 			}
-			if (type >= NO_DRIVER) {
+			if (type >= BOOT_NOTHING) {
 				printf("No adapter found\n");
 				interruptible_sleep(2);
 				state = 0;
@@ -208,6 +214,7 @@ int main(void)
 			dev = ops->dev;
 			dev->how_probe = PROBE_FIRST;
 			dev->type = type;
+			dev->failsafe = failsafe;
 			state = 3;
 				break;
 		case 3:

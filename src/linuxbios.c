@@ -6,7 +6,7 @@
 
 struct meminfo meminfo;
 static int lb_failsafe = 1;
-static unsigned long lb_boot_first = NO_DRIVER;
+static unsigned long lb_boot_first = BOOT_NOTHING;
 static unsigned long lb_boot_second;
 static unsigned long lb_boot_third;
 
@@ -122,9 +122,9 @@ static void read_linuxbios_values(struct meminfo *info,
 {
 	/* Read linuxbios tables... */
 	struct lb_record *rec;
-	lb_boot_first  = NO_DRIVER;
-	lb_boot_second = NO_DRIVER;
-	lb_boot_third  = NO_DRIVER;
+	lb_boot_first  = BOOT_NOTHING;
+	lb_boot_second = BOOT_NOTHING;
+	lb_boot_third  = BOOT_NOTHING;
 
 	for_each_lbrec(head, rec) {
 		switch(rec->tag) {
@@ -270,10 +270,10 @@ void get_memsizes(void)
 
 unsigned long get_boot_order(unsigned long order)
 {
-	if (!lb_failsafe && (lb_boot_first != NO_DRIVER)) {
-		order =	(lb_boot_first  << (0*DRIVER_BITS)) |
-			(lb_boot_second << (1*DRIVER_BITS)) |
-			(lb_boot_third  << (2*DRIVER_BITS)) |
+	if (!lb_failsafe && (lb_boot_first != BOOT_NOTHING)) {
+		order =	(lb_boot_first  << (0*BOOT_BITS)) |
+			(lb_boot_second << (1*BOOT_BITS)) |
+			(lb_boot_third  << (2*BOOT_BITS)) |
 			0;
 	}
 	return order;

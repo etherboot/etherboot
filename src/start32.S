@@ -129,7 +129,7 @@ exit:
 #endif
 
 	/* Revert to flat physical addresses and return */
-	call _virt_to_phys
+	call	_virt_to_phys
 	xorl	%eax, %eax
 	ret
 
