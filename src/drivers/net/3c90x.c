@@ -679,6 +679,7 @@ static int a3c90x_probe(struct dev *dev, struct pci_device *pci)
     unsigned short eeprom[0x21];
     unsigned int cfg;
     unsigned int mopt;
+    unsigned int mstat;
     unsigned short linktype;
 #define	HWADDR_OFFSET	10
 
@@ -771,6 +772,14 @@ static int a3c90x_probe(struct dev *dev, struct pci_device *pci)
     INF_3C90X.HWAddr[4] = eeprom[HWADDR_OFFSET + 2]>>8;
     INF_3C90X.HWAddr[5] = eeprom[HWADDR_OFFSET + 2]&0xFF;
     printf("MAC Address = %!\n", INF_3C90X.HWAddr);
+
+    /* Test if the link is good, if not continue */
+    a3c90x_internal_SetWindow(INF_3C90X.IOAddr, winDiagnostics4);
+    mstat = inw(INF_3C90X.IOAddr + regMediaStatus_4_w);
+    if((mstat & (1<<11)) == 0) {
+	printf("Valid link not established\n");
+	return 0;
+    }
 
     /** Program the MAC address into the station address registers **/
     a3c90x_internal_SetWindow(INF_3C90X.IOAddr, winAddressing2);

@@ -18,9 +18,9 @@ static void scan_drivers(
 	const struct pci_driver *last_driver, struct pci_device *dev)
 {
 	const struct pci_driver *skip_driver = last_driver;
-	
 	/* Assume there is only one match of the correct type */
 	const struct pci_driver *driver;
+	
 	for(driver = pci_drivers; driver < pci_drivers_end; driver++) {
 		int i;
 		if (driver->type != type)
@@ -35,11 +35,8 @@ static void scan_drivers(
 				(device == driver->ids[i].dev_id)) {
 
 				dev->driver = driver;
-#if 0
 				dev->name   = driver->ids[i].name;
-#else
-				dev->name   = driver->name;
-#endif
+
 				goto out;
 			}
 		}
@@ -82,6 +79,9 @@ void scan_pci_bus(int type, struct pci_device *dev)
 		first_driver = dev->driver;
 		first_bus    = dev->bus;
 		first_devfn  = dev->devfn;
+		/* Re read the header type on a restart */
+		pcibios_read_config_byte(first_bus, first_devfn & ~0x7, 
+			PCI_HEADER_TYPE, &hdr_type);
 		dev->driver  = 0;
 		dev->bus     = 0;
 		dev->devfn   = 0;
@@ -95,7 +95,7 @@ void scan_pci_bus(int type, struct pci_device *dev)
 	 */
 	buses=256;
 	for (bus = first_bus; bus < buses; ++bus) {
-		for (devfn = first_devfn; devfn < 0xff; ++devfn) {
+		for (devfn = first_devfn; devfn < 0xff; ++devfn, first_driver = 0) {
 			if (PCI_FUNC (devfn) == 0)
 				pcibios_read_config_byte(bus, devfn, PCI_HEADER_TYPE, &hdr_type);
 			else if (!(hdr_type & 0x80))	/* not a multi-function device */
@@ -133,7 +133,6 @@ void scan_pci_bus(int type, struct pci_device *dev)
 		}
 #endif
 			scan_drivers(type, class, vendor, device, first_driver, dev);
-			first_driver = 0;
 			if (!dev->driver)
 				continue;
 
@@ -298,7 +297,7 @@ int pci_find_capability(struct pci_device *dev, int cap)
 	if (!(status & PCI_STATUS_CAP_LIST))
 		return 0;
 	pci_read_config_byte(dev, PCI_HEADER_TYPE, &hdr_type);
-	switch (hdr_type) {
+	switch (hdr_type & 0x7F) {
 	case PCI_HEADER_TYPE_NORMAL:
 	case PCI_HEADER_TYPE_BRIDGE:
 	default:
