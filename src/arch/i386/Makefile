@@ -303,11 +303,11 @@ SUFFIXES +=	dsk zdsk
 
 # rules to write the .img/.zimg image onto a blank floppy
 SUFFIXES +=	fd0 zfd0
-%.fd0:	%.bin $(FLOPPYPREFIX)
-	cat $(FLOPPYPREFIX) $< > /dev/fd0
+%.fd0:	%.dsk $(FLOPPYPREFIX)
+	dd if=$< bs=512 conv=sync of=/dev/fd0
 
-%.zfd0:	%.zbin $(FLOPPYPREFIX)
-	cat $(FLOPPYPREFIX) $< > /dev/fd0
+%.zfd0:	%.zdsk $(FLOPPYPREFIX)
+	dd if=$< bs=512 conv=sync of=/dev/fd0
 
 # rule to make a non-emulation ISO boot image
 SUFFIXES +=	iso
