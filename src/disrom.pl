@@ -6,6 +6,8 @@
 #	GPL, Ken Yap 2001
 #
 
+use bytes;
+
 sub getid ($)
 {
 	my ($offset) = @_;

@@ -11,6 +11,8 @@ use strict;
 
 use vars qw($curfam %drivers %pcient %isaent);
 
+use bytes;
+
 sub gendep ($) {
 	my ($driver) = @_;
 

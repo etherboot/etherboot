@@ -19,6 +19,8 @@ use strict;
 
 use vars qw(%opts);
 
+use bytes;
+
 sub getromsize ($) {
 	my ($romref) = @_;
 	my $i;

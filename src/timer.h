@@ -37,7 +37,7 @@
 
 /* Timers tick over at this rate */
 #define CLOCK_TICK_RATE	1193180U
-#define	TICKS_PER_MS	(CLOCK_TICK_RATE/1000)
+#define	TICKS_PER_MS	1193
 
 /* Parallel Peripheral Controller Port B */
 #define	PPC_PORTB	0x61

@@ -60,7 +60,7 @@ void ndelay(unsigned int nsecs)
 }
 void udelay(unsigned int usecs)
 {
-	waiton_timer2((usecs * CLOCK_TICK_RATE)/1000000);
+	waiton_timer2((usecs * TICKS_PER_MS)/1000);
 }
 #endif /* !defined(CONFIG_TSC_CURRTICKS) */
 
