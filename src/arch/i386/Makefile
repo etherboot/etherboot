@@ -16,6 +16,7 @@ SRCS+=	arch/i386/core/start32.S
 
 # ROM loaders: NRV2B version (prefix NRV2B)
 RLOADER=	$(BIN)/rloader.bin
+PRLOADER=	$(BIN)/prloader.bin
 START16=	$(BIN)/start16.bin
 DISKLOADER=	$(BIN)/boot1a.bin
 COMPREFIX=	$(BIN)/comprefix.bin
@@ -98,6 +99,7 @@ $(BIN)/loader.o:	arch/i386/prefix/loader.S
 
 # Prepended loaders
 $(BIN)/rloader.bin:	$(BIN)/rloader.o
+$(BIN)/prloader.bin:	$(BIN)/prloader.o
 $(BIN)/start16.bin:	$(BIN)/rloader.o
 $(BIN)/floppyload.bin:	$(BIN)/floppyload.o
 $(BIN)/comprefix.bin:   $(BIN)/comprefix.o
@@ -106,6 +108,9 @@ $(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
 
 $(BIN)/rloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
+
+$(BIN)/prloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
+	$(CPP) -DPCI_PNP_HEADER $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
 # 16 to 32bit transition
 $(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
@@ -182,6 +187,8 @@ $(BIN)/%.lzimg: $(BIN)/%.hufo $(BIN)/unhuf.o arch/i386/prefix/unhuf.lds $(MAKEDE
 	$(LD) -T arch/i386/prefix/unhuf.lds $(BIN)/unhuf.o $< -o $@
 
 # general rule for .z (compressed binary code), may be overridden
+# rule for .z is in top level Makefile
+
 $(BIN)/%.zo:	$(BIN)/%.z arch/i386/prefix/huf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/huf.lds -b binary $< -o $@
 
