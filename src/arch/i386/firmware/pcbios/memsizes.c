@@ -138,9 +138,9 @@ void get_memsizes(void)
 			continue;
 		}
 		/* Ensure we don't stomp the interrupt table */
-		if (meminfo.map[i].addr < 1024) {
+		if (meminfo.map[i].addr < 0x7c0) {
 			unsigned long delta;
-			delta = 1024 - meminfo.map[i].addr;
+			delta = 0x7c0 - meminfo.map[i].addr;
 			meminfo.map[i].addr += delta;
 			meminfo.map[i].size -= delta;
 		}
