@@ -55,6 +55,11 @@ extern struct nic	*t529_probe(struct nic *, unsigned short *
 	PCI_ARG(struct pci_device *));
 #endif
 
+#ifdef  INCLUDE_3C515
+extern struct nic	*t515_probe(struct nic *, unsigned short *
+		PCI_ARG(struct pci_device *));
+#endif
+
 #ifdef	INCLUDE_3C595
 extern struct nic	*t595_probe(struct nic *, unsigned short *
 	PCI_ARG(struct pci_device *));

@@ -187,6 +187,9 @@ family		3c509
 3c509		-		3c509, ISA/EISA
 3c529		-		3c529 == MCA 3c509
 
+family		3c515
+3c515		-		3c515, Fast EtherLink ISA
+
 family		eepro
 eepro		-		Intel Etherexpress Pro/10
 
