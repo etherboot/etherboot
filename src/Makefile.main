@@ -106,7 +106,7 @@ MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	7
-EXTRAVERSION=	pre2
+EXTRAVERSION=	pre3
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -251,6 +251,9 @@ $(BIN)/%.o:	firmware/linuxbios/%.c $(MAKEDEPS)
 $(BIN)/etherboot.o: $(DOBJS)
 	$(LD) -r $(DOBJS) -o $@
 
+$(BIN)/etherboot-pci.o: $(PCIOBJS)
+	$(LD) -r $(PCIOBJS) -o $@
+
 # general ruls for generating .img files
 $(BIN)/%.tmp: $(BIN)/%.o $(START) $(BIN)/config.o arch/$(ARCH)/core/etherboot.lds $(LIBS) $(STDDEPS) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T arch/$(ARCH)/core/etherboot.lds -o $@ $(START) $(BIN)/config.o $< $(LIBS)
@@ -283,3 +286,5 @@ tarball: ../index.html ../index-berlios.html
 version:
 	@echo $(VERSION)
 
+romlimit:
+	@echo $(ROMLIMIT)

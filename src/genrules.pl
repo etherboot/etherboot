@@ -109,7 +109,6 @@ sub addrom ($) {
 	} else {
 		# We store a list of PCI IDs and comments for each PCI target
 		push(@{$pcient{$curfam}}, [$rom, $ids, $comment]);
-		$buildent{basename($curfam)} = 1;
 	}
 }
 
@@ -168,9 +167,16 @@ foreach my $source (@srcs) {
 print "# Driver object files and ROM image files\n";
 print "IMGS\t:=\n";
 print "DOBJS\t:=\n";
+ print "PCIOBJS\t:=\n";
+foreach my $pci (sort keys %pcient) {
+	my $img = basename($pci);
+	print "DOBJS\t+= \$(BIN)/$img.o\n";
+	print "PCIOBJS\t+= \$(BIN)/$img.o\n";
+	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg\n";
+}
 foreach my $img (sort keys %buildent) {
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
-	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg\n"
+	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg\n";
 }
 
 print "ROMS\t:=\n";
