@@ -27,7 +27,7 @@
 *
 *    $Revision$
 *    $Author$
-*    $Date 2003/04/13 $
+*    $Date$
 *
 *    REVISION HISTORY:
 *    ================
@@ -46,8 +46,8 @@
 #include "pci.h"
 #include "timer.h"
 
-#define drv_version "v1.9"
-#define drv_date "08-19-2003"
+#define drv_version "v1.10"
+#define drv_date "2004-01-13"
 
 /* #define EDEBUG */
 /* Set the mtu */
@@ -597,8 +597,8 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 	/* BASE is used throughout to address the card */
 	BASE = pci->ioaddr;
 	printf("\n");
-	printf("sundance.c: %s, %s Written by Timothy Legge (tlegge@rogers.com)\n", drv_version, drv_date);
-	printf("%s: Probing for Vendor=%hX   Device=%hX, %s\n",
+	printf("sundance.c: %s, %s\n", drv_version, drv_date);
+	printf("%s: Probing for Vendor=%hX   Device=%hX\n",
 	       pci->name, pci->vendor, pci->dev_id);
 
 	/* Get the MAC Address by reading the EEPROM */
