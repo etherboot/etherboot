@@ -1,3 +1,7 @@
+# This code is no longer used in Etherboot.  It is not maintained and
+# may not work.
+
+
 #
 # Copyright (c) 1998 Robert Nordier
 # All rights reserved.

@@ -256,6 +256,8 @@ family		drivers/net/sundance
 
 family		drivers/net/tlan
 
+family		drivers/net/forcedeth
+
 family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
 
