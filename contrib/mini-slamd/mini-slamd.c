@@ -13,6 +13,12 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+/*
+ * To specify the default interface for multicast packets use:
+ * route add -net 224.0.0.0 netmask 240.0.0.0 dev eth1
+ * This server is stupid and does not override the default.
+ */
+
 /* Sever states.
  *
  * Waiting for clients.
@@ -65,8 +71,13 @@
 #define SLAM_BLOCK_SIZE		(1500 - (20 + 8 + MAX_HDR))
 
 
-
-#define DEBUG 1
+/* Define how many debug messages you want 
+ * 0 - sparse but useful
+ * 1 - everything
+ */
+#ifndef DEBUG
+#define DEBUG 0
+#endif
 
 static int slam_encode(
 	unsigned char **ptr, unsigned char *end, unsigned long value)
@@ -180,6 +191,7 @@ void next_client(struct sockaddr_in *next)
 
 int main(int argc, char **argv)
 {
+	char *filename;
 	uint8_t nack_packet[SLAM_MAX_NACK];
 	int nack_len;
 	uint8_t request_packet[MAX_HDR];
@@ -212,25 +224,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Usage: mini-slamd filename\n");
 		exit(EXIT_FAILURE);
 	}
-	filefd = open(argv[1], O_RDONLY);
-	if (filefd < 0) {
-		fprintf(stderr, "Cannot open %s: %s\n",
-			argv[1], strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	size = lseek(filefd, 0, SEEK_END);
-	if (size < 0) {
-		fprintf(stderr, "Seek failed on %s: %s\n",
-			argv[1], strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	result = fstat(filefd, &st);
-	if (result < 0) {
-		fprintf(stderr, "Stat failed on %s: %s\n",
-			argv[1], strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	transaction = st.st_mtime;
+	filename = argv[1];
+	filefd = -1;
+	size = 0;
+	transaction = 0;
 
 	/* Setup the udp socket */
 	sockfd = socket(PF_INET, SOCK_DGRAM, 0);
@@ -269,16 +266,7 @@ int main(int argc, char **argv)
 	mcast_loop = SLAM_MULTICAST_LOOPBACK;
 	setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_LOOP, &mcast_loop, sizeof(mcast_loop));
 
-	/* Prepare the request packet, it is all header */
-	ptr = request_packet;
-	end = &request_packet[sizeof(request_packet) -1];
-	slam_encode(&ptr, end, transaction);
-	slam_encode(&ptr, end, size);
-	slam_encode(&ptr, end, SLAM_BLOCK_SIZE);
-	request_len = ptr - request_packet;
 
-	clients = 0;
-	master_client.sin_family = AF_UNSPEC;
 	state = STATE_WAITING;
 	packet = 0;
 	packet_count = 0;
@@ -299,6 +287,15 @@ int main(int argc, char **argv)
 				ntohs(master_client.sin_port));
 			fflush(stdout);
 #endif
+
+			/* Prepare the request packet, it is all header */
+			ptr = request_packet;
+			end = &request_packet[sizeof(request_packet) -1];
+			slam_encode(&ptr, end, transaction);
+			slam_encode(&ptr, end, size);
+			slam_encode(&ptr, end, SLAM_BLOCK_SIZE);
+			request_len = ptr - request_packet;
+
 			result = sendto(sockfd, request_packet, request_len, 0,
 				&master_client, sizeof(master_client));
 			/* Forget the client I just asked, when the reply
@@ -370,6 +367,31 @@ int main(int argc, char **argv)
 				 * this client.
 				 */
 				push_client(&master_client);
+
+				/* Reopen the file to transmit */
+				if (filefd != -1) {
+					close(filefd);
+				}
+				filefd = open(filename, O_RDONLY);
+				if (filefd < 0) {
+					fprintf(stderr, "Cannot open %s: %s\n",
+						filename, strerror(errno));
+					break;
+				}
+				size = lseek(filefd, 0, SEEK_END);
+				if (size < 0) {
+					fprintf(stderr, "Seek failed on %s: %s\n",
+						filename, strerror(errno));
+					break;
+				}
+				result = fstat(filefd, &st);
+				if (result < 0) {
+					fprintf(stderr, "Stat failed on %s: %s\n",
+						filename, strerror(errno));
+					break;
+				}
+				transaction = st.st_mtime;
+				
 				state = STATE_TRANSMITTING;
 				break;
 			}
@@ -392,7 +414,9 @@ int main(int argc, char **argv)
 			if (result <= 0)
 				break;
 #if DEBUG				
-			printf("Received Nack\n");
+			printf("Received Nack from %s:%d\n",
+				inet_ntoa(from.sin_addr),
+				ntohs(from.sin_port));
 			fflush(stdout);
 #endif
 			/* Receive packets until I don't get any more */
@@ -416,7 +440,10 @@ int main(int argc, char **argv)
 			off_t offset;
 			ssize_t bytes;
 			uint8_t *ptr2, *end2;
-			
+
+			/* After I transmit a packet check for packets to receive. */
+			state = STATE_RECEIVING;
+
 			/* Find the packet to transmit */
 			offset = packet * SLAM_BLOCK_SIZE;
 
@@ -424,8 +451,8 @@ int main(int argc, char **argv)
 			off = lseek(filefd, offset, SEEK_SET);
 			if ((off < 0) || (off != offset)) {
 		 		fprintf(stderr, "Seek failed on %s:%s\n",
-					argv[1], strerror(errno));
-				exit(EXIT_FAILURE);
+					filename, strerror(errno));
+				break;
 			}
 			/* Encode the packet header */
 			ptr2 = data_packet;
@@ -441,18 +468,17 @@ int main(int argc, char **argv)
 				SLAM_BLOCK_SIZE);
 			if (bytes <= 0) {
 				fprintf(stderr, "Read failed on %s:%s\n",
-					argv[1], strerror(errno));
-				exit(EXIT_FAILURE);
+					filename, strerror(errno));
+				break;
 			}
 			data_len += bytes;
-			offset += bytes;
 			/* Write out the data */
 			result = sendto(sockfd, data_packet, data_len, 0,
 				&sa_mcast, sizeof(sa_mcast));
 			if (result != data_len) {
 				fprintf(stderr, "Send failed %s\n",
 					strerror(errno));
-				exit(EXIT_FAILURE);
+				break;
 			}
 #if DEBUG > 1
 			printf("Transmitted: %d\n", packet);
@@ -462,18 +488,21 @@ int main(int argc, char **argv)
 			packet++;
 			packet_count--;
 			if (packet_count == 0) {
-				state = STATE_PINGING;
 				packet += slam_decode(&ptr, end, &result);
-				if (result < 0)
+				if (result >= 0)
+					packet_count = slam_decode(&ptr, end, &result);
+				if (result < 0) {
+					/* When a transmission is done close the file,
+					 * so it may be updated.  And then ping then start
+					 * pinging clients to get the transmission started
+					 * again.
+					 */
+					state = STATE_PINGING;
+					close(filefd);
+					filefd = -1;
 					break;
-				packet_count = slam_decode(&ptr, end, &result);
-				if (result < 0)
-					break;
+				}
 			}
-			/* Receive some packets unless I am out of
-			 * data to transmit.
-			 */
-			state = STATE_RECEIVING;
 			break;
 		}
 		}
