@@ -48,7 +48,7 @@ _entry:
 	/* CPU mode detection code */
 	pushl	%eax			/* "pushw %ax" in 16-bit code */
 	pushw	%ax			/* "pushl %eax" in 16-bit code */
-	movl	%cr0, %eax		/* Set protected mode bit */
+	movl	%cr0, %eax		/* Test protected mode bit */
 	testb	$CR0_PE, %al
 	popw	%ax			/* "popl %eax" in 16-bit code */
 	popl	%eax			/* "popw %eax" in 16-bit code */
@@ -79,7 +79,7 @@ pmode:
 1:	popl	%eax
 
 	/* Make in_call to Etherboot */
-	jmp	in_call
+	jmp	_in_call
 
 /******************************************************************************
  * Entered in real mode
@@ -129,7 +129,118 @@ rmode:
 	popw	%ds
 1:	popl	%eax
 
-	/* Make rm_in_call to Etherboot */
-	jmp	rm_in_call
+	/* Make real-mode in_call to Etherboot */
+	jmp	_rm_in_call
 #endif /* CODE16 */
 	
+/******************************************************************************
+ * Utility routines that can be called by the "prefix".
+ ******************************************************************************
+ */
+
+#ifdef CODE16
+
+/* Prelocate code: either to an area at the top of free base memory
+ * (if RELOCATE is defined) or so that we end up with virtual
+ * addresses identical to physical addresses (if RELOCATE is not
+ * defined).  Switch stacks to use the stack within the resulting
+ * Etherboot image.
+ *
+ * On entry, %cs:0000 must be the start of the prefix: this is used to
+ * locate the code to be copied.
+ *
+ * This routine takes a single word parameter: the number of bytes to
+ * be transferred from the old stack to the new stack (excluding the
+ * return address and this parameter itself, which will always be
+ * copied).
+ *
+ * Control will "return" to the appropriate point in the relocated
+ * image.
+ */
+
+#define PRELOC_PRESERVE ( 20 )
+#define PRELOC_OFFSET_RETADDR ( PRELOC_PRESERVE )
+#define PRELOC_OFFSET_RETADDR_E ( PRELOC_OFFSET_RETADDR + 4 )
+#define PRELOC_OFFSET_COPY ( PRELOC_OFFSET_RETADDR_E )
+#define PRELOC_OFFSET_COPY_E ( PRELOC_OFFSET_COPY + 2 )
+
+#define PRELOC_ALWAYS_COPY ( PRELOC_OFFSET_COPY_E )
+	
+	.code16	
+prelocate:
+	/* Pad to allow for expansion of return address */
+	pushw	%ax
+	
+	/* Preserve registers */
+	pushaw
+	pushw	%ds
+	pushw	%es
+	
+#ifdef RELOCATE
+	/* Claim an area of base memory from the BIOS and put the
+	 * payload there.
+	 */
+	movw	$0x40, %bx
+	movw	%bx, %es
+	movw	%es:(0x13), %bx		/* FBMS in kb to %ax */
+	shlw	$6, %bx			/* ... in paragraphs */
+	subw	$_image_size_pgh, %bx	/* Subtract space for image */
+	shrw	$6, %bx			/* Round down to nearest kb */
+	movw	%bx, %es:(0x13)		/* ...and claim memory from BIOS */
+	shlw	$6, %bx
+#else
+	/* Place image so that runtime starts at RELOC:0.
+	 */
+	movw	$_text_pgh, %bx
+	subw	$_prefix_size_pgh, %bx
+#endif
+	/* At this point %bx contains the segment address for the
+	 * start of the image (image = prefix + runtime).
+	 */
+
+	/* Switch stacks */
+	movw	%ss, %ax
+	movw	%ax, %ds
+	movw	%sp, %si		/* %ds:si = current %ss:sp */
+	leaw	_stack_offset_pgh(%bx), %ax /* %ax = new %ss */
+	movw	%ax, %es
+	movw	$_stack_size, %di
+	movw	%ss:PRELOC_OFFSET_COPY(%si), %cx
+	addw	$PRELOC_ALWAYS_COPY, %cx
+	subw	%cx, %di		/* %es:di = new %ss:sp */
+	movw	%ax, %ss		/* Set new %ss:sp */
+	movw	%di, %sp
+	cld
+	rep movsb			/* Copy stack contents */
+
+	/* Do the image copy backwards, since if there's overlap with
+	 * a forward copy then it means we're going to get trashed
+	 * during the copy anyway...
+	 */
+	pushal				/* Preserve 32-bit registers */
+	movw	%bx, %es		/* Destination base for copy */
+	pushw	%cs
+	popw	%ds			/* Source base for copy */
+	movl	$_binary_size-1, %ecx	/* Offset to last byte */
+	movl	%ecx, %esi
+	movl	%ecx, %edi
+	incl	%ecx			/* Length */
+	std				/* Backwards copy of binary */
+	ADDR32 rep movsb
+	cld
+	popal				/* Restore 32-bit registers */
+
+	/* Expand original near return address into far return to new
+	 * code location.
+	 */
+	movw	%sp, %bp
+	xchgw	%bx, (PRELOC_OFFSET_RETADDR+2)(%bp)
+	movw	%bx, (PRELOC_OFFSET_RETADDR+0)(%bp)
+
+	/* Restore registers and return */
+	popw	%es
+	popw	%ds
+	popaw
+	lret				/* Jump to relocated code */
+
+#endif /* CODE16 */
