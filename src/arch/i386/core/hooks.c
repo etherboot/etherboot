@@ -33,13 +33,3 @@ void arch_on_exit ( int exit_status __unused )
 	forget_real_mode_stack();
 #endif
 }
-
-void arch_cleanup(void)
-{
-#ifdef PCBIOS
-	/* Deallocate the real_mode stack we won't use it past this point
-	 * unless we have a real_mode entry point.
-	 */
-	forget_real_mode_stack();
-#endif
-}

@@ -128,7 +128,7 @@ static void done(int do_cleanup)
 	 */
 	if ( do_cleanup ) {
 		cleanup();
-		arch_cleanup();
+		arch_on_exit(0);
 	}
 }
 

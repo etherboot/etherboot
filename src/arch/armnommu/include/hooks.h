@@ -22,7 +22,4 @@ struct Elf_Bhdr;
 #define arch_relocated_from(old_addr) do {} while(0)
 //void arch_relocate_from(unsigned long old_addr);
 
-#define arch_cleanup() do {} while(0)
-//void arch_cleanup(void);
-
 #endif /* ETHERBOOT_ARM_HOOKS_H */
