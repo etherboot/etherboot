@@ -566,7 +566,6 @@ nfssymlink:
 			if ( 0 == block ) {
 				printf("\nLoading symlink:%s ..",dirname);
 				goto nfssymlink;
-				//return nfs ( dirname, fnc );
 			}
 			nfs_printerror(err);
 			nfs_umountall(ARP_SERVER);
