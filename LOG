@@ -2690,4 +2690,5 @@ James Pearson, Georg Baum and Marty Connor for help resolving this issue.
 
 + Relocation patch from Doug Ambrisko for freebsd_loader
 
++ Fix for relocation issue with prism2_pci driver
 
