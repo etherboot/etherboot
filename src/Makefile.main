@@ -106,7 +106,6 @@ GCC=		gcc
 CPP=		gcc -E -Wp,-Wall
 STRIP=		strip
 OBJCOPY=	objcopy
-# MAKEROM=	$(BIN)/makerom
 MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
@@ -177,7 +176,7 @@ BOBJS+=		$(BIN)/pci.o
 BOBJS+=		$(BIN)/vsprintf.o
 BLIB=		$(BIN)/bootlib.a 
 LIBS=		$(BLIB)
-UTILS+=		$(BIN)/makerom $(BIN)/lzhuf $(BIN)/nrv2b
+UTILS+=		$(BIN)/lzhuf $(BIN)/nrv2b
 STDDEPS=	$(START) $(BLIB) $(UTILS)
 ELF_DEPS=	$(ELF_START) $(BLIB)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
@@ -246,9 +245,6 @@ $(BIN)/linuxbios.o:	firmware/linuxbios/linuxbios.c include/etherboot.h include/d
 
 
 # Utilities
-
-$(BIN)/makerom: util/makerom.c
-	$(GCC) -O2 -o $@ util/makerom.c
 
 $(BIN)/lzhuf:	util/lzhuf.c
 	$(GCC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -o $@ $<
