@@ -122,6 +122,7 @@ ROMS32	+= bin32/eepro100.rom bin32/eepro100.lzrom bin32/eepro100.nrv2brom
 ROMS32	+= bin32/82559er.rom bin32/82559er.lzrom bin32/82559er.nrv2brom
 ROMS32	+= bin32/id1029.rom bin32/id1029.lzrom bin32/id1029.nrv2brom
 ROMS32	+= bin32/id1030.rom bin32/id1030.lzrom bin32/id1030.nrv2brom
+ROMS32	+= bin32/82801cam.rom bin32/82801cam.lzrom bin32/82801cam.nrv2brom
 ROMS32	+= bin32/id1038.rom bin32/id1038.lzrom bin32/id1038.nrv2brom
 ROMS32	+= bin32/82562et.rom bin32/82562et.lzrom bin32/82562et.nrv2brom
 ROMS32	+= bin32/82562em.rom bin32/82562em.lzrom bin32/82562em.nrv2brom
@@ -1573,6 +1574,31 @@ bin32/id1030.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
 bin32/id1030--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -p 0x8086,0x1030 -i$(IDENT32) $@
+
+bin32/82801cam.rom:	bin32/eepro100.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/82801cam--%.rom:	bin32/eepro100--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/82801cam.lzrom:	bin32/eepro100.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/82801cam--%.lzrom:	bin32/eepro100--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+
+bin32/82801cam.nrv2brom:	bin32/eepro100.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/82801cam--%.nrv2brom:	bin32/eepro100--%.nrv2bimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
 
 bin32/id1038.rom:	bin32/eepro100.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
