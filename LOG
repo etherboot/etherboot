@@ -2706,3 +2706,6 @@ the Linux dmfe driver
 
 + Erdem Guven contributed a new driver for the mtd80x Ethernet chip 
 based on the Linux fealnx driver
+
++ Paolo Salvan experimented with using isolinux for non-emulation
+images and contributed the first cut at the code for geniso.
