@@ -33,7 +33,7 @@
 #include "3c595.h"
 #include "timer.h"
 
-static unsigned short	eth_nic_base, eth_asic_base;
+static unsigned short	eth_nic_base;
 static unsigned short	vx_connector, vx_connectors;
 
 static struct connector_entry {
@@ -65,7 +65,7 @@ ETH_RESET - Reset adapter
 ***************************************************************************/
 static void t595_reset(struct nic *nic)
 {
-	int i, j;
+	int i;
 
 	/***********************************************************
 			Reset 3Com 595 card
@@ -229,7 +229,6 @@ ETH_POLL - Wait for a frame
 static int t595_poll(struct nic *nic)
 {
 	/* common variables */
-	unsigned short type = 0;	/* used by EDEBUG */
 	/* variables for 3C595 */
 	short status, cst;
 	register short rx_fifo;
@@ -301,6 +300,7 @@ static int t595_poll(struct nic *nic)
 	outw(RX_DISCARD_TOP_PACK, BASE + VX_COMMAND);
 	while (inw(BASE + VX_STATUS) & S_COMMAND_IN_PROGRESS);
 #ifdef EDEBUG
+	unsigned short type = 0;	/* used by EDEBUG */
 	type = (nic->packet[12]<<8) | nic->packet[13];
 	if(nic->packet[0]+nic->packet[1]+nic->packet[2]+nic->packet[3]+nic->packet[4]+
 	    nic->packet[5] == 0xFF*ETH_ALEN)
@@ -383,9 +383,8 @@ vxgetlink(void)
 static void            
 vxsetlink(void)
 {       
-    int i, j, k;
+    int i, j;
     char *reason, *warning;
-    static short prev_flags;
     static char prev_conn = -1;
 
     if (prev_conn == -1) {
@@ -454,7 +453,7 @@ static void t595_disable(struct dev *dev)
 /**************************************************************************
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
-static int t595_probe(struct dev *dev, struct pci_device *pci)
+static struct nic *t595_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *)dev;
 	int i;

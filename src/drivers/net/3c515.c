@@ -86,8 +86,9 @@ int pnp_card_csn = 0;
 /* Brought directly from 3c515.c by Becker */
 #define CORKSCREW 1
 
-/* Maximum events (Rx packets, etc.) to handle at each interrupt. */
+/* Maximum events (Rx packets, etc.) to handle at each interrupt.
 static int max_interrupt_work = 20;
+*/
 
 /* Enable the automatic media selection code -- usually set. */
 #define AUTOMEDIA 1
@@ -108,8 +109,9 @@ static int max_interrupt_work = 20;
 /* Put out somewhat more debugging messages. (0 - no msg, 1 minimal msgs). */
 #define DRIVER_DEBUG 1
 /* Some values here only for performance evaluation and path-coverage
-   debugging. */
+   debugging.
 static int rx_nocopy, rx_copy, queued_packet;
+*/
 
 #ifdef DRIVER_DEBUG
 static int corkscrew_debug = DRIVER_DEBUG;
@@ -438,7 +440,6 @@ POLL - Wait for a frame
 ***************************************************************************/
 static int t515_poll(struct nic *nic)
 {
-    unsigned short type = 0;
     short status, cst;
     register short rx_fifo;
 
@@ -503,6 +504,7 @@ static int t515_poll(struct nic *nic)
     outw(RxDiscard, BASE + EL3_CMD);
     while (inw(BASE + EL3_STATUS) & CmdInProgress);
 #ifdef EDEBUG
+    unsigned short type = 0;
     type = (nic->packet[12] << 8) | nic->packet[13];
     if (nic->packet[0] + nic->packet[1] + nic->packet[2] + nic->packet[3] +
 	nic->packet[4] + nic->packet[5] == 0xFF * ETH_ALEN)

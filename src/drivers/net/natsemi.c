@@ -82,8 +82,6 @@ typedef   signed int   s32;
 
 /* helpful macroes if on a big_endian machine for changing byte order.
    not strictly needed on Intel */
-#define le16_to_cpu(val) (val)
-#define cpu_to_le32(val) (val)
 #define get_unaligned(ptr) (*(ptr))
 #define put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
 #define get_u16(ptr) (*(u16 *)(ptr))
@@ -603,7 +601,7 @@ natsemi_transmit(struct nic  *nic,
 		 unsigned int s,     /* size */
 		 const char  *p)     /* Packet */
 {
-    u32 status, to, nstype;
+    u32 to, nstype;
     u32 tx_status;
     
     /* Stop the transmitter */

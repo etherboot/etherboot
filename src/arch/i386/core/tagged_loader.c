@@ -33,8 +33,6 @@ static struct tagged_context
 	unsigned long		curaddr;
 } tctx;
 
-static struct imgheader img;
-
 #define	TAGGED_PROGRAM_RETURNS	(tctx.img.length & 0x00000100)	/* bit 8 */
 #define	LINEAR_EXEC_ADDR	(tctx.img.length & 0x80000000)	/* bit 31 */
 

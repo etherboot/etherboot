@@ -271,7 +271,6 @@ static int sis900_probe(struct dev *dev, struct pci_device *pci)
     int i;
     int found=0;
     int phy_addr;
-    u16 signature;
     u8 revision;
     int ret;
 
@@ -578,7 +577,6 @@ sis900_reset(struct nic *nic)
 {
     int i = 0;
     u32 status = TxRCMP | RxRCMP;
-    u8 revision;
 
     outl(0, ioaddr + ier);
     outl(0, ioaddr + imr);
@@ -1023,7 +1021,7 @@ sis900_transmit(struct nic  *nic,
                 unsigned int s,     /* size */
                 const char  *p)     /* Packet */
 {
-    u32 status, to, nstype;
+    u32 to, nstype;
     u32 tx_status;
     
     /* Stop the transmitter */

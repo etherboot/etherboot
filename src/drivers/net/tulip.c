@@ -112,9 +112,11 @@
 
 /* User settable parameters */
 
-#undef   TULIP_DEBUG
-#undef   TULIP_DEBUG_WHERE
+#undef	TULIP_DEBUG
+#undef	TULIP_DEBUG_WHERE
+#ifdef	TULIP_DEBUG
 static int tulip_debug = 2;             /* 1 normal messages, 0 quiet .. 7 verbose. */
+#endif
 
 #define TX_TIME_OUT       2*TICKS_PER_SEC
 
@@ -127,8 +129,6 @@ typedef   signed int   s32;
 
 /* helpful macros if on a big_endian machine for changing byte order.
    not strictly needed on Intel */
-#define le16_to_cpu(val) (val)
-#define cpu_to_le32(val) (val)
 #define get_unaligned(ptr) (*(ptr))
 #define put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
 #define get_u16(ptr) (*(u16 *)(ptr))
@@ -283,9 +283,13 @@ static u16 t21041_csr13[] = { 0xEF01, 0xEF09, 0xEF09, 0xEF01, 0xEF09, };
 static u16 t21041_csr14[] = { 0xFFFF, 0xF7FD, 0xF7FD, 0x7F3F, 0x7F3D, };
 static u16 t21041_csr15[] = { 0x0008, 0x0006, 0x000E, 0x0008, 0x0008, };
 
+/* not used
 static u16 t21142_csr13[] = { 0x0001, 0x0009, 0x0009, 0x0000, 0x0001, };
+*/
 static u16 t21142_csr14[] = { 0xFFFF, 0x0705, 0x0705, 0x0000, 0x7F3D, };
+/* not used
 static u16 t21142_csr15[] = { 0x0008, 0x0006, 0x000E, 0x0008, 0x0008, };
+*/
 
 /* Offsets to the Command and Status Registers, "CSRs".  All accesses
    must be longword instructions and quadword aligned. */
@@ -935,7 +939,6 @@ static void tulip_reset(struct nic *nic)
 {
     int i;
     unsigned long to;
-    u32 addr_low, addr_high;
 
 #ifdef TULIP_DEBUG_WHERE
     whereami("tulip_reset\n");
@@ -1173,7 +1176,7 @@ static void tulip_disable(struct dev *dev)
 static int tulip_probe(struct dev *dev, struct pci_device *pci)
 {
     struct nic *nic = (struct nic *)dev;
-    u32 i, l1, l2;
+    u32 i;
     u8  chip_rev;
     u8 ee_data[EEPROM_SIZE];
     unsigned short sum;

@@ -74,7 +74,7 @@ endif
 # Make sure that the normal case needs no Perl interpreter - if someone uses a
 # different RELOCADDR, then he has Perl installed anyways (the shell cannot
 # deal with hex numbers, as test/eval don't support non-decimal integers).
-ROMLIMIT:=$(shell perl -e 'printf("%f\n", (640*1024 - $(RELOCADDR)));')
+ROMLIMIT:=$(shell perl -e 'printf("%d\n", (640*1024 - $(RELOCADDR)));')
 
 # We need allroms,allelfs,allpxes,allcoms,alllilos because $(IMGS) is not defined until
 # the Makefile fragment "Roms" is read.

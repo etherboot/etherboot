@@ -39,8 +39,6 @@ typedef   signed int   s32;
 #include "nic.h"
 #include "pci.h"
 
-#define cpu_to_le32(val)        (val)
-#define le32_to_cpu(val)        (val)
 #define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
 #define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
@@ -128,10 +126,8 @@ int            i;
 int            duplex;
 int            tx_config;
 int            rx_config;
-uint32_t       ioaddr;
 unsigned char  macaddr[6];
 unsigned char  mactest;
-unsigned char  pci_bus = 0;
 struct FA311_DEV* dev = &fa311_dev;
 unsigned long mmio_start, mmio_len;
 	

@@ -12,7 +12,6 @@ struct meminfo meminfo;
 
 void get_memsizes(void)
 {
-	int i;
 	meminfo.basememsize = basememsize();
 	meminfo.memsize = memsize();
 #ifndef IGNORE_E820_MAP
@@ -34,6 +33,7 @@ void get_memsizes(void)
 	printf("basememsize %d\n", meminfo.basememsize);
 	printf("memsize %d\n",     meminfo.basememsize);
 	printf("Memory regions(%d):\n", meminfo.map_count);
+	int i;
 	for(i = 0; i < meminfo.map_count; i++) {
 		unsigned long long r_start, r_end;
 		r_start = meminfo.map[i].addr;

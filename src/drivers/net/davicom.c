@@ -101,8 +101,10 @@ static unsigned char ee_data[EEPROM_SIZE];
 #define eeprom_delay()  inl(ee_addr)
 
 /* helpful macro if on a big_endian machine for changing byte order.
-   not strictly needed on Intel */
+   not strictly needed on Intel
+   Already defined in Etherboot includes
 #define le16_to_cpu(val) (val)
+*/
 
 /* transmit and receive descriptor format */
 struct txdesc {
@@ -481,7 +483,6 @@ static void davicom_init_chain(struct nic *nic)
 static void davicom_reset(struct nic *nic)
 {
   unsigned long to;
-  u32 addr_low, addr_high;
 
   whereami("davicom_reset\n");
 
@@ -644,7 +645,6 @@ static int davicom_probe(struct dev *dev, struct pci_device *pci)
 {
   struct nic *nic = (struct nic *)dev;
   unsigned int i;
-  u32 l1, l2;
 
   whereami("davicom_probe\n");
 

@@ -604,10 +604,8 @@ static int w89c840_probe(struct dev *dev, struct pci_device *p)
 {
     struct nic *nic = (struct nic *)dev;
     u16 sum = 0;
-    int i, j, to;
+    int i, j;
     unsigned short value;
-    int options;
-    int promisc;
 
     if (p->ioaddr == 0)
         return 0;

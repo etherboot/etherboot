@@ -496,8 +496,10 @@ static void SK_write_reg(int reg_number, int value);
  * -------------------
  */
 
+#ifdef	SK_DEBUG
 static void SK_print_pos(struct nic *nic, char *text);
 static void SK_print_ram(struct nic *nic);
+#endif
 
 
 /**************************************************************************
@@ -621,7 +623,7 @@ const char *pack)		/* Packet */
     struct priv *p;         /* SK_G16 private structure */
     struct tmd *tmdp;
     short len;
-    int csr0, i, tmdstat;
+    int csr0, tmdstat;
 
     PRINTF2(("## %s: At beginning of SK_transmit(). CSR0: %#hX\n",
            SK_NAME, SK_read_reg(CSR0)));
@@ -778,7 +780,6 @@ static int SK_probe(struct dev *dev, unsigned short *probe_addrs)
 int SK_probe1(struct nic *nic, short ioaddr1)
 {
     int i,j;                /* Counters */
-    int sk_addr_flag = 0;   /* SK ADDR correct? 1 - no, 0 - yes */
     unsigned int rom_addr;  /* used to store RAM address used for POS_ADDR */
 
     struct priv *p;         /* SK_G16 private structure */

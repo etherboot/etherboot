@@ -36,7 +36,10 @@ SMC8416 PIO support added by Andrew Bettison (andrewb@zip.com.au) on 4/3/02
 #include "isa.h"
 #endif
 
-static unsigned char	eth_vendor, eth_flags, eth_laar;
+static unsigned char	eth_vendor, eth_flags;
+#ifdef	INCLUDE_WD
+static unsigned char	eth_laar;
+#endif
 static unsigned short	eth_nic_base, eth_asic_base;
 static unsigned char	eth_memsize, eth_rx_start, eth_tx_start;
 static Address		eth_bmem, eth_rmem;
@@ -572,9 +575,6 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 {
 	struct nic *nic = (struct nic *)dev;
 	int i;
-	struct wd_board *brd;
-	unsigned short chksum;
-	unsigned char c;
 #ifdef INCLUDE_NS8390
 	unsigned short pci_probe_addrs[] = { pci->ioaddr, 0 };
 	unsigned short *probe_addrs = pci_probe_addrs;
@@ -586,6 +586,9 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 	/******************************************************************
 	Search for WD/SMC cards
 	******************************************************************/
+	struct wd_board *brd;
+	unsigned short chksum;
+	unsigned char c;
 	for (eth_asic_base = WD_LOW_BASE; eth_asic_base <= WD_HIGH_BASE;
 		eth_asic_base += 0x20) {
 		chksum = 0;
@@ -807,6 +810,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 	/******************************************************************
 	Search for NE1000/2000 if no WD/SMC or 3com cards
 	******************************************************************/
+	unsigned char c;
 	if (eth_vendor == VENDOR_NONE) {
 		char romdata[16], testbuf[32];
 		int idx;

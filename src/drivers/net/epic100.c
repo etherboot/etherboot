@@ -96,8 +96,6 @@ static char		tx_packet[PKT_BUF_SZ * TX_RING_SIZE];
 epic100_probe(struct dev *dev, struct pci_device *pci)
 {
     struct nic *nic = (struct nic *)dev;
-    unsigned short sum = 0;
-    unsigned short value;
     int i;
     unsigned short* ap;
     unsigned int phy, phy_idx;
@@ -152,6 +150,8 @@ epic100_probe(struct dev *dev, struct pci_device *pci)
     }
 
 #ifdef	DEBUG_EEPROM
+    unsigned short sum = 0;
+    unsigned short value;
     for (i = 0; i < 64; i++) {
 	value = read_eeprom(i);
 	eeprom[i] = value;

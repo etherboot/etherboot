@@ -391,9 +391,8 @@ a3c90x_internal_WriteEeprom(int ioaddr, int address, unsigned short value)
  ***/
 static void a3c90x_reset(void)
     {
-    int cfg;
-
 #ifdef	CFG_3C90X_PRESERVE_XCVR
+    int cfg;
     /** Read the current InternalConfig value. **/
     a3c90x_internal_SetWindow(INF_3C90X.IOAddr, winTxRxOptions3);
     cfg = inl(INF_3C90X.IOAddr + regInternalConfig_3_l);

@@ -407,7 +407,6 @@ static int lance_probe1(struct nic *nic)
 	int			reset_val ;
 	unsigned int		i;
 	Address			l;
-	short			dma_channels;
 #ifndef	INCLUDE_LANCE
 	static const char	dmas[] = { 5, 6, 7, 3 };
 #endif
@@ -460,6 +459,7 @@ static int lance_probe1(struct nic *nic)
 	}
 #ifndef	INCLUDE_LANCE
 	/* now probe for DMA channel */
+	short			dma_channels;
 	dma_channels = ((inb(DMA1_STAT_REG) >> 4) & 0xf) |
 		(inb(DMA2_STAT_REG) & 0xf0);
 	/* need to fix when PCI provides DMA info */
@@ -531,16 +531,17 @@ static int i6510_probe(struct dev *dev, unsigned short *probe_addrs)
 	}
 	for (p = probe_addrs; (ioaddr = *p) != 0; ++p)
 	{
+#ifdef	INCLUDE_NE2100
 		char	offset15, offset14 = inb(ioaddr + 14);
 		unsigned short	pci_cmd;
-
-#ifdef	INCLUDE_NE2100
 		if ((offset14 == 0x52 || offset14 == 0x57) &&
 		 ((offset15 = inb(ioaddr + 15)) == 0x57 || offset15 == 0x44))
 			if (lance_probe1(nic) >= 0)
 				break;
 #endif
 #ifdef	INCLUDE_NI6510
+		char	offset15, offset14 = inb(ioaddr + 14);
+		unsigned short	pci_cmd;
 		if ((offset14 == 0x00 || offset14 == 0x52) &&
 		 ((offset15 = inb(ioaddr + 15)) == 0x55 || offset15 == 0x44))
 			if (lance_probe1(nic) >= 0)
