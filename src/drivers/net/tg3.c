@@ -6,6 +6,8 @@
  * Copyright (C) 2003 Eric Biederman (ebiederman@lnxi.com)  [etherboot port]
  */
 
+/* 11-13-2003	timlegge	Fix Issue with NetGear GA302T */
+
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
@@ -2012,9 +2014,9 @@ static int tg3_setup_hw(struct tg3 *tp)
 	if (GET_ASIC_REV(tp->pci_chip_rev_id) != ASIC_REV_5705) {
 		tw32_carefully(DMAC_MODE, DMAC_MODE_ENABLE);
 	}
-
+	
 	if ((GET_ASIC_REV(tp->pci_chip_rev_id) != ASIC_REV_5705) &&
-		((tr32(TG3PCI_PCISTATE) & PCISTATE_BUS_SPEED_HIGH) != 0) &&
+		(((tr32(TG3PCI_PCISTATE) & PCISTATE_BUS_SPEED_HIGH) != 0) || (tp->pci_chip_rev_id == CHIPREV_ID_5701_B5)) &&  
 		!(tp->tg3_flags2 & TG3_FLG2_IS_5788)) {    
 		tw32_carefully(WDMAC_MODE, 
 			(	WDMAC_MODE_ENABLE | WDMAC_MODE_TGTABORT_ENAB |
