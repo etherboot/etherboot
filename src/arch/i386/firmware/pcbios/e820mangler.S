@@ -1,5 +1,5 @@
 #undef CODE16
-#if defined(PCBIOS) || defined(TAGGED_IMAGE)
+#if defined(PCBIOS) || defined(TAGGED_IMAGE) || defined(PXE_IMAGE)
 #define	CODE16
 #endif
 
@@ -287,5 +287,10 @@ e820mangler_end:
 	.globl	e820mangler_size
 e820mangler_size:
 	.word	_e820mangler_size
+
+#else
+
+	.globl	_e820mangler_size
+	.equ	_e820mangler_size, 0
 	
 #endif /* CODE16 */

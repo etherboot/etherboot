@@ -18,11 +18,6 @@
 	.equ	X86_CR4_PAE,   0x00000020
 	.equ	CR0_PG,        0x80000000
 
-#undef CODE16
-#if defined(PCBIOS) || defined(TAGGED_IMAGE)
-#define	CODE16
-#endif
-	
 #ifdef	GAS291
 #define DATA32 data32;
 #define ADDR32 addr32;

@@ -34,10 +34,13 @@ __asm__ ( "call  1f\n1:\tpopw %bx" );   /* PIC access to variables */
 __asm__ ( "incw  %cs:(_trivial_irq_trigger_count-1b)(%bx)" );
 __asm__ ( "popw  %bx" );
 __asm__ ( "iret" );
-volatile uint16_t _trivial_irq_trigger_count = 0;
+__asm__ ( ".globl _trivial_irq_count" );
+__asm__ ( "_trivial_irq_trigger_count: .word 0" );
+END_RM_FRAGMENT(_trivial_irq_handler);
+
+extern volatile uint16_t _trivial_irq_trigger_count;
 segoff_t _trivial_irq_chain_to = { 0, 0 };
 uint8_t _trivial_irq_chain = 0;
-END_RM_FRAGMENT(_trivial_irq_handler);
 
 /* Current locations of trivial IRQ handler.  These will change at
  * runtime when relocation is used; the handler needs to be copied to

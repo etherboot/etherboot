@@ -6,6 +6,8 @@
 #include "etherboot.h"
 #include "hidemem.h"
 
+#ifdef	CODE16
+
 static int mangling = 0;
 static void *mangler = NULL;
 
@@ -88,3 +90,5 @@ int unhide_etherboot ( void ) {
 	mangling = 0;
 	return 1;
 }
+
+#endif	/* CODE16 */

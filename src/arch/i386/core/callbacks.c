@@ -78,6 +78,8 @@ uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
 	return ret;
 }
 
+#ifdef	CODE16
+
 /* install_rm_callback_interface(): install real-mode callback
  * interface at specified address.
  *
@@ -102,3 +104,4 @@ int install_rm_callback_interface ( void *address, size_t available ) {
 	return rm_callback_interface_size;
 }
 
+#endif	/* CODE16 */

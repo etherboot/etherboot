@@ -214,13 +214,13 @@ $(BIN)/elfprefix.tmp:	$(BIN)/elfprefix.o arch/i386/prefix/elfprefix.lds $(MAKEDE
 $(BIN)/elfprefix:	$(BIN)/elfprefix.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.elf:	$(BIN)/%.raw.prf $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 bss rest ; echo $$bss )
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 bss rest ; echo $$bss)` > $@
+$(BIN)/%.elf:	$(BIN)/%.raw $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$(*).raw | (read l1; read d1 d2 bss rest ; echo $$bss )
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).raw | (read l1; read d1 d2 bss rest ; echo $$bss)` > $@
 
-$(BIN)/%.zelf:	$(BIN)/%.raw.prf $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest ; echo $$size )
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
+$(BIN)/%.zelf:	$(BIN)/%.zraw $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$(*).zraw | (read l1; read d1 d2 d3 size rest ; echo $$size )
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).zraw | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
 # general rules for Long Mode ELF images
 SUFFIXES +=	lmelf zlmelf
@@ -230,13 +230,13 @@ $(BIN)/lmelf_prefix.tmp:	$(BIN)/lmelf_prefix.o arch/i386/prefix/elfprefix.lds $(
 $(BIN)/lmelf_prefix:	$(BIN)/lmelf_prefix.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.lmelf:	$(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 bss rest ; echo $$bss )
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 bss rest ; echo $$bss)` > $@
+$(BIN)/%.lmelf:	$(BIN)/%.raw $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$(*).raw | (read l1; read d1 d2 bss rest ; echo $$bss )
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw | (read l1; read d1 d2 bss rest ; echo $$bss)` > $@
 
-$(BIN)/%.zlmelf:	$(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest ; echo $$size )
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
+$(BIN)/%.zlmelf:	$(BIN)/%.zraw $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$(*).zraw | (read l1; read d1 d2 d3 size rest ; echo $$size )
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).zraw | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
 # rules to generate a DOS loadable .com executable
 SUFFIXES +=	com
@@ -312,15 +312,21 @@ SUFFIXES +=	fd0 zfd0
 	dd if=$< bs=512 conv=sync of=/dev/fd0
 
 # rules to create raw executable images
-SUFFIXES +=	raw
+SUFFIXES +=	raw zraw
 $(BIN)/%.raw.rt: $(BIN)/%.rt.o $(NULLEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(NULLEXIT)
 
 $(BIN)/%.raw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(PREFIXOBJS) $< $(NULLEXIT)
 
-$(BIN)/%.raw: $(BIN)/%.raw.prf.bin $(BIN)/%.raw.rt.bin
-	cat $^ > $@
+$(BIN)/%.zraw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(ZPREFIXOBJS) $(BIN)/$*.raw.rt2.zo $< $(NULLEXIT)
+
+$(BIN)/%.raw: $(BIN)/%.raw.prf
+	cat $< > $@
+
+$(BIN)/%.zraw: $(BIN)/%.raw.prf
+	cat $< > $@
 
 # rule to make a non-emulation ISO boot image
 SUFFIXES +=	iso

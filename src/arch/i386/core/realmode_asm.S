@@ -6,12 +6,7 @@
 #include "realmode.h"
 #include "callbacks.h"
 
-#undef CODE16
-#if defined(PCBIOS) || defined(TAGGED_IMAGE)
-#define	CODE16
-#endif
-
-#ifdef CODE16
+#if	1	/* CODE16 */
 	
 #define BOCHSBP xchgw %bx,%bx
 
@@ -644,5 +639,7 @@ pxe_callback_interface_size:
 /* Define symbols used by the linker scripts, to prevent link errors */
 	.globl	_rm_callback_interface_size
 	.equ	_rm_callback_interface_size, 0	
+	.globl	_pxe_callback_interface_size
+	.equ	_pxe_callback_interface_size, 0	
 		
 #endif	/* CODE16 */

@@ -6,7 +6,7 @@
 	.section ".prefix", "ax", @progbits
 
 #undef CODE16
-#if defined(PCBIOS) || defined(TAGGED_IMAGE)
+#if defined(PCBIOS) || defined(TAGGED_IMAGE) || defined(PXE_IMAGE)
 #define	CODE16
 #endif
 
