@@ -487,7 +487,7 @@ static void tulip_init_ring(struct nic *nic);
 static void tulip_reset(struct nic *nic);
 static void tulip_transmit(struct nic *nic, const char *d, unsigned int t,
                            unsigned int s, const char *p);
-static int tulip_poll(struct nic *nic);
+static int tulip_poll(struct nic *nic, int retrieve);
 static void tulip_disable(struct dev *dev);
 static void nway_start(struct nic *nic);
 static void pnic_do_nway(struct nic *nic);
@@ -1136,7 +1136,7 @@ static void tulip_transmit(struct nic *nic, const char *d, unsigned int t,
 /*********************************************************************/
 /* eth_poll - Wait for a frame                                       */
 /*********************************************************************/
-static int tulip_poll(struct nic *nic)
+static int tulip_poll(struct nic *nic, int retrieve)
 {
 
 #ifdef TULIP_DEBUG_WHERE
@@ -1146,6 +1146,8 @@ static int tulip_poll(struct nic *nic)
     /* no packet waiting. packet still owned by NIC */
     if (rx_ring[tp->cur_rx].status & 0x80000000)
         return 0;
+
+    if ( ! retrieve ) return 1;
 
 #ifdef TULIP_DEBUG_WHERE
     whereami("tulip_poll got one\n");
@@ -1195,6 +1197,21 @@ static void tulip_disable(struct dev *dev)
 }
 
 /*********************************************************************/
+/*IRQ - Enable, Disable, or Force interrupts                         */
+/*********************************************************************/
+static void tulip_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
+/*********************************************************************/
 /* eth_probe - Look for an adapter                                   */
 /*********************************************************************/
 static int tulip_probe(struct dev *dev, struct pci_device *pci)
@@ -1211,6 +1228,8 @@ static int tulip_probe(struct dev *dev, struct pci_device *pci)
         return 0;
 
     ioaddr         = pci->ioaddr;
+    nic->ioaddr    = pci->ioaddr & ~3;
+    nic->irqno     = 0;
 
     /* point to private storage */
     tp = &tpx;
@@ -1403,6 +1422,7 @@ static int tulip_probe(struct dev *dev, struct pci_device *pci)
     dev->disable  = tulip_disable;
     nic->poll     = tulip_poll;
     nic->transmit = tulip_transmit;
+    nic->irq      = tulip_irq;
 
     /* give the board a chance to reset before returning */
     tulip_wait(4*TICKS_PER_SEC);
@@ -1907,8 +1927,8 @@ static void select_media(struct nic *nic, int startup)
         }
     } else if (tp->chip_id == DC21040) {                                        /* 21040 */
         /* Turn on the xcvr interface. */
-        int csr12 = inl(ioaddr + CSR12);
 #ifdef TULIP_DEBUG
+        int csr12 = inl(ioaddr + CSR12);
         if (tulip_debug > 1)
             printf("%s: 21040 media type is %s, CSR12 is %hhX.\n",
                    tp->nic_name, medianame[tp->if_port], csr12);
