@@ -1,4 +1,4 @@
-INCLUDE arch/i386/prefix/start16.lds
+INCLUDE arch/i386/core/start16.lds
 
 /* decompressor__size is the size of the decompressor header
  *

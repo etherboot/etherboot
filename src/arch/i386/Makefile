@@ -189,14 +189,14 @@ $(BIN)/%.o:	$(BIN)/%.s
 # to be able to use symbols from the %.sym files and symbols derived
 # from the size of the image with a linker script.
 $(BIN)/%.bin:	$(BIN)/%.img $(BIN)/%.sym $(BIN)/start16.o \
-		arch/i386/prefix/start16.lds
-	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16.lds \
+		arch/i386/core/start16.lds
+	$(LD) --accept-unknown-input-arch -T arch/i386/core/start16.lds \
 		--oformat binary -o $@ \
 		$(BIN)/start16.o $(BIN)/$*.sym -b binary $<
 
 $(BIN)/%.zbin:	$(BIN)/%.zimg $(BIN)/%.zsym $(BIN)/start16.o \
-		arch/i386/prefix/start16z.lds
-	$(LD) --accept-unknown-input-arch -T arch/i386/prefix/start16z.lds \
+		arch/i386/core/start16z.lds
+	$(LD) --accept-unknown-input-arch -T arch/i386/core/start16z.lds \
 		--oformat binary -o $@ \
 		$(BIN)/start16.o $(BIN)/$*.zsym -b binary $<
 
