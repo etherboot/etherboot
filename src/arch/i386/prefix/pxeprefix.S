@@ -36,6 +36,8 @@ hellomsg:
 hellomsgend: 
 pxe_undi_shutdown_pkt:
 	.word	0
+pxe_stop_undi_pkt:
+	.word   0
 pxe_unload_stack_pkt:
 	.word	0
 	.word	0,0,0,0,0
@@ -113,6 +115,11 @@ have_pxe:
 	lcall	*%cs:(PXEEntry-_start)
 	add	$6, %sp
 	pushw	%cs
+	pushw	$pxe_stop_undi_pkt
+	pushw	$PXENV_STOP_UNDI
+	lcall	*%cs:(PXEEntry-_start)
+	add	$6,%sp
+	pushw   %cs
 	pushw	$pxe_unload_stack_pkt - _start
 	pushw	$PXENV_UNLOAD_STACK
 	lcall	*%cs:(PXEEntry-_start)
@@ -158,16 +165,15 @@ pxe_setmem:
 	mov	%al, pxeKmsg-_start+2
 	mov	%bl, %al
 	shr	$4, %al
-	clc
-	daa
-	cmp	$9, %al
-	sbb	$0xcf, %al
+	cmp	$10, %al	/* These three lines written by Norbert Juffa <norbert.juffa@amd.com> */
+	sbb	$0x69, %al
+	das
 	mov	%al, pxeKmsg-_start+3
 	mov	%bl, %al
 	and	$0x0f, %al
-	daa               /* no carry here */
-	cmp	$9, %al
-	sbb	$0xcf, %al
+	cmp	$10, %al
+	sbb	$0x69, %al
+	das
 	mov	%al, pxeKmsg-_start+4
 	movw	$0x0a0d, pxemsg-_start   /* "\r\n" */
 	/* \end{hacked assembly} */
