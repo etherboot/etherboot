@@ -422,7 +422,7 @@ static int load_initrd(struct linux_header *hdr, struct sys_info *info,
     uint32_t max;
     uint32_t start, end, size;
     uint64_t forced;
-    extern char _start[], _end[];
+    extern char _virt_start[], _end[];
 
     if (!file_open(initrd_file)) {
 	printf("Can't open initrd: %s\n", initrd_file);
@@ -445,7 +445,7 @@ static int load_initrd(struct linux_header *hdr, struct sys_info *info,
     
     /* FILO itself is at the top of RAM. (relocated)
      * So, try putting initrd just below us. */
-    end = virt_to_phys(_start);
+    end = virt_to_phys(_virt_start);
     if (end > max)
 	end = max;
 

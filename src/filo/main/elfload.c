@@ -22,7 +22,7 @@ extern int elf_start(unsigned long __unused_i386, unsigned long entry, unsigned 
 extern unsigned int start_elf(unsigned long entry_point, unsigned long param);
 #endif
 
-extern char _start[], _end[];
+extern char _virt_start[], _end[];
 
 static char *image_name, *image_version;
 
@@ -38,7 +38,7 @@ static int check_mem_ranges(struct sys_info *info,
     struct e820entry *mem;
 #endif
 
-    prog_start = virt_to_phys(&_start);
+    prog_start = virt_to_phys(&_virt_start);
     prog_end = virt_to_phys(&_end);
 
     for (i = 0; i < phnum; i++) {
