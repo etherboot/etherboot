@@ -2421,3 +2421,5 @@ appropriate.
 + #ifdef out 386 testing code, causes problems with recent gas due
 to taking the difference between symbols in different sections,
 main and .rodata. Anybody with a 286 CPU deserves what they get.
+
+Released as Etherboot 5.0.8 (production)

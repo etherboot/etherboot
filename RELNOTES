@@ -1,4 +1,4 @@
-Etherboot 5.0.7
+Etherboot 5.0.8
 
 In 5.0.7, if the server IP is all zeros, or the filename is null unless
 DEFAULT_BOOTFILE is defined, the DHCP offer will be ignored. This will
