@@ -23,7 +23,8 @@ _start:
 
         lret
 retaddr: 
-        int     $0x19                   /* should never reach this */
+	movw	$0x4c00,%ax
+        int     $0x21                   /* should never reach this */
 
 
 /* The body of etherboot is attached here at build time.
