@@ -1,6 +1,3 @@
-#ifdef ALLMULTICAST
-#error multicast support is not yet implemented
-#endif
 /**************************************************************************
 *
 *    sundance.c -- Etherboot device driver for the Sundance ST201 "Alta".
@@ -37,6 +34,7 @@
 *    v1.1	01-01-2003	timlegge	Initial implementation
 *    v1.7	04-10-2003	timlegge	Transfers Linux Kernel (30 sec)
 *    v1.8	04-13-2003	timlegge	Fix multiple transmission bug
+*    v1.9	08-19-2003	timlegge	Support Multicast
 *    
 ***************************************************************************/
 
@@ -48,7 +46,10 @@
 #include "pci.h"
 #include "timer.h"
 
-#define EDEBUG
+#define drv_version "v1.9"
+#define drv_date "08-19-2003"
+
+/* #define EDEBUG */
 /* Set the mtu */
 static int mtu = 1514;
 
@@ -280,7 +281,6 @@ struct sundance_private {
 	unsigned int speed;
 
 	/* Multicast and receive mode */
-	/* spinloc_t mcastlock */
 	u16 mcast_filter[4];
 	int multicast_filter_limit;
 
@@ -596,6 +596,8 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 
 	/* BASE is used throughout to address the card */
 	BASE = pci->ioaddr;
+	printf("\n");
+	printf("sundance.c: %s, %s Written by Timothy Legge (tlegge@rogers.com)\n", drv_version, drv_date);
 	printf("%s: Probing for Vendor=%hX   Device=%hX, %s\n",
 	       pci->name, pci->vendor, pci->dev_id);
 
@@ -852,8 +854,16 @@ static inline unsigned ether_crc_le(int length, unsigned char *data)
 
 static void set_rx_mode(struct nic *nic __unused)
 {
-	/* FIXME: Add multicast support */
-	outb((AcceptBroadcast | AcceptMyPhys), BASE + RxMode);
+	int i;
+	u16 mc_filter[4];	/* Multicast hash filter */
+	u32 rx_mode;
+
+	memset(mc_filter, 0xff, sizeof(mc_filter));
+	rx_mode = AcceptBroadcast | AcceptMulticast | AcceptMyPhys;
+	
+	for(i = 0; i < 4; i++) 
+		outw(mc_filter[i], BASE + MulticastFilter0 + i*2);	
+	outb(rx_mode, BASE + RxMode);
 	return;
 }
 
