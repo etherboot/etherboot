@@ -443,7 +443,13 @@ int eb_pxenv_undi_transmit_packet ( void ) {
 }
 
 int eb_pxenv_undi_set_station_address ( void ) {
-	return undi_call ( PXENV_UNDI_SET_STATION_ADDRESS );
+	/* This will spuriously fail on some cards.  Ignore failures.
+	 * We only ever use it to set the MAC address to the card's
+	 * permanent value anyway, so it's a useless call (although we
+	 * make it because PXE spec says we should).
+	 */
+	undi_call_silent ( PXENV_UNDI_SET_STATION_ADDRESS );
+	return 1;
 }
 
 int eb_pxenv_undi_get_information ( void ) {
