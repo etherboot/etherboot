@@ -142,10 +142,12 @@
 #			Add generic ELF64 kernel boot support (useful for > 4GB disks).
 #	-DWINCE_IMAGE
 #			Add the ability to boot WINCE.... now only sis630 OK!
+#	-DPXE_IMAGE
+#			Add the ability to boot PXE NBPs.  Requires
+#			PXE_EXPORT.  Currently not supported on
+#			anything other than i386
 #	-DFREEBSD_PXEEMU
 #			Add the ability to boot PXE images... only FreeBSD supported
-#	-DX86_BOOTSECTOR_IMAGE
-#			Add the ability to boot 512 byte x86 boot sectors
 #	-DIMAGE_MULTIBOOT
 #			Add Multiboot image support (currently only
 #			for ELF images).
@@ -212,6 +214,18 @@
 #			speed setting in sync between multiple users.
 #			You set the speed in the first user and the
 #			rest follow along.
+#
+#	Interface export options:
+#
+#	-DPXE_EXPORT
+#			Export a PXE API interface.  This is work in
+#			progress.  Note that you won't be able to load
+#			PXE NBPs unless you also use -DPXE_IMAGE.
+#	-DPXE_STRICT
+#			Strict(er) compliance with the PXE
+#			specification as published by Intel.  This may
+#                       or may not be a good thing depending on your
+#			view of the spec...
 #
 #	Obscure options you probably don't need to touch:
 #
@@ -300,6 +314,9 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 
 # Multicast Support
 #CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
+
+# Etherboot as a PXE ROM
+# CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
