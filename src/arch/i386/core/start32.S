@@ -284,65 +284,6 @@ xstart16:
 	ret
 #endif /* TAGGED_IMAGE */
 
-#if defined(PXE_IMAGE)
-	.globl	xstartpxe
-xstartpxe:
-	pushl	%ebp
-	movl	%esp,%ebp
-	pushl	%ebx
-	pushl	%esi
-	pushl	%edi
-	/* Pass PXE parameters to 16-bit code */
-	movl	16(%ebp), %eax
-	movw	%ax, pxe_struct_segment
-	movl	20(%ebp), %eax
-	movw	%ax, pxe_struct_offset
-	movl	24(%ebp), %eax
-	movw	%ax, pxenv_struct_segment
-	movl	28(%ebp), %eax
-	movw	%ax, pxenv_struct_offset
-	/* Address to call */
-	movl	8(%ebp), %ecx	/* segment */
-	movl	12(%ebp), %edx	/* offset */
-
-	pushl	$ 10f
-	pushl	$ 20f - 10f
-	call	_real_call
-	.section ".text16"
-10:	.code16
-	call	1f
-1:	popw	%bx		/* Work out my offset */
-	movw	$(2f-1b), %ax	/* Calculate return address */
-	addw	%bx, %ax
-	push	%cs:(pxe_struct_segment-1b)(%bx) /* !PXE structure address */
-	push	%cs:(pxe_struct_offset-1b)(%bx)
-	les	%cs:(pxenv_struct_address-1b)(%bx), %bx /* PXENV+ address */
-	pushw	%cs		/* Far return address to 2f */
-	pushw	%ax
-	pushw	%cx		/* Segment:offset to call */
-	pushw	%dx
-	lret			/* ljmp to PXE NBP */
-2:	mov	%ax, %cx	/* Return %ax via %cx */
-
-pxe_struct_address:
-pxe_struct_offset:	.word 0
-pxe_struct_segment:	.word 0
-pxenv_struct_address:
-pxenv_struct_offset:	.word 0
-pxenv_struct_segment:	.word 0
-	
-20:	.code32
-	.previous
-	xorl	%eax, %eax	/* %ax is returned via %cx */
-	movw	%cx, %ax
-	
-	popl	%edi
-	popl	%esi
-	popl	%ebx
-	popl	%ebp
-	ret
-#endif /* PXE_IMAGE */
-	
 #if defined(RELOCATE)
 /**************************************************************************
 RELOCATE_TO - relocate etherboot to the specified address
