@@ -133,11 +133,21 @@ exec_moved:
 	movw	$runtime__stack_size, %sp
 	subw	$(_gdt_end - _gdt), %sp	/* Reserve space for GDT */
 	movw	%sp, %bp		/* Record GDT location */	
+	/* Set up i386_rm_in_call_data_t structure on stack.  This is
+	 * the same structure as is set up by rm_in_call.
+	 */
+	pushl	$0			/* Dummy opcode */
 	pushl	%esi			/* Prefix return address */
-	pushw	%es			/* Save the prefix stack address */
-	pushw	%di
-	pushf				/* Save the original interrupt state */
-	pushw	%ax			/* Pad stack to 32-bit alignment */
+	pushfw				/* Flags */
+	pushw	%di			/* Prefix %sp */
+	pushw	%gs			/* Segment registers */
+	pushw	%fs
+	pushw	%es
+	pushw	%ds
+	pushw	%es			/* Prefix %ss */
+	pushw	%cs
+	/* Stack is now 32-bit aligned */
+	
 	/* %ax still contains image target segment address */
 
 /*****************************************************************************
