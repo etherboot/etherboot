@@ -2469,3 +2469,11 @@ Released as Etherboot 5.0.10 (production)
 + Patch from Axel Dittrich to allow timeout to be changed to a fixed
 value for peer-to-peer setups where the exponential backoff is not
 suitable.
+
++ Backport of tlan driver from 5.1 by Timothy Legge.
+
++ Support for symlinks on NFS mounts by Anselm Martin Hoffmeister.
+
++ 82562EZ ID provided by Samuel Clements.
+
+Released as Etherboot 5.0.11 (production)
