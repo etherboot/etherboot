@@ -374,7 +374,6 @@ pxe_setmem:
 	mov	%al, pxeKmsg-_start+2
 	mov	%bl, %al
 	shr	$4, %al
-	clc
 	cmp	$10, %al	/* These three lines written by Norbert Juffa <norbert.juffa@amd.com> */
 	sbb	$0x69, %al
 	das
