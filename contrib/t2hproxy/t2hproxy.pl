@@ -55,7 +55,6 @@ sub send_ack_retry ($$$$$) {
 RETRY:
 	while ($maxretries-- > 0) {
 		&$sendfunc;
-		# not quite right, shouldn't wait for ack if last block
 		my $rin = '';
 		my $rout = '';
 		vec($rin, fileno($sockh), 1) = 1;
