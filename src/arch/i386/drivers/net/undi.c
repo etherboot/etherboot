@@ -2,11 +2,20 @@
 Etherboot -  BOOTP/TFTP Bootstrap Program
 UNDI NIC driver for Etherboot
 
-This file copyright (C) Michael Brown <mbrown@fensystems.co.uk> 2003.
-All rights reserved.
+This file Copyright (C) 2003 Michael Brown <mbrown@fensystems.co.uk>
+of Fen Systems Ltd. (http://www.fensystems.co.uk/).  All rights
+reserved.
 
 $Id$
 ***************************************************************************/
+
+/* Eventually we should refuse to work except with relocation; we need
+ * to allocate significant amounts of storage in base memory for the
+ * UNDI driver itself.
+ */
+#ifdef RELOCATE
+#error UNDI driver does not yet work with relocation
+#endif
 
 /*
  * This program is free software; you can redistribute it and/or
@@ -25,7 +34,7 @@ $Id$
 #include "undi.h"
 
 /* NIC specific static variables go here */
-static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL,
+static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 		       0, 0, 0, 0, 0,
 		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL } };
 
@@ -206,8 +215,8 @@ static inline PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
 	undi.undi_call_info->stack[0] = st0;
 	undi.undi_call_info->stack[1] = st1;
 	undi.undi_call_info->stack[2] = st2;
-	return __undi_call ( virt_to_phys ( undi.undi_call_info ) >> 4,
-			     virt_to_phys ( undi.undi_call_info ) & 0xf );
+	return __undi_call ( SEGMENT( undi.undi_call_info ),
+			     OFFSET( undi.undi_call_info ) );
 }
 
 /* Make a real-mode call to the UNDI loader routine at
@@ -218,10 +227,10 @@ static inline PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
 int undi_call_loader ( void ) {
 	PXENV_EXIT_t pxenv_exit = PXENV_EXIT_FAILURE;
 	
-	pxenv_exit = _undi_call ( virt_to_phys (undi.rom ) >> 4,
+	pxenv_exit = _undi_call ( SEGMENT( undi.rom ),
 				  undi.undi_rom_id->undi_loader_off,
-				  virt_to_phys ( undi.pxs ) & 0xf,
-				  virt_to_phys ( undi.pxs ) >> 4,
+				  OFFSET( undi.pxs ),
+				  SEGMENT( undi.pxs ),
 				  0 /* Unused for UNDI loader API */ );
 	/* Return 1 for success, to be consistent with other routines */
 	if ( pxenv_exit == PXENV_EXIT_SUCCESS ) return 1;
@@ -243,8 +252,8 @@ int undi_call_silent ( uint16_t opcode ) {
 	pxenv_exit = _undi_call ( undi.pxe->EntryPointSP.segment,
 				  undi.pxe->EntryPointSP.offset,
 				  opcode,
-				  virt_to_phys ( undi.pxs ) & 0xf,
-				  virt_to_phys ( undi.pxs ) >> 4 );
+				  OFFSET( undi.pxs ),
+				  SEGMENT( undi.pxs ) );
 	/* Return 1 for success, to be consistent with other routines */
 	return pxenv_exit == PXENV_EXIT_SUCCESS ? 1 : 0;
 }
@@ -314,7 +323,7 @@ int eb_pxenv_start_undi ( void ) {
 	 * (BIOS boot specification)
 	 */
 	undi.pxs->start_undi.es = 0xf000;
-	undi.pxs->start_undi.di = virt_to_phys ( undi.pnp_bios )-0xf0000;
+	undi.pxs->start_undi.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
 
 	if ( ! undi_call ( PXENV_START_UNDI ) ) return 0;
 	undi.prestarted = 1;
@@ -360,6 +369,37 @@ int eb_pxenv_undi_close ( void ) {
 	if ( ! undi_call ( PXENV_UNDI_CLOSE ) ) return 0;
 	undi.opened = 0;
 	return 1;
+}
+
+int eb_pxenv_undi_transmit_packet ( void ) {
+	static const uint8_t broadcast[] = { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF };
+
+	/* XMitFlag selects unicast / broadcast */
+	if ( memcmp ( undi.xmit_data->destaddr, broadcast,
+		      sizeof(broadcast) ) == 0 ) {
+		undi.pxs->undi_transmit.XmitFlag = XMT_BROADCAST;
+	} else {
+		undi.pxs->undi_transmit.XmitFlag = XMT_DESTADDR;
+	}
+
+	/* Zero reserved dwords */
+	undi.pxs->undi_transmit.Reserved[0] = 0;
+	undi.pxs->undi_transmit.Reserved[1] = 0;
+
+	/* Segment:offset pointer to DestAddr in base memory */
+	undi.pxs->undi_transmit.DestAddr.segment =
+		SEGMENT( undi.xmit_data->destaddr );
+	undi.pxs->undi_transmit.DestAddr.offset =
+		OFFSET( undi.xmit_data->destaddr );
+
+	/* Segment:offset pointer to TBD in base memory */
+	undi.pxs->undi_transmit.TBD.segment = SEGMENT( &undi.xmit_data->tbd );
+	undi.pxs->undi_transmit.TBD.offset = OFFSET( &undi.xmit_data->tbd );
+
+	/* Use only the "immediate" part of the TBD */
+	undi.xmit_data->tbd.DataBlkCount = 0;
+	
+	return undi_call ( PXENV_UNDI_TRANSMIT );
 }
 
 int eb_pxenv_undi_set_station_address ( void ) {
@@ -448,7 +488,33 @@ static void undi_transmit(
 	unsigned int s,			/* size */
 	const char *p)			/* Packet */
 {
-	/* send the packet to destination */
+	/* Inhibit compiler warning about unused parameter nic */
+	if ( nic == NULL ) {};
+
+	/* Copy destination to buffer in base memory */
+	memcpy ( undi.xmit_data->destaddr, d, sizeof(MAC_ADDR) );
+
+	/* Translate packet type to UNDI packet type */
+	switch ( t ) {
+	case IP :  undi.pxs->undi_transmit.Protocol = P_IP;   break;
+	case ARP:  undi.pxs->undi_transmit.Protocol = P_ARP;  break;
+	case RARP: undi.pxs->undi_transmit.Protocol = P_RARP; break;
+	default: printf ( "Unknown packet type %hx\n", t );
+		return;
+	}
+
+	/* Store packet length in TBD */
+	undi.xmit_data->tbd.ImmedLength = s;
+
+	/* Copy data to be transmitted into base memory buffer */
+#ifdef RELOCATE
+#error FIXME: need to copy this to base memory instead */
+#else
+	undi.xmit_data->tbd.Xmit.segment = SEGMENT( p );
+	undi.xmit_data->tbd.Xmit.offset = OFFSET( p );
+#endif
+
+	eb_pxenv_undi_transmit_packet();
 }
 
 /**************************************************************************
@@ -500,17 +566,17 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 	 * in use.
 	 */
 #ifdef RELOCATE
-#error UNDI driver does not yet work with relocation
+#error Need to allocate space in base memory for base_mem_data
 #endif
-	static undi_call_info_t HACK_undi_call_info;
-	static pxenv_structure_t HACK_pxs;
+	static undi_base_mem_data_t base_mem_data;
 
 	/* Zero out global undi structure */
 	memset ( &undi, 0, sizeof(undi) );
 
 	/* Initialise pointers to base memory structures */
-	undi.undi_call_info = &HACK_undi_call_info;
-	undi.pxs = &HACK_pxs;
+	undi.undi_call_info = &base_mem_data.undi_call_info;
+	undi.pxs = &base_mem_data.pxs;
+	undi.xmit_data = &base_mem_data.xmit_recv.xmit;
 
 	/* Store PCI parameters; we will need them to initialize the UNDI
 	 * driver later.
@@ -542,8 +608,8 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 			 undi.pxs->undi_get_information.CurrentNodeAddress );
 		/* Fill out MAC address in nic structure */
 		memcpy ( nic->node_addr,
-			 &undi.pxs->undi_get_information.CurrentNodeAddress,
-			 sizeof(*(nic->node_addr)) );
+			 undi.pxs->undi_get_information.CurrentNodeAddress,
+			 ETH_ALEN );
 		/* More diagnostic information including link speed */
 		if ( ! eb_pxenv_undi_get_iface_info() ) continue;
 		printf ( "NDIS type %s interface at %d Mbps\n",

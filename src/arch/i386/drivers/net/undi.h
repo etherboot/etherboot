@@ -2,8 +2,9 @@
 Etherboot -  BOOTP/TFTP Bootstrap Program
 UNDI NIC driver for Etherboot - header file
 
-This file copyright (C) Michael Brown <mbrown@fensystems.co.uk> 2003.
-All rights reserved.
+This file Copyright (C) 2003 Michael Brown <mbrown@fensystems.co.uk>
+of Fen Systems Ltd. (http://www.fensystems.co.uk/).  All rights
+reserved.
 
 $Id$
 ***************************************************************************/
@@ -69,6 +70,7 @@ typedef union pxenv_structure {
 	t_PXENV_UNDI_SHUTDOWN		undi_shutdown;
 	t_PXENV_UNDI_OPEN		undi_open;
 	t_PXENV_UNDI_CLOSE		undi_close;
+	t_PXENV_UNDI_TRANSMIT		undi_transmit;
 	t_PXENV_UNDI_SET_STATION_ADDRESS undi_set_station_address;
 	t_PXENV_UNDI_GET_INFORMATION	undi_get_information;
 	t_PXENV_UNDI_GET_IFACE_INFO	undi_get_iface_info;
@@ -151,6 +153,23 @@ typedef struct undi_rom_id {
 	uint16_t	code_size;
 } PACKED undi_rom_id_t;
 
+/* Storage buffers that we need in base memory.  We collect these into
+ * a single structure to make allocation simpler.
+ */
+
+typedef struct undi_base_mem_xmit_data {
+	MAC_ADDR		destaddr;
+	t_PXENV_UNDI_TBD	tbd;
+} undi_base_mem_xmit_data_t;
+
+typedef struct undi_base_mem_data {
+	undi_call_info_t	undi_call_info;
+	pxenv_structure_t	pxs;
+	union {
+		undi_base_mem_xmit_data_t xmit;
+	} xmit_recv;
+} undi_base_mem_data_t;
+
 /* Driver private data structure.
  */
 
@@ -162,6 +181,7 @@ typedef struct undi {
 	pxe_t			*pxe;
 	undi_call_info_t	*undi_call_info;
 	pxenv_structure_t	*pxs;
+	undi_base_mem_xmit_data_t *xmit_data;
 	/* Flags.  We keep our own instead of trusting the UNDI driver
 	 * to have implemented PXENV_UNDI_GET_STATE correctly.  Plus
 	 * there's the small issue of PXENV_UNDI_GET_STATE being the
@@ -176,6 +196,13 @@ typedef struct undi {
 	 */
 	struct pci_device	pci;
 } undi_t;
+
+/* Macros for converting from virtual to segment:offset addresses,
+ * when we don't actually care which of the many isomorphic results we
+ * get.
+ */
+#define SEGMENT(x) ( virt_to_phys ( x ) >> 4 )
+#define OFFSET(x) ( virt_to_phys ( x ) & 0xf )
 
 /* Constants
  */
