@@ -41,6 +41,7 @@ uint32_t image_basemem __attribute__ ((section (".text16.nocompress"))) = 0;
 void allot_real_mode_stack ( void ) {
 	void *new_real_mode_stack;
 
+	if ( lock_real_mode_stack ) return;
 	new_real_mode_stack = _allot_base_memory ( real_mode_stack_size );
 	if ( ! new_real_mode_stack ) {
 		printf ( "FATAL: No real-mode stack\n" );
@@ -50,6 +51,7 @@ void allot_real_mode_stack ( void ) {
 }
 
 void forget_real_mode_stack ( void ) {
+	if ( lock_real_mode_stack ) return;
 	if ( real_mode_stack) {
 		_forget_base_memory ( phys_to_virt(real_mode_stack),
 				      real_mode_stack_size );

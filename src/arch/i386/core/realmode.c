@@ -28,6 +28,7 @@ static void work_around_gcc_bug ( void ) {
  */
 uint32_t real_mode_stack = 0;
 size_t real_mode_stack_size = RM_STACK_SIZE;
+int lock_real_mode_stack = 0;	/* Set to make stack immobile */
 
 /* Make a call to a real-mode code block.
  */
