@@ -90,7 +90,7 @@ LCONFIG+=	-DMOVEROM
 # LCONFIG+=	-DBBS_BUT_NOT_PNP_COMPLIANT
 # LCONFIG+=	-DBOOT_INT18H
 
-CFLAGS+= -fstrength-reduce -fomit-frame-pointer -mcpu=i386
+CFLAGS+= -fstrength-reduce -fomit-frame-pointer -mcpu=i386 -march=i386
 # Squeeze the code in as little space as possible.
 CFLAGS+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
 

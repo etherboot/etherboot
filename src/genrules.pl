@@ -59,6 +59,32 @@ sub gendep ($) {
 	return sort values %driver_dep
 }
 
+sub genroms($) {
+	my ($driver) = @_;
+	
+	# Automatically discover the ROMS this driver can produce.
+	unless (open(INFILE, "$driver")) {
+		print STDERR "$driver: %! (shouldn't happen)\n";
+		next;
+	};
+	while (<INFILE>) {
+		chomp($_);
+		if ($_ =~ m/^\s*PCI_ROM\(\s*0x([0-9A-Fa-f]*)\s*,\s*0x([0-9A-Fa-f]*)\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\)/) {
+
+			# We store a list of PCI IDs and comments for each PC target
+			my ($vendor_id, $device_id, $rom, $comment) = (hex($1), hex($2), $3, $4);
+			my $ids = sprintf("0x%04x,0x%04x", $vendor_id, $device_id);
+			push(@{$pcient{$curfam}}, [$rom, $ids, $comment]);
+		}
+		elsif($_ =~ m/^\s*ISA_ROM\(\s*"([^"]*)"\s*,\s*"([^"]*)"\)/) {
+			my ($rom, $comment) = ($1, $2);
+			# We store the base driver file for each ISA target
+			$isaent{$rom} = $curfam;
+			$buildent{$rom} = 1;
+		}
+	}
+}
+
 sub addfam ($) {
 	my ($family) = @_;
 
@@ -66,6 +92,7 @@ sub addfam ($) {
 	my @deps = &gendep("$family.c");
 	$drivers{$family} = join(' ', @deps);
 	$pcient{$family} = [];
+	genroms("$family.c");
 }
 
 sub addrom ($) {

@@ -467,8 +467,8 @@ start_lm:
 	/* Load 64bit data segments */
 	movl	$LM_DATA_SEG, %eax
 	movl	%eax, %ds
-	movl	%eax, %ss
 	movl	%eax, %es
+	movl	%eax, %ss
 
 	andq	$0xffffffff, %rbx
 	/* Get the address to jump to */
@@ -801,8 +801,8 @@ code16:
 	/* Load 16bit segment descriptors to force 16bit segment limit */
 	movw	$REAL_DATA_SEG, %ax
 	movw	%ax,%ds
-	movw	%ax,%ss
 	movw	%ax,%es
+	movw	%ax,%ss
 	movw	%ax,%fs
 	movw	%ax,%gs
 
@@ -820,8 +820,9 @@ real16:
 	 * set up the real mode segment registers : %ds, $ss, %es
 	 */
 	movw	%cs, %ax
-	movw	%ax, %ss
 	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %ss
 	movw	%ax, %fs
 	movw	%ax, %gs
 
@@ -831,15 +832,17 @@ real16:
 	/* Call the user supplied code */
 	call	*RADDR(real_ip)
 
-	/* Save the stack pointer */
-	cs
-	movw	%sp, RADDR(real_sp)
-
 	/* Disable interrupts */
 	cli
 
+	/* Reload %ds */	
+	movw	%cs, %ax
+	movw	%ax, %ds
+
+	/* Save the stack pointer */
+	movw	%sp, RADDR(real_sp)
+	
 	/* Switch back to protected mode */
-	cs
 	DATA32 lgdt RADDR(real_gdtarg)
 	movl	%cr0, %eax
 	orb	$CR0_PE, %al

@@ -1141,10 +1141,11 @@ static unsigned short floppy_ioaddrs[] =
 {
 	0x3F0, 0x370, 0
 };
+ISA_ROM("pc_floppy", "Generic PC Floppy support")
+
 static struct isa_driver floppy_isa_driver __isa_driver = {
 	.type    = FLOPPY_DRIVER,
 	.name    = "PC flopyy",
 	.probe   = floppy_probe,
 	.ioaddrs = floppy_ioaddrs,
-	
 };

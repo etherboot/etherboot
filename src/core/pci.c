@@ -168,7 +168,7 @@ void scan_pci_bus(int type, struct pci_device *dev)
 				/* Take the first one or the one that matches in boot ROM address */
 				dev->ioaddr = ioaddr;
 			}
-#if 0
+#if DEBUG > 2
 			printf("Found %s ROM address %#hx\n",
 				dev->name, romaddr);
 #endif
@@ -193,16 +193,20 @@ void adjust_pci_device(struct pci_device *p)
 	pcibios_read_config_word(p->bus, p->devfn, PCI_COMMAND, &pci_command);
 	new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
 	if (pci_command != new_command) {
+#if DEBUG > 0
 		printf(
 			"The PCI BIOS has not enabled this device!\n"
 			"Updating PCI command %hX->%hX. pci_bus %hhX pci_device_fn %hhX\n",
 			   pci_command, new_command, p->bus, p->devfn);
+#endif
 		pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
 	}
 	pcibios_read_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, &pci_latency);
 	if (pci_latency < 32) {
+#if DEBUG > 0
 		printf("PCI latency timer (CFLT) is unreasonably low at %d. Setting to 32 clocks.\n", 
 			pci_latency);
+#endif
 		pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
 	}
 }
@@ -244,6 +248,62 @@ unsigned long pci_bar_size(struct pci_device *dev, unsigned int bar)
 	/* Find the lowest bit set */
 	size = size & ~(size - 1);
 	return size;
+}
+
+/**
+ * pci_find_capability - query for devices' capabilities 
+ * @dev: PCI device to query
+ * @cap: capability code
+ *
+ * Tell if a device supports a given PCI capability.
+ * Returns the address of the requested capability structure within the
+ * device's PCI configuration space or 0 in case the device does not
+ * support it.  Possible values for @cap:
+ *
+ *  %PCI_CAP_ID_PM           Power Management 
+ *
+ *  %PCI_CAP_ID_AGP          Accelerated Graphics Port 
+ *
+ *  %PCI_CAP_ID_VPD          Vital Product Data 
+ *
+ *  %PCI_CAP_ID_SLOTID       Slot Identification 
+ *
+ *  %PCI_CAP_ID_MSI          Message Signalled Interrupts
+ *
+ *  %PCI_CAP_ID_CHSWP        CompactPCI HotSwap 
+ */
+int pci_find_capability(struct pci_device *dev, int cap)
+{
+	uint16_t status;
+	uint8_t pos, id;
+	uint8_t hdr_type;
+	int ttl = 48;
+
+	pci_read_config_word(dev, PCI_STATUS, &status);
+	if (!(status & PCI_STATUS_CAP_LIST))
+		return 0;
+	pci_read_config_byte(dev, PCI_HEADER_TYPE, &hdr_type);
+	switch (hdr_type) {
+	case PCI_HEADER_TYPE_NORMAL:
+	case PCI_HEADER_TYPE_BRIDGE:
+		pci_read_config_byte(dev, PCI_CAPABILITY_LIST, &pos);
+		break;
+	case PCI_HEADER_TYPE_CARDBUS:
+		pci_read_config_byte(dev, PCI_CB_CAPABILITY_LIST, &pos);
+		break;
+	default:
+		return 0;
+	}
+	while (ttl-- && pos >= 0x40) {
+		pos &= ~3;
+		pci_read_config_byte(dev, pos + PCI_CAP_LIST_ID, &id);
+		if (id == 0xff)
+			break;
+		if (id == cap)
+			return pos;
+		pci_read_config_byte(dev, pos + PCI_CAP_LIST_NEXT, &pos);
+	}
+	return 0;
 }
 
 #endif /* CONFIG_PCI */

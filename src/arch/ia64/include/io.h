@@ -46,22 +46,22 @@ static inline void iounmap(void *virt_addr __unused)
 /* Memory mapped IO primitives, we avoid the cache... */
 static inline uint8_t readb(unsigned long addr)
 {
-	return *(volatile uint8_t *)(PHYS_BASE | addr);	
+	return *((volatile uint8_t *)(PHYS_BASE | addr));
 }
 
 static inline uint16_t readw(unsigned long addr)
 {
-	return *(volatile uint16_t *)(PHYS_BASE | addr);	
+	return *((volatile uint16_t *)(PHYS_BASE | addr));
 }
 
 static inline uint32_t readl(unsigned long addr)
 {
-	return *(volatile uint32_t *)(PHYS_BASE | addr);	
+	return *((volatile uint32_t *)(PHYS_BASE | addr));
 }
 
 static inline uint64_t readq(unsigned long addr)
 {
-	return *(volatile uint64_t *)(PHYS_BASE | addr);	
+	return *((volatile uint64_t *)(PHYS_BASE | addr));
 }
 
 

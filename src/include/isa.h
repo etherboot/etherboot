@@ -21,5 +21,7 @@ struct isa_driver
 extern const struct isa_driver isa_drivers[];
 extern const struct isa_driver isa_drivers_end[];
 
+#define ISA_ROM(IMAGE, DESCRIPTION)
+
 #endif /* ISA_H */
 

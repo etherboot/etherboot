@@ -273,6 +273,6 @@ long sal_pci_config_write (
 		long status;
 	} result, __call(void *,...);
 
-	result = __call(&sal_entry, SAL_PCI_CONFIG_WRITE, pci_config_addr, size, 0, 0, 0, 0, 0);
+	result = __call(&sal_entry, SAL_PCI_CONFIG_WRITE, pci_config_addr, size, value, 0, 0, 0, 0);
 	return result.status;
 }

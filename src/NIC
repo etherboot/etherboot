@@ -27,7 +27,6 @@
 # Start of configuration
 
 family		drivers/net/skel
-skel		-
 
 family		arch/ia64/drivers/net/undi_nii
 undi_nii	-
@@ -73,33 +72,14 @@ family		drivers/net/3c90x
 3c9805		0x10b7,0x9805
 3csoho100-tx	0x10b7,0x7646
 
-family		drivers/net/eepro100
 # Intel Etherexpress Pro/100
-eepro100	0x8086,0x1229
-82559er		0x8086,0x1209
-id1029		0x8086,0x1029
-id1030		0x8086,0x1030
-82801cam	0x8086,0x1031	82801CAM (ICH3) Chipset Ethernet Controller
-id1038		0x8086,0x1038
-82562et		0x8086,0x1039
-82562em		0x8086,0x2449
+family		drivers/net/eepro100
 
-family		drivers/net/e1000
 #Intel Etherexpress Pro/1000
-e1000     		0x8086,0x1000
-e1000-82542     	0x8086,0x1000
-e1000-82543gc-fiber  	0x8086,0x1001
-e1000-82543gc-copper  	0x8086,0x1004
-e1000-82544ei-copper  	0x8086,0x1008
-e1000-82544ei-fiber  	0x8086,0x1009
-e1000-82544gc-copper  	0x8086,0x100C
-e1000-82544gc-lom	0x8086,0x100D
-e1000-82540em		0x8086,0x100E
-e1000-82545em-copper	0x8086,0x100F
-e1000-82546eb-copper	0x8086,0x1010
-e1000-82545em-fiber	0x8086,0x1011
-e1000-82546eb-fiber	0x8086,0x1012
-e1000-82540em-lom	0x8086,0x1015
+family		drivers/net/e1000
+
+#Broadcom Tigon 3
+family		drivers/net/tg3
 
 family		drivers/net/lance
 # Lance PCI PCNet/32
@@ -228,4 +208,3 @@ family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
 
 family		drivers/disk/pc_floppy
-pc_floppy	-		Generic PC floppy support
