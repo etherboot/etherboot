@@ -28,6 +28,17 @@ $Id$
 static const char hardcoded_ssid[] = "";
 
 /*
+ * Maximum number of info packets to wait for on a join attempt.
+ * Some APs (including the Linksys WAP11) will send a "you are disconnected" packet
+ * before sending the "you are connected" packet, if the card has previously been
+ * attached to the AP.
+ *
+ * 2 is probably a sensible value, but YMMV.
+ */
+
+#define MAX_JOIN_INFO_COUNT 2
+
+/*
  * Type of Prism2 interface to support
  * If not already defined, select PLX
  */
@@ -722,7 +733,6 @@ static int prism2_pci_probe(struct dev *dev, struct pci_device *p)
 #endif
 {
   struct nic *nic = (struct nic *)dev;
-  int found = 0;
   hfa384x_t *hw = &hw_global;
   int result;
   UINT16 reg;
@@ -730,6 +740,7 @@ static int prism2_pci_probe(struct dev *dev, struct pci_device *p)
   UINT16 infofid;
   hfa384x_InfFrame_t inf;
   char ssid[HFA384x_RID_CNFDESIREDSSID_LEN];
+  int info_count = 0;
 
   /* Find and intialise PLX Prism2 card */
 #if (WLAN_HOSTIF == WLAN_PLX)
@@ -772,36 +783,47 @@ static int prism2_pci_probe(struct dev *dev, struct pci_device *p)
   result = hfa384x_docmd_wait(hw, HFA384x_CMD_CMDCODE_SET(HFA384x_CMDCODE_ENABLE) | HFA384x_CMD_MACPORT_SET(0), 0,0,0);
   if ( result ) printf ( "Enable command returned %#hx\n", result );
 
-  /* Wait for info frame to indicate link status */
-  if ( sizeof(hardcoded_ssid) == 1 ) {
-    /* Empty SSID => join to any SSID */
-    printf("Attempting to autojoin to any available access point...");
-  } else {
-    printf("Attempting to autojoin to SSID %s...", &ssid[2]);
-  }
-  if ( !hfa384x_wait_for_event(hw, HFA384x_EVSTAT_INFO, 0, 1000, 2000, "Info event" ) ) return 0;
-  printf("done\n");
-  infofid = hfa384x_getreg(hw, HFA384x_INFOFID);
-  /* Retrieve the length */
-  result = hfa384x_copy_from_bap( hw, infofid, 0, &inf.framelen, sizeof(UINT16));
-  if ( result ) return 0; /* fail */
-  inf.framelen = hfa384x2host_16(inf.framelen);
-  /* Retrieve the rest */
-  result = hfa384x_copy_from_bap( hw, infofid, sizeof(UINT16),
-				  &(inf.infotype), inf.framelen * sizeof(UINT16));
-  if ( result ) return 0; /* fail */
-  if ( inf.infotype != HFA384x_IT_LINKSTATUS ) {
-    /* Not a Link Status info frame: die */
-    printf ( "Unexpected info frame type %#hx (not LinkStatus type)\n", inf.infotype );
-    return 0;
-  }
-  inf.info.linkstatus.linkstatus = hfa384x2host_16(inf.info.linkstatus.linkstatus);
-  if ( inf.info.linkstatus.linkstatus != HFA384x_LINK_CONNECTED ) {
-    /* Link not connected - die */
-    printf ( "Link not connected (status %#hx)\n", inf.info.linkstatus.linkstatus );
-    return 0;
-  }
+  do {
+    /* Increment info_count, abort if too many attempts.
+     * See comment next to definition of MAX_JOIN_INFO_COUNT for explanation.
+     */
+    info_count++;
+    if ( info_count > MAX_JOIN_INFO_COUNT ) {
+      printf ( "Too many failed attempts - aborting\n" );
+      return 0;
+    }
 
+    /* Wait for info frame to indicate link status */
+    if ( sizeof(hardcoded_ssid) == 1 ) {
+      /* Empty SSID => join to any SSID */
+      printf ( "Attempting to autojoin to any available access point (attempt %d)...", info_count );
+    } else {
+      printf ( "Attempting to autojoin to SSID %s (attempt %d)...", &ssid[2], info_count );
+    }
+    
+    if ( !hfa384x_wait_for_event(hw, HFA384x_EVSTAT_INFO, 0, 1000, 2000, "Info event" ) ) return 0;
+    printf("done\n");
+    infofid = hfa384x_getreg(hw, HFA384x_INFOFID);
+    /* Retrieve the length */
+    result = hfa384x_copy_from_bap( hw, infofid, 0, &inf.framelen, sizeof(UINT16));
+    if ( result ) return 0; /* fail */
+    inf.framelen = hfa384x2host_16(inf.framelen);
+    /* Retrieve the rest */
+    result = hfa384x_copy_from_bap( hw, infofid, sizeof(UINT16),
+				    &(inf.infotype), inf.framelen * sizeof(UINT16));
+    if ( result ) return 0; /* fail */
+    if ( inf.infotype != HFA384x_IT_LINKSTATUS ) {
+      /* Not a Link Status info frame: die */
+      printf ( "Unexpected info frame type %#hx (not LinkStatus type)\n", inf.infotype );
+      return 0;
+    }
+    inf.info.linkstatus.linkstatus = hfa384x2host_16(inf.info.linkstatus.linkstatus);
+    if ( inf.info.linkstatus.linkstatus != HFA384x_LINK_CONNECTED ) {
+      /* Link not connected - retry */
+      printf ( "Link not connected (status %#hx)\n", inf.info.linkstatus.linkstatus );
+    }
+  } while ( inf.info.linkstatus.linkstatus != HFA384x_LINK_CONNECTED );
+    
   /* Retrieve BSSID and print Connected message */
   result = hfa384x_drvr_getconfig(hw, HFA384x_RID_CURRENTBSSID, hw->bssid, WLAN_BSSID_LEN);
   printf ( "Link connected (BSSID %! - MAC address %!)\n", hw->bssid, nic->node_addr );
