@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /**************************************************************************
 ETHERBOOT -  BOOTP/TFTP Bootstrap Program
 
@@ -16,6 +13,7 @@ Author: Martin Renters
   the proper functioning of this software, nor do the authors assume any
   responsibility for damages incurred with its use.
 
+Multicast support added by Timothy Legge (timlegge@users.sourceforge.net) 09/28/2003
 Relocation support added by Ken Yap (ken_yap@users.sourceforge.net) 28/12/02
 3c503 support added by Bill Paul (wpaul@ctr.columbia.edu) on 11/15/94
 SMC8416 support added by Bill Paul (wpaul@ctr.columbia.edu) on 12/25/94
@@ -233,6 +231,27 @@ ETH_PIO_READ - Dummy routine when NE2000 not compiled in
 static void eth_pio_read(unsigned int src __unused, unsigned char *dst  __unused, unsigned int cnt __unused) {}
 #endif
 
+
+/**************************************************************************
+enable_multycast - Enable Multicast
+**************************************************************************/
+static void enable_multicast(unsigned short eth_nic_base) 
+{
+	unsigned char mcfilter[8];
+	int i;
+	memset(mcfilter, 0xFF, 8);
+	outb(4, eth_nic_base+D8390_P0_RCR);	
+	outb(D8390_COMMAND_RD2 + D8390_COMMAND_PS1, eth_nic_base + D8390_P0_COMMAND);
+	for(i=0;i<8;i++)
+	{
+		outb(mcfilter[i], eth_nic_base + 8 + i);
+		if(inb(eth_nic_base + 8 + i)!=mcfilter[i])
+			printf("Error SMC 83C690 Multicast filter read/write mishap %d\n",i);
+	}
+	outb(D8390_COMMAND_RD2 + D8390_COMMAND_PS0, eth_nic_base + D8390_P0_COMMAND);
+	outb(4 | 0x08, eth_nic_base+D8390_P0_RCR);
+}
+
 /**************************************************************************
 NS8390_RESET - Reset adapter
 **************************************************************************/
@@ -296,6 +315,8 @@ static void ns8390_reset(struct nic *nic)
 	outb(0xFF, eth_nic_base+D8390_P0_ISR);
 	outb(0, eth_nic_base+D8390_P0_TCR);	/* transmitter on */
 	outb(4, eth_nic_base+D8390_P0_RCR);	/* allow rx broadcast frames */
+
+	enable_multicast(eth_nic_base);
 
 #ifdef	INCLUDE_3C503
         /*
