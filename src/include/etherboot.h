@@ -1,3 +1,6 @@
+#ifndef ETHERBOOT_H
+#define ETHERBOOT_H
+
 #include <stdarg.h>
 #include "osdep.h"
 
@@ -359,9 +362,6 @@ extern struct os_entry_regs os_regs;
 extern struct regs initial_regs;
 extern unsigned long real_mode_stack;
 extern void xstart16 P((unsigned long, unsigned long, unsigned long));
-extern int xstartpxe P((uint32_t entry_segment, uint32_t entry_offset,
-			uint32_t pxe_segment, uint32_t pxe_offset,
-			uint32_t pxenv_segment, uint32_t pxenv_offset ));
 extern int xstart32(unsigned long entry_point, ...);
 extern int xstart_lm(unsigned long entry_point, unsigned long params);
 extern void xend32 P((void));
@@ -381,9 +381,8 @@ extern void serial_fini P((void));
 /* floppy.c */
 extern int bootdisk P((int dev,int part));
 
-/* export_pxe.c */
+/* pxe_callbacks.c */
 extern int pxe_in_call ( va_list params, in_call_data_t *in_call_data );
-extern int pxe_api_call ( int opcode, void *structure );
 
 /***************************************************************************
 External variables
@@ -427,3 +426,5 @@ extern char _data[], _edata[], _bss[], _ebss[], _end[];
  *  c-basic-offset: 8
  * End:
  */
+
+#endif /* ETHERBOOT_H */
