@@ -18,6 +18,7 @@
 #else
 #define BOOTP_CLIENT	68
 #endif
+#define PROXYDHCP_SERVER	4011 /* For PXE */
 
 #define BOOTP_REQUEST	1
 #define BOOTP_REPLY	2
