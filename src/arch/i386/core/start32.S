@@ -165,15 +165,48 @@ exit16:
 	 * start16)
 	 */
 
-	/*
-	 * FIXME: "Copy prefix" not yet implemented; we still return
-	 * to the original prefix location.
-	 */
-
 	popl	%eax			/* Pop zero return address */
 	popl	0 + start16_stack_dup	/* Copy stack to start16_stack */
 	popl	4 + start16_stack_dup
 	popl	8 + start16_stack_dup
+
+	/*
+	 * Work out what to do about prefix.  In order of preference:
+	 * 1. Return to original location, if prefix code is intact
+	 * 2. Execute our copy directly, if possible (i.e. if in base memory)
+	 * 3. Copy to the top 512 bytes of free base memory (according
+	 *    to BIOS counter at 40:13) and execute there.
+	 */
+1:	
+	leal	_prefix_copy, %esi	/* Prefix copy location to %esi */
+	movzwl	exit16_cs, %edi		/* Original prefix location to %edi */
+	shll	$4, %edi
+	subl	virt_offset, %edi
+	movl	$(_eprefix_copy - _prefix_copy), %ecx
+	cld
+	repe cmpsb			/* Compare backup copy with original */
+	je	prefix_ok		/* Original is intact: use as is */
+2:	
+	leal	_prefix_copy, %esi	/* Prefix copy location to %esi */
+	movl	%esi, %eax
+	addl	virt_offset, %eax	/* ...as physical address to %eax */
+	shrl	$4, %eax		/* ...as segment address to %eax */
+	movw	%ax, exit16_cs		/* Try this as code segment address */
+	cmpl	$0xa000, %eax
+	jb	prefix_ok		/* Copy is in base memory: use that */
+3:
+	movl	$(_eprefix_copy - _prefix_copy), %ecx
+	xorl	%ebx, %ebx
+	subl	virt_offset, %ebx
+	movzwl	0x413(%ebx), %eax	/* Free base memory (in kB) to %eax */
+	shll	$10, %eax		/* ...in bytes */
+	subl	%ecx, %eax		/* Destination physical addr */
+	movl	%eax, %edi
+	shrl	$4, %eax		/* ...as segment address */
+	movw	%ax, exit16_cs		/* Store code segment address */
+	subl	virt_offset, %edi	/* Destination virtual address */
+	rep movsb			/* Copy to free base memory */
+prefix_ok:	
 	
 	pushl	$ 10f
 	pushl	$ 20f - 10f
