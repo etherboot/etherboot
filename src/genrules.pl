@@ -261,6 +261,8 @@ family		drivers/disk/pc_floppy
 
 family		arch/i386/drivers/net/undi
 undi		-
+
+family		drivers/net/pnic
 EOF
 
 $curfam = '';
