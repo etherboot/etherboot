@@ -527,6 +527,8 @@ int install_nontrivial_irq_handler ( irq_t irq ) {
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
 	segoff_t isr_segoff;
+
+	printf ( "WARNING: using non-trivial IRQ handler [EXPERIMENTAL]\n" );
 	
 	disable_irq ( irq );
 	handler->count = 0;
