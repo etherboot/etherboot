@@ -44,7 +44,7 @@
 #include "timer.h"
 
 /* Set the mtu */
-static int mtu = 513;
+static int mtu = 1514;
 
 /* Maximum events (Rx packets, etc.) to handle at each interrupt. */
 static int max_interrupt_work = 20;
@@ -296,7 +296,7 @@ static void check_duplex(struct nic *nic)
     int mii_reg5 = mdio_read(nic, sdc->phys[0], 5);
     int negociated = mii_reg5 & sdc->advertizing;
     int duplex;
-	return;
+    
     if (sdc->duplex_lock || mii_reg5 == 0xffff)
 	return;
     duplex = (negociated & 0x0100) || (negociated & 0x01C0) == 0x0040;
@@ -378,7 +378,7 @@ static void sundance_reset(struct nic *nic)
     /* Write the status to the MACCtrl0 register */
     outw((sdc->full_duplex || (sdc->link_status & 0x20)) ? 0x120 : 0,
 	 BASE + MACCtrl0);
-    outw(sdc->mtu, BASE + MaxFrameSize);
+    outw(sdc->mtu + 14, BASE + MaxFrameSize);
     if (sdc->mtu > 2047)
 	outl(inl(BASE + ASICCtrl) | 0x0c, BASE + ASICCtrl);
 
@@ -653,11 +653,12 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 	    if (sdc->default_port & 0x330) {
 		    sdc->medialock = 1;
 		    printf("Forcing %dMbs %s-duplex operation.\n",
-			(100),
-			("half"));
+			(option & 0x300 ? 100 : 10),
+			(sdc->full_duplex ? "full" : "half"));
 		    if (sdc->mii_cnt)
 			    mdio_write(nic, sdc->phys[0], 0,
-				0x2000|0);
+				((option & 0x300) ? 0x2000 : 0) |
+				(sdc->full_duplex ? 0x0100 : 0));
 	    }
     }
 
@@ -675,7 +676,7 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
     nic->transmit = sundance_transmit;
 
     /* Give card a chance to reset before returning */
-    udelay(100);
+    udelay(1000);
 
     return 1;
 }
@@ -773,7 +774,6 @@ static void mdio_write(struct nic *nic, int phy_id,
 	/* Shift the command bits out. */
 	for (i = 31; i >= 0; i--) {
 		int dataval = (mii_cmd & (1 << i)) ? MDIO_WRITE1 : MDIO_WRITE0;
-
 		mdio_out(dataval, mdio_addr);
 		mdio_delay(mdio_addr);
 		mdio_out(dataval | MDIO_ShiftClk, mdio_addr);
@@ -817,7 +817,7 @@ static inline unsigned ether_crc_le(int length, unsigned char *data)
 
 static void set_rx_mode(struct nic *nic)
 {
-	outb(AcceptBroadcast | AcceptMyPhys, BASE + RxMode);
+	outb((AcceptBroadcast | AcceptMyPhys), BASE + RxMode);
 	return;
 }
 
