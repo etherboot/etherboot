@@ -58,79 +58,90 @@ int strcasecmp(char *a, char *b)
 PRINTF and friends
 
 	Formats:
-		%[#]X	- 4 bytes long (8 hex digits)
-		%[#]x	- 2 bytes int (4 hex digits)
-			- optional # prefixes 0x
-		%b	- 1 byte int (2 hex digits)
+		%[#]x	- 4 bytes long (8 hex digits, lower case)
+		%[#]X	- 4 bytes long (8 hex digits, upper case)
+		%[#]hx	- 2 bytes int (4 hex digits, lower case)
+		%[#]hX	- 2 bytes int (4 hex digits, upper case)
+		%[#]hhx	- 1 byte int (2 hex digits, lower case)
+		%[#]hhX	- 1 byte int (2 hex digits, upper case)
+			- optional # prefixes 0x or 0X
 		%d	- decimal int
 		%c	- char
 		%s	- string
-		%I	- Internet address in x.x.x.x notation
+		%@	- Internet address in ddd.ddd.ddd.ddd notation
+		%!	- Ethernet address in xx:xx:xx:xx:xx:xx notation
 	Note: width specification not supported
 **************************************************************************/
 static int do_printf(char *buf, const char *fmt, const int *dp)
 {
-	register char *p, *s;
-	int alt;
-	char tmp[16];
-	static const char hex[]="0123456789ABCDEF";
+	char *p, *s;
 
 	s = buf;
-	while (*fmt) {
-		if (*fmt == '%') {	/* switch() uses more space */
-			alt = 0;
+	while (*fmt != '\0') {
+		if (*fmt != '%') {
+			buf ? *s++ = *fmt : putchar(*fmt);
 			fmt++;
+			continue;
+		}
+		if (*++fmt == 's') {
+			for (p = (char *)*dp++; *p != '\0'; p++)
+				buf ? *s++ = *p : putchar(*p);
+		}
+		else {	/* Length of item is bounded */
+			char tmp[20], *q = tmp;
+			int alt = 0;
+			int shift = 28;
 			if (*fmt == '#') {
 				alt = 1;
 				fmt++;
 			}
-			if (*fmt == 'X') {
+			if (*fmt == 'h') {
+				shift = 12;
+				fmt++;
+			}
+			if (*fmt == 'h') {
+				shift = 4;
+				fmt++;
+			}
+			/*
+			 * Before each format q points to tmp buffer
+			 * After each format q points past end of item
+			 */
+			if ((*fmt | 0x20) == 'x') {
+				/* With x86 gcc, sizeof(long) == sizeof(int) */
 				const long *lp = (const long *)dp;
-				register long h = *lp++;
+				long h = *lp++;
+				int ncase = (*fmt & 0x20);
 				dp = (const int *)lp;
 				if (alt) {
-					*buf++ = '0';
-					*buf++ = 'x';
+					*q++ = '0';
+					*q++ = 'X' | ncase;
 				}
-				*(buf++) = hex[(h>>28)& 0x0F];
-				*(buf++) = hex[(h>>24)& 0x0F];
-				*(buf++) = hex[(h>>20)& 0x0F];
-				*(buf++) = hex[(h>>16)& 0x0F];
-				*(buf++) = hex[(h>>12)& 0x0F];
-				*(buf++) = hex[(h>>8)& 0x0F];
-				*(buf++) = hex[(h>>4)& 0x0F];
-				*(buf++) = hex[h& 0x0F];
+				for ( ; shift >= 0; shift -= 4)
+					*q++ = "0123456789ABCDEF"[(h >> shift) & 0xF] | ncase;
 			}
-			if (*fmt == 'x') {
-				register int h = *(dp++);
-				if (alt) {
-					*buf++ = '0';
-					*buf++ = 'x';
+			else if (*fmt == 'd') {
+				int i = *dp++;
+				char *r;
+				if (i < 0) {
+					*q++ = '-';
+					i = -i;
 				}
-				*(buf++) = hex[(h>>12)& 0x0F];
-				*(buf++) = hex[(h>>8)& 0x0F];
-				*(buf++) = hex[(h>>4)& 0x0F];
-				*(buf++) = hex[h& 0x0F];
-			}
-			if (*fmt == 'b') {
-				register int h = *(dp++);
-				*(buf++) = hex[(h>>4)& 0x0F];
-				*(buf++) = hex[h& 0x0F];
-			}
-			if (*fmt == 'd') {
-				register int dec = *(dp++);
-				p = tmp;
-				if (dec < 0) {
-					*(buf++) = '-';
-					dec = -dec;
-				}
+				p = q;		/* save beginning of digits */
 				do {
-					*(p++) = '0' + (dec%10);
-					dec = dec/10;
-				} while(dec);
-				while ((--p) >= tmp) *(buf++) = *p;
+					*q++ = '0' + (i % 10);
+					i /= 10;
+				} while (i);
+				/* reverse digits, stop in middle */
+				r = q;		/* don't alter q */
+				while (--r > p) {
+					i = *r;
+					*r = *p;
+					*p++ = i;
+				}
 			}
-			if (*fmt == 'I') {
+			else if (*fmt == '@') {
+				unsigned char *r;
 				union {
 					long		l;
 					unsigned char	c[4];
@@ -138,20 +149,30 @@ static int do_printf(char *buf, const char *fmt, const int *dp)
 				const long *lp = (const long *)dp;
 				u.l = *lp++;
 				dp = (const int *)lp;
-				buf += sprintf(buf,"%d.%d.%d.%d",
-					u.c[0], u.c[1], u.c[2], u.c[3]);
+				for (r = &u.c[0]; r < &u.c[4]; ++r)
+					q += sprintf(q, "%d.", *r);
+				--q;
 			}
-			if (*fmt == 'c')
-				*(buf++) = *(dp++);
-			if (*fmt == 's') {
+			else if (*fmt == '!') {
+				char *r;
 				p = (char *)*dp++;
-				while (*p) *(buf++) = *p++;
+				for (r = p + 6; p < r; ++p)
+					q += sprintf(q, "%hhX:", *p);
+				--q;
 			}
-		} else *(buf++) = *fmt;
+			else if (*fmt == 'c')
+				*q++ = *dp++;
+			else
+				*q++ = *fmt;
+			/* now output the saved string */
+			for (p = tmp; p < q; ++p)
+				buf ? *s++ = *p : putchar(*p);
+		}
 		fmt++;
 	}
-	*buf = '\0';
-	return(buf - s);
+	if (buf)
+		*s = '\0';
+	return (s - buf);
 }
 
 int sprintf(char *buf, const char *fmt, ...)
@@ -161,11 +182,7 @@ int sprintf(char *buf, const char *fmt, ...)
 
 void printf(const char *fmt, ...)
 {
-	char buf[120], *p;
-
-	p = buf;
-	do_printf(buf, fmt, ((const int *)&fmt)+1);
-	while (*p) putchar(*p++);
+	(void)do_printf(0, fmt, ((const int *)&fmt)+1);
 }
 
 #ifdef	IMAGE_MENU
@@ -255,7 +272,7 @@ void gateA20_set(void)
 #endif	/* IBM_L40 */
 }
 
-#if	defined(TAGGED_IMAGE) || defined(FLOPPY)
+#if	defined(TAGGED_IMAGE) || defined(CAN_BOOT_DISK)
 /*
  * Unset Gate A20 for high memory - some operating systems (mainly old 16 bit
  * ones) don't expect it to be set by the boot loader.
@@ -306,6 +323,16 @@ int getchar(void)
 	int c = 256;
 
 	do {
+#ifdef	POWERSAVE
+		/* Doze for a while (until the next interrupt).  This works
+		 * fine, because the keyboard is interrupt-driven, and the
+		 * timer interrupt (approx. every 50msec) takes care of the
+		 * serial port, which is read by polling.  This reduces the
+		 * power dissipation of a modern CPU considerably, and also
+		 * makes Etherboot waiting for user interaction waste a lot
+		 * less CPU time in a VMware session.  */
+		cpu_nap();
+#endif	/* POWERSAVE */
 #ifdef	CONSOLE_CRT
 		if (console_ischar())
 			c = console_getc();

@@ -170,7 +170,7 @@ epic100_probe(struct nic *nic, unsigned short *probeaddrs)
 #if	(EPIC_DEBUG > 1)
     printf("EEPROM contents\n");
     for (i = 0; i < 64; i++) {
-	printf(" %02x%s", eeprom[i], i % 16 == 15 ? "\n" : "");
+	printf(" %hhX%s", eeprom[i], i % 16 == 15 ? "\n" : "");
     }
 #endif
 #endif
@@ -180,10 +180,7 @@ epic100_probe(struct nic *nic, unsigned short *probeaddrs)
     for (i = 0; i < 3; i++)
 	*ap++ = inw(lan0 + i*4);
 
-    printf(" I/O %x ", ioaddr);
-
-    for (i = 0; i < 6; i++)
-	printf ("%b%c", nic->node_addr[i] , i < 5 ?':':' ');
+    printf(" I/O %#hX %! ", ioaddr, nic->node_addr);
 
     /* Find the connected MII xcvrs. */
     for (phy = 0, phy_idx = 0; phy < 32 && phy_idx < sizeof(phys); phy++) {
@@ -309,7 +306,7 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
     entry = cur_tx % TX_RING_SIZE;
 
     if ((tx_ring[entry].status & TRING_OWN) == TRING_OWN) {
-	printf("eth_transmit: Unable to transmit. status=%x. Resetting...\n",
+	printf("eth_transmit: Unable to transmit. status=%hX. Resetting...\n",
 	       tx_ring[entry].status);
 
 	epic100_open();
@@ -349,14 +346,14 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
 
     if ((status & TRING_OWN) == 0) {
 #ifdef	DEBUG_TX
-	printf("tx done after %d loop(s), status %x\n",
+	printf("tx done after %d loop(s), status %hX\n",
 	       TIME_OUT-to, tx_ring[entry].status );
 #endif
 	return;
     }
 
     if (to == 0) {
-	printf("OOPS, Something wrong with transmitter. status=%x\n",
+	printf("OOPS, Something wrong with transmitter. status=%hX\n",
 	       tx_ring[entry].status);
     }
 }
@@ -392,7 +389,7 @@ epic100_poll(struct nic *nic)
 
     if (to == 0) {
 #ifdef	DEBUG_RX
-	printf("epic_poll: time out! status %x\n", status);
+	printf("epic_poll: time out! status %hX\n", status);
 #endif
 	/* Restart Receiver */
 	outl(CR_START_RX | CR_QUEUE_RX, command);
@@ -402,7 +399,7 @@ epic100_poll(struct nic *nic)
     /* We own the next entry, it's a new packet. Send it up. */
 
 #if	(EPIC_DEBUG > 4)
-    printf("epic_poll: entry %d status %8x\n", entry, status);
+    printf("epic_poll: entry %d status %hX\n", entry, status);
 #endif
 
     if (status & 0x2000) {

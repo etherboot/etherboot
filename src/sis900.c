@@ -157,7 +157,7 @@ static int sis900_get_mac_addr(struct pci_device * pci_dev , struct nic *nic)
 	/* check to see if we have sane EEPROM */
 	signature = (u16) sis900_read_eeprom( EEPROMSignature);
 	if (signature == 0xffff || signature == 0x0000) {
-		printf ("sis900_probe: Error EERPOM read %x\n", signature);
+		printf ("sis900_probe: Error EERPOM read %hX\n", signature);
 		return 0;
 	}
 
@@ -192,7 +192,7 @@ static int sis630e_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
 	pcibios_read_config_byte(p->bus,p->devfn, 0x48, &reg);
 	pcibios_write_config_byte(p->bus,p->devfn, 0x48, reg | 0x40);
 
-	for (i = 0; i < 6; i++)
+	for (i = 0; i < ETH_ALEN; i++)
 	{
 		outb(0x09 + i, 0x70);
 		((u8 *)(nic->node_addr))[i] = inb(0x71);
@@ -251,11 +251,9 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
         return NULL;
     }
 
-    printf("\nsis900_probe: MAC addr %b:%b:%b:%b:%b:%b at ioaddr %#x\n",
-           nic->node_addr[0],nic->node_addr[1],nic->node_addr[2],
-           nic->node_addr[3],nic->node_addr[4],nic->node_addr[5],
-           ioaddr);
-    printf("sis900_probe: Vendor:%#x Device:%#x\n", vendor, dev_id);
+    printf("\nsis900_probe: MAC addr %! at ioaddr %#hX\n",
+           nic->node_addr, ioaddr);
+    printf("sis900_probe: Vendor:%#hX Device:%#hX\n", vendor, dev_id);
 
     /* probe for mii transceiver */
     /* search for total of 32 possible mii phy addresses */
@@ -563,7 +561,7 @@ sis900_init_rxfilter(struct nic *nic)
         outl(w, ioaddr + rfdr);
 
         if (sis900_debug > 0)
-            printf("sis900_init_rxfilter: Receive Filter Addrss[%d]=%x\n",
+            printf("sis900_init_rxfilter: Receive Filter Addrss[%d]=%hX\n",
                    i, inl(ioaddr + rfdr));
     }
 
@@ -922,7 +920,7 @@ sis900_transmit(struct nic  *nic,
     s &= DSIZE;
 
     if (sis900_debug > 1)
-        printf("sis900_transmit: sending %d bytes ethtype %x\n", (int) s, t);
+        printf("sis900_transmit: sending %d bytes ethtype %hX\n", (int) s, t);
 
     /* pad to minimum packet size */
     while (s < ETH_ZLEN)  

@@ -112,6 +112,12 @@ exit:
 	lret
 
 	.code32
+#if defined(CONFIG_TSC_CURRTICKS)
+#undef CONFIG_BIOS_CURRTICKS
+#else
+#define CONFIG_BIOS_CURRTICKS 1
+#endif
+#if defined(CONFIG_BIOS_CURRTICKS)
 /**************************************************************************
 CURRTICKS - Get Time
 Use direct memory access to BIOS variables, longword 0040:006C (ticks
@@ -141,7 +147,7 @@ notmidnite:
 	popl	%ebx
 	popl	%ebp
 	ret
-
+#endif /* CONFIG_BIOS_CURRTICKS */
 /**************************************************************************
 CONSOLE_PUTC - Print a character on console
 **************************************************************************/
@@ -278,6 +284,26 @@ getshift:
 	popl	%ebx
 	ret
 
+#ifdef	POWERSAVE
+/**************************************************************************
+CPU_NAP - Save power by halting the CPU until the next interrupt
+**************************************************************************/
+	.globl	cpu_nap
+cpu_nap:
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	call	_prot_to_real
+	.code16
+	hlt
+	DATA32 call	_real_to_prot
+	.code32
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
+#endif	/* POWERSAVE */
 /**************************************************************************
 MEMSIZE - Determine size of extended memory
 **************************************************************************/
@@ -328,7 +354,7 @@ basememsize:
 /**************************************************************************
 DISK_INIT - Initialize the disk system
 **************************************************************************/
-#ifdef	FLOPPY
+#ifdef	CAN_BOOT_DISK
 	.globl	disk_init
 disk_init:
 	pushl	%ebx
@@ -350,7 +376,7 @@ disk_init:
 /**************************************************************************
 DISK_READ - Read a sector from disk
 **************************************************************************/
-#ifdef	FLOPPY
+#ifdef	CAN_BOOT_DISK
 	.globl	disk_read
 disk_read:
 	pushl	%ebp

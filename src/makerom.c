@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 		printf("%ld bytes read\n", fs);
 	if (ispxe) {
 		romsize=fs;
-		rom[2] = romsize / 512L;
+		rom[2] = (romsize + 511L) / 512L;
 		goto writerom ;
 	}
 

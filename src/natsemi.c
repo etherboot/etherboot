@@ -283,11 +283,9 @@ natsemi_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
 	prev_eedata = eedata;
     }
 
-    printf("\nnatsemi_probe: MAC addr %b:%b:%b:%b:%b:%b at ioaddr %x\n",
-           nic->node_addr[0],nic->node_addr[1],nic->node_addr[2],
-           nic->node_addr[3],nic->node_addr[4],nic->node_addr[5],
-           ioaddr);
-    printf("natsemi_probe: Vendor:%#x Device:%#x\n", vendor, dev_id);
+    printf("\nnatsemi_probe: MAC addr %! at ioaddr %#hX\n",
+           nic->node_addr, ioaddr);
+    printf("natsemi_probe: Vendor:%#hX Device:%#hX\n", vendor, dev_id);
     
     /* Reset the chip to erase any previous misconfiguration. */
     outl(ChipReset, ioaddr + ChipCmd);
@@ -302,7 +300,7 @@ natsemi_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
 	       chip_config & 0x4000 ? "0" : "",
 	       chip_config & 0x8000 ? "full" : "half");
     }
-    printf("%s: Transceiver status 0x%x advertising 0x%x\n",
+    printf("%s: Transceiver status %hx advertising %hx\n",
 	   nic_name, (int)inl(ioaddr + 0x84), advertising);
 
     /* Disable PME:
@@ -629,7 +627,7 @@ natsemi_transmit(struct nic  *nic,
     s &= DSIZE;
 
     if (natsemi_debug > 1)
-        printf("natsemi_transmit: sending %d bytes ethtype %x\n", (int) s, t);
+        printf("natsemi_transmit: sending %d bytes ethtype %hX\n", (int) s, t);
 
     /* pad to minimum packet size */
     while (s < ETH_ZLEN)  

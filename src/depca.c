@@ -717,13 +717,9 @@ static int depca_probe1(struct nic *nic)
 	}
 	if (adapter != DEPCA)	/* enable shadow RAM */
 		outb(nicsr |= SHE, DEPCA_NICSR);
-	printf("%s base %#x, memory [%#x-%#x], addr ", adapter_name[adapter],
-		ioaddr, mem_start, mem_start + mem_len);
-	for (i = 0; i < ETH_ALEN; i++) {
-		if (i != 0)
-			putchar(':');
-		printf("%b", nic->node_addr[i]);
-	}
+	printf("%s base %#hX, memory [%#hX-%#hX], addr %!",
+		adapter_name[adapter], ioaddr, mem_start, mem_start + mem_len,
+		nic->node_addr);
 	if (sum != chksum)
 		printf(" (bad checksum)");
 	putchar('\n');

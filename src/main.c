@@ -178,12 +178,13 @@ done:
 
 static inline void try_floppy_first(void)
 {
-#if (TRY_FLOPPY_FIRST > 0) && defined (FLOPPY)
+#if (TRY_FLOPPY_FIRST > 0) && defined(CAN_BOOT_DISK)
+	int i;
 	printf("Trying floppy");
 	disk_init();
 	for (i = TRY_FLOPPY_FIRST; i-- > 0; ) {
 		putchar('.');
-		if (disk_read(0, 0, 0, 0, ((char *) FLOPPY_BOOT_LOCATION)) != 0x8000) {
+		if (disk_read(0, 0, 0, 0, ((char *)FLOPPY_BOOT_LOCATION)) != 0x8000) {
 			printf("using floppy\n");
 			exit(0);
 		}
@@ -213,7 +214,7 @@ int main(void)
 #endif
 
 	rom = *(struct rom_info *)ROM_INFO_LOCATION;
-	printf("ROM segment %#x length %#x reloc %#x\n", rom.rom_segment,
+	printf("ROM segment %#hX length %#hX reloc %#hX\n", rom.rom_segment,
 		rom.rom_length << 1, ((unsigned long)_start) >> 4);
 
 	gateA20_set();
@@ -272,7 +273,7 @@ int main(void)
 /**************************************************************************
 LOADKERNEL - Try to load kernel image
 **************************************************************************/
-#ifndef	FLOPPY
+#ifndef	CAN_BOOT_DISK
 #define loadkernel(s) download((s), downloadkernel)
 #else
 static int loadkernel(const char *fname)
@@ -335,14 +336,14 @@ LOAD - Try to get booted
 static void load(void)
 {
 	const char	*kernel;
-	printf("Me: %I, Server: %I",
+	printf("Me: %@, Server: %@",
 		arptable[ARP_CLIENT].ipaddr.s_addr,
 		arptable[ARP_SERVER].ipaddr.s_addr);
 	if (BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr)
-		printf(", Relay: %I",
+		printf(", Relay: %@",
 			BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr);
 	if (arptable[ARP_GATEWAY].ipaddr.s_addr)
-		printf(", Gateway %I", arptable[ARP_GATEWAY].ipaddr.s_addr);
+		printf(", Gateway %@", arptable[ARP_GATEWAY].ipaddr.s_addr);
 	putchar('\n');
 
 #ifdef	MDEBUG
@@ -363,7 +364,7 @@ static void load(void)
 	rpc_init();
 #endif
 	kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
-	printf("Loading %I:%s ", arptable[ARP_SERVER].ipaddr, kernel);
+	printf("Loading %@:%s ", arptable[ARP_SERVER].ipaddr, kernel);
 	loadkernel(kernel); /* We don't return except on error */
 	printf("Unable to load file.\n");
 	interruptible_sleep(2);		/* lay off the server for a while */
@@ -423,7 +424,7 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 		for(arpentry = 0; arpentry<MAX_ARP; arpentry++)
 			if (arptable[arpentry].ipaddr.s_addr == destip) break;
 		if (arpentry == MAX_ARP) {
-			printf("%I is not in my arp table!\n", destip);
+			printf("%@ is not in my arp table!\n", destip);
 			return(0);
 		}
 		for (i = 0; i < ETH_ALEN; i++)
@@ -623,6 +624,11 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
  *	But that's fixed by the IP, UDP and BOOTP specs.
  */
 					len = sizeof(tp.ip) + sizeof(tp.udp) + sizeof(tp.opcode) + sizeof(tp.u.err.errcode) +
+/*
+ *	Normally bad form to omit the format string, but in this case
+ *	the string we are copying from is fixed. sprintf is just being
+ *	used as a strcpy and strlen.
+ */
 						sprintf((char *)tp.u.err.errmsg,
 						"RFC1782 error") + 1;
 					udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
@@ -792,6 +798,57 @@ static int bootp(void)
 #endif	/* RARP_NOT_BOOTP */
 
 /**************************************************************************
+UDPCHKSUM - Checksum UDP Packet (one of the rare cases when assembly is 
+            actually simpler...)
+ RETURNS: checksum, 0 on checksum error. This
+          allows for using the same routine for RX and TX summing:
+          RX  if (packet->udp.chksum && udpchksum(&packet)) error("checksum error");
+		  TX  packet->upd.chksum=0;
+			  if (0==(packet->udp.chksum=udpchksum(packet)))
+				packet->upd.chksum=0xffff;
+**************************************************************************/
+
+static inline void dosum(unsigned short *start, unsigned int len, unsigned short *sum)
+{
+__asm__ __volatile__(
+"           clc         \n\t"
+"   1:      lodsw       \n\t"
+"           xchg    %%al,%%ah\n\t"  /* convert to host byte order */
+"           adcw    %%ax,%0\n\t"    /* add carry of previous iteration */
+"           loop    1b\n\t"
+"           adcw    $0,%0\n\t"      /* add carry of last iteration */
+         : "=bx" (*sum), "=S"(start), "=c"(len)
+         : "0"(*sum), "1"(start), "2"(len)
+         : "ax", "cc"
+        );
+}
+
+/* UDP sum:
+ * proto, src_ip, dst_ip, udp_dport, udp_sport, 2*udp_len, payload, 
+ */
+static unsigned short udpchksum(struct iphdr *packet)
+{
+	char *ptr = (char *) packet;
+	int len = htons(packet->len);
+	unsigned short rval;
+
+	/* pad to an even number of bytes */
+	if (len % 2) {
+		((char *) packet)[len++] = 0;
+	}
+
+	/* add udplength + protocol number */
+	rval = htons(packet->len) - sizeof(struct iphdr) + IP_UDP;
+
+	/* sum over src/dst ipaddr + udp packet */
+	len -= (char *) &packet->src - (char *) packet;
+	dosum((unsigned short *) &packet->src, len >> 1, &rval);
+
+	/* take one's complement */
+	return (~rval);
+}
+
+/**************************************************************************
 AWAIT_REPLY - Wait until we get a response for our request
 **************************************************************************/
 int await_reply(int type, int ival, void *ptr, int timeout)
@@ -843,7 +900,7 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 						arpreply);
 #ifdef	MDEBUG
 					memcpy(&tmp, arpreply->tipaddr, sizeof(in_addr));
-					printf("Sent ARP reply to: %I\n",tmp);
+					printf("Sent ARP reply to: %@\n",tmp);
 #endif	/* MDEBUG */
 				}
 				continue;
@@ -877,8 +934,23 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 			if ((ip->verhdrlen != 0x45) ||
 				ipchksum((unsigned short *)ip, sizeof(struct iphdr)) ||
 				(ip->protocol != IP_UDP)) continue;
+/*
+	- Till Straumann <Till.Straumann@TU-Berlin.de>
+	  added udp checksum (safer on a wireless link)
+	  added fragmentation check: I had a corrupted image
+	  in memory due to fragmented TFTP packets - took me
+	  3 days to find the cause for this :-(
+*/
+			if (ip->frags & htons(0x3FFF)) {
+				printf("ALERT: got a fragmented packet - reconfigure your server\n", ntohs(ip->frags));
+				continue;
+			}
 			udp = (struct udphdr *)&nic.packet[ETH_HLEN +
 				sizeof(struct iphdr)];
+			if (udp->chksum && udpchksum(ip)) {
+				printf("UDP checksum error\n");
+				continue;
+			}
 
 					/* BOOTP ? */
 			bootpreply = (struct bootp_t *)&nic.packet[ETH_HLEN + sizeof(struct iphdr) + sizeof(struct udphdr)];
@@ -1113,7 +1185,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			unsigned char *q;
 			printf("Unknown RFC1533-tag ");
 			for(q=p;q<p+2+TAG_LEN(p);q++)
-				printf("%x ",*q);
+				printf("%hhX ",*q);
 			putchar('\n');
 #endif
 		}

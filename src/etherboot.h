@@ -25,7 +25,7 @@ Author: Martin Renters
 /*  Edit this to change the path to hostspecific kernel image
     kernel.<client_ip_address> in RARP boot */
 #ifndef	DEFAULT_KERNELPATH
-#define	DEFAULT_KERNELPATH	"/tftpboot/kernel.%I"
+#define	DEFAULT_KERNELPATH	"/tftpboot/kernel.%@"
 #endif
 
 /* Edit this to change the default fallback kernel image.
@@ -440,8 +440,11 @@ struct rpc_t {
 #define NFS_READ_SIZE	1024
 
 #define	FLOPPY_BOOT_LOCATION	0x7c00
+/* Must match offsets in loader.S */
+#define ROM_SEGMENT		0x1fa
+#define ROM_LENGTH		0x1fc
 
-#define	ROM_INFO_LOCATION	0x7dfa
+#define	ROM_INFO_LOCATION	(FLOPPY_BOOT_LOCATION+ROM_SEGMENT)
 /* at end of floppy boot block */
 
 struct rom_info {
@@ -523,6 +526,9 @@ extern int console_getc P((void));
 extern void console_putc P((int));
 extern int console_ischar P((void));
 extern int getshift P((void));
+#ifdef	POWERSAVE
+extern void cpu_nap P((void));
+#endif	/* POWERSAVE */
 extern unsigned int memsize P((void));
 extern unsigned short basememsize P((void));
 extern void disk_init P((void));

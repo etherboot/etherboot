@@ -285,7 +285,7 @@ static int mdio_write(int phy_id, int location, int value)
 
     val = inl(ioaddr + SCBCtrlMDI);
     if (--boguscnt < 0) {
-      printf(" mdio_write() timed out with val = %8.8x.\n", val);
+      printf(" mdio_write() timed out with val = %X.\n", val);
     }
   } while (! (val & 0x10000000));
   return val & 0xffff;
@@ -305,7 +305,7 @@ static int mdio_read(int phy_id, int location)
 
     val = inl(ioaddr + SCBCtrlMDI);
     if (--boguscnt < 0) {
-      printf( " mdio_read() timed out with val = %8.8x.\n", val);
+      printf( " mdio_read() timed out with val = %X.\n", val);
     }
   } while (! (val & 0x10000000));
   return val & 0xffff;
@@ -374,8 +374,8 @@ static void eepro100_reset(struct nic *nic)
 static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, unsigned int s, const char *p)
 {
   struct eth_hdr {
-    unsigned char dst_addr[6];
-    unsigned char src_addr[6];
+    unsigned char dst_addr[ETH_ALEN];
+    unsigned char src_addr[ETH_ALEN];
     unsigned short type;
   } hdr;
   unsigned short status;
@@ -387,7 +387,7 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
   outw(status & 0xfc00, ioaddr + SCBStatus);
 
 #ifdef	DEBUG
-  printf ("transmitting type %x packet (%d bytes). status = %x, cmd=%x\n",
+  printf ("transmitting type %hX packet (%d bytes). status = %hX, cmd=%hX\n",
 	  t, s, status, inw (ioaddr + SCBCmd));
 #endif
 
@@ -424,7 +424,7 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
   s2 = inw (ioaddr + SCBStatus);
 
 #ifdef	DEBUG
-  printf ("s1 = %x, s2 = %x.\n", s1, s2);
+  printf ("s1 = %hX, s2 = %hX.\n", s1, s2);
 #endif
 }
 
@@ -511,7 +511,7 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 		new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
 
 		if (pci_command != new_command) {
-			printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %x->%x. pci_bus %x pci_device_fn %x\n",
+			printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %hX->%hX. pci_bus %hX pci_device_fn %hX\n",
 				   pci_command, new_command, p->bus, p->devfn);
 			pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
 		}
@@ -539,15 +539,13 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 		sum += value;
 	}
 
-  printf ("Ethernet addr: ");
-  for (i=0;i<6;i++) {
+  for (i=0;i<ETH_ALEN;i++) {
 	nic->node_addr[i] =  (eeprom[i/2] >> (8*(i&1))) & 0xff;
-	printf ("%b%c", nic->node_addr[i] , i < 5?':':' ');
   }
-  printf ("\n");
+  printf ("Ethernet addr: %!\n", nic->node_addr);
 
   if (sum != 0xBABA)
-	printf("eepro100: Invalid EEPROM checksum %#x, "
+	printf("eepro100: Invalid EEPROM checksum %#hX, "
 	       "check settings before activating this device!\n", sum);
   outl(0, ioaddr + SCBPort);
   udelay (10);
@@ -603,7 +601,7 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
   {
 	char *t = (char *)&txfd.tx_desc_addr;
 
-	for (i=0;i<6;i++)
+	for (i=0;i<ETH_ALEN;i++)
 		t[i] = nic->node_addr[i];
   }
 
@@ -621,7 +619,7 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 	int mdi_reg23 = mdio_read(eeprom[6] & 0x1f, 23) | 0x0422;
 	if (congenb)
 	  mdi_reg23 |= 0x0100;
-	printf("  DP83840 specific setup, setting register 23 to %x.\n",
+	printf("  DP83840 specific setup, setting register 23 to %hX.\n",
 	       mdi_reg23);
 	mdio_write(eeprom[6] & 0x1f, 23, mdi_reg23);
   }
@@ -672,7 +670,7 @@ void hd (void *where, int n)
   while (n > 0) {
     printf ("%X ", where);
     for (i=0;i < ( (n>16)?16:n);i++)
-      printf (" %b", ((char *)where)[i]);
+      printf (" %hhX", ((char *)where)[i]);
     printf ("\n");
     n -= 16;
     where += 16;

@@ -67,7 +67,7 @@ enum davicom_offsets {
 
 /* EEPROM Address width definitions */
 #define EEPROM_ADDRLEN 6
-#define EEPROM_SIZE    32              /* 2 << EEPROM_ADDRLEN */
+#define EEPROM_SIZE    32              /* 1 << EEPROM_ADDRLEN */
 /* Used to be 128, but we only need to read enough to get the MAC
    address at bytes 20..25 */
 
@@ -675,12 +675,10 @@ struct nic *davicom_probe(struct nic *nic, unsigned short *io_addrs,
         le16_to_cpu(read_eeprom(ioaddr, i, EEPROM_ADDRLEN));
 
   /* extract MAC address from EEPROM buffer */
-  for (i=0; i<6; i++)
+  for (i=0; i<ETH_ALEN; i++)
     nic->node_addr[i] = ee_data[20+i];
 
-  printf("Davicom %b:%b:%b:%b:%b:%b at ioaddr %#x\n",
-    nic->node_addr[0],nic->node_addr[1],nic->node_addr[2],nic->node_addr[3],
-    nic->node_addr[4],nic->node_addr[5],ioaddr);
+  printf("Davicom %! at ioaddr %#hX\n", nic->node_addr, ioaddr);
 
   /* initialize device */
   davicom_reset(nic);

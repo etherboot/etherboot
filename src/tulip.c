@@ -784,7 +784,7 @@ static void parse_eeprom(struct nic *nic)
     if (ee_data[27] == 0) {             /* No valid media table. */
 #ifdef TULIP_DEBUG
         if (tulip_debug > 1) {
-            printf("%s:  No Valid Media Table. ee_data[27] = %b\n", 
+            printf("%s:  No Valid Media Table. ee_data[27] = %hhX\n", 
                    tp->nic_name, ee_data[27]);
         }
 #endif
@@ -793,7 +793,7 @@ static void parse_eeprom(struct nic *nic)
         int count = p[2];
         p += 3;
 
-        printf("%s: 21041 Media table, default media %x (%s).\n",
+        printf("%s: 21041 Media table, default media %hX (%s).\n",
                tp->nic_name, media,
                media & 0x0800 ? "Autosense" : medianame[media & 15]);
         for (i = 0; i < count; i++) {
@@ -878,7 +878,7 @@ static void parse_eeprom(struct nic *nic)
 #ifdef TULIP_DEBUG
             if (tulip_debug > 1  &&  leaf->media == 11) {
                 unsigned char *bp = leaf->leafdata;
-                printf("%s:  MII interface PHY %d, setup/reset sequences %d/%d long, capabilities %b %b.\n",
+                printf("%s:  MII interface PHY %d, setup/reset sequences %d/%d long, capabilities %hhX %hhX.\n",
                        tp->nic_name, bp[0], bp[1], bp[2 + bp[1]*2],
                        bp[5 + bp[2 + bp[1]*2]*2], bp[4 + bp[2 + bp[1]*2]*2]);
             }
@@ -1082,7 +1082,7 @@ static void tulip_transmit(struct nic *nic, const char *d, unsigned int t,
 
 #ifdef TULIP_DEBUG
     if (tulip_debug > 1)
-	printf("%s: sending %d bytes ethtype %x\n", tp->nic_name, s, t);
+	printf("%s: sending %d bytes ethtype %hX\n", tp->nic_name, s, t);
 #endif
         
     /* setup the transmit descriptor */
@@ -1179,7 +1179,7 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
     u8 ee_data[EEPROM_SIZE];
     unsigned short sum;
     int chip_idx;
-    static unsigned char last_phys_addr[6] = {0x00, 'L', 'i', 'n', 'u', 'x'};
+    static unsigned char last_phys_addr[ETH_ALEN] = {0x00, 'L', 'i', 'n', 'u', 'x'};
 
     if (io_addrs == 0 || *io_addrs == 0)
         return 0;
@@ -1212,7 +1212,7 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
 
 #ifdef TULIP_DEBUG
     if (tulip_debug > 1)
-	printf ("%s: Looking for Tulip Chip: Vendor=%x  Device=%x\n", tp->nic_name,
+	printf ("%s: Looking for Tulip Chip: Vendor=%hX  Device=%hX\n", tp->nic_name,
 		tp->vendor_id, tp->dev_id);
 #endif
 
@@ -1230,7 +1230,7 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
     }
 
     if (chip_idx == -1) {
-        printf ("%s: Unknown Tulip Chip: Vendor=%x  Device=%x\n", tp->nic_name,
+        printf ("%s: Unknown Tulip Chip: Vendor=%hX  Device=%hX\n", tp->nic_name,
                 tp->vendor_id, tp->dev_id);
         return 0;
     }
@@ -1260,9 +1260,9 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
    
     pcibios_read_config_byte(pci->bus, pci->devfn, PCI_REVISION, &chip_rev);
 
-    printf("%s: [chip: %s] rev %d at %x\n", tp->nic_name,
+    printf("%s: [chip: %s] rev %d at %hX\n", tp->nic_name,
            tulip_tbl[chip_idx].chip_name, chip_rev, ioaddr);
-    printf("%s: Vendor=%x  Device=%x", tp->nic_name, tp->vendor_id, tp->dev_id);
+    printf("%s: Vendor=%hX  Device=%hX", tp->nic_name, tp->vendor_id, tp->dev_id);
 
     if (chip_idx == DC21041  &&  inl(ioaddr + CSR9) & 0x8000) {
         printf(" 21040 compatible mode.");
@@ -1275,7 +1275,7 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
     sum = 0;
     if (chip_idx == DC21040) {
         outl(0, ioaddr + CSR9);         /* Reset the pointer with a dummy write. */
-        for (i = 0; i < 6; i++) {
+        for (i = 0; i < ETH_ALEN; i++) {
             int value, boguscnt = 100000;
             do
                 value = inl(ioaddr + CSR9);
@@ -1297,7 +1297,7 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
         /* No need to read the EEPROM. */
         put_unaligned(inl(ioaddr + 0xA4), (u32 *)nic->node_addr);
         put_unaligned(inl(ioaddr + 0xA8), (u16 *)(nic->node_addr + 4));
-        for (i = 0; i < 6; i ++)
+        for (i = 0; i < ETH_ALEN; i ++)
             sum += nic->node_addr[i];
     } else {
         /* A serial EEPROM interface, we read now and sort it out later. */
@@ -1317,7 +1317,7 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
         if (ee_data[0] == 0xff  &&  ee_data[1] == 0xff &&  ee_data[2] == 0) {
             sa_offset = 2;              /* Grrr, damn Matrox boards. */
         }
-        for (i = 0; i < 6; i ++) {
+        for (i = 0; i < ETH_ALEN; i ++) {
             nic->node_addr[i] = ee_data[i + sa_offset];
             sum += ee_data[i + sa_offset];
         }
@@ -1325,27 +1325,23 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
     /* Lite-On boards have the address byte-swapped. */
     if ((nic->node_addr[0] == 0xA0  ||  nic->node_addr[0] == 0xC0)
         &&  nic->node_addr[1] == 0x00)
-        for (i = 0; i < 6; i+=2) {
+        for (i = 0; i < ETH_ALEN; i+=2) {
             char tmp = nic->node_addr[i];
             nic->node_addr[i] = nic->node_addr[i+1];
             nic->node_addr[i+1] = tmp;
         }
 
-    if (sum == 0  || sum == 6*0xff) {
+    if (sum == 0  || sum == ETH_ALEN*0xff) {
         printf("%s: EEPROM not present!\n", tp->nic_name);
-        for (i = 0; i < 5; i++)
+        for (i = 0; i < ETH_ALEN-1; i++)
             nic->node_addr[i] = last_phys_addr[i];
         nic->node_addr[i] = last_phys_addr[i] + 1;
     }
 
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < ETH_ALEN; i++)
         last_phys_addr[i] = nic->node_addr[i];
 
-    printf("%s: %b:%b:%b:%b:%b:%b at ioaddr %x\n",
-           tp->nic_name,
-           nic->node_addr[0], nic->node_addr[1], nic->node_addr[2],
-           nic->node_addr[3], nic->node_addr[4], nic->node_addr[5],
-           ioaddr);
+    printf("%s: %! at ioaddr %hX\n", tp->nic_name, nic->node_addr, ioaddr);
 
     tp->chip_id = chip_idx;
     tp->revision = chip_rev;
@@ -1428,11 +1424,11 @@ static void start_link(struct nic *nic)
                     tp->mii_advertise = to_advert = mii_advert;
 
                 tp->phys[phy_idx++] = phy;
-                printf("%s:  MII transceiver %d config %x status %x advertising %x.\n",
+                printf("%s:  MII transceiver %d config %hX status %hX advertising %hX.\n",
                        tp->nic_name, phy, mii_reg0, mii_status, mii_advert);
                                 /* Fixup for DLink with miswired PHY. */
                 if (mii_advert != to_advert) {
-                    printf("%s:  Advertising %x on PHY %d previously advertising %x.\n",
+                    printf("%s:  Advertising %hX on PHY %d previously advertising %hX.\n",
                            tp->nic_name, to_advert, phy, mii_advert);
                     mdio_write(nic, phy, 4, to_advert);
                 }
@@ -1607,7 +1603,7 @@ static void init_media(struct nic *nic)
             select_media(nic, 1);
 #ifdef TULIP_DEBUG
             if (tulip_debug > 1)
-                printf("%s: Using MII transceiver %d, status %x.\n",
+                printf("%s: Using MII transceiver %d, status %hX.\n",
                        tp->nic_name, tp->phys[0], mdio_read(nic, tp->phys[0], 1));
 #endif
             outl(0x82020000, ioaddr + CSR6);
@@ -1715,7 +1711,7 @@ static void select_media(struct nic *nic, int startup)
 #ifdef TULIP_DEBUG
             if (tulip_debug > 1)
                 printf("%s: Using a 21140 non-MII transceiver"
-                       " with control setting %b.\n",
+                       " with control setting %hhX.\n",
                        tp->nic_name, p[1]);
 #endif
             tp->if_port = p[0];
@@ -1748,7 +1744,7 @@ static void select_media(struct nic *nic, int startup)
 #ifdef TULIP_DEBUG
             if (tulip_debug > 1)
                 printf("%s: 21143 non-MII %s transceiver control "
-                       "%x/%x.\n",
+                       "%hX/%hX.\n",
                        tp->nic_name, medianame[tp->if_port], setup[0], setup[1]);
 #endif
             if (p[0] & 0x40) {  /* SIA (CSR13-15) setup values are provided. */
@@ -1823,7 +1819,7 @@ static void select_media(struct nic *nic, int startup)
                     tp->mii_advertise = tp->advertising[phy_num];
 #ifdef TULIP_DEBUG
                 if (tulip_debug > 1)
-                    printf("%s:  Advertising %x on MII %d.\n",
+                    printf("%s:  Advertising %hX on MII %d.\n",
                            tp->nic_name, tp->mii_advertise, tp->phys[phy_num]);
 #endif
                 mdio_write(nic, tp->phys[phy_num], 4, tp->mii_advertise);
@@ -1837,7 +1833,7 @@ static void select_media(struct nic *nic, int startup)
         }
 #ifdef TULIP_DEBUG
         if (tulip_debug > 1)
-            printf("%s: Using media type %s, CSR12 is %b.\n",
+            printf("%s: Using media type %s, CSR12 is %hhX.\n",
                    tp->nic_name, medianame[tp->if_port],
                    inl(ioaddr + CSR12) & 0xff);
 #endif
@@ -1845,7 +1841,7 @@ static void select_media(struct nic *nic, int startup)
         int port = tp->if_port <= 4 ? tp->if_port : 0;
 #ifdef TULIP_DEBUG
         if (tulip_debug > 1)
-            printf("%s: 21041 using media %s, CSR12 is %x.\n",
+            printf("%s: 21041 using media %s, CSR12 is %hX.\n",
                    tp->nic_name, medianame[port == 3 ? 12: port],
                    inl(ioaddr + CSR12));
 #endif
@@ -1859,7 +1855,7 @@ static void select_media(struct nic *nic, int startup)
             tp->if_port = tp->mii_cnt ? 11 : 0;
 #ifdef TULIP_DEBUG
         if (tulip_debug > 1)
-	    printf("%s: PNIC PHY status is %x, media %s.\n",
+	    printf("%s: PNIC PHY status is %hX, media %s.\n",
                    tp->nic_name, inl(ioaddr + 0xB8), medianame[tp->if_port]);
 #endif
         if (tp->mii_cnt) {
@@ -1887,7 +1883,7 @@ static void select_media(struct nic *nic, int startup)
         int csr12 = inl(ioaddr + CSR12);
 #ifdef TULIP_DEBUG
         if (tulip_debug > 1)
-            printf("%s: 21040 media type is %s, CSR12 is %b.\n",
+            printf("%s: 21040 media type is %s, CSR12 is %hhX.\n",
                    tp->nic_name, medianame[tp->if_port], csr12);
 #endif
         if (media_cap[tp->if_port] & MediaAlwaysFD)
@@ -1916,7 +1912,7 @@ static void select_media(struct nic *nic, int startup)
 #ifdef TULIP_DEBUG
         if (tulip_debug > 1)
             printf("%s: No media description table, assuming "
-                   "%s transceiver, CSR12 %b.\n",
+                   "%s transceiver, CSR12 %hhX.\n",
                    tp->nic_name, medianame[tp->if_port],
                    inl(ioaddr + CSR12));
 #endif

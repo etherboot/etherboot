@@ -56,6 +56,10 @@ static struct pci_device	pci_nic_list[] = {
 		"3Com905C-TXM", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_3COM,		0x9800,
 		"3Com980-Cyclone", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_3COM,		0x9805,
+		"3Com9805", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_3COM,		0x7646,
+		"3CSOHO100-TX", 0, 0, 0, 0},
 #endif
 #ifdef	INCLUDE_3C595
 	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C590,
@@ -80,6 +84,10 @@ static struct pci_device	pci_nic_list[] = {
 		"3Com900B-FL", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_3COM,		0x9800,
 		"3Com980-Cyclone", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_3COM,		0x9805,
+		"3Com9805", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_3COM,		0x7646,
+		"3CSOHO100-TX", 0, 0, 0, 0},
 #endif
 #ifdef	INCLUDE_EEPRO100
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82557,

@@ -171,7 +171,7 @@ const char *p)			/* Packet */
 	int status;
 
 #ifdef EDEBUG
-	printf("{l=%d,t=%x}",s+ETH_HLEN,t);
+	printf("{l=%d,t=%hX}",s+ETH_HLEN,t);
 #endif
 
 	/* swap bytes of type */
@@ -237,7 +237,7 @@ static int t595_poll(struct nic *nic)
 
 #ifdef EDEBUG
 	if(cst & 0x1FFF)
-		printf("-%x-",cst);
+		printf("-%hX-",cst);
 #endif
 
 	if( (cst & S_RX_COMPLETE)==0 ) {
@@ -250,7 +250,7 @@ static int t595_poll(struct nic *nic)
 
 	status = inw(BASE + VX_W1_RX_STATUS);
 #ifdef EDEBUG
-	printf("*%x*",status);
+	printf("*%hX*",status);
 #endif
 
 	if (status & ERR_RX) {
@@ -274,7 +274,7 @@ static int t595_poll(struct nic *nic)
 	while(1) {
 		status = inw(BASE + VX_W1_RX_STATUS);
 #ifdef EDEBUG
-		printf("*%x*",status);
+		printf("*%hX*",status);
 #endif
 		rx_fifo = status & RX_BYTES_MASK;
 
@@ -303,9 +303,9 @@ static int t595_poll(struct nic *nic)
 	type = (nic->packet[12]<<8) | nic->packet[13];
 	if(nic->packet[0]+nic->packet[1]+nic->packet[2]+nic->packet[3]+nic->packet[4]+
 	    nic->packet[5] == 0xFF*ETH_ALEN)
-		printf(",t=%#x,b]",type);
+		printf(",t=%#hX,b]",type);
 	else
-		printf(",t=%#x]",type);
+		printf(",t=%#hX]",type);
 #endif
 	return 1;
 }
@@ -469,7 +469,7 @@ struct nic *t595_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_d
 /*
 	printf("\nEEPROM:");
 	for (i = 0; i < (EEPROMSIZE/2); i++) {
-	  printf("%x:", get_e(i));
+	  printf("%hX:", get_e(i));
 	}
 	printf("\n");
 */
@@ -484,11 +484,7 @@ struct nic *t595_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_d
 		outw(ntohs(p[i]), BASE + VX_W2_ADDR_0 + (i * 2));
 	}
 
-	printf("Ethernet address: ");
-	for(i=0; i<5; i++) {
-		printf("%b:",nic->node_addr[i]);
-	}
-	printf("%b\n",nic->node_addr[i]);
+	printf("Ethernet address: %!\n", nic->node_addr);
 
 	t595_reset(nic);
 	nic->reset = t595_reset;

@@ -86,11 +86,12 @@
 include Config
 
 GCC=		gcc
-CPP=		gcc -E
+CPP=		gcc -E -Wp,-Wall
+STRIP=		strip
 OBJCOPY=	objcopy
 VERSION_MAJOR=	5
 VERSION_MINOR=	0
-VERSION_PATCH=	2
+VERSION_PATCH=	3
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -142,7 +143,7 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS=	boot1a.s comprefix.S liloprefix.S loader.S pxeloader.S start32.S serial.S
+SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S serial.S
 SRCS+=	main.c pci.c osloader.c nfs.c misc.c ansiesc.c bootmenu.c config.c
 SRCS+=	md5.c floppy.c
 
@@ -158,6 +159,7 @@ COMPREFIX=	bin/comprefix.bin
 LILOPREFIX=	bin/liloprefix.bin
 
 START32=	bin32/start32.o
+UBE_START32=	bin32/ube_start32.o bin32/ube.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/misc.o
 BOBJS32+=	bin32/ansiesc.o bin32/bootmenu.o bin32/md5.o bin32/floppy.o
@@ -166,7 +168,9 @@ BLIB32=		bin32/bootlib.a
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf
 STDDEPS32=	$(START32) $(BLIB32) $(UTILS)
-MAKEDEPS=	Makefile Config Roms
+UBE_DEPS32=	$(UBE_START32) $(BLIB32)
+# MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
+MAKEDEPS=	Makefile Config Roms gcccheck
 
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 	{ $(RM) $@; echo "ERROR: code size exceeds limit!"; exit 1; }; exit 0; }
@@ -207,6 +211,13 @@ endif
 # Start of targets
 
 all:	$(UTILS) $(BUILD_LIBS) allbins
+
+gcccheck:
+	@if $(CC32) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
+	then \
+		echo 'gcc 2.96 is unsuitable for compiling Etherboot, edit Config to use kgcc instead'; \
+		exit 1; \
+	fi
 
 include Roms
 
@@ -254,11 +265,11 @@ bin/rloader.s:	loader.S $(MAKEDEPS)
 bin/rzloader.s:	loader.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) -DZLOADER -o $@ $<
 
-bin/pxeloader.s:	pxeloader.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) -o $@ $<
+bin/pxeloader.s:	loader.S $(MAKEDEPS)
+	$(CPP) $(LCONFIG) -DPXELOADER -o $@ $<
 
-bin/pxezloader.s:	pxeloader.S $(MAKEDEPS)
-	$(CPP) $(LCONFIG) -DZLOADER -o $@ $<
+bin/pxezloader.s:	loader.S $(MAKEDEPS)
+	$(CPP) $(LCONFIG) -DPXELOADER -DZLOADER -o $@ $<
 
 bin/prloader.s:	loader.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) -DPCI_PNP_HEADER -o $@ $<
@@ -389,6 +400,7 @@ clean:
 	$(RM) bin32/*.dsk bin32/*.lzdsk
 	$(RM) bin32/*.lilo bin32/*.lzlilo
 	$(RM) bin32/*.pxe bin32/*.lzpxe
+	$(RM) bin32/*.elf bin32/*.ebi
 
 tarball:
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION

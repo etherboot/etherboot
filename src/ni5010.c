@@ -172,13 +172,13 @@ static unsigned int		bufsize_rcv = 0;
 #if	0
 static void show_registers(void)
 {
-	printf("XSTAT %b ", inb(EDLC_XSTAT));
-	printf("XMASK %b ", inb(EDLC_XMASK));
-	printf("RSTAT %b ", inb(EDLC_RSTAT));
-	printf("RMASK %b ", inb(EDLC_RMASK));
-	printf("RMODE %b ", inb(EDLC_RMODE));
-	printf("XMODE %b ", inb(EDLC_XMODE));
-	printf("ISTAT %b\n", inb(IE_ISTAT));
+	printf("XSTAT %hhX ", inb(EDLC_XSTAT));
+	printf("XMASK %hhX ", inb(EDLC_XMASK));
+	printf("RSTAT %hhX ", inb(EDLC_RSTAT));
+	printf("RMASK %hhX ", inb(EDLC_RMASK));
+	printf("RMODE %hhX ", inb(EDLC_RMODE));
+	printf("XMODE %hhX ", inb(EDLC_XMODE));
+	printf("ISTAT %hhX\n", inb(IE_ISTAT));
 }
 #endif
 
@@ -315,14 +315,11 @@ static int ni5010_probe1(struct nic *nic)
 			return (0);
 	} else
 		return (0);
-	printf("\nNI5010 ioaddr %#x, addr ", ioaddr);
 	for (i = 0; i < ETH_ALEN; i++) {
 		outw(i, IE_GP);
-		printf("%b", nic->node_addr[i] = inb(IE_SAPROM));
-		if (i < ETH_ALEN - 1)
-			putchar(':');
+		nic->node_addr[i] = inb(IE_SAPROM);
 	}
-	putchar('\n');
+	printf("\nNI5010 ioaddr %#hX, addr %!\n", ioaddr, nic->node_addr);
 /* get the size of the onboard receive buffer
  * higher addresses than bufsize are wrapped into real buffer
  * i.e. data for offs. 0x801 is written to 0x1 with a 2K onboard buffer
