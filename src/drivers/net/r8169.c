@@ -92,7 +92,7 @@ static int multicast_filter_limit = 32;
 #define RxPacketMaxSize	0x0800	/* Maximum size supported is 16K-1 */
 #define InterFrameGap	0x03	/* 3 means InterFrameGap = the shortest one */
 
-#define NUM_TX_DESC	5	/* Number of Tx descriptor registers */
+#define NUM_TX_DESC	1	/* Number of Tx descriptor registers */
 #define NUM_RX_DESC	4	/* Number of Rx descriptor registers */
 #define RX_BUF_SIZE	1536	/* Rx Buffer size */
 
