@@ -338,7 +338,7 @@ struct meminfo {
 extern struct meminfo meminfo;
 extern void get_memsizes(void);
 extern unsigned long get_boot_order(unsigned long order, unsigned *index);
-#ifdef RELOCATE
+#ifndef NORELOCATE
 extern void relocate(void);
 extern void relocate_to(unsigned long phys_dest);
 #else
