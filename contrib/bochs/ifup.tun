@@ -1,0 +1,15 @@
+#!/bin/sh
+
+SCRIPT=$0
+INTERFACE=$1
+
+if [ `id -u` != 0 ]; then
+    echo ""
+    echo "Enter root password for configuring network interface $INTERFACE"
+    echo "(To avoid this prompt, make the script $SCRIPT setuid-root)"
+    /bin/su -c "$SCRIPT $INTERFACE" || exit 1
+    exit 0
+fi
+
+/sbin/ifconfig $INTERFACE 10.254.254.2 netmask 255.255.255.252
+
