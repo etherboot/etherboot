@@ -628,8 +628,9 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs __unused)
 	} else
 		eth_bmem = WD_DEFAULT_MEM;
 	if (brd->id == TYPE_SMC8216T || brd->id == TYPE_SMC8216C) {
-		*((unsigned int *)(bus_to_virt(eth_bmem) + 8192)) = (unsigned int)0;
-		if (*((unsigned int *)(bus_to_virt(eth_bmem) + 8192))) {
+		/* from Linux driver, 8416BT detects as 8216 sometimes */
+		unsigned int addr = inb(eth_asic_base + 0xb);
+		if (((addr >> 4) & 3) == 0) {
 			brd += 2;
 			eth_memsize = brd->memsize;
 		}
