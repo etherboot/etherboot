@@ -11,14 +11,9 @@
 #error PXE_IMAGE requires PXE_EXPORT
 #endif
 
+#include "etherboot.h"
+#include "pxe_callbacks.h"
 #include "pxe.h"
-
-/*
- * These values are hard-coded into the PXE spec
- */
-#define PXE_LOAD_SEGMENT	(0x0000)
-#define PXE_LOAD_OFFSET		(0x7c00)
-#define PXE_LOAD_ADDRESS	( ( PXE_LOAD_SEGMENT << 4 ) + PXE_LOAD_OFFSET )
 
 unsigned long pxe_load_offset;
 
@@ -33,8 +28,9 @@ static inline os_download_t pxe_probe ( unsigned char *data __unused,
 }
 
 static sector_t pxe_download ( unsigned char *data,
-				    unsigned int len, int eof ) {
+			       unsigned int len, int eof ) {
 	unsigned long block_address = PXE_LOAD_ADDRESS + pxe_load_offset;
+	pxe_stack_t *pxe_stack = NULL;
 	PXENV_STATUS_t nbp_exit;
 
 	/* Check segment will fit.  We can't do this in probe()
@@ -56,16 +52,12 @@ static sector_t pxe_download ( unsigned char *data,
 
 	/* Start up PXE NBP */
 	done();
-	gateA20_unset();
 
-	/* PLACEHOLDER: need to set up PXE exported API here
-	 */
+	/* Install a PXE stack */
+	pxe_stack = install_pxe_stack ( NULL );
 
-	nbp_exit = xstartpxe ( PXE_LOAD_SEGMENT, PXE_LOAD_OFFSET,
-			       /* PLACEHOLDER: Pointer to !PXE struture */
-			       PXE_LOAD_SEGMENT, 0,
-			       /* PLACEHOLDER: Pointer to PXENV+ structure */
-			       PXE_LOAD_SEGMENT, 0 );
+	/* Invoke the NBP */
+	nbp_exit = xstartpxe ( pxe_stack );
 
 	/* NBP has three exit codes:
 	 *   PXENV_STATUS_KEEP_UNDI : keep UNDI and boot next device
@@ -79,8 +71,9 @@ static sector_t pxe_download ( unsigned char *data,
 	 */
 	if ( nbp_exit != PXENV_STATUS_KEEP_UNDI &&
 	     nbp_exit != PXENV_STATUS_KEEP_ALL ) {
-		/* PLACEHOLDER: tear down PXE export
-		 */
+		/* Tear down PXE stack */
+		remove_pxe_stack ( pxe_stack );
+		pxe_stack = NULL;
 	}
 
 	/* Boot next device.  Under strict PXE compliance, exit back
