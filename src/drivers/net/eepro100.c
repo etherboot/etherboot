@@ -35,6 +35,7 @@
  *              Jun 2  1997  V0.92  REW  Add some code documentation
  *              Jul 25 1997  V1.00  REW  Tested by AW to work in a PROM
  *                                       Cleanup for publication
+ *              Dez 11 2004  V1.10  Kiszka  Add RX ring buffer support
  *
  * This is the etherboot intel etherexpress Pro/100B driver.
  *
@@ -66,17 +67,20 @@
  * an issue here. We can boot a 400k kernel in about two
  * seconds. (Theory: 0.4 seconds). Booting a system is going to take
  * about half a minute anyway, so getting 10 times closer to the
- * theoretical limit is going to make a difference of a few percent.
- *
+ * theoretical limit is going to make a difference of a few percent. */
+/* Not totally true: busy networks can cause packet drops due to RX
+ * buffer overflows. Fixed in V1.10 of this driver. [Kiszka] */
+/*
  *
  * Transmitting and recieving.
  *
  * We have only one transmit descriptor. It has two buffer descriptors:
  * one for the header, and the other for the data.
- * We have only one receive buffer. The chip is told to recieve packets,
- * and suspend itself once it got one. The recieve (poll) routine simply
- * looks at the recieve buffer to see if there is already a packet there.
- * if there is, the buffer is copied, and the reciever is restarted.
+ * We have multiple receive buffers (currently: 4). The chip is told to
+ * receive packets and suspend itself once it ran on the last free buffer.
+ * The recieve (poll) routine simply looks at the current recieve buffer,
+ * picks the packet if any, and releases this buffer again (classic ring
+ * buffer concept). This helps to avoid packet drops on busy networks.
  *
  * Caveats:
  *
@@ -249,8 +253,9 @@ struct RxFD {               /* Receive frame descriptor. */
 	char packet[1518];
 };
 
-static struct RxFD rxfd;
-#define ACCESS(x) x.
+#define RXFD_COUNT 4
+static struct RxFD rxfds[RXFD_COUNT];
+static unsigned int rxfd = 0;
 
 static int congenb = 0;         /* Enable congestion control in the DP83840. */
 static int txfifo = 8;          /* Tx FIFO threshold in 4 byte units, 0-15 */
@@ -291,7 +296,7 @@ static int mdio_write(int phy_id, int location, int value)
 	     ioaddr + SCBCtrlMDI);
 	do {
 		udelay(16);
-		
+
 		val = inl(ioaddr + SCBCtrlMDI);
 		if (--boguscnt < 0) {
 			printf(" mdio_write() timed out with val = %X.\n", val);
@@ -312,7 +317,7 @@ static int mdio_read(int phy_id, int location)
 	outl(0x08000000 | (location<<16) | (phy_id<<21), ioaddr + SCBCtrlMDI);
 	do {
 		udelay(16);
-		
+
 		val = inl(ioaddr + SCBCtrlMDI);
 
 		if (--boguscnt < 0) {
@@ -454,26 +459,38 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 static void
 speedo_rx_soft_reset(void)
 {
-  wait_for_cmd_done(ioaddr + SCBCmd);
+	int i;
+
+
+#ifdef	DEBUG
+	printf("reset\n");
+#endif
+	wait_for_cmd_done(ioaddr + SCBCmd);
 	/*
-	* Put the hardware into a known state.
-	*/
+	 * Put the hardware into a known state.
+	 */
 	outb(RX_ABORT, ioaddr + SCBCmd);
 
-	ACCESS(rxfd)rx_buf_addr = 0xffffffff;
+	for (i = 0; i < RXFD_COUNT; i++) {
+		rxfds[i].status      = 0;
+		rxfds[i].rx_buf_addr = 0xffffffff;
+		rxfds[i].count       = 0;
+		rxfds[i].size        = 1528;
+	}
 
-  wait_for_cmd_done(ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
 
+	outl(virt_to_bus(&rxfds[rxfd]), ioaddr + SCBPointer);
 	outb(RX_START, ioaddr + SCBCmd);
 }
 
 /* function: eepro100_poll / eth_poll
- * This recieves a packet from the network.
+ * This receives a packet from the network.
  *
  * Arguments: none
  *
- * returns:   1 if a packet was recieved.
- *            0 if no pacet was recieved.
+ * returns:   1 if a packet was received.
+ *            0 if no packet was received.
  * side effects:
  *            returns the packet in the array nic->packet.
  *            returns the length of the packet in nic->packetlen.
@@ -481,51 +498,50 @@ speedo_rx_soft_reset(void)
 
 static int eepro100_poll(struct nic *nic, int retrieve)
 {
-  unsigned int status;
-  status = inw(ioaddr + SCBStatus);
+	if (rxfds[rxfd].status) {
+		if (!retrieve)
+			return 1;
+#ifdef	DEBUG
+		printf("Got a packet: Len = %d, rxfd = %d.\n",
+		       rxfds[rxfd].count & 0x3fff, rxfd);
+#endif
+		/* First save the data from the rxfd */
+		nic->packetlen = rxfds[rxfd].count & 0x3fff;
+		memcpy(nic->packet, rxfds[rxfd].packet, nic->packetlen);
 
-	if (!ACCESS(rxfd)status)
-		return 0;
-
-	/* There is a packet ready */
-	if ( ! retrieve ) return 1;
-
-  /*
-   * The chip may have suspended reception for various reasons.
-   * Check for that, and re-prime it should this be the case.
-   */
-  switch ((status >> 2) & 0xf) {
-  case 0: /* Idle */
-    break;
-  case 1:	/* Suspended */
-  case 2:	/* No resources (RxFDs) */
-  case 9:	/* Suspended with no more RBDs */
-  case 10: /* No resources due to no RBDs */
-  case 12: /* Ready with no RBDs */
-    speedo_rx_soft_reset();
-    break;
-  case 3:  case 5:  case 6:  case 7:  case 8:
-  case 11:  case 13:  case 14:  case 15:
-    /* these are all reserved values */
-    break;
-  }
-
-	/* Ok. We got a packet. Now restart the reciever.... */
-	ACCESS(rxfd)status = 0;
-	ACCESS(rxfd)command = 0xc000;
-	outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
-	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
-	wait_for_cmd_done(ioaddr + SCBCmd);
+		rxfds[rxfd].status      = 0;
+		rxfds[rxfd].command     = 0xc000;
+		rxfds[rxfd].rx_buf_addr = 0xFFFFFFFF;
+		rxfds[rxfd].count       = 0;
+		rxfds[rxfd].size        = 1528;
+		rxfds[(rxfd-1) % RXFD_COUNT].command = 0x0000;
+		rxfd = (rxfd+1) % RXFD_COUNT;
 
 #ifdef	DEBUG
-	printf ("Got a packet: Len = %d.\n", ACCESS(rxfd)count & 0x3fff);
+		hd (nic->packet, 0x30);
 #endif
-	nic->packetlen =  ACCESS(rxfd)count & 0x3fff;
-	memcpy (nic->packet, ACCESS(rxfd)packet, nic->packetlen);
-#ifdef	DEBUG
-	hd (nic->packet, 0x30);
-#endif
-	return 1;
+		return 1;
+	}
+
+	/*
+	 * The chip may have suspended reception for various reasons.
+	 * Check for that, and re-prime it should this be the case.
+	 */
+	switch ((inw(ioaddr + SCBStatus) >> 2) & 0xf) {
+		case 0:  /* Idle */
+			break;
+		case 1:  /* Suspended */
+		case 2:  /* No resources (RxFDs) */
+		case 9:  /* Suspended with no more RBDs */
+		case 10: /* No resources due to no RBDs */
+		case 12: /* Ready with no RBDs */
+			speedo_rx_soft_reset();
+			break;
+		default:
+			/* reserved values */
+			break;
+	}
+	return 0;
 }
 
 /* function: eepro100_disable
@@ -634,24 +650,24 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	whereami ("set stats addr.");
 
 	/* INIT RX stuff. */
-	ACCESS(rxfd)status  = 0x0001;
-	ACCESS(rxfd)command = 0x0000;
-	ACCESS(rxfd)link    = virt_to_bus(&(ACCESS(rxfd)status));
-	ACCESS(rxfd)rx_buf_addr = virt_to_bus(&nic->packet);
-	ACCESS(rxfd)count   = 0;
-	ACCESS(rxfd)size    = 1528;
+	for (i = 0; i < RXFD_COUNT; i++) {
+		rxfds[i].status      = 0x0000;
+		rxfds[i].command     = 0x0000;
+		rxfds[i].rx_buf_addr = 0xFFFFFFFF;
+		rxfds[i].count       = 0;
+		rxfds[i].size        = 1528;
+		rxfds[i].link        = virt_to_bus(&rxfds[i+1]);
+	}
 
-	outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
+	rxfds[RXFD_COUNT-1].status  = 0x0000;
+	rxfds[RXFD_COUNT-1].command = 0xC000;
+	rxfds[RXFD_COUNT-1].link    = virt_to_bus(&rxfds[0]);
+
+	outl(virt_to_bus(&rxfds[0]), ioaddr + SCBPointer);
 	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
 
 	whereami ("started RX process.");
-
-	/* Start the reciever.... */
-	ACCESS(rxfd)status = 0;
-	ACCESS(rxfd)command = 0xc000;
-	outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
-	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
 
 	/* INIT TX stuff. */
 
@@ -668,7 +684,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 
 	{
 		char *t = (char *)&txfd.tx_desc_addr;
-		
+
 		for (i=0;i<ETH_ALEN;i++)
 			t[i] = nic->node_addr[i];
 	}
