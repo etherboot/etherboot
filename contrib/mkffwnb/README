@@ -7,6 +7,8 @@ to the maximum of 1.44 MB of the physical floppy. If you have enough RAM
 and use a virtual floppy to build the initial boot image, you can put as
 much on it as will fit the ramdisk.
 
+See further down under -nonet if you want to boot from HD or CDROM.
+
 This program requires mtools, tar, bzip2, loopback mount in the kernel,
 and root privileges to execute. Hope you have them.
 
@@ -44,8 +46,15 @@ You can also provide a floppy drive as an argument, e.g.
 	mkffwnb x:
 
 where x: could be mapped to a disk file. This allows you to build an
-image without a real floppy drive. Remember for virtual drives that root
+image without a real floppy drive. Remember that for virtual drives root
 must have the mapping for the drive in question in ~root/.mtoolsrc.
+
+If you use the option -nonet, it leaves the intermediate files in
+$tempdir, /tmp/mkffwnb by default. This is useful if you want the
+vmlinuz and initrd.gz files for use with LILO or isolinux to boot from
+HD or CDROM. Actually you can also use these with a floppy, it loads
+faster if you combine all the scripts and modules into the initrd ahead
+of time.
 
 mkffwnb has to be run as root because it uses loopback mounts and also
 because the files inside the initrd are owned by root.
@@ -53,9 +62,5 @@ because the files inside the initrd are owned by root.
 2001-04-22: Bug fix: Previously didn't use the arguments from
 syslinux.cfg and thus missed configuring eth1. It now does.
 
-One bug is that it leaves the working files in /tmp/mkffwnb/. I could do
-a chdir('/'); system("rm -fr $tempdir"); at the end but I'm nervous
-about that in case $tempdir becomes / through a program bug.
-
 Ken Yap
-2001-04-22
+2001-05-22

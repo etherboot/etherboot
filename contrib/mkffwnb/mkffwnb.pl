@@ -5,6 +5,9 @@
 # the necessary config files into the initrd
 # and then make a bootable image out of it
 #
+# The --format= option overrides the default of nbi or elf hardcoded
+# in the source. Valid arguments are nbi or elf.
+#
 # The --output= options specifies an output file instead of stdout
 # The -nonet option specifies that a netbootable image is not to
 # be built but the vmlinuz and initrd.gz files left behind in $tempdir
@@ -119,7 +122,8 @@ sub bunzip2untar ($$) {
 $testing = $< != 0;
 $verbose = 1;
 GetOptions('output=s' => \$output,
-	'nonet!' => \$nonet);
+	'nonet!' => \$nonet,
+	'format=s' => \$format);
 if (defined($output) and $output !~ m(^/)) {
 	my $d = `pwd`;
 	chomp($d);
@@ -127,7 +131,8 @@ if (defined($output) and $output !~ m(^/)) {
 }
 $libdir = '/usr/local/lib/mkffwnb';
 $tftpdir = '/tftpdir';
-$format = 'nbi';	# can also be 'elf'
+# default can also be 'elf'
+$format = 'nbi' if ($format ne 'elf' and $format ne 'nbi');
 $floppy = $#ARGV >= 0 ? $ARGV[0] : 'a:';
 print <<EOF;
 This program requires mtools, tar, bzip2, loopback mount in the kernel,
@@ -141,7 +146,7 @@ $append = "--append='$append'" if $append ne '';
 print "$append\n";
 $libdir .= '/' . $version;
 -d $libdir or die "Cannot find files for $version\n";
-$tempdir = '/tmp/mkffwnb';
+$tempdir = $nonet ? '/tmp/mkffwnb' : "/tmp/mkffwnb$$";
 $tempmount = 'tmpmount';
 mkdir($tempdir, 0755);
 chdir($tempdir);
@@ -180,5 +185,5 @@ if ($nonet) {
 	print "Calling mk$format-linux to make the netbootable image\n" if ($verbose);
 	$output = "$tftpdir/floppyfw-$version.nb" if (!defined($output));
 	system("mk$format-linux $append --output=$output vmlinuz initrd.gz");
-	print "Please clean up by removing $tempdir\n";
+	system("rm -fr $tempdir");
 }
