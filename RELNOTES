@@ -1,4 +1,7 @@
-Etherboot 5.1.2
+Etherboot 5.1.3
+
+Lots of changes by Eric Biederman. May have breakage. Please test,
+especially for the PCBIOS targets.
 
 Major rework by Eric Biederman to include multicast support.
 
