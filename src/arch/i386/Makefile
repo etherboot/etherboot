@@ -32,6 +32,7 @@ SRCS+=	arch/i386/core/i386_timer.c
 SRCS+=	arch/i386/core/elf.c
 SRCS+=	arch/i386/core/cpu.c
 SRCS+=	arch/i386/core/video_subr.c
+SRCS+=	arch/i386/core/pic8259.c
 
 # ROM loaders: PCI header version (prefix P)
 RLOADER=	$(BIN)/rloader.bin
