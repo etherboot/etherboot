@@ -882,8 +882,11 @@ typedef enum {
 typedef struct {
 	pxe_t		pxe	__attribute__ ((aligned(16)));
 	pxenv_t		pxenv	__attribute__ ((aligned(16)));
-	BOOTPLAYER	cached_info;
 	pxe_stack_state_t state;
+	union {
+		BOOTPLAYER	cached_info;
+		char		packet[ETH_FRAME_LEN];
+	};
 	struct {}	arch_data __attribute__ ((aligned(16)));
 } pxe_stack_t;
 
