@@ -925,20 +925,14 @@ static struct isa_driver ne_driver __isa_driver = {
 
 #ifdef	INCLUDE_NS8390
 static struct pci_id nepci_nics[] = {
-	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8029,
-		"Realtek 8029" },
-	{ PCI_VENDOR_ID_DLINK,		0x0300,
-		"DE-528" },
-	{ PCI_VENDOR_ID_WINBOND2,	PCI_DEVICE_ID_WINBOND2_89C940,
-		"Winbond NE2000-PCI" },
-	{ PCI_VENDOR_ID_COMPEX,		PCI_DEVICE_ID_COMPEX_RL2000,
-		"Compex ReadyLink 2000" },
-	{ PCI_VENDOR_ID_KTI,		PCI_DEVICE_ID_KTI_ET32P2,
-		"KTI ET32P2" },
-	{ PCI_VENDOR_ID_NETVIN,		PCI_DEVICE_ID_NETVIN_NV5000SC,
-		"NetVin NV5000SC" },
-	{ PCI_VENDOR_ID_HOLTEK,		PCI_DEVICE_ID_HOLTEK_HT80232,
-		"Holtek HT80232" },
+/* A few NE2000 PCI clones, list not exhaustive */
+PCI_ROM(0x10ec, 0x8029, "rtl8029",      "Realtek 8029"),
+PCI_ROM(0x1186, 0x0300, "dlink-528",    "D-Link DE-528"),
+PCI_ROM(0x1050, 0x0940, "winbond940",   "Winbond NE2000-PCI"),		/* Winbond 86C940 */
+PCI_ROM(0x11f6, 0x1401, "compexrl2000", "Compex ReadyLink 2000"),
+PCI_ROM(0x8e2e, 0x3000, "ktiet32p2",    "KTI ET32P2"),
+PCI_ROM(0x4a14, 0x5000, "nv5000sc",     "NetVin NV5000SC"),
+PCI_ROM(0x12c3, 0x0058, "holtek80232",  "Holtek HT80232"),
 };
 
 static struct pci_driver nepci_driver __pci_driver = {
@@ -947,6 +941,7 @@ static struct pci_driver nepci_driver __pci_driver = {
 	.probe    = nepci_probe,
 	.ids      = nepci_nics,
 	.id_count = sizeof(nepci_nics)/sizeof(nepci_nics[0]),
+	.class    = 0,
 };
 
 #endif /* INCLUDE_NS8390 */

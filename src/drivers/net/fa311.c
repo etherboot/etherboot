@@ -431,8 +431,7 @@ static void init_ring(struct FA311_DEV *dev)
 }
 
 static struct pci_id fa311_nics[] = {
-       { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
-         "DP83815" },
+PCI_ROM(0x100b, 0x0020, "fa311too", "DP83815"),
 };
 
 static struct pci_driver fa311_driver __pci_driver = {
@@ -441,4 +440,5 @@ static struct pci_driver fa311_driver __pci_driver = {
 	.probe    = fa311_probe,
 	.ids      = fa311_nics,
 	.id_count = sizeof(fa311_nics)/sizeof(fa311_nics[0]),
+	.class    = 0,
 };

@@ -739,8 +739,7 @@ natsemi_disable(struct dev *dev)
 }
 
 static struct pci_id natsemi_nics[] = {
-       { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
-         "DP83815" },
+PCI_ROM(0x100b, 0x0020, "dp83815", "DP83815"),
 };
 
 static struct pci_driver natsemi_driver __pci_driver = {
@@ -749,4 +748,5 @@ static struct pci_driver natsemi_driver __pci_driver = {
 	.probe    = natsemi_probe,
 	.ids      = natsemi_nics,
 	.id_count = sizeof(natsemi_nics)/sizeof(natsemi_nics[0]),
+	.class    = 0,
 };

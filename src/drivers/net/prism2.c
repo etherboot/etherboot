@@ -926,8 +926,7 @@ static int prism2_find_pci ( hfa384x_t *hw, struct pci_device *p )
 
 #if (WLAN_HOSTIF == WLAN_PLX)
 static struct pci_id prism2_plx_nics[] = {
-	{ PCI_VENDOR_ID_NETGEAR,	PCI_DEVICE_ID_NETGEAR_MA301,
-	  "Netgear MA301" },
+PCI_ROM(0x1385, 0x4100, "ma301", "Netgear MA301"),
 };
 
 static struct pci_driver prism2_plx_driver __pci_driver = {
@@ -936,14 +935,14 @@ static struct pci_driver prism2_plx_driver __pci_driver = {
 	.probe    = prism2_plx_probe,
 	.ids      = prism2_plx_nics,
 	.id_count = sizeof(prism2_plx_nics)/sizeof(prism2_plx_nics[0]),
+	.class    = 0,
 };
 #endif /* WLAN_PLX */
 
 
 #if (WLAN_HOSTIF == WLAN_PCI)
 static struct pci_id prism2_pci_nics[] = {
-	{ PCI_VENDOR_ID_HARRIS,		PCI_DEVICE_ID_HARRIS_PRISM2,
-	  "Harris Semiconductor Prism2.5 clone" },
+PCI_ROM(0x1260, 0x3873, "prism2_pci", "Harris Semiconductor Prism2.5 clone"),	/* Generic Prism2.5 PCI device */
 };
 
 static struct pci_driver prism2_pci_driver __pci_driver = {
@@ -952,5 +951,6 @@ static struct pci_driver prism2_pci_driver __pci_driver = {
 	.probe    = prism2_pci_probe,
 	.ids      = prism2_pci_nics,
 	.id_count = sizeof(prism2_pci_nics)/sizeof(prism2_pci_nics[0]),
+	.class    = 0,
 };
 #endif /* WLAN_PCI */

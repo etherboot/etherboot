@@ -1172,14 +1172,10 @@ rhine_transmit (struct nic *nic,
 }
 
 static struct pci_id rhine_nics[] = {
-	{ PCI_VENDOR_ID_VIATEC, PCI_DEVICE_ID_VIA_VT6102,
-		"VIA 6102" },
-	{ PCI_VENDOR_ID_VIATEC, PCI_DEVICE_ID_VIA_VT6105,
-		"VIA 6105" },
-	{ PCI_VENDOR_ID_VIATEC,	PCI_DEVICE_ID_VIA_RHINE_I,
-		"VIA 3043" },
-	{ PCI_VENDOR_ID_VIATEC,	PCI_DEVICE_ID_VIA_86C100A,
-		"VIA 86C100A" },
+PCI_ROM(0x1106, 0x3065, "dlink-530tx",     "VIA 6102"),
+PCI_ROM(0x1106, 0x3106, "via-rhine-6105",  "VIA 6105"),
+PCI_ROM(0x1106, 0x3043, "dlink-530tx-old", "VIA 3043"),		/* Rhine-I */
+PCI_ROM(0x1106, 0x6100, "via-rhine-old",   "VIA 86C100A"),	/* Rhine-II */
 };
 
 static struct pci_driver rhine_driver __pci_driver = {
@@ -1188,6 +1184,7 @@ static struct pci_driver rhine_driver __pci_driver = {
 	.probe    = rhine_probe,
 	.ids      = rhine_nics,
 	.id_count = sizeof(rhine_nics)/sizeof(rhine_nics[0]),
+	.class    = 0,
 };
 
 /* EOF via-rhine.c */

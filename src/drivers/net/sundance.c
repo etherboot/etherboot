@@ -822,10 +822,8 @@ static void set_rx_mode(struct nic *nic)
 }
 
 static struct pci_id sundance_nics[] = {
-    {PCI_VENDOR_ID_SUNDANCE, PCI_DEVICE_ID_SUNDANCE_ALTA,
-     "S201 Sundance 'Alta' based Adaptor"},
-    {PCI_VENDOR_ID_DLINK, PCI_DEVICE_ID_DFE530TXS,
-     "D-Link DFE530TXS (Sundance ST201 Alta)"},
+PCI_ROM(0x13f0, 0x0201, "sundance",  "ST201 Sundance 'Alta' based Adaptor"),
+PCI_ROM(0x1186, 0x1002, "dfe530txs", "D-Link DFE530TXS (Sundance ST201 Alta)"),
 };
 
 static struct pci_driver sundance_driver __pci_driver = {
@@ -834,4 +832,5 @@ static struct pci_driver sundance_driver __pci_driver = {
     .probe = sundance_probe,
     .ids = sundance_nics,
     .id_count = sizeof(sundance_nics) / sizeof(sundance_nics[0]),
+    .class    = 0,
 };

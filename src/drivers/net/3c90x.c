@@ -932,39 +932,25 @@ static int a3c90x_probe(struct dev *dev, struct pci_device *pci)
 
 
 static struct pci_id a3c90x_nics[] = {
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900TPO,
-		"3Com900-TPO" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900COMBO,
-		"3Com900-Combo" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905TX,
-		"3Com905-TX" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905T4,
-		"3Com905-T4" },
-
-	{ PCI_VENDOR_ID_3COM,		0x9004,
-		"3Com900B-TPO" },
-	{ PCI_VENDOR_ID_3COM,		0x9005,
-		"3Com900B-Combo" },
-	{ PCI_VENDOR_ID_3COM,		0x9006,
-		"3Com900B-2/T" },
-	{ PCI_VENDOR_ID_3COM,		0x900A,
-		"3Com900B-FL" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905B_TX,
-		"3Com905B-TX" },
-	{ PCI_VENDOR_ID_3COM,		0x9056,
-		"3Com905B-T4"},
-	{ PCI_VENDOR_ID_3COM,		0x9058,
-		"3Com905B-9058"},
-	{ PCI_VENDOR_ID_3COM,		0x905A,
-		"3Com905B-FL" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C905C_TXM,
-		"3Com905C-TXM" },
-	{ PCI_VENDOR_ID_3COM,		0x9800,
-		"3Com980-Cyclone" },
-	{ PCI_VENDOR_ID_3COM,		0x9805,
-		"3Com9805" },
-	{ PCI_VENDOR_ID_3COM,		0x7646,
-		"3CSOHO100-TX" },
+/* Original 90x revisions: */
+PCI_ROM(0x10b7, 0x9000, "3c905-tpo",     "3Com900-TPO"),	/* 10 Base TPO */
+PCI_ROM(0x10b7, 0x9001, "3c905-t4",      "3Com900-Combo"),	/* 10/100 T4 */
+PCI_ROM(0x10b7, 0x9050, "3c905-tpo100",  "3Com905-TX"),		/* 10/100 TPO */
+PCI_ROM(0x10b7, 0x9051, "3c905-combo",   "3Com905-T4"),		/* 10 Base Combo */
+/* Newer 90xB revisions: */
+PCI_ROM(0x10b7, 0x9004, "3c905b-tpo",    "3Com900B-TPO"),	/* 10 Base TPO */
+PCI_ROM(0x10b7, 0x9005, "3c905b-combo",  "3Com900B-Combo"),	/* 10 Base Combo */
+PCI_ROM(0x10b7, 0x9006, "3c905b-tpb2",   "3Com900B-2/T"),	/* 10 Base TP and Base2 */
+PCI_ROM(0x10b7, 0x900A, "3c905b-fl",     "3Com900B-FL"),	/* 10 Base FL */
+PCI_ROM(0x10b7, 0x9055, "3c905b-tpo100", "3Com905B-TX"),	/* 10/100 TPO */
+PCI_ROM(0x10b7, 0x9056, "3c905b-t4",     "3Com905B-T4"),	/* 10/100 T4 */
+PCI_ROM(0x10b7, 0x9058, "3c905b-9058",   "3Com905B-9058"),
+PCI_ROM(0x10b7, 0x905A, "3c905b-fx",     "3Com905B-FL"),	/* 10 Base FX */
+/* Newer 90xC revision: */
+PCI_ROM(0x10b7, 0x9200, "3c905c-tpo",    "3Com905C-TXM"),	/* 10/100 TPO (3C905C-TXM) */
+PCI_ROM(0x10b7, 0x9800, "3c980",         "3Com980-Cyclone"),
+PCI_ROM(0x10b7, 0x9805, "3c9805",        "3Com9805"),
+PCI_ROM(0x10b7, 0x7646, "3csoho100-tx",  "3CSOHO100-TX"),
 };
 
 static struct pci_driver a3c90x_driver __pci_driver = {
@@ -973,4 +959,5 @@ static struct pci_driver a3c90x_driver __pci_driver = {
 	.probe    = a3c90x_probe,
 	.ids      = a3c90x_nics,
 	.id_count = sizeof(a3c90x_nics)/sizeof(a3c90x_nics[0]),
+	.class    = 0,
 };

@@ -500,32 +500,19 @@ static int t595_probe(struct dev *dev, struct pci_device *pci)
 }
 
 static struct pci_id t595_nics[] = {
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C590,
-		"3Com590" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595,
-		"3Com595" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595_1,
-		"3Com595" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C595_2,
-		"3Com595" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900TPO,
-		"3Com900-TPO" },
-	{ PCI_VENDOR_ID_3COM,		PCI_DEVICE_ID_3COM_3C900COMBO,
-		"3Com900-Combo" },
-	{ PCI_VENDOR_ID_3COM,		0x9004,
-		"3Com900B-TPO" },
-	{ PCI_VENDOR_ID_3COM,		0x9005,
-		"3Com900B-Combo" },
-	{ PCI_VENDOR_ID_3COM,		0x9006,
-		"3Com900B-2/T" },
-	{ PCI_VENDOR_ID_3COM,		0x900A,
-		"3Com900B-FL" },
-	{ PCI_VENDOR_ID_3COM,		0x9800,
-		"3Com980-Cyclone" },
-	{ PCI_VENDOR_ID_3COM,		0x9805,
-		"3Com9805" },
-	{ PCI_VENDOR_ID_3COM,		0x7646,
-		"3CSOHO100-TX" },
+PCI_ROM(0x10b7, 0x5900, "3c590",           "3Com590"),
+PCI_ROM(0x10b7, 0x5950, "3c595",           "3Com595"),
+PCI_ROM(0x10b7, 0x5951, "3c595-1",         "3Com595"),
+PCI_ROM(0x10b7, 0x5952, "3c595-2",         "3Com595"),
+PCI_ROM(0x10b7, 0x9000, "3c900-tpo",       "3Com900-TPO"),	/* 10 Base TPO */
+PCI_ROM(0x10b7, 0x9001, "3c900-t4",        "3Com900-Combo"),	/* 10/100 T4 */
+PCI_ROM(0x10b7, 0x9004, "3c900b-tpo",      "3Com900B-TPO"),	/* 10 Base TPO */
+PCI_ROM(0x10b7, 0x9005, "3c900b-combo",    "3Com900B-Combo"),	/* 10 Base Combo */
+PCI_ROM(0x10b7, 0x9006, "3c900b-tpb2",     "3Com900B-2/T"),	/* 10 Base TP and Base2 */
+PCI_ROM(0x10b7, 0x900A, "3c900b-fl",       "3Com900B-FL"),	/* 10 Base F */
+PCI_ROM(0x10b7, 0x9800, "3c980-cyclone-1", "3Com980-Cyclone"),
+PCI_ROM(0x10b7, 0x9805, "3c9805-1",        "3Com9805"),
+PCI_ROM(0x10b7, 0x7646, "3csoho100-tx-1",  "3CSOHO100-TX"),
 };
 
 static struct pci_driver t595_driver __pci_driver = {
@@ -534,6 +521,7 @@ static struct pci_driver t595_driver __pci_driver = {
 	.probe    = t595_probe,
 	.ids      = t595_nics,
 	.id_count = sizeof(t595_nics)/sizeof(t595_nics[0]),
+	.class    = 0,
 };
 
 /*

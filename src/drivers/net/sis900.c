@@ -1161,10 +1161,8 @@ sis900_disable(struct dev *dev)
 }
 
 static struct pci_id sis900_nics[] = {
-       { PCI_VENDOR_ID_SIS,     	PCI_DEVICE_ID_SIS900,
-         "SIS900" },
-       { PCI_VENDOR_ID_SIS,     	PCI_DEVICE_ID_SIS7016,
-	 "SIS7016" },
+PCI_ROM(0x1039, 0x0900, "sis900",  "SIS900"),
+PCI_ROM(0x1039, 0x7016, "sis7016", "SIS7016"),
 };
 
 static struct pci_driver sis900_driver __pci_driver = {

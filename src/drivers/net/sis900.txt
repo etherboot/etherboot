@@ -74,14 +74,14 @@ extern struct nic	*sis900_probe(struct nic *, unsigned short *
 ***********************************************************************
 
 At this point, you can begin creating your driver source file.  See
-the "Writing and Etherboot Driver" section of the Etherboot
+the "Writing an Etherboot Driver" section of the Etherboot
 documentation for some hints.  See the skel.c file for a starting
 point.  If there is a Linux driver for the card, you may be able to
 use that.  Copy and learn from existing Etherboot drivers (this is GPL
 / Open Source software!).
 
 Join the etherboot-developers and etherboot-users mailing lists
-(information is on etherboot.sourceforge.net) for information and
+(information is on http://etherboot.sourceforge.net) for information and
 assistance. We invite more developers to help improve Etherboot.
 
 Visit the http://etherboot.sourceforge.net, http://thinguin.org, 

@@ -930,10 +930,8 @@ static void init_ring(void)
 
 
 static struct pci_id w89c840_nics[] = {
-	{ PCI_VENDOR_ID_WINBOND2,	PCI_DEVICE_ID_WINBOND2_89C840,
-		"Winbond W89C840F" },
-	{ PCI_VENDOR_ID_COMPEX,	PCI_DEVICE_ID_COMPEX_RL100ATX,
-		"Compex RL100ATX" },
+PCI_ROM(0x1050, 0x0840, "winbond840",     "Winbond W89C840F"),
+PCI_ROM(0x11f6, 0x2011, "compexrl100atx", "Compex RL100ATX"),
 };
 
 static struct pci_driver w89c840_driver __pci_driver = {
@@ -942,4 +940,5 @@ static struct pci_driver w89c840_driver __pci_driver = {
 	.probe    = w89c840_probe,
 	.ids      = w89c840_nics,
 	.id_count = sizeof(w89c840_nics)/sizeof(w89c840_nics[0]),
+	.class    = 0,
 };

@@ -459,14 +459,12 @@ static void rtl_disable(struct dev *dev)
 }
 
 static struct pci_id rtl8139_nics[] = {
-	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8129,
-		"Realtek 8129" },
-	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8139,
-		"Realtek 8139" },
-	{ PCI_VENDOR_ID_DLINK,		PCI_DEVICE_ID_DFE530TXP,
-                "DFE530TX+/DFE538TX" },
-        { PCI_VENDOR_ID_SMC2,		PCI_DEVICE_ID_SMC2_1211,
-                "SMC EZ10/100" },
+PCI_ROM(0x10ec, 0x8129, "rtl8129",       "Realtek 8129"),
+PCI_ROM(0x10ec, 0x8139, "rtl8139",       "Realtek 8139"),
+PCI_ROM(0x1186, 0x1300, "dfe538",        "DFE530TX+/DFE538TX"),
+PCI_ROM(0x1113, 0x1211, "smc1211-1",     "SMC EZ10/100"),
+PCI_ROM(0x1112, 0x1211, "smc1211",       "SMC EZ10/100"),
+PCI_ROM(0xffff, 0x8139, "clone-rtl8139", "Cloned 8139"),
 };
 
 static struct pci_driver rtl8139_driver __pci_driver = {
@@ -475,4 +473,5 @@ static struct pci_driver rtl8139_driver __pci_driver = {
 	.probe    = rtl8139_probe,
 	.ids      = rtl8139_nics,
 	.id_count = sizeof(rtl8139_nics)/sizeof(rtl8139_nics[0]),
+	.class    = 0,
 };

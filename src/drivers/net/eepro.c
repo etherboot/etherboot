@@ -341,7 +341,9 @@ POLL - Wait for a frame
 ***************************************************************************/
 static int eepro_poll(struct nic *nic)
 {
+#if	0
 	int		i;
+#endif
 	unsigned int	rcv_car = virt_to_bus(rx_start);
 	unsigned int	rcv_event, rcv_status, rcv_next_frame, rcv_size;
 

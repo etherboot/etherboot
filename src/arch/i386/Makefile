@@ -247,11 +247,11 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	cat $(COMPREFIX) $< > $@
 
 # rules to generate a pxe loadable image
-%.pxe:	%.img $(PXEPREFIX)
-	cat $(PXEPREFIX) $< > $@
+%.pxe:	%.img $(PXEPREFIX) $(START16)
+	cat $(PXEPREFIX) $(START16) $< > $@
 
-%.zpxe:	%.zimg $(PXEPREFIX)
-	cat $(PXEPREFIX) $< > $@
+%.zpxe:	%.zimg $(PXEPREFIX) $(START16)
+	cat $(PXEPREFIX) $(START16) $< > $@
 
 # You must give the directory name, e.g. use $(BIN)/rtl8139.dsk as the target.
 %.dsk:	%.rom $(DISKLOADER) 
@@ -261,8 +261,8 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	cat $(DISKLOADER) $< | dd ibs=36k conv=sync > $@
 
 # rules to make a LILO-bootable image
-%.lilo:		%.img $(LILOPREFIX)
-	cat $(LILOPREFIX) $< | dd ibs=64k conv=sync > $@
+%.lilo:		%.img $(LILOPREFIX) $(START16)
+	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync > $@
 
-%.zlilo:	%.zimg $(LILOPREFIX)
-	cat $(LILOPREFIX) $< | dd ibs=64k conv=sync > $@
+%.zlilo:	%.zimg $(LILOPREFIX) $(START16)
+	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync > $@

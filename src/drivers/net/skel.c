@@ -93,6 +93,7 @@ static struct pci_driver skel_driver __pci_driver = {
 	.probe    = skel_probe,
 	.ids      = skel_nics,
 	.id_count = sizeof(skel_nics)/sizeof(skel_nics[0]),
+	.class    = 0,
 };
 
 /**************************************************************************

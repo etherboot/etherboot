@@ -687,10 +687,8 @@ static int davicom_probe(struct dev *dev, struct pci_device *pci)
 }
 
 static struct pci_id davicom_nics[] = {
-	{ PCI_VENDOR_ID_DAVICOM, PCI_DEVICE_ID_DM9102,
-		"Davicom 9102" },
-	{ PCI_VENDOR_ID_DAVICOM, PCI_DEVICE_ID_DM9009,
-		"Davicom 9009" },
+PCI_ROM(0x1282, 0x9102, "davicom9102", "Davicom 9102"),
+PCI_ROM(0x1282, 0x9009, "davicom9009", "Davicom 9009"),
 };
 
 static struct pci_driver davicom_driver __pci_driver = {
@@ -699,4 +697,5 @@ static struct pci_driver davicom_driver __pci_driver = {
 	.probe    = davicom_probe,
 	.ids      = davicom_nics,
 	.id_count = sizeof(davicom_nics)/sizeof(davicom_nics[0]),
+	.class    = 0,
 };
