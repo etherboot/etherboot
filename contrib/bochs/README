@@ -18,43 +18,33 @@ To get bochs running is fairly simple:
     a)  cvs -d:pserver:anonymous:@cvs.sourceforge.net:/cvsroot/bochs login
     b)  cvs -d:pserver:anonymous:@cvs.sourceforge.net:/cvsroot/bochs co bochs
 
-2.  Add in the PNIC device code for Bochs:
-    a) Copy ../../src/drivers/net/pnic_api.h, ./pcipnic.h and ./pcipnic.cc
-       to the iodev/ directory within your Bochs source checkout.
-    b) Apply ./bochs-pcipnic.patch:
-         patch -d /path/to/bochs/source/tree < ./bochs-pcipnic.patch
-
-3.  Run autoconf to pick up the patches to configure.in:
-      cd /path/to/bochs/source/tree
-      autoconf
-
-4.  Configure bochs with
+2.  Configure bochs with
       ./configure --enable-all-optimisations --enable-pci \
 	 	 --enable-ne2000 --enable-pnic
     (You may also wish to add --prefix=/usr, to force the use of
     standard file locations).
 
-5.  Build bochs:
+3.  Build bochs:
       make
 
-6.  Configure Etherboot with CONFIG_PCI_DIRECT: add the line
+4.  Configure Etherboot with CONFIG_PCI_DIRECT: add the line
       CFLAGS += -DCONFIG_PCI_DIRECT
     to the end of src/arch/i386/Config.
 
-7.  Build bin/pnic.zrom:
+5.  Build bin/pnic.zrom:
       make bin/pnic.zrom
 
-8.  Load the TUN/TAP kernel module:
+6.  Load the TUN/TAP kernel module:
       modprobe tun
     You should see the device /dev/net/tun is created automatically if
     you're using devfs, otherwise you may have to create it by hand with:
       mknod /dev/net/tun c 10 200
 
-9.  Grant yourself write access to /dev/net/tun:
+7.  Grant yourself write access to /dev/net/tun:
       su -c 'chown <your user id> /dev/net/tun'
     The alternative to this is to run Bochs as root.  Don't do that.
 
-10. Add the following fragment to /etc/dhcpd.conf:
+8.  Add the following fragment to /etc/dhcpd.conf:
       subnet 10.254.254.0 netmask 255.255.255.252 {
         range dynamic-bootp 10.254.254.1 10.254.254.1;
       }
@@ -64,15 +54,15 @@ To get bochs running is fairly simple:
     machine you are using for running Bochs.  If not, then you're on
     your own.
 
-11. Change back to this directory and run bochs from your Bochs source tree:
+9.  Change back to this directory and run bochs from your Bochs source tree:
       cd /path/to/Etherboot/contrib/bochs
       /path/to/bochs/source/tree/bochs
 
-12. Select option 5 (Begin simulation).  You will be prompted for your
+10. Select option 5 (Begin simulation).  You will be prompted for your
     root password.  This is required in order to configure the tun1
     network interface and to restart the DHCP server.
 
-13. You should see Bochs start up and attempt to boot from the network,
+11. You should see Bochs start up and attempt to boot from the network,
     with a screen that looks like:
 
 VGA BIOS - Version 2.40
