@@ -31,7 +31,7 @@
  *					Re-wrote poll and transmit for
  *					better error recovery and heavy
  *					network traffic operation
- * v2.01    5-26-2993 NN Fixed driver alignment issue which
+ * v2.01    5-26-2003 NN Fixed driver alignment issue which
  *                  caused system lockups if driver structures
  *                  not 8-byte aligned.
  *
@@ -959,10 +959,13 @@ PCI_ROM(0x10b7, 0x9058, "3c905b-9058",   "3Com905B-9058"),	/* Cyclone 10/100/BNC
 PCI_ROM(0x10b7, 0x905a, "3c905b-fx",     "3Com905B-FL"),	/* 100 Base FX / 10 Base FX */
 /* Newer 90xC revision: */
 PCI_ROM(0x10b7, 0x9200, "3c905c-tpo",    "3Com905C-TXM"),	/* 10/100 TPO (3C905C-TXM) */
+PCI_ROM(0x10b7, 0x9210, "3c920b-emb-wnm","3Com20B-EMB WNM"),
 PCI_ROM(0x10b7, 0x9800, "3c980",         "3Com980-Cyclone"),	/* Cyclone */
 PCI_ROM(0x10b7, 0x9805, "3c9805",        "3Com9805"),		/* Dual Port Server Cyclone */
 PCI_ROM(0x10b7, 0x7646, "3csoho100-tx",  "3CSOHO100-TX"),	/* Hurricane */
 PCI_ROM(0x10b7, 0x4500, "3c450",         "3Com450 HomePNA Tornado"),
+PCI_ROM(0x10b7, 0x1201, "3c982a",        "3Com982A"),
+PCI_ROM(0x10b7, 0x1202, "3c982b",        "3Com982B"),
 };
 
 static struct pci_driver a3c90x_driver __pci_driver = {
