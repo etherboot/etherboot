@@ -492,11 +492,12 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 	}
 	/* Now verify the segments we are about to load */
 	loc = 512;
-	for(sh = (struct segheader *)data; 
+	for(sh = (struct segheader *)(data
+				      + ((tctx.img.length & 0x0F) << 2)
+				      + ((tctx.img.length & 0xF0) >> 2) ); 
 		(sh->length > 0) && ((unsigned char *)sh < data + 512); 
-		sh = phys_to_virt(virt_to_phys(sh) + 
-			((sh->length & 0x0f) << 2) +
-			((sh->length & 0xf0) >> 2))) {
+		sh = (struct segheader *)((unsigned char *)sh
+					  + ((sh->length & 0x0f) << 2) + ((sh->length & 0xf0) >> 2)) ) {
 		if (!prep_segment(
 			sh->loadaddr,
 			sh->loadaddr + sh->imglength,
