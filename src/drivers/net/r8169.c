@@ -826,7 +826,7 @@ r8169_probe (struct dev *dev, struct pci_device *pci)
 }
 
 static struct pci_id r8169_nics[] = {
-  PCI_ROM (0x10ec, 0x8169, "r8169", "RealTek RTL8169 Gigabit Ethernet"),
+  PCI_ROM(0x10ec, 0x8169, "r8169", "RealTek RTL8169 Gigabit Ethernet"),
 };
 
 static struct pci_driver r8169_driver __pci_driver = {

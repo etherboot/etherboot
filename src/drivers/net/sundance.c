@@ -22,7 +22,7 @@
 *               Written 1999-2002 by Donald Becker
 *
 *               tulip.c: Tulip and Clone Etherboot Driver
-*               By Marty Conner
+*               By Marty Connor
 *               Copyright (C) 2001 Entity Cyber, Inc.
 *
 *    Linux Driver Version LK1.09a, 10-Jul-2003 (2.4.25)
@@ -840,10 +840,8 @@ static void set_rx_mode(struct nic *nic __unused)
 }
 
 static struct pci_id sundance_nics[] = {
-	PCI_ROM(0x13f0, 0x0201, "sundance",
-		"ST201 Sundance 'Alta' based Adaptor"),
-	PCI_ROM(0x1186, 0x1002, "dfe530txs",
-		"D-Link DFE530TXS (Sundance ST201 Alta)"),
+	PCI_ROM(0x13f0, 0x0201, "sundance", "ST201 Sundance 'Alta' based Adaptor"),
+	PCI_ROM(0x1186, 0x1002, "dfe530txs", "D-Link DFE530TXS (Sundance ST201 Alta)"),
 };
 
 static struct pci_driver sundance_driver __pci_driver = {
