@@ -8,11 +8,8 @@
 #	User interaction options:
 #
 #	-DASK_BOOT=n
-#			Ask "Boot from Network Disk Floppy or from Local? " 
-#			at startup, timeout after n seconds (0 = no timeout);  
-#			this can be done in a more generic way by using the
-#			IMAGE_MENU, but it requires that the "bootp"
-#			server is accessible, even when booting locally.
+#			Ask "Boot from (N)etwork ... or (Q)uit? " 
+#			at startup, timeout after n seconds (0 = no timeout).
 #			If unset, boot immediately using the default.
 #	-DBOOT_FIRST
 #	-DBOOT_SECOND
@@ -32,9 +29,6 @@
 #	-DBAR_PROGRESS
 #			Use rotating bar instead of sequential dots
 #			to indicate an IP packet transmitted.
-#	-DSIZEINDICATOR
-#			Update a running total of the amount of code
-#			loaded so far, in kilobytes.
 #
 #	Boot order options:
 #
@@ -98,7 +92,6 @@
 #			may no longer be appropriate.  You might need to set
 #			MAX_ARP_RETRIES, MAX_BOOTP_RETRIES, MAX_TFTP_RETRIES
 #			and MAX_RPC_RETRIES to a larger value.
-#
 #	-DTIMEOUT=n
 #			Use with care!! See above.
 #			Sets the base of RFC2131 sleep interval to n.
@@ -217,8 +210,6 @@
 #			which saves power while waiting for user interaction.
 #			Good for compute clusters and VMware emulation.
 #			But may not work for all CPUs.
-#	-DT503_AUI
-#			Use AUI by default on 3c503 cards.
 #	-DRELOCATE
 #			After starting etherboot relocate to the top
 #			of memory.  This allows loading fairly arbitrary

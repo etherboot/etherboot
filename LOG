@@ -2499,3 +2499,11 @@ Now Q works from .zrom and sort of from .com (DOS is odd after return).
 + Removed many outdated comments and updated others.
 
 Released as Etherboot 5.1.10 (5.2 release candidate 2)
+
++ Make floppyload.S and liloprefix.S call instead of jmp to the image so
+that the return calls int 0x19, which is somewhat better than
+hyperspace.
+
++ Put http://etherboot.org in prompt and ID string.
+
+Committed as Etherboot 5.1.11 (5.2 final release candidate)

@@ -1,9 +1,9 @@
-If you don't want to install development tools, but have access to the
+If you don't want to install development tools, and have access to the
 Web, you can get ROM images made on demand from http://rom-o-matic.net/
 
 The documentation tarballs should be extracted in the top directory (the
 one you are reading this INSTALL document from). A top directory called
-doc will be created. This way the links from index.html will work
+doc will be populated. This way the links from index.html will work
 properly.
 
 More likely if you are unfamiliar with Etherboot you should read the

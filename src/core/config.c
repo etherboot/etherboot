@@ -17,7 +17,7 @@
 
 void print_config(void)
 {
-	printf("Etherboot " VERSION " (GPL) "
+	printf("Etherboot " VERSION " (GPL) http://etherboot.org "
 #ifdef	TAGGED_IMAGE
 		"Tagged "
 #endif
