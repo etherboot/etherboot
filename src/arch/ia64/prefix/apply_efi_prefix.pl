@@ -7,6 +7,8 @@
 
 use strict;
 
+use bytes;
+
 main(@ARGV);
 
 sub usage
