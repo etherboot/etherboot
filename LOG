@@ -2756,6 +2756,8 @@ Released as Etherboot 5.3.11 aka 5.4RC2 (development)
 + Left out in last release's LOG: accepted patch from Jan Kiszka
 fixing default TFTP blocksize.
 
++ Fixed .z?rom image generation, they work now.
+
 + Patch from Jan Kiszka for for multiple receive buffers in eepro100
 driver.
 
