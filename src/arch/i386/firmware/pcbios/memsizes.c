@@ -5,7 +5,7 @@
 
 #define CF ( 1 << 0 )
 
-#define MEMSIZES_DEBUG 0
+#define MEMSIZES_DEBUG 1
 
 /* by Eric Biederman */
 
@@ -29,11 +29,11 @@ unsigned int memsize ( void ) {
 		reg16_t ax;
 	} PACKED in_stack;
 	struct {
-		reg16_t flags;
 		reg16_t ax;
 		reg16_t bx;
 		reg16_t cx;
 		reg16_t dx;
+		reg16_t flags;
 	} PACKED out_stack;
 	int memsize;
 
