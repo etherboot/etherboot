@@ -81,6 +81,81 @@
 #define RFC2132_PARAM_LIST	55
 #define RFC2132_MAX_SIZE	57
 #define	RFC2132_VENDOR_CLASS_ID	60
+#define RFC2132_CLIENT_ID       61
+#define RFC3004_USER_CLASS      77
+
+#ifdef PXE_DHCP_STRICT
+/*
+ * The following options are acknowledged in RFC3679 because they are
+ * widely used by PXE implementations, but have never been properly
+ * allocated. Despite other PXE options being correctly packed in a
+ * vendor encapsulated field, these are exposed. Sigh.  Note that the
+ * client UUID (option 97) is also noted in the PXE spec as using
+ * option 61.
+ */
+#define RFC3679_PXE_CLIENT_ARCH 93
+#define RFC3679_PXE_CLIENT_NDI  94
+#define RFC3679_PXE_CLIENT_UUID 97
+
+/* The lengths are fixed. */
+#define RFC3679_PXE_CLIENT_ARCH_LENGTH 2
+#define RFC3679_PXE_CLIENT_NDI_LENGTH 3
+#define RFC3679_PXE_CLIENT_UUID_LENGTH 17
+
+/*
+ * Values of RFC3679_PXE_CLIENT_ARCH can apparently be one of the
+ * following, according to the PXE spec. The spec only actually
+ * described the 2nd octet, not the first. Duh... assume 0.
+ */
+#define RFC3679_PXE_CLIENT_ARCH_IAX86PC   0,0
+#define RFC3679_PXE_CLIENT_ARCH_NECPC98   0,1
+#define RFC3679_PXE_CLIENT_ARCH_IA64PC    0,2
+#define RFC3679_PXE_CLIENT_ARCH_DECALPHA  0,3
+#define RFC3679_PXE_CLIENT_ARCH_ARCX86    0,4
+#define RFC3679_PXE_CLIENT_ARCH_INTELLEAN 0,5
+
+/* 
+ * Only one valid value of NDI type (must be 1) and UNDI version (must
+ * be 2.1)
+ */
+#define RFC3679_PXE_CLIENT_NDI_21 1,2,1
+
+/*
+ * UUID - type must be 1 and then 16 octets of UID, as with the client ID.
+ * The value is a default for testing only
+ */
+#define RFC3679_PXE_CLIENT_UUID_TYPE 0
+#warning "UUID is a default for testing ONLY!"
+#define RFC3679_PXE_CLIENT_UUID_DEFAULT \
+        RFC3679_PXE_CLIENT_UUID_TYPE, \
+        0xDE,0xAD,0xBE,0xEF, \
+        0xDE,0xAD,0xBE,0xEF, \
+        0xDE,0xAD,0xBE,0xEF, \
+        0xDE,0xAD,0xBE,0xEF
+/*
+ * The Vendor Class ID. Note that the Arch and UNDI version numbers
+ * are fixed and must be same as the ARCH and NDI above.
+ */
+#define RFC2132_VENDOR_CLASS_ID_PXE_LENGTH 32
+#define RFC2132_VENDOR_CLASS_ID_PXE \
+        'P','X','E','C','l','i','e','n','t',':', \
+        'A','r','c','h',':','0','0','0','0','0',':', \
+        'U','N','D','I',':','0','0','2','0','0','1'
+
+/* The following vendor options are required in the PXE spec. Oh deary
+ * me yes.  The are not defined in the PXE spec; they do not do
+ * anything. But we have to request them. Ask Intel...
+ */
+#define RFC1533_VENDOR_PXE_POINTLESS128	128
+#define RFC1533_VENDOR_PXE_POINTLESS129	129
+#define RFC1533_VENDOR_PXE_POINTLESS130 130
+#define RFC1533_VENDOR_PXE_POINTLESS131 131
+#define RFC1533_VENDOR_PXE_POINTLESS132 132
+#define RFC1533_VENDOR_PXE_POINTLESS133 133
+#define RFC1533_VENDOR_PXE_POINTLESS134 134
+#define RFC1533_VENDOR_PXE_POINTLESS135 135
+
+#endif /* PXE_DHCP_STRICT */
 
 #define DHCPDISCOVER		1
 #define DHCPOFFER		2

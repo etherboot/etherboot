@@ -7,7 +7,7 @@ Literature dealing with the network protocols:
 	IP - RFC791
 	UDP - RFC768
 	BOOTP - RFC951, RFC2132 (vendor extensions)
-	DHCP - RFC2131, RFC2132 (options)
+	DHCP - RFC2131, RFC2132l, RFC3004 (options)
 	TFTP - RFC1350, RFC2347 (options), RFC2348 (blocksize), RFC2349 (tsize)
 	RPC - RFC1831, RFC1832 (XDR), RFC1833 (rpcbind/portmapper)
 	NFS - RFC1094, RFC1813 (v3, useful for clarifications, not implemented)
@@ -64,10 +64,54 @@ static const unsigned char dhcpdiscover[] = {
 	RFC2132_MSG_TYPE,1,DHCPDISCOVER,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
 	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
+#ifdef PXE_DHCP_STRICT
+	RFC3679_PXE_CLIENT_UUID,RFC3679_PXE_CLIENT_UUID_LENGTH,RFC3679_PXE_CLIENT_UUID_DEFAULT,
+	RFC3679_PXE_CLIENT_ARCH,RFC3679_PXE_CLIENT_ARCH_LENGTH,RFC3679_PXE_CLIENT_ARCH_IAX86PC,
+	RFC3679_PXE_CLIENT_NDI, RFC3679_PXE_CLIENT_NDI_LENGTH, RFC3679_PXE_CLIENT_NDI_21,
+	RFC2132_VENDOR_CLASS_ID,RFC2132_VENDOR_CLASS_ID_PXE_LENGTH,RFC2132_VENDOR_CLASS_ID_PXE,
+#else
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
-	RFC2132_PARAM_LIST,4,RFC1533_NETMASK,RFC1533_GATEWAY,
-	RFC1533_HOSTNAME,RFC1533_VENDOR
+#endif /* PXE_DHCP_STRICT */
+#ifdef DHCP_CLIENT_ID
+	/* Client ID Option */
+	RFC2132_CLIENT_ID, ( DHCP_CLIENT_ID_LEN + 1 ),
+	DHCP_CLIENT_ID_TYPE, DHCP_CLIENT_ID,
+#endif /* DHCP_CLIENT_ID */
+#ifdef DHCP_USER_CLASS
+	/* User Class Option */
+	RFC3004_USER_CLASS, DHCP_USER_CLASS_LEN, DHCP_USER_CLASS,
+#endif /* DHCP_USER_CLASS */
+	RFC2132_PARAM_LIST,
+#define DHCPDISCOVER_PARAMS_BASE 4
+#ifdef  PXE_DHCP_STRICT
+#define DHCPDISCOVER_PARAMS_PXE ( 1 + 8 )
+#else
+#define DHCPDISCOVER_PARAMS_PXE 0
+#endif /* PXE_DHCP_STRICT */
+#ifdef  DNS_RESOLVER
+#define DHCPDISCOVER_PARAMS_DNS  1
+#else
+#define DHCPDISCOVER_PARAMS_DNS  0
+#endif /* DNS_RESOLVER */
+	( DHCPDISCOVER_PARAMS_BASE +
+	  DHCPDISCOVER_PARAMS_PXE+
+	  DHCPDISCOVER_PARAMS_DNS ),
+	RFC1533_NETMASK,
+	RFC1533_GATEWAY,
+	RFC1533_HOSTNAME,
+	RFC1533_VENDOR
+#ifdef PXE_DHCP_STRICT
+	,RFC2132_VENDOR_CLASS_ID,
+	RFC1533_VENDOR_PXE_POINTLESS128,
+	RFC1533_VENDOR_PXE_POINTLESS129,
+	RFC1533_VENDOR_PXE_POINTLESS130,
+	RFC1533_VENDOR_PXE_POINTLESS131,
+	RFC1533_VENDOR_PXE_POINTLESS132,
+	RFC1533_VENDOR_PXE_POINTLESS133,
+	RFC1533_VENDOR_PXE_POINTLESS134,
+	RFC1533_VENDOR_PXE_POINTLESS135
+#endif /* PXE_DHCP_STRICT */
 #ifdef	DNS_RESOLVER
 	,RFC1533_DNS
 #endif
@@ -78,33 +122,86 @@ static const unsigned char dhcprequest [] = {
 	RFC2132_REQ_ADDR,4,0,0,0,0,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
 	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
+#ifdef PXE_DHCP_STRICT
+	RFC3679_PXE_CLIENT_UUID,RFC3679_PXE_CLIENT_UUID_LENGTH,RFC3679_PXE_CLIENT_UUID_DEFAULT,
+	RFC3679_PXE_CLIENT_ARCH,RFC3679_PXE_CLIENT_ARCH_LENGTH,RFC3679_PXE_CLIENT_ARCH_IAX86PC,
+	RFC3679_PXE_CLIENT_NDI, RFC3679_PXE_CLIENT_NDI_LENGTH, RFC3679_PXE_CLIENT_NDI_21,
+	RFC2132_VENDOR_CLASS_ID,RFC2132_VENDOR_CLASS_ID_PXE_LENGTH,RFC2132_VENDOR_CLASS_ID_PXE,
+#else
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
+#endif /* PXE_DHCP_STRICT */
+#ifdef DHCP_CLIENT_ID
+	/* Client ID Option */
+	RFC2132_CLIENT_ID, ( DHCP_CLIENT_ID_LEN + 1 ),
+	DHCP_CLIENT_ID_TYPE, DHCP_CLIENT_ID,
+#endif /* DHCP_CLIENT_ID */
+#ifdef DHCP_USER_CLASS
+	/* User Class Option */
+	RFC3004_USER_CLASS, DHCP_USER_CLASS_LEN, DHCP_USER_CLASS,
+#endif /* DHCP_USER_CLASS */
 	/* request parameters */
 	RFC2132_PARAM_LIST,
-#ifdef	IMAGE_FREEBSD
-	/* 5 standard + 8 vendortags + 8 motd + 16 menu items */
-	5 + 8 + 8 + 16,
+#define DHCPREQUEST_PARAMS_BASE 5  
+#ifdef  PXE_DHCP_STRICT
+#define DHCPREQUEST_PARAMS_PXE 1
+#define DHCPREQUEST_PARAMS_VENDOR_PXE 8
+#define DHCPREQUEST_PARAMS_VENDOR_EB 0
 #else
-	/* 5 standard + 6 vendortags + 8 motd + 16 menu items */
-	5 + 6 + 8 + 16,
-#endif
-	/* Standard parameters */
-	RFC1533_NETMASK, RFC1533_GATEWAY,
-	RFC1533_HOSTNAME,RFC1533_VENDOR,
+#define DHCPREQUEST_PARAMS_PXE 0
+#define DHCPREQUEST_PARAMS_VENDOR_PXE 0
+#define DHCPREQUEST_PARAMS_VENDOR_EB ( 4 + 2 + 8 + 16 ) 
+#endif /* PXE_DHCP_STRICT */
+#ifdef	IMAGE_FREEBSD
+#define DHCPREQUEST_PARAMS_FREEBSD 2
+#else
+#define DHCPREQUEST_PARAMS_FREEBSD 0
+#endif /* IMAGE_FREEBSD */
+#ifdef  DNS_RESOLVER
+#define DHCPREQUEST_PARAMS_DNS     1
+#else
+#define DHCPREQUEST_PARAMS_DNS     0
+#endif /* DNS_RESOLVER */
+	( DHCPREQUEST_PARAMS_BASE +
+	  DHCPREQUEST_PARAMS_PXE +
+	  DHCPREQUEST_PARAMS_VENDOR_PXE +
+	  DHCPREQUEST_PARAMS_VENDOR_EB +
+	  DHCPREQUEST_PARAMS_DNS +
+	  DHCPREQUEST_PARAMS_FREEBSD ),
+	/* 5 Standard parameters */
+	RFC1533_NETMASK,
+	RFC1533_GATEWAY,
+	RFC1533_HOSTNAME,
+	RFC1533_VENDOR,
 	RFC1533_ROOTPATH,	/* only passed to the booted image */
-	/* Etherboot vendortags */
+#ifndef PXE_DHCP_STRICT
+	/* 4 Etherboot vendortags */
 	RFC1533_VENDOR_MAGIC,
 	RFC1533_VENDOR_ADDPARM,
 	RFC1533_VENDOR_ETHDEV,
 	RFC1533_VENDOR_ETHERBOOT_ENCAP,
+#endif /* ! PXE_DHCP_STRICT */
 #ifdef	IMAGE_FREEBSD
+	/* 2 FreeBSD options */
 	RFC1533_VENDOR_HOWTO,
 	RFC1533_VENDOR_KERNEL_ENV,
 #endif
 #ifdef	DNS_RESOLVER
+	/* 1 DNS option */
 	RFC1533_DNS,
 #endif
+#ifdef  PXE_DHCP_STRICT
+	RFC2132_VENDOR_CLASS_ID,
+	RFC1533_VENDOR_PXE_POINTLESS128,
+	RFC1533_VENDOR_PXE_POINTLESS129,
+	RFC1533_VENDOR_PXE_POINTLESS130,
+	RFC1533_VENDOR_PXE_POINTLESS131,
+	RFC1533_VENDOR_PXE_POINTLESS132,
+	RFC1533_VENDOR_PXE_POINTLESS133,
+	RFC1533_VENDOR_PXE_POINTLESS134,
+	RFC1533_VENDOR_PXE_POINTLESS135,
+#else
+	/* 2 Menu entries */
 	RFC1533_VENDOR_MNUOPTS, RFC1533_VENDOR_SELECTION,
 	/* 8 MOTD entries */
 	RFC1533_VENDOR_MOTD,
@@ -132,6 +229,7 @@ static const unsigned char dhcprequest [] = {
 	RFC1533_VENDOR_IMG+13,
 	RFC1533_VENDOR_IMG+14,
 	RFC1533_VENDOR_IMG+15,
+#endif /* PXE_DHCP_STRICT */
 };
 
 #ifdef	REQUIRE_VCI_ETHERBOOT
@@ -206,7 +304,7 @@ int eth_poll(int retrieve)
 void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p)
 {
 	(*nic.transmit)(&nic, d, t, s, p);
-	if (t == ETH_P_IP) twiddle();
+	if (t == IP) twiddle();
 }
 
 void eth_disable(void)
@@ -317,7 +415,7 @@ static int await_arp(int ival, void *ptr,
 	struct tcphdr *tcp __unused)
 {
 	struct	arprequest *arpreply;
-	if (ptype != ETH_P_ARP)
+	if (ptype != ARP)
 		return 0;
 	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
 		return 0;
@@ -342,7 +440,7 @@ int ip_transmit(int len, const void *buf)
 	ip = (struct iphdr *)buf;
 	destip = ip->dest.s_addr;
 	if (destip == IP_BROADCAST) {
-		eth_transmit(broadcast, ETH_P_IP, len, buf);
+		eth_transmit(broadcast, IP, len, buf);
 #ifdef MULTICAST_LEVEL1 
 	} else if ((destip & htonl(MULTICAST_MASK)) == htonl(MULTICAST_NETWORK)) {
 		unsigned char multicast[6];
@@ -354,7 +452,7 @@ int ip_transmit(int len, const void *buf)
 		multicast[3] = (hdestip >> 16) & 0x7;
 		multicast[4] = (hdestip >> 8) & 0xff;
 		multicast[5] = hdestip & 0xff;
-		eth_transmit(multicast, ETH_P_IP, len, buf);
+		eth_transmit(multicast, IP, len, buf);
 #endif
 	} else {
 		if (((destip & netmask) !=
@@ -382,7 +480,7 @@ int ip_transmit(int len, const void *buf)
 			memcpy(arpreq.tipaddr, &destip, sizeof(in_addr));
 			for (retry = 1; retry <= MAX_ARP_RETRIES; retry++) {
 				long timeout;
-				eth_transmit(broadcast, ETH_P_ARP, sizeof(arpreq),
+				eth_transmit(broadcast, ARP, sizeof(arpreq),
 					&arpreq);
 				timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 				if (await_reply(await_arp, arpentry,
@@ -391,7 +489,7 @@ int ip_transmit(int len, const void *buf)
 			return(0);
 		}
 xmit:
-		eth_transmit(arptable[arpentry].node, ETH_P_IP, len, buf);
+		eth_transmit(arptable[arpentry].node, IP, len, buf);
 	}
 	return 1;
 }
@@ -686,7 +784,7 @@ static int await_rarp(int ival, void *ptr,
 	struct tcphdr *tcp __unused)
 {
 	struct arprequest *arpreply;
-	if (ptype != ETH_P_RARP)
+	if (ptype != RARP)
 		return 0;
 	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
 		return 0;
@@ -724,7 +822,7 @@ static int rarp(void)
 
 	for (retry = 0; retry < MAX_ARP_RETRIES; ++retry) {
 		long timeout;
-		eth_transmit(broadcast, ETH_P_RARP, sizeof(rarpreq), &rarpreq);
+		eth_transmit(broadcast, RARP, sizeof(rarpreq), &rarpreq);
 
 		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 		if (await_reply(await_rarp, 0, rarpreq.shwaddr, timeout))
@@ -1044,11 +1142,9 @@ void join_group(int slot, unsigned long group)
 	}
 }
 #else
-#define send_igmp_reports(now) do {} while(0)
-#define process_igmp(ip, now)  do {} while(0)
+#define send_igmp_reports(now);
+#define process_igmp(ip, now)
 #endif
-
-#include "proto_eth_slow.c"
 
 /**************************************************************************
 TCP - Simple-minded TCP stack. Can only send data once and then
@@ -1304,7 +1400,6 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 	 */
 	for (;;) {
 		now = currticks();
-		send_eth_slow_reports(now);
 		send_igmp_reports(now);
 		result = eth_poll(1);
 		if (result == 0) {
@@ -1331,7 +1426,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 		} else continue; /* what else could we do with it? */
 		/* Verify an IP header */
 		ip = 0;
-		if ((ptype == ETH_P_IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
+		if ((ptype == IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
 			unsigned ipoptlen;
 			ip = (struct iphdr *)&nic.packet[ETH_HLEN];
 			if ((ip->verhdrlen < 0x45) || (ip->verhdrlen > 0x4F)) 
@@ -1400,9 +1495,9 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 		}
 		
 		/* If it isn't a packet the upper layer wants see if there is a default
-		 * action.  This allows us reply to arp, igmp, and lacp queries.
+		 * action.  This allows us reply to arp and igmp queryies.
 		 */
-		if ((ptype == ETH_P_ARP) &&
+		if ((ptype == ARP) &&
 			(nic.packetlen >= ETH_HLEN + sizeof(struct arprequest))) {
 			struct	arprequest *arpreply;
 			unsigned long tmp;
@@ -1416,7 +1511,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 				memcpy(arpreply->thwaddr, arpreply->shwaddr, ETH_ALEN);
 				memcpy(arpreply->sipaddr, &arptable[ARP_CLIENT].ipaddr, sizeof(in_addr));
 				memcpy(arpreply->shwaddr, arptable[ARP_CLIENT].node, ETH_ALEN);
-				eth_transmit(arpreply->thwaddr, ETH_P_ARP,
+				eth_transmit(arpreply->thwaddr, ARP,
 					sizeof(struct  arprequest),
 					arpreply);
 #ifdef	MDEBUG
@@ -1425,7 +1520,6 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 #endif	/* MDEBUG */
 			}
 		}
-		process_eth_slow(ptype, now);
 		process_igmp(ip, now);
 	}
 	return(0);
@@ -1468,7 +1562,7 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 	}
 	else if (block == 0) {
 #ifdef	REQUIRE_VCI_ETHERBOOT
-		vci_etherboot = 0;
+	vci_etherboot = 0;
 #endif
 		end_of_rfc1533 = NULL;
 #ifdef	IMAGE_FREEBSD

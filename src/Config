@@ -59,6 +59,17 @@
 #			Require an encapsulated Vendor Class Identifier
 #			of "Etherboot" in the DHCP reply
 #			Requires DHCP support.
+#	-DDHCP_CLIENT_ID=\"Identifier\"
+#	-DDHCP_CLIENT_ID_LEN=<Client ID length in octets>
+#	-DDHCP_CLIENT_ID_TYPE=<Client ID type>
+#			Specify a RFC2132 Client Identifier option, length and type.
+#			Requires DHCP support.
+#	-DDHCP_USER_CLASS=\"UserClass\"
+#	-DDHCP_USER_CLASS_LEN=<User Class length in octets>
+# 			Specify a RFC3004 User Class option and length. Use this
+#			option to set a UC (or multiple UCs) rather than munge the
+#			client Vendor Class ID.
+#			Requires DHCP support.
 #	-DALLOW_ONLY_ENCAPSULATED
 #			Ignore Etherboot-specific options that are not within
 #			the Etherboot encapsulated options field.  This option
@@ -232,6 +243,15 @@
 #			specification as published by Intel.  This may
 #                       or may not be a good thing depending on your
 #			view of the spec...
+#	-DPXE_DHCP_STRICT
+#			Strict compliance of the DHCP request packets
+#			with the PXE specification as published by
+#			Intel.  This may or may not be a good thing
+#			depending on your view of whether requesting
+#			vendor options which don't actually exist is
+#			pointless or not. You probably want this
+#			option if you intend to use Windows RIS or
+#			similar.
 #
 #	Obscure options you probably don't need to touch:
 #
@@ -297,6 +317,46 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # from getting an IP lease until you have configured DHCPD correctly
 # CFLAGS+=	-DREQUIRE_VCI_ETHERBOOT
 
+# EXPERIMENTAL! Set DHCP_CLIENT_ID to create a Client Identifier (DHCP
+# option 61, see RFC2132 section 9.14) when Etherboot sends the DHCP
+# DISCOVER and REQUEST packets.  This ID must UNIQUELY identify each
+# client on your local network.  Set DHCP_CLIENT_ID_TYPE to the
+# appropriate hardware type as described in RFC2132 / RFC1700; this
+# almost certainly means using '1' if the Client ID is an Ethernet MAC
+# address and '0' otherwise. Set DHCP_CLIENT_ID_LEN to the length of
+# the Client ID in octets (this is not a null terminated C string, do
+# NOT add 1 for a terminator and do NOT add an extra 1 for the
+# hardware type octet).  Note that to identify your client using the
+# normal default MAC address of your NIC, you do NOT need to set this
+# option, as the MAC address is automatically used in the
+# hwtype/chaddr field; note also that this field only sets the DHCP
+# option: it does NOT change the MAC address used by the client.
+
+# CFLAGS+=	-DDHCP_CLIENT_ID="'C','L','I','E','N','T','0','0','1'" \
+#		-DDHCP_CLIENT_ID_LEN=9 -DDHCP_CLIENT_ID_TYPE=0
+
+# CFLAGS+=	-DDHCP_CLIENT_ID="0xDE,0xAD,0xBE,0xEF,0xDE,0xAD" \
+#		-DDHCP_CLIENT_ID_LEN=6 -DDHCP_CLIENT_ID_TYPE=1
+
+# EXPERIMENTAL! Set DHCP_USER_CLASS to create a User Class option (see
+# RFC3004) when Etherboot sends the DHCP DISCOVER and REQUEST packets.
+# This can be used for classification of clients, typically so that a
+# DHCP server can send an appropriately tailored reply.  Normally, a
+# string identifies a class of to which this client instance belongs
+# which is useful in your network, such as a department ('FINANCE' or
+# 'MARKETING') or hardware type ('THINCLIENT' or 'KIOSK').  Set
+# DHCP_USER_CLASS_LEN to the length of DHCP_USER_CLASS in octets.
+# This is NOT a null terminated C string, do NOT add 1 for a
+# terminator.  RFC3004 advises how to lay out multiple User Class
+# options by using an octet for the length of each string, as in this
+# example.  It is, of course, up to the server to parse this.
+
+# CFLAGS+=	-DDHCP_USER_CLASS="'T','E','S','T','C','L','A','S','S'"	\
+#		-DDHCP_USER_CLASS_LEN=9
+
+# CFLAGS+=	-DDHCP_USER_CLASS="5,'A','L','P','H','A',4,'B','E','T','A'" \
+#		-DDHCP_USER_CLASS_LEN=11
+
 # Enabling this causes Etherboot to ignore Etherboot-specific options
 # that are not within an Etherboot encapsulated options field.
 # This option should be enabled unless you have a legacy DHCP server
@@ -338,7 +398,7 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 #CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
 
 # Etherboot as a PXE ROM
-CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
+CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT -DPXE_DHCP_STRICT
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
