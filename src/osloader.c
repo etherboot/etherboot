@@ -376,9 +376,17 @@ static int prep_segment(unsigned long start, unsigned long mid, unsigned long en
 		return 0;
 	}
 	/* Zero the bss */
-	if (end > mid) {
-		memset(phys_to_virt(mid), 0, end - mid);
-	}
+	/* 
+	 * if (end > mid) {
+	 * 	memset(phys_to_virt(mid), 0, end - mid);
+	 * }
+	 *
+	 * (mcb30) We can't actually do this, since some old versions of mknbi
+	 * generate images in which the BSS overlaps with the NBI image header,
+	 * so zeroing the BSS zaps the NBI image header and causes the segment
+	 * processing to abort.
+	 *
+	 */
 #if ELF_NOTES
 	if (check_ip_checksum) {
 		if ((istart <= ip_checksum_offset) && 
@@ -1773,6 +1781,9 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 		data += (skip_sectors << 9) + skip_bytes;
 		skip_sectors = os_download(data, len, eof);
 		skip_bytes = 0;
+	}
+	if ( eof ) {
+		os_download ( NULL, 0, eof );
 	}
 	return 1;
 }
