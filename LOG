@@ -1950,3 +1950,11 @@ Moved distribution section of index.html into separate web page so that
 index.html will be less ephemeral.
 
 Released as Etherboot 5.0.1 (production)
+
++ Arkadiusz Miskiewicz pointed out that --oformat should be used instead
+of -oformat as old ld accepts both while new ld requires --oformat.
+
++ contrib/{tftp-hpa,atftp} are distributed separately from the
+distribution page to make them easy to update.
+
+Released as Etherboot 5.0.2 (production)

@@ -1,4 +1,4 @@
-Etherboot 5.0.1
+Etherboot 5.0.2
 
 This is a production release. Some important notes have been retained
 from the 4.7 development series. Please read the documentation for more
@@ -7,6 +7,10 @@ details.
 The documentation is now distributed separately. This is to make it
 easier to do parallel development of production and development
 releases.
+
+tftp-hpa and atftp which were in contrib are now distributed separately
+from the distribution page. This makes it easier to track releases in
+those utilities.
 
 mknbi is now distributed separately from Etherboot to allow independent
 development.
