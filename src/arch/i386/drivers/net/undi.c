@@ -33,7 +33,7 @@ $Id$
 static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL,
 		       NULL, NULL, 0, NULL, 0, NULL,
 		       0, 0, 0, 0,
-		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, NULL },
+		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, 0, NULL },
 		       IRQ_NONE };
 
 /* Function prototypes */
@@ -444,8 +444,14 @@ int undi_loader ( void ) {
 	/* ES:DI points to PnP BIOS' $PnP structure
 	 * (BIOS boot specification)
 	 */
-	undi.pxs->loader.es = 0xf000;
-	undi.pxs->loader.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
+	if ( undi.pnp_bios ) {
+		undi.pxs->loader.es = 0xf000;
+		undi.pxs->loader.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
+	} else {
+		/* Set to a NULL pointer and hope that we don't need it */
+		undi.pxs->loader.es = 0x0000;
+		undi.pxs->loader.di = 0x0000;
+	}
 
 	/* Allocate space for UNDI driver's code and data segments */
 	undi.driver_code_size = undi.undi_rom_id->code_size;
@@ -505,8 +511,15 @@ int eb_pxenv_start_undi ( void ) {
 	/* ES:DI points to PnP BIOS' $PnP structure
 	 * (BIOS boot specification)
 	 */
-	undi.pxs->start_undi.es = 0xf000;
-	undi.pxs->start_undi.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
+	if ( undi.pnp_bios ) {
+		undi.pxs->start_undi.es = 0xf000;
+		undi.pxs->start_undi.di =
+			virt_to_phys ( undi.pnp_bios ) - 0xf0000;
+	} else {
+		/* Set to a NULL pointer and hope that we don't need it */
+		undi.pxs->start_undi.es = 0x0000;
+		undi.pxs->start_undi.di = 0x0000;
+	}
 
 	DBG ( "PXENV_START_UNDI => AX=%hx BX=%hx DX=%hx ES:DI=%hx:%hx\n",
 	      undi.pxs->start_undi.ax,
@@ -1101,8 +1114,16 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 
 	/* Find the BIOS' $PnP structure */
 	if ( ! hunt_pnp_bios() ) {
-		printf ( "No PnP BIOS found; aborting\n" );
-		return 0;
+		/* Not all PXE stacks actually insist on a PnP BIOS.
+		 * In particular, an Etherboot PXE stack will work
+		 * just fine without one.
+		 *
+		 * We used to make this a fatal error, but now we just
+		 * warn and continue.  Note that this is necessary in
+		 * order to be able to debug the Etherboot PXE stack
+		 * under Bochs, since Bochs' BIOS is non-PnP.
+		 */
+		printf ( "WARNING: No PnP BIOS found\n" );
 	}
 
 	/* Allocate base memory data structures */
