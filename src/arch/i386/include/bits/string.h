@@ -65,10 +65,6 @@ __asm__ __volatile__(
 return dest;
 }
 
-#define memcmp __builtin_memcmp
-#define __HAVE_ARCH_MEMCMP
-
-
 #define __HAVE_ARCH_MEMSET
 static inline void *memset(void *s, int c,size_t count)
 {
