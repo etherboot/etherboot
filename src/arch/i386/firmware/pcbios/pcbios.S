@@ -524,4 +524,55 @@ bios32_call:
 
 #endif /* CONFIG_PCI_DIRECT */
 
+/**************************************************************************
+UNDI_CALL - wrapper around real-mode UNDI API calls
+**************************************************************************/
+	.globl	__undi_call
+__undi_call:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%esi
+	pushl	%edi
+	pushl	%ebx
+	
+	movw	8(%ebp),%cx	/* Seg:off addr of undi_call_info_t struct */
+	movw	12(%ebp),%dx	/* Pass to 16-bit code in %cx:%dx */
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
+	movw	%cx,%es		/* Seg:off addr of undi_call_info_t struct */
+	movw	%dx,%bx		/* into %es:%bx */
+
+	movw	%es:8(%bx),%ax	/* Transfer contents of undi_call_info_t */
+	pushw	%ax		/* structure to the real-mode stack */
+	movw	%es:6(%bx),%ax
+	pushw	%ax
+	movw	%es:4(%bx),%ax
+	pushw	%ax
+	
+	lcall	*%es:0(%bx)	/* Do the UNDI call */
+	cld			/* Don't know whether or not we need this */
+				/* but pxelinux includes it for some reason, */
+				/* so we put it in just in case. */
+
+	popw	%cx		/* Tidy up the stack */
+	popw	%cx
+	popw	%cx
+	movw	%ax,%cx		/* Return %ax via %cx */
+	ret
+	
+20:	.code32
+	.previous
+	xorl	%eax,%eax	/* %ax is returned via %cx */
+	movw	%cx,%ax
+
+	popl	%ebx
+	popl	%edi
+	popl	%esi
+	popl	%ebp
+	ret
+	
 #endif /* PCBIOS */
