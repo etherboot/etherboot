@@ -13,3 +13,5 @@ fi
 
 /sbin/ifconfig $INTERFACE 10.254.254.2 netmask 255.255.255.252
 
+# Force dhcpd to notice the new network interface
+/etc/init.d/dhcpd reload
