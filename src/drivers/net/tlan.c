@@ -807,7 +807,7 @@ static void tlan_disable(struct dev *dev)
      *  if something is something goes wrong.
      *
      */
-    printf("Got to disable\n");
+    outl(TLAN_HC_AD_RST, BASE + TLAN_HOST_CMD);
 }
 
 /**************************************************************************
