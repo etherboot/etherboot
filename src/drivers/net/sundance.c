@@ -25,16 +25,13 @@
 *               By Marty Conner
 *               Copyright (C) 2001 Entity Cyber, Inc.
 *
-*    $Revision$
-*    $Author$
-*    $Date$
-*
 *    REVISION HISTORY:
 *    ================
 *    v1.1	01-01-2003	timlegge	Initial implementation
 *    v1.7	04-10-2003	timlegge	Transfers Linux Kernel (30 sec)
 *    v1.8	04-13-2003	timlegge	Fix multiple transmission bug
 *    v1.9	08-19-2003	timlegge	Support Multicast
+*    v1.10	01-17-2004	timlegge	Initial driver output cleanup 
 *    
 ***************************************************************************/
 
@@ -47,7 +44,7 @@
 #include "timer.h"
 
 #define drv_version "v1.10"
-#define drv_date "2004-01-13"
+#define drv_date "2004-01-17"
 
 /* #define EDEBUG */
 /* Set the mtu */

@@ -33,16 +33,13 @@
 *	(C) 1999-2001 Torben Mathiasen
 *	(C) 2002 Samuel Chessman
 *
-*    $Revision$
-*    $Author$
-*    $Date 2003/07/18 $
-*
 *    REVISION HISTORY:
 *    ================
 *    v1.0	07-08-2003	timlegge	Initial not quite working version
 *    v1.1	07-27-2003	timlegge	Sync 5.0 and 5.1 versions
 *    v1.2	08-19-2003	timlegge	Implement Multicast Support
 *    v1.3	08-23-2003	timlegge	Fix the transmit Function
+*    v1.4	01-17-2004	timlegge	Initial driver output cleanup    
 *    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -53,13 +50,11 @@
 #include "nic.h"
 /* to get the PCI support functions, if this is a PCI NIC */
 #include "pci.h"
-/* to get the ISA support functions, if this is an ISA NIC */
-/* #include "isa.h" */
 #include "timer.h"
 #include "tlan.h"
 
-#define drv_version "v1.3"
-#define drv_date "08-23-2003"
+#define drv_version "v1.4"
+#define drv_date "01-17-2004"
 
 /* NIC specific static variables go here */
 #define HZ 100
@@ -834,7 +829,7 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 
 	BASE = pci->ioaddr;
 	printf("\n");
-	printf("tlan.c: %s, %s Written by Timothy Legge (tlegge@rogers.com)\n", drv_version, drv_date);
+	printf("tlan.c: %s, %s\n", drv_version, drv_date);
 	printf("%s: Probing for Vendor 0x%hX, Device 0x%hX",
 	       pci->name, pci->vendor, pci->dev_id);
 

@@ -34,15 +34,12 @@
 *	Linux Driver Version 1.27a, 10.02.2002
 * 
 * 
-*    $Revision$
-*    $Author$
-*    $Date 2003/08/06 $
-* 
 *    REVISION HISTORY:
 *    ================
 *    v1.0	08-06-2003	timlegge	Initial port of Linux driver
 *    v1.1	08-23-2003	timlegge	Add multicast support
-*
+*    v1.2	01-17-2004	timlegge	Initial driver output cleanup
+*    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
 
@@ -58,8 +55,8 @@
 /* void hex_dump(const char *data, const unsigned int len); */
 
 /* Etherboot Specific definations */
-#define drv_version "v1.1"
-#define drv_date "08-23-2003"
+#define drv_version "v1.2"
+#define drv_date "01-17-2004"
 
 typedef unsigned char u8;
 typedef signed char s8;
@@ -671,7 +668,7 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	/* BASE is used throughout to address the card */
 	ioaddr = pci->ioaddr;
 	printf("\n");	
-	printf("pcnet32.c: %s, %s Written by Timothy Legge (tlegge@rogers.com)\n", drv_version, drv_date);
+	printf("pcnet32.c: %s, %s\n", drv_version, drv_date);
 	printf("%s: Probing for Vendor=%hX   Device=%hX\n",
 	       pci->name, pci->vendor, pci->dev_id);
 
