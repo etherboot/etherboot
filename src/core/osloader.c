@@ -99,14 +99,6 @@ static void done(void)
 	printf("K ");
 #endif
 	printf("done\n");
-#ifdef	DELIMITERLINES
-	{
-		int j;
-		for (j=0; j<80; j++)
-			putchar('=');
-		putchar('\n');
-	}
-#endif
 	cleanup();
 }
 

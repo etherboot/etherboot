@@ -32,9 +32,6 @@
 #	-DBAR_PROGRESS
 #			Use rotating bar instead of sequential dots
 #			to indicate an IP packet transmitted.
-#	-DDELIMITERLINES
-#			Print a line of = characters at the start
-#			and also just before starting an image.
 #	-DSIZEINDICATOR
 #			Update a running total of the amount of code
 #			loaded so far, in kilobytes.

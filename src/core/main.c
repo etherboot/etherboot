@@ -158,9 +158,6 @@ int main(struct Elf_Bhdr *ptr)
 	console_init();
 	arch_main(ptr);
 
-#ifdef	DELIMITERLINES
-	for (i=0; i<80; i++) putchar('=');
-#endif
 	rom = *(struct rom_info *)phys_to_virt(ROM_INFO_LOCATION);
 	printf("ROM segment %#hx length %#hx reloc %#x\n", rom.rom_segment,
 		rom.rom_length << 1, (unsigned long)_text);
