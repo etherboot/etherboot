@@ -451,7 +451,7 @@ _real_to_prot_suffix:
 #define R2P_PRESERVE ( 12 )
 #define R2P_OFFSET_RETADDR ( R2P_PRESERVE )
 #define R2P_OFFSET_ORIG_RETADDR ( R2P_OFFSET_RETADDR + 2 )
-	
+
 	.globl _real_to_prot
 	.code16		
 _real_to_prot:
@@ -474,33 +474,38 @@ _real_to_prot:
 	popw	%bx
 	movw	%bx, %ds
 	shll	$4, %ebx
-	movzwl	R2P_OFFSET_ORIG_RETADDR(%bp), %eax
+	movzwl	%ss:R2P_OFFSET_ORIG_RETADDR(%bp), %eax
 	addl	%ebx, %eax
-	movl	%eax, (R2P_OFFSET_RETADDR)(%bp)
+	movl	%eax, %ss:(R2P_OFFSET_RETADDR)(%bp)
+
+	/* Store the code segment physical base address in %ebp */
+	movl	%ebx, %ebp
+
+	/* Find the offset within the code segment that I am running at */
+	xorl	%ebx, %ebx
+	call	1f
+1:	popw	%bx
 
 	/* Set up GDT */
-	xorl	%ebp, %ebp
-	call	1f
-1:	popw	%bp
-	leal	(r2p_gdt-1b)(%bp), %eax	/* %ds:ebx = %ds:bx = &(r2p_gdt) */
-	addl	%ebx, %eax		/* %eax = &r2p_gdt (physical) */
-	movl	%eax, %ds:(r2p_gdt-1b+2)(%bp) /* Set phys. addr. in r2p_gdt */
+	leal	(r2p_gdt-1b)(%bx), %eax	/* %ds:ebx = %ds:bx = &(r2p_gdt) */
+	addl	%ebp, %eax		/* %eax = &r2p_gdt (physical) */
+	movl	%eax, %ds:(r2p_gdt-1b+2)(%bx) /* Set phys. addr. in r2p_gdt */
 
 	/* Compute the first protected mode physical address */
-	leal	(2f-1b)(%bp), %eax
-	addl	%ebx, %eax
-	movl	%eax, %ds:(r2p_paddr-1b)(%bp)
-		
+	leal	(2f-1b)(%bx), %eax
+	addl	%ebp, %eax
+	movl	%eax, %ds:(r2p_paddr-1b)(%bx)
+
 	/* Calculate new %esp */
-	xorl	%ebx, %ebx
+	xorl	%eax, %eax
 	push	%ss
-	popw	%bx
-	shll	$4, %ebx
-	movzwl	%sp, %eax
-	addl	%eax, %ebx		/* %ebx = new %esp */
+	popw	%ax
+	shll	$4, %eax
+	movzwl	%sp, %ebp
+	addl	%eax, %ebp		/* %ebp = new %esp */
 	
 	/* Load GDT */
-	DATA32 lgdt (r2p_gdt-1b)(%bp)	/* Load GDT */
+	DATA32 lgdt %ds:(r2p_gdt-1b)(%bx)	/* Load GDT */
 
 	/* Switch to protected mode */
 	movl	%cr0, %eax
@@ -508,14 +513,14 @@ _real_to_prot:
 	movl	%eax, %cr0
 
 	/* flush prefetch queue, and reload %cs:%eip */
-	DATA32 ljmp (r2p_paddr-1b)(%bp)
+	DATA32 ljmp %ds:(r2p_paddr-1b)(%bx)
 	.code32
 2:
 	
 	/* Load segment registers, adjust %esp */
 	movw	$(r2p_pmds-r2p_gdt), %ax
 	movw	%ax, %ss
-	movl	%ebx, %esp
+	movl	%ebp, %esp
 	movw	%ax, %ds
 	movw	%ax, %es
 	movw	%ax, %fs

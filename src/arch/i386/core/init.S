@@ -108,6 +108,7 @@ rmode:
 	popw	%ax
 2:
 	/* Preserve registers */
+	pushw	%ds
 	pushl	%eax
 	
 	/* Run decompressor if necessary.  Decompressor is 32-bit
@@ -146,17 +147,19 @@ rmode:
 	/* Set rm_etherboot_location */
 	xorl	%eax, %eax
 	movw	%cs, %ax
+	movw	%ax, %ds
 	shll	$4, %eax
 	addl	$_prefix_size, %eax
-	movl	%eax, %cs:rm_etherboot_location
+	movl	%eax, rm_etherboot_location
 
 	/* Restore registers */
 	popl	%eax
+	popw	%ds
 
 	/* Make real-mode in_call to Etherboot */
 	jmp	_rm_in_call
 #endif /* CODE16 */
-	
+
 /******************************************************************************
  * Utility routines that can be called by the "prefix".
  ******************************************************************************
