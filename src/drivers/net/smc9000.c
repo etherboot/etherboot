@@ -317,7 +317,7 @@ static void smc9000_transmit(
 /**************************************************************************
  * ETH_POLL - Wait for a frame
  ***************************************************************************/
-static int smc9000_poll(struct nic *nic)
+static int smc9000_poll(struct nic *nic, int retrieve)
 {
    if(!smc9000_base)
      return 0;
@@ -325,6 +325,8 @@ static int smc9000_poll(struct nic *nic)
    SMC_SELECT_BANK(smc9000_base, 2);
    if (inw(smc9000_base + FIFO_PORTS) & FP_RXEMPTY)
      return 0;
+   
+   if ( ! retrieve ) return 1;
 
    /*  start reading from the start of the packet */
    _outw(PTR_READ | PTR_RCV | PTR_AUTOINC, smc9000_base + POINTER);
@@ -374,6 +376,18 @@ static void smc9000_disable(struct dev *dev __unused)
    _outb( TCR_CLEAR, smc9000_base + TCR );
 }
 
+static void smc9000_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
 /**************************************************************************
  * ETH_PROBE - Look for an adapter
  ***************************************************************************/
@@ -416,6 +430,9 @@ static int smc9000_probe(struct dev *dev, unsigned short *probe_addrs)
    /* couldn't find anything */
    if(0 == smc9000_base)
      goto out;
+
+   nic->irqno  = 0;
+   nic->ioaddr = smc9000_base;
 
    /*
     * Get the MAC address ( bank 1, regs 4 - 9 )
@@ -502,6 +519,7 @@ static int smc9000_probe(struct dev *dev, unsigned short *probe_addrs)
    dev->disable  = smc9000_disable;
    nic->poll     = smc9000_poll;
    nic->transmit = smc9000_transmit;
+   nic->irq      = smc9000_irq;
 
    /* Based on PnP ISA map */
    dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
