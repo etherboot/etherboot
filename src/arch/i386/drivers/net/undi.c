@@ -995,15 +995,12 @@ static int undi_poll(struct nic *nic)
 TRANSMIT - Transmit a frame
 ***************************************************************************/
 static void undi_transmit(
-	struct nic *nic,
+	struct nic *nic __unused,
 	const char *d,			/* Destination */
 	unsigned int t,			/* Type */
 	unsigned int s,			/* size */
 	const char *p)			/* Packet */
 {
-	/* Inhibit compiler warning about unused parameter nic */
-	if ( nic == NULL ) {};
-
 	/* Copy destination to buffer in base memory */
 	memcpy ( undi.xmit_data->destaddr, d, sizeof(MAC_ADDR) );
 
@@ -1038,10 +1035,8 @@ static void undi_transmit(
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void undi_disable(struct dev *dev)
+static void undi_disable(struct dev *dev __unused)
 {
-	/* Inhibit compiler warning about unused parameter dev */
-	if ( dev == NULL ) {};
 	undi_full_shutdown();
 	free_base_mem_data();
 }
