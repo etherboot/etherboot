@@ -586,7 +586,7 @@ struct nic *eepro_probe(struct nic *nic, unsigned short *probe_addrs)
 	nic->transmit = eepro_transmit;
 	nic->disable = eepro_disable;
 	/* Based on PnP ISA map */
-	nic->devid.vendor_id = htons(0x8086);
+	nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
 	nic->devid.device_id = htons(0x828a);
 	return (nic);
 }

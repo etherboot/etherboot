@@ -575,7 +575,7 @@ struct nic *t507_probe(struct nic *nic, unsigned short *probe_addrs)
 		nic->transmit = i82586_transmit;
 		nic->disable = i82586_disable;
 		/* Based on PnP ISA map */
-		nic->devid.vendor_id = htons(0x10b7);
+		nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
 		nic->devid.device_id = htons(0x80f6);
 		return nic;
 	}

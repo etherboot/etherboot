@@ -558,7 +558,7 @@ struct nic *ni6510_probe(struct nic *nic, unsigned short *probe_addrs)
 		nic->transmit = lance_transmit;
 		nic->disable = lance_disable;
 		/* Based on PnP ISA map */
-		nic->devid.vendor_id = htons(0x1022);
+		nic->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
 #ifdef	INCLUDE_NE2100
 		nic->devid.device_id = htons(0x80d8);
 #endif

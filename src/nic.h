@@ -8,6 +8,12 @@
 #ifndef	NIC_H
 #define NIC_H
 
+#define ISAPNP_VENDOR(a,b,c)	(((((a)-'A'+1)&0x3f)<<2)|\
+				((((b)-'A'+1)&0x18)>>3)|((((b)-'A'+1)&7)<<13)|\
+				((((c)-'A'+1)&0x1f)<<8))
+
+#define	GENERIC_ISAPNP_VENDOR	ISAPNP_VENDOR('P','N','P')
+
 /* Need to check the packing of this struct if Etherboot is ported */
 struct nic_id
 {
