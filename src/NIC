@@ -169,6 +169,8 @@ epic100		epic100		0x10b8,0x0005
 3c509
 # 3c529 == MCA 3c509
 3c529		3c509
+# 3c515 Fast EtherLink
+3c515		3c515
 # Intel Etherexpress Pro/10 (ISA card)
 eepro		eepro
 # Crystal Semiconductor CS89x0
