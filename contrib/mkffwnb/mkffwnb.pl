@@ -188,7 +188,7 @@ unless (&dostounix("$libdir/floppyfw.ini", "floppyfw.ini")) {
 for my $i (glob('*.bz2 floppyfw/add.bz2 modules/*.bz2 packages/*.bz2')) {
 	&bunzip2untar($i, $tempmount);
 }
-for my $i (glob('packages/pre-*.ini packages/post-*.ini')) {
+for my $i (glob('packages/*.ini')) {
 	my $file = $i;
 	$file =~ s:packages/::;
 	&dostounix($i, "etc/$file");
