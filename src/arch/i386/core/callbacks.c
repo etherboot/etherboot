@@ -21,6 +21,23 @@ uint32_t in_call ( va_list ap, in_call_data_t data, uint32_t opcode ) {
 	/* NOTE: ap will cease to be valid if we relocate, since it
 	 * represents a virtual address
 	 */
+
+	/* This code is i386-specific and should be moved to an
+	 * arch_in_call() or similar.
+	 *
+	 * Maybe the arch-specific routine should be the actual entry
+	 * point, and then hand off to the core once it's decoded the
+	 * parameters?  Probably a good idea; would also allow for a
+	 * more logical re-ordering of the parameters!
+	 */
+	if ( opcode & EB_CALL_FROM_REAL_MODE ) {
+		/* Not much use in here... */
+		real_in_call_data_t real_data;
+		real_data = va_arg ( ap, typeof(real_data) );
+		printf ( "in_call from real mode (return %hx:%hx): ",
+			 real_data.ret_addr.segment,
+			 real_data.ret_addr.offset );
+	}
 	
 	switch ( EB_OPCODE(opcode) ) {
 	case EB_OPCODE_MAIN: {
@@ -34,6 +51,7 @@ uint32_t in_call ( va_list ap, in_call_data_t data, uint32_t opcode ) {
 		uint32_t pxe_opcode;
 		pxe_opcode = va_arg ( ap, typeof(pxe_opcode) );
 		printf ( "PXE API call %x\n", pxe_opcode );
+		ret = 0x2;
 	} break;
 #endif
 	default: {
@@ -81,6 +99,7 @@ uint32_t v_ext_call ( uint32_t address, va_list ap ) {
 		valid = v_ext_call_check ( address, aq );
 		/* Pop first_arg from ap as well */
 		va_arg ( ap, typeof(first_arg) );
+		sleep ( 1 );
 	}
 	va_end ( aq );
 	if ( !valid ) {
@@ -118,9 +137,15 @@ void print_gdt_segment ( uint16_t segment_num, gdt_segment_t *gdt_seg ) {
 
 /* Print out parameter list for a call to ext_call().
  */
+#define EC_SIGBLOCK_LENGTH 20 /* Should match value calculated in assembly */
 int v_ext_call_check ( uint32_t address, va_list ap ) {
 	uint32_t type;
 	int valid = 1;
+
+	/* Used to guess a suitable breakpoint location */
+	uint32_t trampoline_length = 0;
+	uint32_t reloc_stack = 0;
+	uint32_t breakpoint = address;
 
 	printf ( "External call to %x with arguments:\n", address );
 	/* Dump argument list */
@@ -205,7 +230,6 @@ int v_ext_call_check ( uint32_t address, va_list ap ) {
 			putchar ( '\n' );
 		} break;
 		case EXTCALL_RELOC_STACK: {
-			char *reloc_stack;
 			reloc_stack = va_arg ( ap, typeof(reloc_stack) );
 			printf ( " Relocate stack to [......,%x)\n",
 				 reloc_stack );
@@ -217,6 +241,11 @@ int v_ext_call_check ( uint32_t address, va_list ap ) {
 			length = va_arg ( ap, typeof(length) );
 			printf ( " Trampoline routine at %x length %hx\n",
 				 routine, length );
+			trampoline_length += length;
+			printf ( "  (total trampoline length so far %x)\n",
+				 trampoline_length );
+			breakpoint = ( reloc_stack - trampoline_length
+				       - EC_SIGBLOCK_LENGTH ) & ( ~0x3 );
 		} break;
 		default:
 			printf ( " Unknown argument type %hx\n", type );
@@ -224,6 +253,7 @@ int v_ext_call_check ( uint32_t address, va_list ap ) {
 			break;
 		}
 	}
+	printf ( "Set breakpoint at %x\n", breakpoint );
 	printf ( valid ? "End of argument list\n"
 		 : "Argument list error: aborting\n" );
 	return valid;
@@ -250,12 +280,18 @@ extern void _in_call_far ( void );
 extern void demo_extcall_end;
 
 extern void _prot_to_real;
+extern void _prot_to_real_size;
 extern void _eprot_to_real;
 extern void _real_to_prot;
 extern void _ereal_to_prot;
 extern void hello_world;
 extern void ehello_world;
+extern void trial_real_incall;
+extern void etrial_real_incall;
 
+extern void _rm_callback_interface;
+extern long rm_etherboot_location;
+extern void _rm_callback_interface_end;
 
 
 extern int get_esp ( void );
@@ -279,12 +315,12 @@ int my_call ( char a, long b, char c, char e, long d ) {
 	registers.edx = 0x12345678;
 
 	memset ( &seg_regs, 0, sizeof(seg_regs) );
-	seg_regs.cs = 0x28;
-	seg_regs.ss = 0x30;
-	seg_regs.ds = 0x30;
-	seg_regs.es = 0x30;
-	seg_regs.fs = 0x30;
-	seg_regs.gs = 0x30;
+	seg_regs.cs = 0x18;
+	seg_regs.ss = 0x20;
+	seg_regs.ds = 0x20;
+	seg_regs.es = 0x20;
+	seg_regs.fs = 0x20;
+	seg_regs.gs = 0x20;
 
 	struct {
 		uint16_t arg1;
@@ -314,28 +350,37 @@ int my_call ( char a, long b, char c, char e, long d ) {
 	registers.ebx = 0xabcdabcd;
 
 	/*		memset ( temp_stack, 0, 256 ); */
+	seg_regs_t rm_seg_regs =
+		{ rm_seg, rm_seg, rm_seg, rm_seg, rm_seg, rm_seg };
 
 	ret = (int) ext_call (
 	   0, /* virt_to_phys(demo_extcall), */
 	   EP_REGISTERS(&registers),
 	   EP_SEG_REGISTERS(&seg_regs),
-	   EP_STACK(&rm_seg),
+	   EP_STACK(&rm_seg_regs),
 	   EP_STACK_PASSTHRU(b, d),
 	   EP_GDT(&gdt, 0x18),
-	   EP_RELOC_STACK(0x1000),
+	   EP_RELOC_STACK((rm_seg << 4 ) + 0x1000),
 	   EP_RET_VARSTACK( &ret_parms, &ret_stack_len ),
 	   EP_TRAMPOLINE(&_prot_to_real, &_eprot_to_real ),
 	   EP_TRAMPOLINE(&hello_world, &ehello_world ),
 	   EP_TRAMPOLINE(&_real_to_prot, &_ereal_to_prot )
 	   );
+	/* When making a real call, relocate the stack only if
+	 * necessary.  (This requires ext_call to allow segment-adjust
+	 * of %esp, as it does for %eip).
+	 *
+	 * As well as saving on relocation, this should solve the
+	 * problem of only having one "internal" real-mode stack: the
+	 * only time it's a problem is if we try to make two
+	 * concurrent real-mode calls, which is only likely to happen
+	 * if a real-mode routine that we called out to calls back to
+	 * us.  However, in this case the stack is already in base
+	 * memory and so we can just use it where it is! :)
+	 */
 	
 	printf ( "ecx = %#x (%#x)\n", registers.ecx,
 		 phys_to_virt(registers.ecx) );
-
-	printf ( "return stack length %hx: %hx %hx %hx %hx\n",
-		 ret_stack_len,
-		 ret_parms.ret1, ret_parms.ret2,
-		 ret_parms.ret3, ret_parms.ret4 );
 
 	/*	hex_dump(((void*)temp_stack),256); */
 
@@ -354,13 +399,51 @@ int my_call ( char a, long b, char c, char e, long d ) {
 	} testing;
 	testing.opcode = EB_OPCODE_PXE;
 	testing.pxe_opcode = 0x1234;
-	ret = (int) ext_call_trace (
+	ret = (int) ext_call (
 	    virt_to_phys ( _in_call_far ),
 	    EP_SEG_REGISTERS(&seg_regs),
 	    EP_GDT(&gdt, 0x18),
 	    EP_RELOC_STACK(0x9fa00),
 	    EP_STACK(&testing)
 	    );
+
+
+
+	seg_regs.cs = 0x18;
+	seg_regs.ss = 0x20;
+	seg_regs.ds = 0x20;
+	seg_regs.es = 0x20;
+	seg_regs.fs = 0x20;
+	seg_regs.gs = 0x20;
+
+
+	/* Install real-mode callback interface at 0x80000
+	 */
+	uint32_t target = 0x80000;
+	rm_etherboot_location = virt_to_phys(_text);
+	memcpy ( phys_to_virt ( target ), &_rm_callback_interface,
+		 ( &_rm_callback_interface_end - &_rm_callback_interface ) );
+	
+
+	ret = (int) ext_call (
+	   0, /* virt_to_phys(demo_extcall), */
+	   EP_REGISTERS(&registers),
+	   EP_SEG_REGISTERS(&seg_regs),
+	   EP_STACK(&rm_seg_regs),
+	   EP_STACK_PASSTHRU(b, d),
+	   EP_GDT(&gdt, 0x18),
+	   EP_RELOC_STACK((rm_seg << 4 ) + 0x1000),
+	   EP_RET_STACK( &rm_seg_regs ),
+	   EP_RET_VARSTACK( &ret_parms, &ret_stack_len ),
+	   EP_TRAMPOLINE(&_prot_to_real, &_eprot_to_real ),
+	   EP_TRAMPOLINE(&trial_real_incall, &etrial_real_incall ),
+	   EP_TRAMPOLINE(&_real_to_prot, &_ereal_to_prot )
+	   );
+
+	printf ( "return stack length %hx: %hx %hx %hx %hx\n",
+		 ret_stack_len,
+		 ret_parms.ret1, ret_parms.ret2,
+		 ret_parms.ret3, ret_parms.ret4 );
 
 	return ret;
 }

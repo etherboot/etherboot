@@ -61,6 +61,8 @@
 #define ECR_OFFSET_REGISTERS ( ECR_OFFSET_FLAGS + 4 )
 #define ECR_OFFSET_SEG_REGS ( ECR_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
 #define ECR_OFFSET_PARAMS ( ECR_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
+/* Signature block parameters that are reused after return */
+#define ECR_SIG_RET_LENGTH ( EC_SIG_TRAMPOLINE )
 
 	.globl _v_ext_call
 _v_ext_call:
@@ -430,10 +432,17 @@ ec_return:
 	/% ebp now points to signature, as before call */
 
 	/* Calculate length of returned parameters and store */
+	movl	EC_SIG_TRAMPOLINE(%ebp), %ecx /* Trampoline length */
+	testl	%ecx, %ecx
+	jnz	2f
+1:	/* No trampoline: length is &(signature) - (returned %esp) */
 	movl	%ebp, %ecx	/* &(signature) */
 	leal	ECR_OFFSET_PARAMS(%esp), %edx /* Returned %esp */
 	subl	%edx, %ecx
+2:	/* Trampoline present: length is just the trampoline offset */
 	movl	%ecx, EC_SIG_LENGTH(%ebp) /* Store length */
+	xorl	%eax, %eax
+	movl	%eax, ECR_SIG_RET_LENGTH(%ebp) /* Zero returned length */
 
 	/* Align stack by shifting down */
 	addl	$ECR_OFFSET_PARAMS, %ecx /* Length to copy */
@@ -539,7 +548,10 @@ process_ecr_params_ret_stack:
 	 * structure length
 	 */
 	movl	EC_SIG_LENGTH(%ebp), %ecx /* %ecx = returned stack length */
+	movl	ECR_SIG_RET_LENGTH(%ebp), %eax /* %eax = returned len so far */
 	leal	ECR_OFFSET_PARAMS(%esp), %esi /* %esi = &(returned stack) */
+	addl	%eax, %esi		/* %esi = &(unreturned stack portion)*/
+	subl	%eax, %ecx		/* %ecx = unreturned stack length */
 	movl	0(%ebx), %edi		/* %edi = &(C structure) */
 	movl	8(%ebx), %eax		/* %eax = &(C length variable) */
 	testl	%eax, %eax
@@ -549,7 +561,8 @@ process_ecr_params_ret_stack:
 	cmpl	%eax, %ecx		/* Check length against max length */
 	jbe	2f
 	movl	%eax, %ecx		/* ...and truncate if necessary */
-2:	rep movsb			/* Copy data */
+2:	addl	%ecx, ECR_SIG_RET_LENGTH(%ebp) /* Update returned length */
+	rep movsb			/* Copy data */
 	addl	$12, %ebx
 	jmp	process_ecr_params
 process_ecr_params_reloc_stack:
@@ -749,53 +762,256 @@ _in_call_far:
 	
 	
 #ifdef CODE16
+	.section ".text16"
 
 	.equ	CR0_PE,1
+
+/****************************************************************************
+ * REAL-MODE CALLBACK INTERFACE
+ *
+ * This must be copied down to base memory in order for external
+ * programs to be able to make calls in to Etherboot.  Copy everything
+ * from _rm_callback_interface to _rm_callback_interface_end and
+ * update the variable rm_etherboot_location with the current physical
+ * address of Etherboot (i.e. virt_to_phys(_text)).
+ *
+ * Note that the routines _prot_to_real and _real_to_prot double as
+ * trampoline fragments for external calls (calls from Etherboot to
+ * real-mode code).
+ ****************************************************************************
+ */
+	.globl	_rm_callback_interface
+_rm_callback_interface:
+
+/****************************************************************************
+ * _real_in_call
+ *
+ * Parameters:
+ *   16-bit real-mode far return address (implicit from lcall to routine)
+ *   Other parameters as for _in_call_far().
+ *
+ * This routine will convert the 16-bit real-mode far return address
+ * to a 32-bit real-mode far return address, switch to protected mode
+ * using _real_to_prot and call in to _in_call_far.
+ ****************************************************************************
+ */
+
+#define RIC_PRESERVE ( 8 )
+#define RIC_OFFSET_RETADDR ( RIC_PRESERVE )
+#define RIC_OFFSET_RETADDR_E ( RIC_OFFSET_RETADDR + 8 )
+#define RIC_ORIG_OFFSET_RETADDR_E ( RIC_OFFSET_RETADDR_E )
+#define RIC_ORIG_OFFSET_RETADDR ( RIC_ORIG_OFFSET_RETADDR_E - 4 )
+#define RIC_INSERT_LENGTH ( ( RIC_OFFSET_RETADDR_E - RIC_OFFSET_RETADDR ) - \
+		      ( RIC_ORIG_OFFSET_RETADDR_E - RIC_ORIG_OFFSET_RETADDR ) )
+
+/* Little bit messy that we need to know this... */
+#define RIC_R2P_INSERT_LENGTH ( NUM_SEG_REGS * 2 )
+	
+#define RIC2_PRESERVE ( 8 )
+#define RIC2_OFFSET_CALLADDR ( RIC2_PRESERVE )
+#define RIC2_OFFSET_CALLADDR_E ( RIC2_OFFSET_CALLADDR + 8 )
+#define RIC2_OFFSET_RETADDR ( RIC2_OFFSET_CALLADDR_E )
+#define RIC2_OFFSET_RETADDR_E ( RIC2_OFFSET_RETADDR + 8 )
+#define RIC2_OFFSET_OPCODE ( RIC2_OFFSET_RETADDR_E )
+#define RIC2_OFFSET_OPCODE_E ( RIC2_OFFSET_OPCODE + 4 )
+#define RIC2_OFFSET_PARAMS_FROM_R2P ( RIC2_OFFSET_OPCODE_E )
+#define RIC2_OFFSET_ORIG_OPCODE ( RIC2_OFFSET_PARAMS_FROM_R2P + \
+				  RIC_R2P_INSERT_LENGTH + 8 )
+#define RIC2_INSERT_LENGTH ( RIC2_OFFSET_OPCODE_E - RIC2_OFFSET_CALLADDR )
+
+	.code16
+	.globl _real_in_call
+_real_in_call:
+	/* Allow space for expanded stack */
+	subw	$RIC_INSERT_LENGTH, %sp
+
+	/* Store temporary registers */
+	pushl	%ebp
+	pushl	%eax
+
+	/* 16-bit code:	need %bp as a base register */
+	movw	%sp, %bp
+
+	/* Expand 16-bit return address to 32-bit */
+	movzwl	(RIC_ORIG_OFFSET_RETADDR+0)(%bp), %eax
+	movl	%eax, (RIC_OFFSET_RETADDR+0)(%bp)
+	movzwl	(RIC_ORIG_OFFSET_RETADDR+2)(%bp), %eax
+	movl	%eax, (RIC_OFFSET_RETADDR+4)(%bp)
+
+	/* Restore temporary registers */
+	popl	%eax
+	popl	%ebp
+
+	/* Call to _real_to_prot */
+	DATA32 call _real_to_prot_core
+
+	/* Continuation point */
+2:	.code32
+
+	/* We're in protected mode with flat physical addresses and
+	 * all the parameters are on the stack: set up _prot_to_real
+	 * as the return address and 'ljmp' into _in_call_far.
+	 */
+
+	/* Allow space for expanded stack */
+	subl	$RIC2_INSERT_LENGTH, %esp
+	
+	/* Store temporary registers */
+	pushl	%ebp
+	pushl	%eax
+
+	/* Copy opcode, set EB_CALL_FROM_REAL_MODE.  Copy it because
+	 * _in_call() and in_call() expect it at a fixed position, not
+	 * as part of the va_list.
+	 */
+	movl	RIC2_OFFSET_ORIG_OPCODE(%esp), %eax
+	orl	$EB_CALL_FROM_REAL_MODE, %eax
+	movl	%eax, RIC2_OFFSET_OPCODE(%esp)
+	
+	/* Set up call and return addresses */
+	movl	$(r2p_pmcs-r2p_gdt), %eax	/* Flat physical CS */
+	movl	%eax, (RIC2_OFFSET_CALLADDR+4)(%esp)
+	movl	%eax, (RIC2_OFFSET_RETADDR+4)(%esp)
+	call	1f
+1:	popl	%ebp
+	subl	$1b, %ebp			/* %ebp = offset */
+	movl	rm_etherboot_location(%ebp), %eax  /* Etherboot phys addr */
+	subl	$_text, %eax
+	addl	$_in_call_far, %eax		/* _in_call_far phys addr */
+	movl	%eax, (RIC2_OFFSET_CALLADDR+0)(%esp)
+	leal	2f(%ebp), %eax			/* return phys. address */
+	movl	%eax, (RIC2_OFFSET_RETADDR+0)(%esp)
+	
+	/* Restore temporary registers */
+	popl	%eax
+	popl	%ebp
+
+	/* Call to _in_call_far, will return via _prot_to_real */
+	lret
+
+2:	/* Return point */
+
+	/* Remove opcode from stack */
+	addl	$4, %esp
+	/* Return via _prot_to_real */
+	jmp	_prot_to_real
+
+/****************************************************************************
+ * rm_etherboot_location: the current physical location of Etherboot.
+ * Needed so that real-mode callback routines can locate Etherboot.
+ ****************************************************************************
+ */
+	.globl rm_etherboot_location
+rm_etherboot_location:	.long 0
 		
 /****************************************************************************
  * _prot_to_real
  *
- * (trampoline prefix)
+ * Switch from 32-bit protected mode with flat physical addresses to
+ * 16-bit real mode, preserving all non-segment registers.
  *
- * Switch from 16-bit protected mode to 16-bit real mode, preserving
- * all registers.
- *
- * This fragment should be called in a 16-bit code segment,
- * paragraph-aligned.  All other segments should be 16-bit data, with
- * the same base address.  Segment limits should be real-mode
- * compatible, i.e. 0xffff.  This implies that %eip and %esp will
- * already have the top 16 bits cleared when called.
+ * This routine serves two purposes: (a) as part of the trampoline
+ * code to switch down to real mode in order to make a real-mode call
+ * from within Etherboot, and (b) as part of the exit path back to
+ * real-mode code after a call to _real_in_call.
  * 
- * Assuming that you intend to return via _real_to_prot, the return
- * address should be a physical address and the call type should be
- * far (although the segment of the return address will be ignored).
+ * Parameters:
+ *   32-bit far return address (implicit from far call to routine)
+ *   seg_regs_t rm_seg_regs : structure for real-mode segment register values.
  *
- * Parameter:
- *	RMCS (word) : (segment base address >> 4), i.e. real-mode %cs value
+ * This routine will strip rm_seg_regs from the stack (i.e. shift up
+ * the return address and adjust the stack pointer).
+ *
+ * For case (a), the return address will eventually be interpreted by
+ * _real_to_prot as part of the return to Etherboot.  It should be in
+ * a flat physical segment.  (The actual segment value will be
+ * ignored, but the offset must be a physical offset).  This routine
+ * should be entered via a 32-bit far call.
+ *
+ * In case (b), the return address should be a 32-bit real mode
+ * segment:offset address.  This routine should be entered via a
+ * 32-bit far jump (i.e. it is given as the return point for the call
+ * to _in_call_far).
  ****************************************************************************
  */
-	.section ".text16"
-	.code16
+
+#define P2R_PRESERVE (14)
+#define P2R_OFFSET_RETADDR ( P2R_PRESERVE )
+#define P2R_OFFSET_RETADDR_E ( P2R_OFFSET_RETADDR + 8 )
+#define P2R_OFFSET_SEG_REGS ( P2R_OFFSET_RETADDR_E )
+#define P2R_OFFSET_SEG_REGS_E ( P2R_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
+#define P2R_STRIP_LENGTH ( P2R_OFFSET_SEG_REGS_E - P2R_OFFSET_SEG_REGS )
+#define P2R_NEW_OFFSET_RETADDR ( P2R_OFFSET_RETADDR + P2R_STRIP_LENGTH )
+
 	.globl _prot_to_real
 	.globl _eprot_to_real
+
+	.code32
 _prot_to_real:
 	/* Store interrupt status and temporary registers */
 	pushfw
-	pushw	%bp
+	pushl	%ebp
 	pushl	%eax
 	pushl	%ebx
-	movw	%sp, %bp
 	
 	/* Disable interrupts */
 	cli
 
+	/* Calculate offset */
+	call	1f
+1:	popl	%ebp
+	subl	$1b, %ebp		/* %ebp = offset */
+
+	/* Set up GDT with real-mode limits and appropriate bases for
+	 * real-mode %cs and %ss.  Reload all segment registers,
+	 * adjust %esp.
+	 */
+	leal	p2r_gdt(%ebp), %ebx
+	movl	%ebx, p2r_gdt_addr(%ebp)	/* Fixup p2r_gdtarg */
+	/* Code segment */
+	movzwl	(P2R_OFFSET_SEG_REGS+10)(%esp), %eax /* %eax = RM %cs */
+	shll	$4, %eax		/* %eax = RM CS base */
+	/* Set up protected-mode continuation point */
+	leal	2f(%ebp), %ebx
+	subl	%eax, %ebx
+	pushl	$(p2r_rmcs - p2r_gdt)	/* Pmode CS */
+	pushl	%ebx			/* Offset within new CS */
+	/* Set CS base in GDT */
+	movw	%ax, (p2r_rmcs+2)(%ebp)
+	shrl	$16, %eax
+	movb	%al, (p2r_rmcs+4)(%ebp)
+	movzwl	(P2R_OFFSET_SEG_REGS+8)(%esp), %eax /* %eax = RM %ss */
+	shll	$4, %eax		/* %eax = RM SS base */
+	/* Adjust esp */
+	subl	%eax, %esp		/* %esp now less than 0x10000 */
+	/* Set SS base in GDT */
+	movw	%ax, (p2r_rmds+2)(%ebp)
+	shrl	$16, %eax
+	movb	%al, (p2r_rmds+4)(%ebp)
+	/* Load GDT */
+	lgdt	p2r_gdt(%ebp)
+	/* Reload all segment registers */
+	movw	$(p2r_rmds - p2r_gdt), %ax /* Pmode DS */
+	movw	%ax, %ss
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %fs
+	movw	%ax, %gs
+	lret				/* %cs:eip */
+2:	/* Segment registers now have 16-bit limits. */
+	.code16
+
+	/* Set up bp as index register for 16-bit code */
+	movw	%sp, %bp
+	
 	/* Set up real-mode continuation point */
-	movw	20(%bp), %ax
+	movw	(P2R_OFFSET_SEG_REGS+10)(%bp), %ax /* %ax = RM %cs */
 	pushw	%ax			/* RM segment */
 	call	1f
 1:	popw	%bx
 	addw	$2f-1b, %bx
 	pushw	%bx			/* RM offset */
+	movw	(P2R_OFFSET_SEG_REGS+8)(%bp), %ax /* %ax = RM %ss */
 
 	/* Switch to real mode */
 	movl	%cr0, %ebx
@@ -811,66 +1027,162 @@ _prot_to_real:
 2:	
 
 	/* Reload other segment registers with real-mode values */
-	movw	%cs, %ax
-	movw	%ax, %ds
-	movw	%ax, %es
-	movw	%ax, %fs
-	movw	%ax, %gs
+	addw	$P2R_OFFSET_SEG_REGS, %sp
+	popw	%gs
+	popw	%fs
+	popw	%es
+	popw	%ds
+	subw	$(P2R_OFFSET_SEG_REGS+8), %sp
 
-	/* Shuffle return address up the stack (i.e. remove our
-	 * parameter, the real-mode segment value, from the parameter
-	 * list.)
+	/* Strip rm_seg_regs structure from stack, i.e. shuffle up the
+	 * return address.
 	 */
-	movl	16(%bp), %eax
-	movl	12(%bp), %ebx
-	movl	%eax, 18(%bp)
-	movl	%ebx, 14(%bp)
+	movl	(P2R_OFFSET_RETADDR+0)(%bp), %eax
+	movl	(P2R_OFFSET_RETADDR+4)(%bp), %ebx
+	movl	%eax, (P2R_NEW_OFFSET_RETADDR+0)(%bp)
+	movl	%ebx, (P2R_NEW_OFFSET_RETADDR+4)(%bp)
 	
 	/* Restore registers and interrupt status */
 	popl	%ebx
 	popl	%eax
-	popw	%bp
+	popl	%ebp
 	popfw
 
 	/* Adjust stack to point to return address */
-	addw	$2, %sp
+	addw	$P2R_STRIP_LENGTH, %sp
 
-	/* fall through to code following trampoline prefix */
+	jmp	99f
+p2r_gdt:
+p2r_gdtarg:
+p2r_gdt_limit:		.word p2r_gdt_end - p2r_gdt - 1
+p2r_gdt_addr:		.long 0
+p2r_gdt_padding:	.word 0
+p2r_rmcs:
+	/* 16 bit real mode code segment */
+	.word	0xffff,(0&0xffff)
+	.byte	(0>>16),0x9b,0x00,(0>>24)
+p2r_rmds:
+	/* 16 bit real mode data segment */
+	.word	0xffff,(0&0xffff)
+	.byte	(0>>16),0x93,0x00,(0>>24)
+p2r_gdt_end:
+99:	
+	
+	/* This is the end of the trampoline prefix code.  When used
+	 * as a prefix, fall through to the following code in the
+	 * trampoline.
+	 */
 _eprot_to_real:
-	.code32
-	.previous
 
+	/* For the case that this is being used as the return path to
+	 * real-mode code, we now have a 32-bit real-mode far return
+	 * address on the stack.
+	 */
+	DATA32 lret			/* Back to real-mode caller */
+	
 /****************************************************************************
  * _real_to_prot
  *
- * (trampoline suffix)
- *
  * Switch from 16-bit real-mode to 32-bit protected mode with flat
  * physical addresses, preserving all registers, and return to
- * Etherboot.
+ * Etherboot (or other specified address).
+ *
+ * This routine serves two purposes: (a) as part of the trampoline
+ * code to switch back from real mode after making a real-mode call
+ * from within Etherboot, and (b) as part of the entry path from
+ * real-mode code to in_call().
+ * 
+ * Parameters:
+ *   32-bit flat physical far return address
+ *
+ * This routine will push a seg_regs_t structure containing the
+ * real-mode segment registers onto the stack before returning to the
+ * specified address.
+ ****************************************************************************
  */
-	.section ".text16"
-	.code16
+
+#define R2P_PRESERVE ( 12 )
+#define R2P_OFFSET_LOCALRETADDR ( R2P_PRESERVE )
+#define R2P_OFFSET_LOCALRETADDR_E ( R2P_OFFSET_LOCALRETADDR + 4 )
+#define R2P_OFFSET_RETADDR ( R2P_OFFSET_LOCALRETADDR_E )
+#define R2P_OFFSET_RETADDR_E ( R2P_OFFSET_RETADDR + 8 )
+#define R2P_OFFSET_SEG_REGS ( R2P_OFFSET_RETADDR_E )
+#define R2P_OFFSET_SEG_REGS_E ( R2P_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
+#define R2P_INSERT_LENGTH ( R2P_OFFSET_SEG_REGS_E - R2P_OFFSET_SEG_REGS )
+#define R2P_ORIG_OFFSET_LOCALRETADDR ( R2P_OFFSET_LOCALRETADDR + \
+				       R2P_INSERT_LENGTH )
+#define R2P_ORIG_OFFSET_RETADDR ( R2P_OFFSET_RETADDR + R2P_INSERT_LENGTH )
+
+/* Safety check: _real_in_call needs to know R2P_INSERT_LENGTH but it
+ * doesn't get calculated until this point in the file.  Rather than
+ * reordering everything, just give a fatal error if it was the wrong
+ * value.
+ */
+#if RIC_R2P_INSERT_LENGTH != R2P_INSERT_LENGTH
+#error RIC_R2P_INSERT_LENGTH != R2P_INSERT_LENGTH
+#endif
+
 	.globl _real_to_prot
 	.globl _ereal_to_prot
+	
+	.code16		
 _real_to_prot:
+	DATA32 call _real_to_prot_core
+	.code32
+	/* Force return segment address to 0x08 (i.e. physical).  We
+	 * do this because the GDT may have changed as a result of the
+	 * real-call payload.  A physical offset address for the
+	 * return address is an entry requirement of ours anyway, and
+	 * ext_call() can cope with an altered GDT on return.
+	 */
+	movl	$(r2p_pmcs-r2p_gdt), 4(%esp)
+	
+	/* Return to Etherboot */
+	lret
+
+	.code16
+_real_to_prot_core:	
+	/* Allow space for real-mode segment registers */
+	subw	$R2P_INSERT_LENGTH, %sp
+	
 	/* Store interrupt status and temporary registers */
 	pushfw
 	pushw	%bp
 	pushl	%eax
 	pushl	%ebx
 
-	call	1f
-1:	pop	%bp			/* %bp = offset */
+	/* Move return addresses down the stack so we can insert the
+	 * segment register dump.
+	 */
+	movw	%sp, %bp
+	movl	(R2P_ORIG_OFFSET_RETADDR+0)(%bp), %eax
+	movl	(R2P_ORIG_OFFSET_RETADDR+4)(%bp), %ebx
+	movl	%eax, (R2P_OFFSET_RETADDR+0)(%bp)
+	movl	%ebx, (R2P_OFFSET_RETADDR+4)(%bp)
+	movl	(R2P_ORIG_OFFSET_LOCALRETADDR)(%bp), %eax
+	movl	%eax, (R2P_OFFSET_LOCALRETADDR)(%bp)
+
+	/* Store segment registers on stack */
+	addw	$R2P_OFFSET_SEG_REGS_E, %sp
+	pushw	%cs
+	pushw	%ss
+	pushw	%ds
+	pushw	%es
+	pushw	%fs
+	pushw	%gs
+	subw	$R2P_OFFSET_SEG_REGS, %sp
 
 	/* Calculate 32-bit continuation address and push onto stack */
-	pushl	$0x08			/* PMCS from rtp_gdt */
 	xorl	%eax, %eax
 	movw	%cs, %ax
-	shll	$4, %eax
+	shll	$4, %eax		/* %eax = %cs << 4 */
+	addl	%eax, R2P_OFFSET_LOCALRETADDR(%bp) /* Adjust local ret. addr */
+	pushl	$(r2p_pmcs-r2p_gdt)	/* PMCS from r2p_gdt */
+	call	1f
+1:	popw	%bp			/* %bp = offset */
 	leal	(2f-1b)(%bp), %ebx
 	addl	%eax, %ebx
-	pushl	%ebx
+	pushl	%ebx			/* Continuation offset address */
 
 	/* Convert %esp to 32-bit physical value */
 	xorl	%eax, %eax
@@ -880,14 +1192,14 @@ _real_to_prot:
 	addl	%eax, %esp
 
 	/* Set up GDT */
-	leal	(rtp_gdt-1b)(%bp), %eax	/* %cs:eax = %cs:ax = &(rtp_gdt) */
+	leal	(r2p_gdt-1b)(%bp), %eax	/* %cs:eax = %cs:ax = &(r2p_gdt) */
 	movl	%cs, %ebx
 	shll	$4, %ebx
-	addl	%ebx, %eax		/* %eax = &rtp_gdt (physical) */
-	movl	%eax, %cs:(2+rtp_gdt-1b)(%bp) /* Set phys. addr. in rtp_gdt */
+	addl	%ebx, %eax		/* %eax = &r2p_gdt (physical) */
+	movl	%eax, %cs:(2+r2p_gdt-1b)(%bp) /* Set phys. addr. in r2p_gdt */
 
 	/* Load GDT */
-	lgdt	%cs:(rtp_gdt-1b)(%bp)	/* Load GDT */
+	lgdt	%cs:(r2p_gdt-1b)(%bp)	/* Load GDT */
 
 	/* Switch to protected mode */
 	movl	%cr0, %eax
@@ -895,7 +1207,7 @@ _real_to_prot:
 	movl	%eax, %cr0
 
 	/* Reload %ss and %cs:eip */
-	movw	$0x10, %ax		/* PMDS from rtp_gdt */
+	movw	$(r2p_pmds-r2p_gdt), %ax /* PMDS from r2p_gdt */
 	movw	%ax, %ss		/* Reload %ss */
 	DATA32 lret			/* 'ljmp' to 2f */
 2:
@@ -906,48 +1218,45 @@ _real_to_prot:
 	movw	%ax, %fs
 	movw	%ax, %gs
 
-	/* Force return segment address to 0x08 (i.e. physical).  We
-	 * do this because the GDT may have changed as a result of the
-	 * real-call payload.  A physical offset address for the
-	 * return address is an entry requirement of ours anyway, and
-	 * ext_call() can cope with an altered GDT on return.
-	 */
-	movl	$0x08, 16(%esp)
-	
 	/* Restore registers and interrupt status */
 	popl	%ebx
 	popl	%eax
 	popw	%bp
 	popfw
 
-	/* Return to Etherboot */
-	lret
-rtp_gdt:
-	.word	rtp_gdt_end - rtp_gdt - 1	/* limit */
+	/* Return from _real_to_prot_core */
+	ret
+r2p_gdt:
+	.word	r2p_gdt_end - r2p_gdt - 1	/* limit */
 	.long 0					/* addr */
 	.word 0
-rtp_pmcs:
+r2p_pmcs:
 	/* 32 bit protected mode code segment, physical addresses */
 	.word	0xffff, 0
 	.byte	0, 0x9f, 0xcf, 0
-rtp_pmds:
+r2p_pmds:
 	/* 32 bit protected mode data segment, physical addresses */
 	.word	0xffff,0
 	.byte	0,0x93,0xcf,0
-rtp_gdt_end:
+r2p_gdt_end:
 
 _ereal_to_prot:	
-	.code32
-	.previous
 
 
+	.globl	_rm_callback_interface_end
+_rm_callback_interface_end:
 
+/****************************************************************************
+ * END OF REAL-MODE CALLBACK INTERFACE
+ ****************************************************************************
+ */
+
+	
 /* Temporary demo payload routine */
 	
-	.section ".text16"
-	.code16
 	.globl hello_world
 	.globl ehello_world
+	.code16
 hello_world:
 	call	1f
 1:	popw	%bp
@@ -964,10 +1273,20 @@ hello_world:
 99:	
 	movw	$0xaaaa, %ax
 ehello_world:
-	.code32
-	.previous
+
+	.globl	trial_real_incall
+	.globl	etrial_real_incall
+	.code16
+trial_real_incall:
+	pushl	$0x3456
+	pushl	$EB_OPCODE_PXE
+	lcall	$0x8000, $0
+	addw	$8, %sp
+etrial_real_incall:	
 
 	
+	.code32
+	.previous	
 #endif /* CODE16 */
 	
 	

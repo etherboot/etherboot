@@ -17,7 +17,9 @@
 #define EB_OPCODE_MAIN		(0x0000)
 #define EB_OPCODE_CHECK		(0x6948)	/* 'Hi' */
 #define EB_OPCODE_PXE		(0x7850)	/* 'Px' */
-#define EB_USE_INTERNAL_STACK ( 1 << 16 )
+#define EB_USE_INTERNAL_STACK	( 1 << 16 )
+/* i386 only */
+#define EB_CALL_FROM_REAL_MODE	( 1 << 17 )
 
 /* Standard return codes
  */
@@ -68,8 +70,8 @@ typedef struct {
 /* As part of an external_call parameter list */
 #define EP_REGISTERS(regs) EXTCALL_REGISTERS, (regs)
 
-/* Struct to hold segment register values.  Use as part of a GDT()
- * structure.
+/* Struct to hold segment register values.  Don't change the order;
+ * many bits of assembly code rely on it.
  */
 typedef struct {
 	uint16_t gs;
@@ -275,7 +277,16 @@ typedef struct {
 		uint32_t offset;
 		uint32_t segment;
 	} ret_addr;
-} PACKED in_call_data_t; 
+} PACKED in_call_data_t;
+
+typedef struct {
+	struct {
+		uint32_t offset;
+		uint32_t segment;
+	} ret_addr;
+	seg_regs_t	seg_regs;
+	uint32_t orig_opcode;
+} PACKED real_in_call_data_t;
 
 #endif /* ASSEMBLY */
 
