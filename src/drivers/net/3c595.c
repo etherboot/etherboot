@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /*
 * 3c595.c -- 3COM 3C595 Fast Etherlink III PCI driver for etherboot
 *
@@ -23,6 +20,7 @@
 *
 *  Copyright (c) 1994 Herb Peyerl <hpeyerl@novatel.ca>
 *
+* timlegge	08-24-2003	Add Multicast Support
 */
 
 /* #define EDEBUG */
@@ -134,7 +132,7 @@ static void t595_reset(struct nic *nic)
 	outw(ACK_INTR | 0xff, BASE + VX_COMMAND);
 
 	outw(SET_RX_FILTER | FIL_INDIVIDUAL |
-	    FIL_BRDCST, BASE + VX_COMMAND);
+	    FIL_BRDCST|FIL_MULTICAST, BASE + VX_COMMAND);
 
 	vxsetlink();
 /*{
