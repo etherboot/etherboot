@@ -247,7 +247,6 @@ family		drivers/net/depca
 depca		-		Digital DE100 and DE200
 
 family          drivers/net/forcedeth
-forcedeth       -               NVIDIA nforce
 
 family		drivers/net/sk_g16
 sk_g16		-		Schneider and Koch G16
