@@ -351,20 +351,21 @@ static void init_ring(struct nic *nic __unused)
 	}
 	sdc->dirty_rx = (unsigned int) (i - RX_RING_SIZE);
 
-	/* We only use one transmit buffer, but two descriptors so
-	 * so transmit engines have somewhere to point should they feel the need */
-	tx_ring[0].status = 0;
+	/* We only use one transmit buffer, but two 
+	 * descriptors so transmit engines have somewhere 
+	 * to point should they feel the need */
+	tx_ring[0].status = 0x00000000;
 	tx_ring[0].addr = virt_to_bus(&txb[0]);
-	tx_ring[0].next_desc = virt_to_bus(&tx_ring[1]);
+	tx_ring[0].next_desc = 0; /* virt_to_bus(&tx_ring[1]); */
 
 	/* This descriptor is never used */
-	tx_ring[1].status = 0;
-	tx_ring[1].addr = virt_to_bus(&txb[0]);
-	tx_ring[1].next_desc = virt_to_bus(&tx_ring[0]);
+	tx_ring[1].status = 0x00000000;
+	tx_ring[1].addr = 0; /*virt_to_bus(&txb[0]); */
+	tx_ring[1].next_desc = 0; 
 
-	/* Mark the last entry as wrapping the ring, though this should never happen */
+	/* Mark the last entry as wrapping the ring, 
+	 * though this should never happen */
 	tx_ring[1].length = cpu_to_le32(LastFrag | PKT_BUF_SZ);
-
 }
 
 /**************************************************************************
@@ -379,8 +380,8 @@ static void sundance_reset(struct nic *nic)
 	/* FIXME: find out where the linux driver sets duplex_lock */
 	sdc->full_duplex = sdc->duplex_lock;
 
-	outl(virt_to_le32desc(&rx_ring[0]), BASE + RxListPtr);
 	/* The Tx List Pointer is written as packets are queued */
+	outl(virt_to_le32desc(&rx_ring[0]), BASE + RxListPtr);
 
 	/* Write the MAC address to the StationAddress */
 	for (i = 0; i < 6; i++)
@@ -392,14 +393,14 @@ static void sundance_reset(struct nic *nic)
 	outw((sdc->full_duplex || (sdc->link_status & 0x20)) ? 0x120 : 0,
 	     BASE + MACCtrl0);
 	outw(sdc->mtu + 14, BASE + MaxFrameSize);
-	if (sdc->mtu > 2047)	/* this will never happen with default options */
+	if (sdc->mtu > 2047)/* this will never happen with default options */
 		outl(inl(BASE + ASICCtrl) | 0x0c, BASE + ASICCtrl);
 
 	set_rx_mode(nic);
 	outw(0, BASE + DownCounter);
 	/* Set the chip to poll every N*30nsec */
 	outb(100, BASE + RxDescPoll);
-	outb(127, BASE + TxDescPoll);
+/*	outb(127, BASE + TxDescPoll); */
 
 /* FIXME: Linux Driver has a bug fix for kendin nic */
 
@@ -442,8 +443,6 @@ static int sundance_poll(struct nic *nic)
 	int entry = sdc->cur_rx % RX_RING_SIZE;
 	int boguscnt = 32;
 	int received = 0;
-/*	if(sdc->budget < 0)
-		sdc->budget = 32; */
 	struct netdev_desc *desc = &(rx_ring[entry]);
 	u32 frame_status = le32_to_cpu(desc->status);
 	int pkt_len = 0;
@@ -521,7 +520,6 @@ static void sundance_transmit(struct nic *nic, const char *d,	/* Destination */
 {				/* Packet */
 	u16 nstype;
 	u32 to;
-
 	/* Disable the Tx */
 	outw(TxDisable, BASE + MACCtrl1);
 
@@ -538,26 +536,23 @@ static void sundance_transmit(struct nic *nic, const char *d,	/* Destination */
 
 	/* Setup the transmit descriptor */
 	tx_ring[0].length = cpu_to_le32(s | LastFrag);
-	tx_ring[0].status = cpu_to_le32(0x80000000 | 0x00000001);
+	tx_ring[0].status = cpu_to_le32(0x00000001);
 
 	/* Point to transmit descriptor */
 	outl(virt_to_le32desc(&tx_ring[0]), BASE + TxListPtr);
 
 	/* Enable Tx */
 	outw(TxEnable, BASE + MACCtrl1);
-	/* Linux driver list this a a documentation bug */
 	outw(0, BASE + TxStatus);
-
 	to = currticks() + TX_TIME_OUT;
-	while ((tx_ring[0].status & 0x8000) && (currticks() < to))
-		/* wait */ ;
+	while(!(tx_ring[0].status & 0x00010000) &&  (currticks() < to))
+		; /* wait */ 
 
 	if (currticks() >= to) {
 		printf("TX Time Out");
 	}
 	/* Disable Tx */
 	outw(TxDisable, BASE + MACCtrl1);
-
 }
 
 /**************************************************************************
@@ -575,8 +570,8 @@ static void sundance_disable(struct dev *dev)
 	 * This allows etherboot to reinitialize the interface
 	 *  if something is something goes wrong.
 	 */
-	sundance_reset((struct nic *) dev);
-
+	sundance_reset((struct nic *) dev); 
+	outw(0x0000, BASE + IntrEnable);
 	/* Stop the Chipchips Tx and Rx Status */
 	outw(TxDisable | RxDisable | StatsDisable, BASE + MACCtrl1);
 }
@@ -683,8 +678,10 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 			       (sdc->full_duplex ? "full" : "half"));
 #endif
 			if (sdc->mii_cnt)
-				mdio_write(nic, sdc->phys[0], 0, ((option & 0x300) ? 0x2000 : 0) |	/* 100mbps */
-					   (sdc->full_duplex ? 0x0100 : 0));	/* Full Duplex? */
+				mdio_write(nic, sdc->phys[0],
+					0, ((option & 0x300) ? 0x2000 : 0)
+					|	/* 100mbps */
+					(sdc->full_duplex ? 0x0100 : 0));	/* Full Duplex? */
 		}
 	}
 
@@ -703,9 +700,6 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable = sundance_disable;
 	nic->poll = sundance_poll;
 	nic->transmit = sundance_transmit;
-
-	/* Give card a chance to reset before returning */
-/*  udelay (1000); */
 
 	return 1;
 }
@@ -853,6 +847,7 @@ static inline unsigned ether_crc_le(int length, unsigned char *data)
 
 static void set_rx_mode(struct nic *nic __unused)
 {
+	/* FIXME: Add multicast support */
 	outb((AcceptBroadcast | AcceptMyPhys), BASE + RxMode);
 	return;
 }
