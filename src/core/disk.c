@@ -227,7 +227,7 @@ int disk_load(struct dev *dev)
 }
 
 int url_file(const char *name,
-	int (*fnc)(unsigned char *, unsigned int, unsigned int, int))
+	int (*fnc)(unsigned char *, unsigned int, unsigned int, int) __unused)
 {
 	unsigned int drive;
 	unsigned long  disk_offset;

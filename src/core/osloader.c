@@ -166,7 +166,7 @@ static void done(void)
 static int prep_segment(unsigned long start, unsigned long mid, unsigned long end,
 	unsigned long istart __unused, unsigned long iend __unused)
 {
-	int fit, i;
+	unsigned fit, i;
 
 #if LOAD_DEBUG
 	printf ( "\nAbout to prepare segment [%lX,%lX)\n", start, end );

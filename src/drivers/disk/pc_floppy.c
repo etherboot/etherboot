@@ -190,7 +190,7 @@ struct floppy_fdc_state {
 	int in_sync;
 	int spec1;		/* spec1 value last used */
 	int spec2;		/* spec2 value last used */
-	int dtr;
+	unsigned dtr;
 	unsigned char dor;
 	unsigned char version;	/* FDC version code */
 } fdc_state;

@@ -6,7 +6,7 @@ void init_heap(void)
 {
 	size_t size;
 	size_t start, end;
-	int i;
+	unsigned i;
 	/* Find the largest contiguous area of memory that
 	 * I can use for the heap, which is organized as 
 	 * a stack that grows backwards through memory.

@@ -592,7 +592,8 @@ static int init_drive(struct harddisk_info *info, struct controller *ctrl, int s
 			info->sectors_per_track *
 			info->heads *
 			info->cylinders;
-		printf(__FUNCTION__ " sectors_per_track=[%d], heads=[%d], cylinders=[%d]\n",
+		printf( "%s sectors_per_track=[%d], heads=[%d], cylinders=[%d]\n",
+			__FUNCTION__,
 			info->sectors_per_track,
 			info->heads,
 			info->cylinders);

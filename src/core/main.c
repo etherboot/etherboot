@@ -44,22 +44,21 @@ static inline unsigned long ask_boot(unsigned *index)
 #endif
 #if defined(ASK_BOOT) && ASK_BOOT >= 0
 	while(1) {
-		int c;
-		unsigned long time;
+		int c = 0;
 		printf(ASK_PROMPT);
 #if ASK_BOOT > 0
-		for (time = currticks() + ASK_BOOT*TICKS_PER_SEC; !iskey(); ) {
-			if (currticks() > time) {
-				c = ANS_DEFAULT;
-				goto done;
+		{
+			unsigned long time;
+			for (time = currticks() + ASK_BOOT*TICKS_PER_SEC; !iskey(); ) {
+				if (currticks() > time) c = ANS_DEFAULT;
 			}
 		}
 #endif /* ASK_BOOT > 0 */
-		c = getchar();
-		if ((c >= 'a') && (c <= 'z')) c &= 0x5F;
-		if ((c >= ' ') && (c <= '~')) putchar(c);
+		if ( !c ) { c = getchar(); }
+		if ((c >= 'a') && (c <= 'z')) { c &= 0x5F; }
+		if ((c >= ' ') && (c <= '~')) { putchar(c); }
 		putchar('\n');
-done:
+
 		switch(c) {
 		default:
 			/* Nothing useful try again */
@@ -301,7 +300,7 @@ static int main_loop(int state)
 		if (dev->how_probe == PROBE_FAILED) {
 			dev = 0;
 			state = 4;
-		} else if (boot_index && (i == 0) && (boot_index != dev->type_index)) {
+		} else if (boot_index && (i == 0) && (boot_index != (unsigned)dev->type_index)) {
 			printf("Wrong index\n");
 			state = 4;
 		}

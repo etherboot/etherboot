@@ -18,7 +18,7 @@
 void relocate(void)
 {
 	unsigned long addr, eaddr, size;
-	int i;
+	unsigned i;
 	/* Walk through the memory map and find the highest address
 	 * below 4GB that etherboot will fit into.  Ensure etherboot
 	 * lies entirely within a range with A20=0.  This means that

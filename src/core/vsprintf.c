@@ -1,10 +1,10 @@
 #include "etherboot.h"
 #include <stdarg.h>
 
-#define LONG_SHIFT  ((sizeof(unsigned long)*CHAR_BIT) - 4)
-#define INT_SHIFT   ((sizeof(unsigned int)*CHAR_BIT) - 4)
-#define SHRT_SHIFT  ((sizeof(unsigned short)*CHAR_BIT) - 4)
-#define CHAR_SHIFT  ((sizeof(unsigned char)*CHAR_BIT) - 4)
+#define LONG_SHIFT  ((int)((sizeof(unsigned long)*CHAR_BIT) - 4))
+#define INT_SHIFT   ((int)((sizeof(unsigned int)*CHAR_BIT) - 4))
+#define SHRT_SHIFT  ((int)((sizeof(unsigned short)*CHAR_BIT) - 4))
+#define CHAR_SHIFT  ((int)((sizeof(unsigned char)*CHAR_BIT) - 4))
 
 /**************************************************************************
 PRINTF and friends

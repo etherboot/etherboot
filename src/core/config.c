@@ -188,7 +188,7 @@ int probe(struct dev *dev)
 	const char *type_name;
 	type_name = "";
 	if ((dev->type >= 0) && 
-		(dev->type < sizeof(driver_name)/sizeof(driver_name[0]))) {
+		((unsigned)dev->type < sizeof(driver_name)/sizeof(driver_name[0]))) {
 		type_name = driver_name[dev->type];
 	}
 	if (dev->how_probe == PROBE_FIRST) {

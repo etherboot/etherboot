@@ -104,7 +104,6 @@ POLL - Wait for a frame
 ***************************************************************************/
 static int pnic_poll(struct nic *nic)
 {
-	uint16_t status;
 	uint16_t length;
 
 	if ( pnic_command ( PNIC_CMD_RECV, NULL, 0,
@@ -148,9 +147,8 @@ static void pnic_transmit(
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-static void pnic_disable(struct dev *dev)
+static void pnic_disable(struct dev *dev __unused)
 {
-	if ( dev ) {} /* Inhibit compiler warning */
 	pnic_command ( PNIC_CMD_RESET, NULL, 0, NULL, 0, NULL );
 }
 

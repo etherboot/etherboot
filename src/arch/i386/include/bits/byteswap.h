@@ -31,15 +31,15 @@ static inline uint32_t __i386_bswap_32(uint32_t x)
 		(((uint32_t)(x) & 0xff000000U) >> 24)))
 
 #define __bswap_16(x) \
-	(__builtin_constant_p(x) ? \
+	((uint16_t)(__builtin_constant_p(x) ? \
 	__bswap_constant_16(x) : \
-	__i386_bswap_16(x))
+	__i386_bswap_16(x)))
 
 
 #define __bswap_32(x) \
-	(__builtin_constant_p(x) ? \
+	((uint32_t)(__builtin_constant_p(x) ? \
 	__bswap_constant_32(x) : \
-	__i386_bswap_32(x))
+	__i386_bswap_32(x)))
 
 
 #endif /* ETHERBOOT_BITS_BYTESWAP_H */

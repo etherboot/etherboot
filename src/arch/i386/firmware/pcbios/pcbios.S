@@ -509,7 +509,7 @@ bios32_call:
 	movl	8(%esp), %ebp
 	movl	4(%esp), %eax
 	pushl	%cs
-	call	%esi
+	call	*%esi
 	cli
 	cld
 	movl	%ebp, 8(%esp)
