@@ -434,7 +434,7 @@ static void t515_reset(struct nic *nic)
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int t515_poll(struct nic *nic)
+static int t515_poll(struct nic *nic, int retrieve)
 {
 	short status, cst;
 	register short rx_fifo;
@@ -462,6 +462,9 @@ static int t515_poll(struct nic *nic)
 	rx_fifo = status & RX_BYTES_MASK;
 	if (rx_fifo == 0)
 		return 0;
+
+	if ( ! retrieve ) return 1;
+
 #ifdef EDEBUG
 	printf("[l=%d", rx_fifo);
 #endif
@@ -619,6 +622,18 @@ static void t515_disable(struct dev *dev)
 	return;
 }
 
+static void t515_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 You should omit the last argument struct pci_device * for a non-PCI NIC
@@ -671,9 +686,13 @@ static int t515_probe(struct dev *dev,
 	if (cards_found > 0) {
 		t515_reset(nic);
 
+		nic->irqno    = 0;
+		nic->ioaddr   = BASE;
+
 		dev->disable = t515_disable;
 		nic->poll = t515_poll;
 		nic->transmit = t515_transmit;
+		nic->irq      = t515_irq;
 
 		/* Based on PnP ISA map */
 		dev->devid.vendor_id = htons(ISAPNP_VENDOR('T', 'C', 'M'));

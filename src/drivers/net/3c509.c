@@ -213,7 +213,7 @@ const char *p)			/* Packet */
 /**************************************************************************
 ETH_POLL - Wait for a frame
 ***************************************************************************/
-static int t509_poll(struct nic *nic)
+static int t509_poll(struct nic *nic, int retrieve)
 {
 	/* common variables */
 	/* variables for 3C509 */
@@ -248,6 +248,8 @@ static int t509_poll(struct nic *nic)
 	rx_fifo = status & RX_BYTES_MASK;
 	if (rx_fifo==0)
 		return 0;
+
+	if ( ! retrieve ) return 1;
 
 		/* read packet */
 #ifdef	EDEBUG
@@ -311,7 +313,8 @@ eeprom_rdy(void)
 	for (i = 0; is_eeprom_busy(IS_BASE) && i < MAX_EEPROMBUSY; i++);
 	if (i >= MAX_EEPROMBUSY) {
 		/* printf("3c509: eeprom failed to come ready.\n"); */
-		/* printf("3c509: eeprom busy.\n"); /* memory in EPROM is tight */
+		/* memory in EPROM is tight */
+		/* printf("3c509: eeprom busy.\n"); */
 		return (0);
 	}
 	return (1);
@@ -382,6 +385,18 @@ static void t509_disable(struct dev *dev)
 	/* reset and disable merge */
 	t509_reset(nic);
 	__t509_disable();
+}
+
+static void t509_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
 }
 
 /**************************************************************************
@@ -612,15 +627,20 @@ static int t509_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 	printf("Ethernet address: %!\n", nic->node_addr);
 	t509_reset(nic);
 
+	nic->irqno    = 0;
+	nic->ioaddr   = eth_nic_base;
+
 	dev->disable  = t509_disable; 
 	nic->poll     = t509_poll;
 	nic->transmit = t509_transmit;
+	nic->irq      = t509_irq;
 
 	/* Based on PnP ISA map */
 	dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
 	dev->devid.device_id = htons(0x80f7);
 	return 1;
 no3c509:
+	continue;
 	/* printf("(probe fail)"); */
 	}
 	return 0;

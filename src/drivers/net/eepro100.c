@@ -117,6 +117,18 @@ enum speedo_offsets {
   SCBEarlyRx = 20,                /* Early receive byte count. */
 };
 
+enum SCBCmdBits {
+	SCBMaskCmdDone=0x8000, SCBMaskRxDone=0x4000, SCBMaskCmdIdle=0x2000,
+	SCBMaskRxSuspend=0x1000, SCBMaskEarlyRx=0x0800, SCBMaskFlowCtl=0x0400,
+	SCBTriggerIntr=0x0200, SCBMaskAll=0x0100,
+	/* The rest are Rx and Tx commands. */
+	CUStart=0x0010, CUResume=0x0020, CUStatsAddr=0x0040, CUShowStats=0x0050,
+	CUCmdBase=0x0060,	/* CU Base address (set to zero) . */
+	CUDumpStats=0x0070, /* Dump then reset stats counters. */
+	RxStart=0x0001, RxResume=0x0002, RxAbort=0x0004, RxAddrLoad=0x0006,
+	RxResumeNoResources=0x0007,
+};
+
 static int do_eeprom_cmd(int cmd, int cmd_len);
 void hd(void *where, int n);
 
@@ -350,6 +362,18 @@ static inline void whereami (const char *str)
 #define whereami(s)
 #endif
 
+static void eepro100_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
 /* function: eepro100_transmit
  * This transmits a packet.
  *
@@ -455,13 +479,16 @@ speedo_rx_soft_reset(void)
  *            returns the length of the packet in nic->packetlen.
  */
 
-static int eepro100_poll(struct nic *nic)
+static int eepro100_poll(struct nic *nic, int retrieve)
 {
   unsigned int status;
   status = inw(ioaddr + SCBStatus);
 
 	if (!ACCESS(rxfd)status)
 		return 0;
+
+	/* There is a packet ready */
+	if ( ! retrieve ) return 1;
 
   /*
    * The chip may have suspended reception for various reasons.
@@ -559,8 +586,13 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	if (p->ioaddr == 0)
 		return 0;
 	ioaddr = p->ioaddr & ~3; /* Mask the bit that says "this is an io addr" */
+	nic->ioaddr = ioaddr;
 
 	adjust_pci_device(p);
+
+	/* Copy IRQ from PCI information */
+	/* nic->irqno = pci->irq; */
+	nic->irqno = 0;
 
 	if ((do_eeprom_cmd(EE_READ_CMD << 24, 27) & 0xffe0000)
 		== 0xffe0000) {
@@ -708,6 +740,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	dev->disable  = eepro100_disable;
 	nic->poll     = eepro100_poll;
 	nic->transmit = eepro100_transmit;
+	nic->irq      = eepro100_irq;
 	return 1;
 }
 
