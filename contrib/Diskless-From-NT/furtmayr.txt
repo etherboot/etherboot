@@ -1,0 +1,52 @@
+From sf@paf.net Thu Mar 08 14:29:15 2001
+Return-Path: <sf@paf.net>
+From: "Stefan Furtmayr" <sf@paf.net>
+Subject: Windows TFTP Servers for Etherboot
+Date: Thu, 8 Mar 2001 15:27:09 +0100
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+X-Priority: 3
+X-MSMail-Priority: Normal
+X-Mailer: Microsoft Outlook Express 5.50.4133.2400
+X-MimeOLE: Produced By Microsoft MimeOLE V5.50.4133.2400
+
+Hi,
+
+there are some free TFTP servers for Windows:
+
+3Com Software Library - Utilities for 32 bit Windows
+http://support.3com.com/software/utilities_for_windows_32_bit.htm
+
+3CDaemon version 2.0 revision 10. Freeware. Integrated TFTP/FTP/Syslog
+Daemon for Windows 95/98/NT
+ftp://ftp.3com.com/pub/utilbin/win32/3cdv2r10.zip
+Windows 2000 Server: does not run as service!
+Windows NT Server 4.0: not tested
+
+The TFTP Server portion of 3CServer, altered to run as a system Service
+under Windows NT
+ftp://ftp.3com.com/pub/utilbin/win32/3CTftpSvc.zip
+Windows 2000 Server: only working in debug mode, does not run as service!
+
+Windows NT Server 4.0: not tested
+
+Cisco TFTP Server v.1.1
+http://www.cisco.com/pcgi-bin/tablebuild.pl/tftp
+Does not provide an option itself to install as service.
+
+TFTP server included with Windows 2000 (remote installation services need to
+be installed)
+The path for the images has to be specified via registry:
+Q232115 - Changing the Drive or Volume on Which Remote Installation Images
+Reside:
+http://support.microsoft.com/support/kb/articles/Q232/1/15.ASP
+
+(HP TFTP from HP Top Tools 4.5, tested with Windows NT 4 Workstation: no
+success)
+
+another one:
+
+http://solarwinds.net/Tools/Free_Tools/TFTP_Server/
+Does not provide an option itself to install as service.
