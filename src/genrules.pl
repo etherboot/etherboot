@@ -205,6 +205,8 @@ family		drivers/net/ns83820
 
 family		drivers/net/tulip
 
+family		drivers/net/dmfe
+
 family		drivers/net/davicom
 
 family		drivers/net/rtl8139
@@ -261,6 +263,8 @@ family		drivers/net/sundance
 family		drivers/net/tlan
 
 family		drivers/net/forcedeth
+
+faimly		drivers/net/mtd80x
 
 family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
