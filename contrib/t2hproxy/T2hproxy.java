@@ -407,7 +407,7 @@ public class T2hproxy implements Runnable {
 			buffer.position(0);
 			buffer.putShort(TFTP_DATA).putShort((short) block);
 			response.setLength(start + length);
-			if (!sendDataBlock(block, length < blocksize)) {
+			if (!sendDataBlock(block, length <= 0)) {
 				break;
 			}
 			buffer.position(start);
