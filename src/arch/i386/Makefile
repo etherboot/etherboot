@@ -22,7 +22,7 @@ SRCS+=	arch/i386/prefix/elfprefix.S
 SRCS+=	arch/i386/prefix/lmelf_prefix.S
 SRCS+=	arch/i386/prefix/comprefix.S
 SRCS+=	arch/i386/prefix/pxeprefix.S
-SRCS+=	arch/i386/prefix/loader.S
+SRCS+=	arch/i386/prefix/romprefix.S
 
 SRCS+=	arch/i386/core/start32.S
 SRCS+=	arch/i386/core/start16.S
@@ -34,12 +34,12 @@ SRCS+=	arch/i386/core/cpu.c
 SRCS+=	arch/i386/core/video_subr.c
 SRCS+=	arch/i386/core/pic8259.c
 
-# ROM loaders: PCI header version (prefix P)
-RLOADER=	$(BIN)/rloader.bin
-PRLOADER=	$(BIN)/prloader.bin
+# ROM loaders: ISA and PCI versions
+ISAPREFIX=	$(BIN)/isaprefix.bin
+PCIPREFIX=	$(BIN)/pciprefix.bin
 
 START16=	$(BIN)/start16.bin
-DISKLOADER=	$(BIN)/floppyprefix.bin
+FLOPPYPREFIX=	$(BIN)/floppyprefix.bin
 COMPREFIX=	$(BIN)/comprefix.bin
 LILOPREFIX=	$(BIN)/liloprefix.bin
 PXEPREFIX=	$(BIN)/pxeprefix.bin
@@ -64,7 +64,7 @@ RELOCADDR:=0x20000
 endif
 
 # Until all of the drivers are updated to be relocatable,
-# carefully setup loader.S to know start16.bin size
+# carefully setup romprefix.S to know start16.bin size
 #
 ifndef START16_BYTES
 START16_BYTES:=112
@@ -95,8 +95,8 @@ BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
 BOBJS+=		$(BIN)/pic8259.o
 
 # Prepended loaders
-$(BIN)/rloader.bin:	$(BIN)/rloader.o
-$(BIN)/prloader.bin:	$(BIN)/prloader.o
+$(BIN)/isaprefix.bin:	$(BIN)/isaprefix.o
+$(BIN)/pciprefix.bin:	$(BIN)/isaprefix.o
 $(BIN)/floppyprefix.bin: $(BIN)/floppyprefix.o
 $(BIN)/comprefix.bin:   $(BIN)/comprefix.o
 $(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
@@ -104,10 +104,10 @@ $(BIN)/pxeprefix.bin:	$(BIN)/pxeprefix.o
 
 # ROM loaders
 
-$(BIN)/rloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
+$(BIN)/isaprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 	$(CPP) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
-$(BIN)/prloader.o:	arch/i386/prefix/loader.S $(MAKEDEPS)
+$(BIN)/pciprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 	$(CPP) -DPCI_PNP_HEADER $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
 # 16 to 32bit transition
@@ -226,12 +226,12 @@ $(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
 	$(LD) --accept-unknown-input-arch --oformat symbolsrec -r -o $@ $< $(BIN)/$*.ztmp.sym
 
 # general rules for normal/compressed ROM images, may be overridden
-$(BIN)/%.rom:	$(BIN)/%.img $(RLOADER) $(START16)
-	cat $(RLOADER) $(START16) $< > $@
+$(BIN)/%.rom:	$(BIN)/%.img $(ISAPREFIX) $(START16)
+	cat $(ISAPREFIX) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT) $@
 
-$(BIN)/%.zrom: $(BIN)/%.zimg $(RLOADER) $(START16)
-	cat $(RLOADER) $(START16) $< > $@
+$(BIN)/%.zrom: $(BIN)/%.zimg $(ISAPREFIX) $(START16)
+	cat $(ISAPREFIX) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT) $@
 
 # general rules for ELF images
@@ -283,18 +283,18 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 	cat $(PXEPREFIX) $(START16) $< > $@
 
 # rules to generate the .dsk/.zdsk floppy images
-%.dsk:	%.img $(DISKLOADER) $(START16)
-	cat $(DISKLOADER) $(START16) $< > $@
+%.dsk:	%.img $(FLOPPYPREFIX) $(START16)
+	cat $(FLOPPYPREFIX) $(START16) $< > $@
 
-%.zdsk:	%.zimg $(DISKLOADER) $(START16)
-	cat $(DISKLOADER) $(START16) $< > $@
+%.zdsk:	%.zimg $(FLOPPYPREFIX) $(START16)
+	cat $(FLOPPYPREFIX) $(START16) $< > $@
 
 # rules to write the .img/.zimg image onto a blank floppy
-%.fd0:	%.img $(DISKLOADER) $(START16)
-	cat $(DISKLOADER) $(START16) $< > /dev/fd0
+%.fd0:	%.img $(FLOPPYPREFIX) $(START16)
+	cat $(FLOPPYPREFIX) $(START16) $< > /dev/fd0
 
-%.zfd0:	%.zimg $(DISKLOADER) $(START16)
-	cat $(DISKLOADER) $(START16) $< > /dev/fd0
+%.zfd0:	%.zimg $(FLOPPYPREFIX) $(START16)
+	cat $(FLOPPYPREFIX) $(START16) $< > /dev/fd0
 
 # rule to make a non-emulation ISO boot image
 %.iso:	%.zimg $(START16)

@@ -400,20 +400,20 @@ foreach my $family (sort keys %pcient) {
 		my $img = basename($family);
 		next if ($ids eq '-');
 		print <<EOF;
-\$(BIN)/$rom.rom:	\$(BIN)/$img.img \$(PRLOADER) \$(START16)
-	cat \$(PRLOADER) \$(START16) \$< > \$@
+\$(BIN)/$rom.rom:	\$(BIN)/$img.img \$(PCIPREFIX) \$(START16)
+	cat \$(PCIPREFIX) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom--%.rom:	\$(BIN)/$img--%.img \$(PRLOADER) \$(START16)
-	cat \$(PRLOADER) \$(START16) \$< > \$@
+\$(BIN)/$rom--%.rom:	\$(BIN)/$img--%.img \$(PCIPREFIX) \$(START16)
+	cat \$(PCIPREFIX) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom.zrom:	\$(BIN)/$img.zimg \$(PRLOADER) \$(START16)
-	cat \$(PRLOADER) \$(START16) \$< > \$@
+\$(BIN)/$rom.zrom:	\$(BIN)/$img.zimg \$(PCIPREFIX) \$(START16)
+	cat \$(PCIPREFIX) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom--%.zrom:	\$(BIN)/$img--%.zimg \$(PRLOADER) \$(START16)
-	cat \$(PRLOADER) \$(START16) \$< > \$@
+\$(BIN)/$rom--%.zrom:	\$(BIN)/$img--%.zimg \$(PCIPREFIX) \$(START16)
+	cat \$(PCIPREFIX) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
 EOF
@@ -429,9 +429,9 @@ EOF
 # ISA ROMs are prepared from the matching code images
 foreach my $isa (sort keys %isalist) {
 	print <<EOF;
-\$(BIN)/$isa.rom:		\$(BIN)/$isa.img \$(RLOADER)
+\$(BIN)/$isa.rom:		\$(BIN)/$isa.img \$(ISAPREFIX)
 
-\$(BIN)/$isa.zrom:	\$(BIN)/$isa.zimg \$(RLOADER)
+\$(BIN)/$isa.zrom:	\$(BIN)/$isa.zimg \$(ISAPREFIX)
 
 EOF
 }
