@@ -324,7 +324,7 @@ foreach my $source (@srcs) {
 	next if ($source !~ '[.][cS]$');
 	my @deps = &gendep($source);
 	my $obj = $source;
-	$obj =~ s/[.][cS]/.o/;
+	$obj =~ s/^.*?([^\/]+)\.[cS]/bin\/$1.o/;
 	foreach my $dep (@deps) {
 		print "$obj: $dep\n";
 	}
