@@ -243,8 +243,8 @@ invoke:
 	popw	%ax			/* padding */
 	movw	%cs, %ax
 	movw	%ax, %ds
-	popw	%ds:(rom+2)		/* ROM size */
-	popw	%ds:(rom+0)		/* ROM segment */
+	popw	%ds:(_prefix_rom+2)	/* ROM size */
+	popw	%ds:(_prefix_rom+0)	/* ROM segment */
 	popw	%ds			/* Original %ds */
 	popw	%ax			/* Original %ax */
 	pushw	%ax			/* 4-byte alignment */
@@ -313,11 +313,11 @@ UNDILoader:
 	pushw	$20			/* Dummy ret, PXE params, orig ss:sp */
 	call	prelocate
 	popw	%ax			/* discard */
-	popw	%cs:(rom+2)		/* ROM size */
-	popw	%cs:(rom+0)		/* ROM segment */
+	popw	%cs:(_prefix_rom+2)	/* ROM size */
+	popw	%cs:(_prefixrom+0)	/* ROM segment */
 	popw	%ax			/* Original %ax */
 	/* Inhibit automatic deallocation of base memory */
-	movl	$0, %cs:image_basemem
+	movl	$0, %cs:_prefix_image_basemem
 	/* Make PXE API call to Etherboot */
 	pushl	$0x201			/* PXE API version */
 	/* Need to USE_INTERNAL_STACK, since we will call relocate() */

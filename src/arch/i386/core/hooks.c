@@ -2,8 +2,8 @@
 #include "callbacks.h"
 #include <stdarg.h>
 
-void arch_main ( in_call_data_t *data __unused, va_list params __unused ) {
-
+void arch_main ( in_call_data_t *data __unused, va_list params __unused )
+{
 #ifdef PCBIOS
 	/* Deallocate base memory used for the prefix, if applicable
 	 */
@@ -12,7 +12,8 @@ void arch_main ( in_call_data_t *data __unused, va_list params __unused ) {
 
 }
 
-void arch_relocated_from ( uint32_t old_addr ) {
+void arch_relocated_from (unsigned long old_addr )
+{
 
 #ifdef PCBIOS
 	/* Deallocate base memory used for the Etherboot runtime,
@@ -23,12 +24,21 @@ void arch_relocated_from ( uint32_t old_addr ) {
 
 }
 
-void arch_on_exit ( int exit_status __unused ) {
+void arch_on_exit ( int exit_status __unused ) 
+{
 #ifdef PCBIOS
-	/* Deallocate the real-mode stack now.  We will probably use
-	 * it after this point, but we need to free up the memory and
-	 * we probably aren't going to allocate any more after this,
-	 * so it should be safe.
+	/* Deallocate the real-mode stack now.  We will reallocate
+	 * the stack if are going to use it after this point.
+	 */
+	forget_real_mode_stack();
+#endif
+}
+
+void arch_cleanup(void)
+{
+#ifdef PCBIOS
+	/* Deallocate the real_mode stack we won't use it past this point
+	 * unless we have a real_mode entry point.
 	 */
 	forget_real_mode_stack();
 #endif

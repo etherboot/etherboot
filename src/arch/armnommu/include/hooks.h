@@ -10,16 +10,19 @@
 
 struct Elf_Bhdr;
 
-#define arch_main(data, params)
+#define arch_main(data, params) do {} while(0)
 //void arch_main(in_call_data_t *data, va_list params);
 
-#define arch_on_exit(status)
+#define arch_on_exit(status) do {} while(0)
 //void arch_on_exit(int status);
 
-#define arch_relocate_to(addr)
+#define arch_relocate_to(addr) do {} while(0)
 //void arch_relocate_to(unsigned long addr);
 
-#define arch_relocated_from(old_addr)
+#define arch_relocated_from(old_addr) do {} while(0)
 //void arch_relocate_from(unsigned long old_addr);
+
+#define arch_cleanup() do {} while(0)
+//void arch_cleanup(void);
 
 #endif /* ETHERBOOT_ARM_HOOKS_H */

@@ -112,7 +112,6 @@ CFLAGS+=	-mcpu=i386
 endif
 
 LDFLAGS+=	-N
-LDSCRIPT=	arch/i386/core/etherboot.lds
 
 ifeq "$(shell uname -s)" "FreeBSD"
 CFLAGS+=	-DIMAGE_FREEBSD -DELF_IMAGE -DAOUT_IMAGE

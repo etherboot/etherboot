@@ -158,13 +158,6 @@ static int prep_segment(unsigned long start, unsigned long mid, unsigned long en
 			);
 		return 0;
 	}
-#ifdef PCBIOS
-	if ((end > get_free_base_memory()) && (start < 0xa0000)) {
-		printf("segment [%lX, %lX) overlaps used basemem [%lX, %lX)\n",
-		       start, end, get_free_base_memory(), 0xa0000 );
-		return 0;
-	}
-#endif
 	fit = 0;
 	for(i = 0; i < meminfo.map_count; i++) {
 		unsigned long long r_start, r_end;
@@ -250,14 +243,6 @@ static unsigned long find_segment(unsigned long size, unsigned long align)
 		if ((r_start > heap_ptr) && (r_start < heap_bot)) {
 			r_start = heap_ptr;
 		}
-#ifdef PCBIOS
-		if ((r_end > get_free_base_memory())  && (r_start < get_free_base_memory())) {
-			r_end = get_free_base_memory();
-		}
-		if ((r_start > get_free_base_memory()) && (r_start < 0xa0000)) {
-			r_start = get_free_base_memory();
-		}
-#endif
 		r_start = (r_start + align - 1) & ~(align - 1);
 		if ((r_end >= r_start) && ((r_end - r_start) >= size)) {
 			return r_start;

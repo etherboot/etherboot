@@ -104,4 +104,17 @@ extern uint32_t real_mode_stack;
 extern size_t real_mode_stack_size;
 extern int lock_real_mode_stack;
 
+
+/* Function prototypes from basemem.c
+ */
+#ifdef LINUXBIOS
+/* A silly hard code that let's the code compile and work. 
+ * When this becomes a problem feel free to implement
+ * something better.
+ */
+static inline void allot_real_mode_stack(void) { real_mode_stack = 0x7c00; } 
+#else
+void allot_real_mode_stack(void);
+#endif
+
 #endif /* ASSEMBLY */

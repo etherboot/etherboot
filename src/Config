@@ -444,7 +444,6 @@ ASFLAGS+=
 LDFLAGS+=
 # For debugging
 #LDFLAGS+=	-Map $@.map
-LDBINARY=	--oformat binary	# flag for headerless binary
 
 # Location to place generated binaries, and files
 BIN=bin

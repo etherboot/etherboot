@@ -10,8 +10,6 @@ static unsigned lb_boot[MAX_BOOT_ENTRIES];
 static unsigned lb_boot_index;
 static struct cmos_entries lb_countdown;
 static struct cmos_checksum lb_checksum;
-/* this is here to make init.S happy */
-uint32_t image_basemem = 0;
 
 #undef DEBUG_LINUXBIOS
 

@@ -40,23 +40,44 @@ uint32_t image_basemem_size __text16_nocompress = 0;
 /* Allot/free the real-mode stack
  */
 
-void allot_real_mode_stack ( void ) {
+void allot_real_mode_stack ( void )
+{
 	void *new_real_mode_stack;
 
-	if ( lock_real_mode_stack ) return;
+	if ( lock_real_mode_stack ) 
+		return;
+
+	/* This is evil hack. 
+	 * Until we have a real_mode stack use 0x7c00.
+	 * Except for 0 - 0x600 membory below 0x7c00 is hardly every used.
+	 * This stack should never be used unless the stack allocation fails,
+	 * or if someone has placed a print statement in a dangerous location.
+	 */
+	if (!real_mode_stack) {
+		real_mode_stack = 0x7c00;
+	}
 	new_real_mode_stack = _allot_base_memory ( real_mode_stack_size );
 	if ( ! new_real_mode_stack ) {
 		printf ( "FATAL: No real-mode stack\n" );
 		while ( 1 ) {};
 	}
 	real_mode_stack = virt_to_phys ( new_real_mode_stack );
+	get_memsizes();
 }
 
-void forget_real_mode_stack ( void ) {
-	if ( lock_real_mode_stack ) return;
+void forget_real_mode_stack ( void )
+{
+	if ( lock_real_mode_stack ) 
+		return;
+
 	if ( real_mode_stack) {
 		_forget_base_memory ( phys_to_virt(real_mode_stack),
 				      real_mode_stack_size );
+		/* get_memsizes() uses the real_mode stack we just freed
+		 * for it's BIOS calls.
+		 */
+		get_memsizes();
+		real_mode_stack = 0;
 	}
 }
 
@@ -65,7 +86,8 @@ void forget_real_mode_stack ( void ) {
  * counter.  Returns NULL if memory cannot be allocated.
  */
 
-void * _allot_base_memory ( size_t size ) {
+static void * _allot_base_memory ( size_t size ) 
+{
 	uint16_t size_kb = ( size + 1023 ) >> 10;
 	void *ptr = NULL;
 
@@ -106,7 +128,8 @@ void * _allot_base_memory ( size_t size ) {
 	return ptr;
 }
 
-void * allot_base_memory ( size_t size ) {
+void * allot_base_memory ( size_t size )
+{
 	void *ptr;
 
 	/* Free real-mode stack, allocate memory, reallocate real-mode
@@ -114,7 +137,7 @@ void * allot_base_memory ( size_t size ) {
 	 */
 	forget_real_mode_stack();
 	ptr = _allot_base_memory ( size );
-	allot_real_mode_stack();
+	get_memsizes();
 	return ptr;
 }
 
@@ -133,13 +156,16 @@ void * allot_base_memory ( size_t size ) {
  * API to be a feature! :-)
  */
 
-void _forget_base_memory ( void *ptr, size_t size ) {
+static void _forget_base_memory ( void *ptr, size_t size ) 
+{
 	uint16_t remainder = virt_to_phys(ptr) & 1023;
 	uint16_t size_kb = ( size + remainder + 1023 ) >> 10;
 	free_base_memory_block_t *free_block =
 		( free_base_memory_block_t * ) ( ptr - remainder );
 	
-	if ( ( ptr == NULL ) || ( size == 0 ) ) { return; }
+	if ( ( ptr == NULL ) || ( size == 0 ) ) { 
+		return; 
+	}
 
 #ifdef DEBUG_BASEMEM
 	printf ( "Trying to free %d bytes base memory at 0x%x\n",
@@ -170,7 +196,7 @@ void _forget_base_memory ( void *ptr, size_t size ) {
 		free_block->magic = FREE_BLOCK_MAGIC;
 		free_block->size_kb = size_kb;
 		/* Move up by 1 kB */
-		(void *)free_block += ( 1 << 10 );
+		free_block = (void *)(((char *)free_block) + (1 << 10));
 		size_kb--;
 	}
 
@@ -178,14 +204,15 @@ void _forget_base_memory ( void *ptr, size_t size ) {
 	free_unused_base_memory();
 }
 
-void forget_base_memory ( void *ptr, size_t size ) {
+void forget_base_memory ( void *ptr, size_t size )
+{
 	/* Free memory, free real-mode stack, re-allocate real-mode
 	 * stack.  Do this so that we don't end up wasting a huge
 	 * block of memory trapped behind the real-mode stack.
 	 */
 	_forget_base_memory ( ptr, size );
 	forget_real_mode_stack();
-	allot_real_mode_stack();
+	get_memsizes();
 }
 
 /* Do the actual freeing of memory.  This is split out from
@@ -194,7 +221,7 @@ void forget_base_memory ( void *ptr, size_t size ) {
  * entity (if we can detect that it has done so) so that we get the
  * chance to free up our own blocks.
  */
-void free_unused_base_memory ( void ) {
+static void free_unused_base_memory ( void ) {
 	free_base_memory_block_t *free_block = NULL;
 
 	/* Try to release memory back to the BIOS.  Free all
@@ -233,7 +260,8 @@ void free_unused_base_memory ( void ) {
 /* Free base memory used by the prefix.  Called once at start of
  * Etherboot by arch_main().
  */
-void forget_prefix_base_memory ( void ) {
+void forget_prefix_base_memory ( void )
+{
 	/* runtime_start_kb is _text rounded down to a physical kB boundary */
 	uint32_t runtime_start_kb = virt_to_phys(_text) & ~0x3ff;
 	/* prefix_size_kb is the prefix size excluding any portion
@@ -251,7 +279,8 @@ void forget_prefix_base_memory ( void ) {
 	 */
 	if ( ( image_basemem >= FREE_BASE_MEMORY ) &&
 	     ( runtime_start_kb >= FREE_BASE_MEMORY ) &&
-	     ( runtime_start_kb <= ( BASE_MEMORY_MAX << 10 ) ) ) {
+	     ( runtime_start_kb <= ( BASE_MEMORY_MAX << 10 ) ) ) 
+	{
 		forget_base_memory ( phys_to_virt ( image_basemem ),
 				     prefix_size_kb );
 		/* Update image_basemem and image_basemem_size to
@@ -265,7 +294,8 @@ void forget_prefix_base_memory ( void ) {
 /* Free base memory used by the runtime image.  Called after
  * relocation by arch_relocated_from().
  */
-void forget_runtime_base_memory ( uint32_t old_addr ) {
+void forget_runtime_base_memory ( unsigned long old_addr )
+{
 	/* text_start_kb is old _text rounded down to a physical KB boundary */
 	uint32_t old_text_start_kb = old_addr & ~0x3ff;
 
@@ -274,7 +304,8 @@ void forget_runtime_base_memory ( uint32_t old_addr ) {
 #endif
 
 	if ( ( image_basemem >= FREE_BASE_MEMORY ) &&
-	     ( image_basemem == old_text_start_kb ) ) {
+	     ( image_basemem == old_text_start_kb ) ) 
+	{
 		forget_base_memory ( phys_to_virt ( image_basemem ),
 				     image_basemem_size );
 		/* Update image_basemem to show no longer in use */

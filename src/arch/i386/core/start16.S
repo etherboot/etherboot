@@ -266,7 +266,7 @@ code32_start:
  * Record base memory used by Etherboot image
  *****************************************************************************
  */
-	movl	%edi, image_basemem(%ebx)
+	movl	%edi, _prefix_image_basemem (%ebx)
 
 /*****************************************************************************
  * Jump to start of the image (i.e. the decompressor, or start32 if

@@ -5,7 +5,9 @@
 
 #define CF ( 1 << 0 )
 
+#ifndef MEMSIZES_DEBUG 
 #define MEMSIZES_DEBUG 0
+#endif
 
 /* by Eric Biederman */
 
@@ -114,7 +116,15 @@ int meme820 ( struct e820entry *buf, int count ) {
 
 void get_memsizes(void)
 {
+	/* Ensure we don't stomp bios data structutres.
+	 * the interrupt table: 0x000 - 0x3ff
+	 * the bios data area:  0x400 - 0x502
+	 * Dos variables:       0x502 - 0x5ff
+	 */
+	static const unsigned min_addr = 0x600;
 	unsigned i;
+	unsigned basemem;
+	basemem = get_free_base_memory();
 	meminfo.basememsize = basememsize();
 	meminfo.memsize = memsize();
 #ifndef IGNORE_E820_MAP
@@ -137,15 +147,28 @@ void get_memsizes(void)
 		if (meminfo.map[i].type != E820_RAM) {
 			continue;
 		}
-		/* Ensure we don't stomp the interrupt table.
-		 * 0x400 - 0x502 is the Bios data area.
-		 * Reserve memory through 
-		 */
-		if (meminfo.map[i].addr < 0x600) {
+		/* Reserve the bios data structures */
+		if (meminfo.map[i].addr < min_addr) {
 			unsigned long delta;
-			delta = 0x600 - meminfo.map[i].addr;
-			meminfo.map[i].addr += delta;
+			delta = min_addr - meminfo.map[i].addr;
+			if (delta > meminfo.map[i].size) {
+				delta = meminfo.map[i].size;
+			}
+			meminfo.map[i].addr = min_addr;
 			meminfo.map[i].size -= delta;
+		}
+		/* Ensure the returned e820 map is in sync 
+		 * with the actual memory state 
+		 */
+		if ((meminfo.map[i].addr < 0xa0000) && 
+			((meminfo.map[i].addr + meminfo.map[i].size) > basemem))
+		{
+			if (meminfo.map[i].addr <= basemem) {
+				meminfo.map[i].size = basemem - meminfo.map[i].size;
+			} else {
+				meminfo.map[i].addr = basemem;
+				meminfo.map[i].size = 0;
+			}
 		}
 	}
 #if MEMSIZES_DEBUG
@@ -164,7 +187,9 @@ void get_memsizes(void)
 			(unsigned long)(r_end >> 32),
 			(unsigned long)r_end,
 			meminfo.map[i].type);
+#if CONSOLE_FIRMWARE
 		sleep(1); /* No way to see 32 entries on a standard 80x25 screen... */
+#endif
 	}
 }
 #endif

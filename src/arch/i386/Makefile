@@ -3,6 +3,9 @@ ARCH_FORMAT=	elf32-i386
 # For debugging, don't delete intermediates
 #.SECONDARY:
 
+LDSCRIPT=	arch/i386/core/etherboot.lds
+PLDSCRIPT=	arch/i386/core/etherboot.prefix.lds
+
 LCONFIG+=	-Ui386
 
 START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
@@ -56,40 +59,47 @@ PCIEXIT=	$(BIN)/pciprefix.exit.o
 TARGETBASE=$(patsubst $(BIN)/%,%,$(firstword $(subst ., ,$@)))
 ROMCARD=$(firstword $(subst --, ,$(TARGETBASE)))
 ROMTYPE=$(firstword $(ROMTYPE_$(ROMCARD)) ISA)
-ROMENTRY=$($(ROMTYPE)ENTRY)
-ROMEXIT=$($(ROMTYPE)EXIT)
+romENTRY=$($(ROMTYPE)ENTRY)
+romEXIT=$($(ROMTYPE)EXIT)
+
+# Target type for generic prf rules
+TARGETTYPE=$(patsubst .%,%, $(suffix $(basename $@)))
+TARGETENTRY=$($(TARGETTYPE)ENTRY)
+TARGETEXIT=$($(TARGETTYPE)EXIT)
 
 # Other real-mode entry loaders
-DSKPREFIX=	$(BIN)/floppyprefix.o
-DSKENTRY=	$(BIN)/floppyprefix.entry.o
-DSKEXIT=	$(BIN)/floppyprefix.exit.o
-COMPREFIX=	$(BIN)/comprefix.o
-COMENTRY=	$(BIN)/comprefix.entry.o
-COMEXIT=	$(BIN)/comprefix.exit.o
-EXEPREFIX=	$(BIN)/exeprefix.o
-EXEENTRY=	$(BIN)/exeprefix.entry.o
-EXEEXIT=	$(BIN)/exeprefix.exit.o
-LILOPREFIX=	$(BIN)/liloprefix.o
-LILOENTRY=	$(BIN)/liloprefix.entry.o
-LILOEXIT=	$(BIN)/liloprefix.exit.o
-PXEPREFIX=	$(BIN)/pxeprefix.o
-PXEENTRY=	$(BIN)/pxeprefix.entry.o
-PXEEXIT=	$(BIN)/pxeprefix.exit.o
-NULLPREFIX=	$(BIN)/nullprefix.o
-NULLENTRY=	$(BIN)/nullprefix.entry.o
-NULLEXIT=	$(BIN)/nullprefix.exit.o
-ELFPREFIX=	$(BIN)/elfprefix.o
-ELFENTRY=	$(BIN)/elfprefix.entry.o
-ELFEXIT=	$(BIN)/elfprefix.exit.o
-LMELFPREFIX=	$(BIN)/lmelf_prefix.o
-LMELFENTRY=	$(BIN)/lmelf_prefix.entry.o
-LMELFEXIT=	$(BIN)/lmelf_prefix.exit.o
-ELFDPREFIX=	$(BIN)/elf_dprefix.o
-ELFDENTRY=	$(BIN)/elf_dprefix.entry.o
-ELFDEXIT=	$(BIN)/elf_dprefix.exit.o
-LMELFDPREFIX=	$(BIN)/lmelf_dprefix.o
-LMELFDENTRY=	$(BIN)/lmelf_dprefix.entry.o
-LMELFDEXIT=	$(BIN)/lmelf_dprefix.exit.o
+dskPREFIX=	$(BIN)/floppyprefix.o
+dskENTRY=	$(BIN)/floppyprefix.entry.o
+dskEXIT=	$(BIN)/floppyprefix.exit.o
+comPREFIX=	$(BIN)/comprefix.o
+comENTRY=	$(BIN)/comprefix.entry.o
+comEXIT=	$(BIN)/comprefix.exit.o
+exePREFIX=	$(BIN)/exeprefix.o
+exeENTRY=	$(BIN)/exeprefix.entry.o
+exeEXIT=	$(BIN)/exeprefix.exit.o
+liloPREFIX=	$(BIN)/liloprefix.o
+liloENTRY=	$(BIN)/liloprefix.entry.o
+liloEXIT=	$(BIN)/liloprefix.exit.o
+pxePREFIX=	$(BIN)/pxeprefix.o
+pxeENTRY=	$(BIN)/pxeprefix.entry.o
+pxeEXIT=	$(BIN)/pxeprefix.exit.o
+rawPREFIX=	$(BIN)/nullprefix.o
+rawENTRY=	$(BIN)/nullprefix.entry.o
+rawEXIT=	$(BIN)/nullprefix.exit.o
+
+# Protected mode entry loaders
+elfPREFIX=	$(BIN)/elfprefix.o
+elfENTRY=	$(BIN)/elfprefix.entry.o
+elfEXIT=	$(BIN)/elfprefix.exit.o
+lmelfPREFIX=	$(BIN)/lmelf_prefix.o
+lmelfENTRY=	$(BIN)/lmelf_prefix.entry.o
+lmelfEXIT=	$(BIN)/lmelf_prefix.exit.o
+elfdPREFIX=	$(BIN)/elf_dprefix.o
+elfdENTRY=	$(BIN)/elf_dprefix.entry.o
+elfdEXIT=	$(BIN)/elf_dprefix.exit.o
+lmelfdPREFIX=	$(BIN)/lmelf_dprefix.o
+lmelfdENTRY=	$(BIN)/lmelf_dprefix.entry.o
+lmelfdEXIT=	$(BIN)/lmelf_dprefix.exit.o
 
 include		$(BIN)/Roms
 
@@ -171,190 +181,137 @@ $(BIN)/%.o:	$(BIN)/%.s
 
 # general rule for .bin (plain binary loader code), may be overridden
 $(BIN)/%.bin:	$(BIN)/%.o
-	$(LD) -Ttext 0x10000 $(LDBINARY) -o $@ $<
-
+	$(OBJCOPY) -O binary $< $@
 
 # general rule for .z (compressed binary code), may be overridden
 # rule for .z is in top level Makefile
 # Give the directory name, e.g. use $(BIN)/rtl8139.com as the target.
 
-$(BIN)/%.zo:	$(BIN)/%.zbin arch/i386/core/prefixdata.lds $(MAKEDEPS)
-	$(LD) -T arch/i386/core/prefixdata.lds -b binary $< -o $@
+$(BIN)/%.zo:	$(BIN)/%.zbin arch/i386/core/prefixzdata.lds $(MAKEDEPS)
+	$(LD) -T arch/i386/core/prefixzdata.lds -b binary $< -o $@
+
+$(BIN)/%.uo:	$(BIN)/%.bin arch/i386/core/prefixudata.lds $(MAKEDEPS)
+	$(LD) -T arch/i386/core/prefixudata.lds -b binary $< -o $@
+
+# Intermediate prf rules
+
+%.prf:  %.rt $(PREFIXOBJS) %.rt1.uo %.rt2.uo $(MAKEDEPS)
+	$(MAKE) $(TARGETENTRY)
+	$(LD) $(LDFLAGS) -T $(PLDSCRIPT) $(TARGETENTRY) -R $(subst $(MAKEDEPS),,$^)  -o $@ 
+
+%.zprf:  %.rt $(ZPREFIXOBJS) %.rt1.uo %.rt2.zo $(MAKEDEPS)
+	$(MAKE) $(TARGETENTRY)
+	$(LD) $(LDFLAGS) -T $(PLDSCRIPT) $(TARGETENTRY) -R $(subst $(MAKEDEPS),,$^)  -o $@ 
 
 # general rules for normal/compressed ROM images, may be overridden
 SUFFIXES +=	rom zrom
 
-$(BIN)/%.rom.rt: $(BIN)/%.rt.o $(ISAEXIT) $(PCIEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
-		$< $(ROMEXIT)
+$(BIN)/%.rom.rt: $(BIN)/%.rt.o  $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(romEXIT) $<
 
-$(BIN)/%.rom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
-		$(ROMENTRY) $(PREFIXOBJS) $< $(ROMEXIT)
-
-$(BIN)/%.zrom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(ZPREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS) $(BIN)/%.rom.rt2.zbin
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.rom.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(ROMENTRY) $(ZPREFIXOBJS) $< $(ROMEXIT)
-
-$(BIN)/%.rom: $(BIN)/%.rom.prf.bin $(BIN)/%.rom.rt.bin
-	cat $^ > $@
+$(BIN)/%.rom: $(BIN)/%.rom.prf
+	$(OBJCOPY) -O binary $< $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$(ROMCARD)) $(MAKEROM_ID_$(ROMCARD)) -i$(IDENT) $@
 
-$(BIN)/%.zrom: $(BIN)/%.zrom.prf.bin $(BIN)/%.rom.rt1.bin $(BIN)/%.rom.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.zrom: $(BIN)/%.rom.zprf
+	$(OBJCOPY) -O binary $< $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$(ROMCARD)) $(MAKEROM_ID_$(ROMCARD)) -i$(IDENT) $@
 
 # general rules for ELF images
 SUFFIXES +=	elf zelf
-$(BIN)/%.elf.rt: $(BIN)/%.rt.o $(ELFEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(ELFEXIT)
+$(BIN)/%.elf.rt:  $(BIN)/%.rt.o $(elfENTRY) $(elfEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(elfEXIT)  $< 
 
-$(BIN)/%.elf.prf: $(BIN)/%.rt.o $(ELFENTRY) $(ELFEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(ELFENTRY) $(PREFIXOBJS) $< $(ELFEXIT)
+$(BIN)/%.elf: $(BIN)/%.elf.prf
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zelf.prf: $(BIN)/%.rt.o $(ELFENTRY) $(ELFEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(ELFENTRY) $(ZPREFIXOBJS) $< $(ELFEXIT)
-
-$(BIN)/%.elf: $(BIN)/%.elf.prf.bin $(BIN)/%.elf.rt.bin
-	cat $^ > $@
-
-$(BIN)/%.zelf: $(BIN)/%.zelf.prf.bin $(BIN)/%.elf.rt1.bin $(BIN)/%.elf.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.zelf: $(BIN)/%.elf.zprf 
+	$(OBJCOPY) -O binary $< $@
 
 # general rules for Long Mode ELF images
 SUFFIXES +=	lmelf zlmelf
-$(BIN)/%.lmelf.rt: $(BIN)/%.rt.o $(LMELFEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(LMELFEXIT)
+$(BIN)/%.lmelf.rt: $(BIN)/%.rt.o $(lmelfENTRY) $(lmelfEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(lmelfEXIT) $<
 
-$(BIN)/%.lmelf.prf: $(BIN)/%.rt.o $(LMELFENTRY) $(LMELFEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LMELFENTRY) $(PREFIXOBJS) $< $(LMELFEXIT)
+$(BIN)/%.lmelf: $(BIN)/%.lmelf.prf
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zlmelf.prf: $(BIN)/%.rt.o $(LMELFENTRY) $(LMELFEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(LMELFENTRY) $(ZPREFIXOBJS) $< $(LMELFEXIT)
-
-$(BIN)/%.lmelf: $(BIN)/%.lmelf.prf.bin $(BIN)/%.lmelf.rt.bin
-	cat $^ > $@
-
-$(BIN)/%.zlmelf: $(BIN)/%.zlmelf.prf.bin $(BIN)/%.lmelf.rt1.bin $(BIN)/%.lmelf.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.zlmelf: $(BIN)/%.lmelf.zprf
+	$(OBJCOPY) -O binary $< $@
 
 # general rules for ELF dynamic images
 SUFFIXES +=	elfd zelfd
-$(BIN)/%.elfd.rt: $(BIN)/%.rt.o $(ELFDEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(ELFDEXIT)
+$(BIN)/%.elfd.rt: $(BIN)/%.rt.o $(elfdENTRY) $(elfdEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(elfdEXIT) $<
 
-$(BIN)/%.elfd.prf: $(BIN)/%.rt.o $(ELFDENTRY) $(ELFDEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(ELFDENTRY) $(PREFIXOBJS) $< $(ELFDEXIT)
+$(BIN)/%.elfd: $(BIN)/%.elfd.prf
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zelfd.prf: $(BIN)/%.rt.o $(ELFDENTRY) $(ELFDEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(ELFDENTRY) $(ZPREFIXOBJS) $< $(ELFDEXIT)
-
-$(BIN)/%.elfd: $(BIN)/%.elfd.prf.bin $(BIN)/%.elfd.rt.bin
-	cat $^ > $@
-
-$(BIN)/%.zelfd: $(BIN)/%.zelfd.prf.bin $(BIN)/%.elfd.rt1.bin $(BIN)/%.elfd.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.zelfd: $(BIN)/%.elfd.zprf
+	$(OBJCOPY) -O binary $< $@
 
 # general rules for Long Mode ELF dynamic images
 SUFFIXES +=	lmelfd zlmelfd
-$(BIN)/%.lmelfd.rt: $(BIN)/%.rt.o $(LMELFDEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(LMELFDEXIT)
+$(BIN)/%.lmelfd.rt: $(BIN)/%.rt.o $(lmelfdENTRY) $(lmelfdEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(lmelfdEXIT) $<
 
-$(BIN)/%.lmelfd.prf: $(BIN)/%.rt.o $(LMELFDENTRY) $(LMELFDEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LMELFDENTRY) $(PREFIXOBJS) $< $(LMELFDEXIT)
+$(BIN)/%.lmelfd: $(BIN)/%.lmelfd.prf
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zlmelfd.prf: $(BIN)/%.rt.o $(LMELFDENTRY) $(LMELFDEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(LMELFDENTRY) $(ZPREFIXOBJS) $< $(LMELFDEXIT)
-
-$(BIN)/%.lmelfd: $(BIN)/%.lmelfd.prf.bin $(BIN)/%.lmelfd.rt.bin
-	cat $^ > $@
-
-$(BIN)/%.zlmelfd: $(BIN)/%.zlmelfd.prf.bin $(BIN)/%.lmelfd.rt1.bin $(BIN)/%.lmelfd.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.zlmelfd: $(BIN)/%.lmelfd.zprf
+	$(OBJCOPY) -O binary $< $@
 
 # rules to generate a DOS loadable .com executable
 SUFFIXES +=	com
-$(BIN)/%.com.rt: $(BIN)/%.rt.o $(COMEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(COMEXIT)
+$(BIN)/%.com.rt: $(BIN)/%.rt.o $(comENTRY) $(comEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(comEXIT)
 
-$(BIN)/%.com.prf: $(BIN)/%.rt.o $(COMENTRY) $(COMEXIT) $(ZPREFIXOBJS) $(BIN)/%.com.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.com.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(COMENTRY) $(ZPREFIXOBJS) $< $(COMEXIT)
-
-$(BIN)/%.com: $(BIN)/%.com.prf.bin $(BIN)/%.com.rt1.bin $(BIN)/%.com.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.com: $(BIN)/%.com.zprf
+	$(OBJCOPY) -O binary $< $@
 
 # rules to generate a DOS loadable .exe executable
 SUFFIXES +=	exe
-$(BIN)/%.exe.rt: $(BIN)/%.rt.o $(EXEEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(EXEEXIT)
+$(BIN)/%.exe.rt: $(BIN)/%.rt.o $(exeENTRY) $(exeEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(exeEXIT)
 
-$(BIN)/%.exe.prf: $(BIN)/%.rt.o $(EXEENTRY) $(EXEEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(EXEENTRY) $(PREFIXOBJS) $< $(EXEEXIT)
-
-$(BIN)/%.exe: $(BIN)/%.exe.prf.bin $(BIN)/%.exe.rt.bin
-	cat $^ > $@
+$(BIN)/%.exe: $(BIN)/%.exe.prf
+	$(OBJCOPY) -O binary $< $@
 
 # rules to make a LILO loadable image
 SUFFIXES +=	lilo zlilo
 
-$(BIN)/%.lilo.rt: $(BIN)/%.rt.o $(LILOEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(LILOEXIT)
+$(BIN)/%.lilo.rt: $(BIN)/%.rt.o $(liloENTRY) $(liloEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(liloEXIT)
 
-$(BIN)/%.lilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LILOENTRY) $(PREFIXOBJS) $< $(LILOEXIT)
-
-$(BIN)/%.zlilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(ZPREFIXOBJS) $(BIN)/%.lilo.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.lilo.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(LILOENTRY) $(ZPREFIXOBJS) $< $(LILOEXIT)
-
-$(BIN)/%.lilo: $(BIN)/%.lilo.prf.bin $(BIN)/%.lilo.rt.bin
+$(BIN)/%.lilo: $(BIN)/%.lilo.prf.bin
 	$(PERL) util/makelilo.pl $^ > $@
 
-$(BIN)/%.zlilo: $(BIN)/%.zlilo.prf.bin $(BIN)/%.lilo.rt1.bin $(BIN)/%.lilo.rt2.zbin
+$(BIN)/%.zlilo: $(BIN)/%.lilo.zprf.bin
 	$(PERL) util/makelilo.pl $^ > $@
 
 # rules to generate a PXE loadable image
 SUFFIXES +=	pxe zpxe
 
-$(BIN)/%.pxe.rt: $(BIN)/%.rt.o $(PXEEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(PXEEXIT)
+$(BIN)/%.pxe.rt: $(BIN)/%.rt.o $(pxeENTRY) $(pxeEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(pxeEXIT)
 
-$(BIN)/%.pxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(PXEENTRY) $(PREFIXOBJS) $< $(PXEEXIT)
+$(BIN)/%.pxe: $(BIN)/%.pxe.prf
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zpxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(ZPREFIXOBJS) $(BIN)/%.pxe.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.pxe.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(PXEENTRY) $(ZPREFIXOBJS) $< $(PXEEXIT)
-
-$(BIN)/%.pxe: $(BIN)/%.pxe.prf.bin $(BIN)/%.pxe.rt.bin
-	cat $^ > $@
-
-$(BIN)/%.zpxe: $(BIN)/%.zpxe.prf.bin $(BIN)/%.pxe.rt1.bin $(BIN)/%.pxe.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.zpxe: $(BIN)/%.pxe.zprf
+	$(OBJCOPY) -O binary $< $@
 
 # rules to generate the .dsk/.zdsk floppy images
 SUFFIXES +=	dsk zdsk
 
-$(BIN)/%.dsk.rt: $(BIN)/%.rt.o $(DSKEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(DSKEXIT)
+$(BIN)/%.dsk.rt: $(BIN)/%.rt.o $(dskENTRY) $(dskEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(dskEXIT)
 
-$(BIN)/%.dsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(DSKENTRY) $(PREFIXOBJS) $< $(DSKEXIT)
+$(BIN)/%.dsk: $(BIN)/%.dsk.prf
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zdsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(ZPREFIXOBJS) $(BIN)/%.dsk.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.dsk.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(DSKENTRY) $(ZPREFIXOBJS) $< $(DSKEXIT)
-
-$(BIN)/%.dsk: $(BIN)/%.dsk.prf.bin $(BIN)/%.dsk.rt.bin
-	cat $^ > $@
-
-$(BIN)/%.zdsk: $(BIN)/%.zdsk.prf.bin $(BIN)/%.dsk.rt1.bin $(BIN)/%.dsk.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.zdsk: $(BIN)/%.dsk.zprf
+	$(OBJCOPY) -O binary $< $@
 
 # rules to write the .dsk/.zdsk image onto a blank floppy
 SUFFIXES +=	fd0 zfd0
@@ -366,21 +323,14 @@ SUFFIXES +=	fd0 zfd0
 
 # rules to create raw executable images
 SUFFIXES +=	raw zraw
-$(BIN)/%.raw.rt: $(BIN)/%.rt.o $(NULLEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(NULLEXIT)
+$(BIN)/%.raw.rt: $(BIN)/%.rt.o $(rawENTRY) $(rawEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(rawEXIT)
 
-$(BIN)/%.raw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(PREFIXOBJS) $< $(NULLEXIT)
+$(BIN)/%.raw: $(BIN)/%.raw.prf
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zraw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
-		$(NULLENTRY) $(ZPREFIXOBJS) $< $(NULLEXIT)
-
-$(BIN)/%.raw: $(BIN)/%.raw.prf.bin $(BIN)/%.raw.rt.bin
-	cat $^ > $@
-
-$(BIN)/%.zraw: $(BIN)/%.zraw.prf.bin $(BIN)/%.raw.rt1.bin $(BIN)/%.raw.rt2.zbin
-	cat $^ > $@
+$(BIN)/%.zraw: $(BIN)/%.raw.zprf
+	$(OBJCOPY) -O binary $< $@
 
 # rule to make a non-emulation ISO boot image
 SUFFIXES +=	iso
@@ -391,3 +341,4 @@ SUFFIXES +=	iso
 SUFFIXES +=	liso
 %.liso:	util/genliso %.zlilo
 	bash util/genliso $*.liso $*.zlilo
+

@@ -80,7 +80,7 @@ pmode:
 1:	popl	%eax
 
 	/* Make in_call to Etherboot */
-	jmp	_in_call
+	jmp	_prefix_in_call
 
 /******************************************************************************
  * Entered in real mode
@@ -128,10 +128,10 @@ rmode:
 	sgdt	2(%bp)
 	pushw	%ss			/* Store params for _prot_to_real */
 	pushw	%cs
-	call	_real_to_prot
+	call	_prefix_real_to_prot
 	.code32
 	call	decompress
-	call	_prot_to_real
+	call	_prefix_prot_to_real
 	.code16
 	popw	%ax			/* skip */
 	popw	%ax			/* skip */
@@ -150,14 +150,14 @@ rmode:
 	movw	%ax, %ds
 	shll	$4, %eax
 	addl	$_prefix_size, %eax
-	movl	%eax, rm_etherboot_location
+	movl	%eax, _prefix_rm_etherboot_location
 
 	/* Restore registers */
 	popl	%eax
 	popw	%ds
 
 	/* Make real-mode in_call to Etherboot */
-	jmp	_rm_in_call
+	jmp	_prefix_rm_in_call
 #endif /* CODE16 */
 
 /******************************************************************************
@@ -263,8 +263,8 @@ prelocate:
 	xorl	%eax, %eax
 	movw	%bx, %ax
 	shll	$4, %eax
-	movl	%eax, %es:image_basemem
-	movl	$_image_size, %es:image_basemem_size
+	movl	%eax, %es:_prefix_image_basemem
+	movl	$_image_size, %es:_prefix_image_basemem_size
 	popl	%eax
 
 	/* Expand original near return address into far return to new
