@@ -7,38 +7,99 @@ Based on an idea suggested by H. Peter Anvin <hpa@zytor.com>.
 $Id$
 
 Bochs is a program that simulates a complete Intel x86 computer,
-including hardware.  It can be used to test Etherboot.
+including hardware.  It can be used to test Etherboot.  There is a
+special pseudo NIC ("pnic") implemented in Bochs, with a corresponding
+driver in Etherboot.  (There is also an NE2000 ISA driver in Bochs,
+but it doesn't seem to quite work.)
 
-To get bochs running you will need:
+To get bochs running is fairly simple:
 
-1. An installation of bochs.  If you are running Mandrake, the bochs
-   RPM included in contribs works and, at the time of writing (January
-   2004), is up to date.
+1.  Get the bochs source code:
+    a)  cvs -d:pserver:anonymous:@cvs.sourceforge.net:/cvsroot/bochs login
+    b)  cvs -d:pserver:anonymous:@cvs.sourceforge.net:/cvsroot/bochs co bochs
 
-2. Kernel TUN/TAP support.  You probably have this already.  Try
-   running "modprobe tun".  It should succeed and you should see a
-   device /dev/net/tun.
+2.  Add in the PNIC device code for Bochs:
+    a) Copy ../../src/drivers/net/pnic_api.h, ./pcipnic.h and ./pcipnic.cc
+       to the iodev/ directory within your Bochs source checkout.
+    b) Apply ./bochs-pcipnic.patch:
+         patch -p 1 -d /path/to/bochs/source/tree < ./bochs-pcipnic.patch
 
-3. Write access to /dev/net/tun.  You can do this by running bochs as
-   root, but only if you're feel like living dangerously.  A safer way
-   is to change the permissions on /dev/net/tun so that you can write
-   to it as your ordinary user.  For example "chown me /dev/net/tun"
-   will work if your username is "me".
+3.  Run autoconf to pick up the patches to configure.in:
+      cd /path/to/bochs/source/tree
+      autoconf
 
-4. If you want to avoid being prompted for the root password every
-   time you start bochs, make the script "ifup.tun" in this directory
-   setuid-root.  If you don't know how to do this, don't do it.
+4.  Configure bochs with
+      ./configure --enable-all-optimisations --enable-pci \
+	 	 --enable-ne2000 --enable-pnic
+    (You may also wish to add --prefix=/usr, to force the use of
+    standard file locations).
 
-5. An Etherboot ROM image.  By default, bochs will use the file
-   "ne.zrom" in the Etherboot build directory (i.e. src/bin/ne.zrom).
-   Bochs emulates only an NE2000 ISA NIC, so this is practically the
-   only image that can be used.  You will need to make sure that it is
-   built before starting bochs by running "make bin/ne.zrom" in the
-   src directory.
+5.  Build bochs:
+      make
 
-That should be all that is required.  Start bochs by running "bochs"
-(*not* as root).  Choose option 5 to start simulation.  You should see
-Etherboot start up, detect the NIC and start attempting to boot.
+6.  Configure Etherboot with CONFIG_PCI_DIRECT: add the line
+      CFLAGS += -DCONFIG_PCI_DIRECT
+    to the end of src/arch/i386/Config.
+
+7.  Build bin/pnic.zrom:
+      make bin/pnic.zrom
+
+8.  Load the TUN/TAP kernel module:
+      modprobe tun
+    You should see the device /dev/net/tun is created automatically if
+    you're using devfs, otherwise you may have to create it by hand with:
+      mknod /dev/net/tun c 10 200
+
+9.  Grant yourself write access to /dev/net/tun:
+      su -c 'chown <your user id> /dev/net/tun'
+    The alternative to this is to run Bochs as root.  Don't do that.
+
+10. Add the following fragment to /etc/dhcpd.conf:
+      subnet 10.254.254.0 netmask 255.255.255.252 {
+        range dynamic-bootp 10.254.254.1 10.254.254.1;
+      }
+    You will also need to add in any of your usual declarations for
+    Etherboot, e.g. 'filename "vmlinuz.ltsp";'.  Note that this setup
+    assumes that your DHCP server, TFTP server etc. all live on the
+    machine you are using for running Bochs.  If not, then you're on
+    your own.
+
+11. Change back to this directory and run bochs from your Bochs source tree:
+      cd /path/to/Etherboot/contrib/bochs
+      /path/to/bochs/source/tree/bochs
+
+12. Select option 5 (Begin simulation).  You will be prompted for your
+    root password.  This is required in order to configure the tun1
+    network interface and to restart the DHCP server.
+
+13. You should see Bochs start up and attempt to boot from the network,
+    with a screen that looks like:
+
+VGA BIOS - Version 2.40
+Copyright (C) 1990-2000 Elpin Systems, Inc.
+All rights reserved.
+
+Licensed for use with bochs, courtesy of MandrakeSoft.
+
+For information on this or other VGA development products, contact
+Elpin Systems at: (800) 723-9038 or www.elpin.com
+
+Bochs BIOS, 1 cpu, $Revision$ $Date$
+
+
+Etherboot 5.3.6 (GPL) http://etherboot.org Tagged ELF for [PNIC]
+Relocating _text from: [00091020,0009fb50) to [01ef14d0,01f00000)
+Boot from (N)etwork or (Q)uit?
+
+Probing pci nic...
+[pnic] - Detected Bochs Pseudo NIC MAC FE:FD:00:00:00:01 (API v1.0) at 0xdc00
+Searching for server (DHCP)...
+..Me: 10.254.254.1, Server: 10.254.254.2
+Loading 10.254.254.2:/tftpboot/kernel
+
+
+
+
 
 TODO
 ====
@@ -47,12 +108,6 @@ Serial console support via a pseudo-tty.  (Bochs supports it, just
 need to set up a suitable pty).
 
 Packet forwarding/masquerading - document what must be set up.
-
-DHCPD configured to hand out lease for virtual NIC - just add subnet
-declaration:
-subnet 10.254.254.0 netmask 255.255.255.252 {
-       range dynamic-bootp 10.254.254.1 10.254.254.1;
-}
 
 Mention possibility of using RFB as the display device - in
 conjunction with the serial console, gives you a test facility that
