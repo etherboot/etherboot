@@ -1740,35 +1740,3 @@ static struct pci_driver tlan_driver __pci_driver = {
     .id_count = sizeof(tlan_nics) / sizeof(tlan_nics[0]),
     .class = 0,
 };
-
-/**************************************************************************
-PROBE - Look for an adapter, this routine's visible to the outside
-***************************************************************************/
-#ifdef TIM
-static int tlan_isa_probe(struct dev *dev, unsigned short *probe_addrs)
-{
-    struct nic *nic = (struct nic *) dev;
-    /* if probe_addrs is 0, then routine can use a hardwired default */
-    if (board_found && valid_link) {
-	/* point to NIC specific routines */
-	dev->disable = tlan_disable;
-	nic->poll = tlan_poll;
-	nic->transmit = tlan_transmit;
-
-	/* Report the ISA pnp id of the board */
-	dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
-	dev->devid.vendor_id = htons(0x1234);
-	return 1;
-    }
-    /* else */
-    return 0;
-}
-
-ISA_ROM("tlan-isa", "Skeleton ISA driver")
-static struct isa_driver tlan_isa_driver __isa_driver = {
-    .type = NIC_DRIVER,
-    .name = "TLAN/ISA",
-    .probe = tlan_isa_probe,
-    .ioaddrs = 0,
-};
-#endif
