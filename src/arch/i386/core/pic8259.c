@@ -144,6 +144,8 @@ int install_trivial_irq_handler ( irq_t irq ) {
 		remove_trivial_irq_handler ( irq );
 		return 0;
 	}
+	/* Send EOI just in case there was a leftover interrupt */
+	send_specific_eoi ( irq );
 	DBG ( "Trivial IRQ handler installed successfully\n" );
 	enable_irq ( irq );
 	return 1;

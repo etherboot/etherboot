@@ -1128,6 +1128,15 @@ static int undi_poll(struct nic *nic, int retrieve)
 		/* "Not our interrupt" translates to "no packet ready
 		 * to read".
 		 */
+		/* FIXME: Technically, we shouldn't be the one sending
+		 * EOI.  However, since our IRQ handlers don't yet
+		 * support chaining, nothing else gets the chance to.
+		 * One nice side-effect of doing this is that it means
+		 * we can cheat and claim the timer interrupt as our
+		 * NIC interrupt; it will be inefficient but will
+		 * work.
+		 */
+		send_specific_eoi ( undi.irq );
 		return 0;
 	}
 #endif
