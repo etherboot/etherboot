@@ -12,6 +12,9 @@
 #define PXENV_UNLOAD_STACK	0x70
 #define PXENV_STOP_BASE		0x76
 
+#define PUSHA_SIZE		16
+#define PXE_STACK_MAGIC		0x57ac	/* 'STac' */
+
 	.text
 	.code16
 	.org 0
@@ -25,10 +28,15 @@ _start:
 10:	.ascii	"PXE->EB "
 20:
 code_start:
-	movw	%sp, %bp
-	push	%cs
+	pusha				/* Preserve all registers */
+	push	%ds
+	movw	%sp, %bp		/* %bp must be preserved, hence do
+					 * this after the pusha */
+	push	$PXE_STACK_MAGIC	/* PXE stack magic marker */
+
+	push	%cs			/* Set up data segment */
 	pop	%ds
-	movw	$10b-_start, %si
+	movw	$10b-_start, %si	/* Print welcome message */
 	movw	$20b-10b, %cx
 	call	print_message
 
@@ -39,29 +47,30 @@ code_start:
  *****************************************************************************
  */
 detect_pxe:
-	les	4(%bp), %di		/* !PXE structure */
+	les	4+PUSHA_SIZE+2(%bp), %di /* !PXE structure */
 	cmpl	$0x45585021, %es:(%di)	/* '!PXE' signature */
 	je	detected_pxe
 	mov	$0x5650, %ax
 	int	$0x1a
-	jc	detected_none
 	cmp	$0x564e, %ax
-	jne	detected_none
+	jne	finished_with_error
 	cmpl	$0x4e455850, %es:(%bx)	/* 'PXEN' signature */
-	jne	detected_none
+	jne	finished_with_error
 	cmpw	$0x2b56, %es:4(%bx)	/* 'V+' signature */
-	jne	detected_none
-	cmpw	$0x201, %es:6(%bx)	/* API version 2.1 or higher */
-	jb	detected_pxenv		/* otherwise use PXENV+ */
-	les	%es:0x28(%bx), %di
-	cmpl	$0x45585021, %es:(%di)	/* '!PXE' signature */
-	je	detected_pxe
-detected_none:	
+	jne	finished_with_error
+
+detected_pxenv: /* es:bx points to PXENV+ structure */
+	push	%es
+	push	%bx
+	push	%es:0x24(%bx)		/* UNDI code segment */
+	push	%es:0x26(%bx)		/* UNDI code size */
+	push	%es:0x20(%bx)		/* UNDI data segment */
+	push	%es:0x22(%bx)		/* UNDI data size */
+	les	%es:0x0a(%bx), %di	/* Entry point to %es:%di */
 	movw	$10f-_start, %si
 	movw	$20f-10f, %cx
-	call	print_message
-	jmp	finished_with_error
-10:	.ascii	"No PXE"
+	jmp	pxe_setup_done
+10:	.ascii	"PXENV+ "
 20:
 
 10:	.ascii	"!PXE "
@@ -74,20 +83,6 @@ detected_pxe:	/* es:di points to !PXE structure */
 	push	%es:0x28(%di)		/* UNDI data segment */
 	push	%es:0x2e(%di)		/* UNDI data size */
 	les	%es:0x10(%di), %di	/* Entry point to %es:%di */
-	movw	$10b-_start, %si
-	movw	$20b-10b, %cx
-	jmp	pxe_setup_done
-
-10:	.ascii	"PXENV+ "
-20:
-detected_pxenv: /* es:bx points to PXENV+ structure */
-	push	%es
-	push	%bx
-	push	%es:0x24(%bx)		/* UNDI code segment */
-	push	%es:0x26(%bx)		/* UNDI code size */
-	push	%es:0x20(%bx)		/* UNDI data segment */
-	push	%es:0x22(%bx)		/* UNDI data size */
-	les	%es:0x0a(%bx), %di	/* Entry point to %es:%di */
 	movw	$10b-_start, %si
 	movw	$20b-10b, %cx
 
@@ -199,12 +194,55 @@ finished_with_error:
 	movw	$11f-_start, %si
 1:	movw	$20f-10f,%cx
 	call	print_message
-	ljmp	$FLOPPY_SEGMENT + (512/16), $0
-
+	jmp	99f
 10:	.ascii " ok \r\n"
 20:	
 11:	.ascii " err\r\n" /* Must be same length as "OK" string */
 21:	
+99:
+
+/*****************************************************************************
+ * Run Etherboot main code
+ *****************************************************************************
+ */	
+run_etherboot:
+	push	%ss			/* PXE stack pointer to ES:DI */
+	pop	%es
+	mov	%sp, %di
+	push	%ds			/* Set up stack in "safe" area */
+	pop	%ss
+	mov	$_estack-_start, %sp
+	push	%es			/* Record PXE stack pointer */
+	push	%di	
+	lcall	$FLOPPY_SEGMENT + (512/16), $0 /* Call start16.S */
+	push	%cs			/* Restore DS */
+	pop	%ds
+	pop	%di			/* PXE stack pointer to ES:DI */
+	pop	%es
+#ifdef PXELOADER_KEEP_ALL
+	cmpw	$PXE_STACK_MAGIC, %es:0(%di)  /* See if PXE stack intact */
+	jne	exit_via_int18
+exit_via_pxe:				/* Stack OK, return to PXE */
+	push	%es			/* Restore PXE stack pointer */
+	pop	%ss
+	mov	%di, %sp
+	pop	%ax			/* Discard PXE_STACK_MAGIC marker */
+	movw	$10f-_start, %si
+	movw	$20f-10f, %cx
+	call	print_message
+	pop	%ds			/* Restore PXE's DS */
+	popa				/* Restore PXE's other registers */
+	lret				/* Return control to PXE ROM */
+10:	.ascii	"EB->PXE\r\n"
+20:	
+#endif /* PXELOADER_KEEP_ALL */
+exit_via_int18:				/* Stack damaged, do int 18 */
+	movw	$10f-_start, %si
+	movw	$20f-10f, %cx
+	call	print_message
+	int	$0x18
+10:	.ascii	"EB->BIOS\r\n"
+20:	
 
 /*****************************************************************************
  * Subroutine: print character in %al (with LF -> LF,CR translation)
@@ -216,6 +254,16 @@ print_character:
 	int	$0x10
 	ret
 	
+/*****************************************************************************
+ * Subroutine: print a message starting at %si for length %cx
+ *****************************************************************************
+ */	
+print_message:
+10: 	lodsb
+	call	print_character
+	loop	10b
+	ret
+
 /*****************************************************************************
  * Subroutine: print hex word in %ax
  *****************************************************************************
@@ -252,16 +300,6 @@ print_segoff:
 	call	print_character
 	ret
 	
-/*****************************************************************************
- * Subroutine: print a message starting at %si for length %cx
- *****************************************************************************
- */	
-print_message:
-10: 	lodsb
-	call	print_character
-	loop	10b
-	ret
-
 /*****************************************************************************
  * Make a PXE API call.  Works with either !PXE or PXENV+ API.
  * Opcode in %bx.  pxe_parameter_structure always used.
@@ -314,6 +352,12 @@ undi_data_segment:	.word 0
 pxe_parameter_structure:
 	.word	0
 	.word	0,0,0,0,0
+
+_estack:	/* We place a stack here.  It doesn't get used until after
+		 * all the PXE API calls are finished, so we can happily
+		 * trash the PXE data structures above and even the pxe_call
+		 * routine if necessary.
+		 */
 
 end_of_pxeloader:
 
