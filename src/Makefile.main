@@ -96,35 +96,16 @@
 #	-DINCLUDE_NATSEMI - Include NATSEMI support
 #
 
-.PHONY:	noargs
-noargs:	$(UTILS) $(BUILD_LIBS)
-	@echo
-	@echo 'No target specified. To specify a target, do: '
-	@echo
-	@echo '  $(MAKE) bin/<rom-name>.<output-type> '
-	@echo
-	@echo 'where <output-type> is one of {zdsk, zrom, iso, liso, zlilo, zpxe, com, elf}'
-	@echo
-	@echo 'or: '
-	@echo
-	@echo '  $(MAKE) all'
-	@echo
-	@echo 'to generate all possible .rom and .zrom images'
-	@echo
-	@exit 1
-
-all:            $(UTILS) $(BUILD_LIBS) allroms
-	
 SRCS:=
 BOBJS:=
-
 
 MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	3
-VERSION_PATCH=	7
-EXTRAVERSION=
+VERSION_PATCH=	8
+EXTRAVERSION=	rc1
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
+MM_VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
 		-DVERSION=\"$(VERSION)\" -DRELOC=$(RELOCADDR) $(OLDGAS) \
@@ -211,6 +192,39 @@ CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 	{ $(RM) $@; echo "ERROR: code size exceeds limit!"; exit 1; }; exit 0; }
 
 # Start of targets
+
+.PHONY:	noargs
+noargs:	$(BIN)/toolcheck
+	@echo '===================================================='
+	@echo 'No target specified. To specify a target, do: '
+	@echo
+	@echo '    $(MAKE) bin/<rom-name>.<output-format> '
+	@echo
+	@echo 'where <output-format> is one of {zdsk, zrom, iso, liso, zlilo, zpxe, elf, com}'
+	@echo
+	@echo 'or: '
+	@echo
+	@echo '    $(MAKE) all<output-format>s'
+	@echo
+	@echo 'to generate all possible images of format <output-format>'
+	@echo
+	@echo 'For example, '
+	@echo
+	@echo '    make allzroms '
+	@echo
+	@echo 'will generate all possible .zrom (rom burnable) images, and'
+	@echo
+	@echo '    make allzdsks'
+	@echo
+	@echo 'will generate all possible .zdsk (bootable floppy) images, or'
+	@echo
+	@echo 'To create a "super pci image" containing all PCI etherboot drivers, do:'
+	@echo
+	@echo '    make bin/etherboot-pci.zdsk'
+	@echo 'or'
+	@echo '    make bin/etherboot-pci.liso'
+	@echo '===================================================='
+	@exit 1
 
 $(BIN)/toolcheck:	Makefile Config
 	@if $(CC) -v 2>&1 | grep -is 'gcc version 2\.96' > /dev/null; \
@@ -324,6 +338,12 @@ clean:
 tarball: ../index.html ../index-berlios.html
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
 	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude doc etherboot-$(VERSION))
+	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
+	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
+
+cvs_tarball: ../index.html ../index-berlios.html
+	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
+	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude doc etherboot-$(MM_VERSION))
 	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
 	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
 

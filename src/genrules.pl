@@ -233,17 +233,52 @@ print "# Driver object files and ROM image files\n";
 print "IMGS\t:=\n";
 print "DOBJS\t:=\n";
 print "PCIOBJS\t:=\n";
+
+print "# Target formats\n";
+print "EB_ISOS\t:=\n";
+print "EB_LISOS\t:=\n";
+print "EB_COMS\t:=\n";
+print "EB_LILOS\t:=\n";
+print "EB_ZLILOS\t:=\n";
+print "EB_PXES\t:=\n";
+print "EB_ZPXES\t:=\n";
+print "EB_DSKS\t:=\n";
+print "EB_ZDSK\t:=\n";
+print "EB_ELFS\t:=\n";
+print "EB_ZELFS\t:=\n";
+
 # Generate the PCI files in reverse so that 3c90x is in front of 3c595
 # as the latter misdetects many 3c90x NICs
 foreach my $pci (reverse sort keys %pcient) {
 	my $img = basename($pci);
+
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
 	print "PCIOBJS\t+= \$(BIN)/$img.o\n" unless isaonly($pci);
 	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym \$(BIN)/$img.zsym\n";
+
+# Output targets
+	print "EB_LILOS\t+= \$(BIN)/$img.lilo\ \$(BIN)/$img.zlilo\n";
+	print "EB_PXES\t+= \$(BIN)/$img.pxe \$(BIN)/$img.zpxe\n";
+	print "EB_DSKS\t+= \$(BIN)/$img.dsk \$(BIN)/$img.zdsk\n";
+	print "EB_ELFS\t+= \$(BIN)/$img.elf \$(BIN)/$img.zelf\n";
+	print "EB_ISOS\t+= \$(BIN)/$img.iso\n";
+	print "EB_LISOS\t+= \$(BIN)/$img.liso\n";
+	print "EB_COMS\t+= \$(BIN)/$img.com\n";
 }
+
 foreach my $img (sort keys %buildent) {
+
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
 	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym \$(BIN)/$img.zsym\n";
+
+# Output targets
+	print "EB_LILOS\t+= \$(BIN)/$img.lilo\ \$(BIN)/$img.zlilo\n";
+	print "EB_PXES\t+= \$(BIN)/$img.pxe \$(BIN)/$img.zpxe\n";
+	print "EB_DSKS\t+= \$(BIN)/$img.dsk \$(BIN)/$img.zdsk\n";
+	print "EB_ELFS\t+= \$(BIN)/$img.elf \$(BIN)/$img.zelf\n";
+	print "EB_ISOS\t+= \$(BIN)/$img.iso\n";
+	print "EB_LISOS\t+= \$(BIN)/$img.liso\n";
+	print "EB_COMS\t+= \$(BIN)/$img.com\n";
 }
 
 print "ROMS\t:=\n";
@@ -319,9 +354,9 @@ EOF
 }
 
 # ISA ROMs are prepared from the matching code images
+# Think this can probably be removed, but not sure
 foreach my $isa (sort keys %isalist) {
 	print <<EOF;
-# Think this can probably be removed, but not sure
 EOF
 }
 

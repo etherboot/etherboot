@@ -2,12 +2,6 @@ ARCH_FORMAT=	elf32-i386
 
 LCONFIG+=	-DRELOC=$(RELOCADDR) -Ui386
 
-BUILD_ROMS=	$(ROMS)
-BUILD_ELFS=	$(patsubst %img, %elf, $(IMGS))
-BUILD_PXES=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.zpxe, $(IMGS))
-BUILD_COMS=	$(patsubst %.img, %.com, $(IMGS))
-BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMGS))
-
 START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
 	$(BIN)/bios.o $(BIN)/console.o $(BIN)/memsizes.o $(BIN)/basemem.o \
 	$(BIN)/hidemem.o $(BIN)/e820mangler.o \
@@ -108,16 +102,22 @@ endif
 # deal with hex numbers, as test/eval don't support non-decimal integers).
 ROMLIMIT:=$(shell perl -e 'printf("%d\n", (640*1024 - $(RELOCADDR)));')
 
-# We need allroms,allelfs,allpxes,allcoms,alllilos because $(IMGS) is not defined until
-# the Makefile fragment "Roms" is read.
-
 include		$(BIN)/Roms
 
-allroms:	$(BUILD_ROMS)
-allelfs:	$(BUILD_ELFS)
-allpxes:	$(BUILD_PXES)
-allcoms:	$(BUILD_COMS)
-alllilos:	$(BUILD_LILOS)
+all:		$(ROMS)
+allroms:	$(ROMS)
+allzroms:	$(ROMS)
+alldsks:	$(EB_DSKS)
+allzdsks:	$(EB_DSKS)
+alllilos:	$(EB_LILOS)
+allzlilos:	$(EB_LILOS)
+allpxes:	$(EB_PXES)
+allzpxes:	$(EB_PXES)
+allelfs:	$(EB_ELFS)
+allzelfs:	$(EB_ELFS)
+allcoms:	$(EB_COMS)
+allisos:	$(EB_ISOS)
+alllisos:	$(EB_LISOS)
 
 BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
 BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
