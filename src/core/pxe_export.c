@@ -841,6 +841,12 @@ PXENV_EXIT_t pxenv_tftp_read_file ( t_PXENV_TFTP_READ_FILE *tftp_read_file ) {
 	      tftp_read_file->Buffer, tftp_read_file->Buffer + tftp_read_file->BufferSize );
 	ENSURE_READY ( tftp_read_file );
 
+	/* inserted by Klaus Wittemeier */
+	/* KERNEL_BUF stores the name of the last required file */
+	/* This is a fix to make Microsoft Remote Install Services work (RIS)
+	memcpy(KERNEL_BUF, tftp_read_file->FileName, sizeof(KERNEL_BUF));
+	/* end of insertion */
+
 	pxe_stack->readfile.buffer = phys_to_virt ( tftp_read_file->Buffer );
 	pxe_stack->readfile.bufferlen = tftp_read_file->BufferSize;
 	pxe_stack->readfile.offset = 0;
