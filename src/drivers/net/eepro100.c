@@ -758,6 +758,7 @@ PCI_ROM(0x8086, 0x2449, "82562em",       "Intel EtherExpressPro100 82562EM"),
 PCI_ROM(0x8086, 0x2459, "82562-1",       "Intel 82562 based Fast Ethernet Connection"),
 PCI_ROM(0x8086, 0x245d, "82562-2",       "Intel 82562 based Fast Ethernet Connection"),
 PCI_ROM(0x8086, 0x1050, "82562ez",       "Intel 82562EZ Network Connection"),
+PCI_ROM(0x8086, 0x1051, "eepro100-1051", "Intel 82801EB/ER (ICH5/ICH5R) Chipset Ethernet Controller"),
 PCI_ROM(0x8086, 0x5200, "eepro100-5200", "Intel EtherExpress PRO/100 Intelligent Server"),
 PCI_ROM(0x8086, 0x5201, "eepro100-5201", "Intel EtherExpress PRO/100 Intelligent Server"),
 };
