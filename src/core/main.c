@@ -207,6 +207,11 @@ int main(in_call_data_t *data, va_list params)
 	console_init();
 	arch_main(data,params);
 
+	if ( rom.rom_segment ) {
+		printf ( "ROM segment %#hx length %#hx reloc %#x\n",
+			 rom.rom_segment, rom.rom_length, _text );
+	}
+
 	cpu_setup();
 	setup_timers();
 	gateA20_set();

@@ -23,8 +23,8 @@ struct arptable_t	arptable[MAX_ARP];
 unsigned long last_igmpv1 = 0;
 struct igmptable_t	igmptable[MAX_IGMP];
 #endif
-/* Currently no other module uses rom, but it is available */
-struct rom_info		rom;
+/* Put rom_info in .nocompress section so romprefix.S can write to it */
+struct rom_info	rom __attribute__ ((section (".text16.nocompress"))) = {0,0};
 static unsigned long	netmask;
 /* Used by nfs.c */
 char *hostname = "";

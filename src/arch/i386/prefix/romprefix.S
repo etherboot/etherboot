@@ -210,11 +210,22 @@ pnpentry:
 #endif /* PCI_PNP_HEADER */
 
 
-invoke:	
+invoke:
+	/* Store ROM segment and size on stack */
+	pushw	%ax
+	pushw	%cs
+	movzbw	%cs:(size-_prefix), %ax
+	shlw	$9, %ax			/* 512-byte blocks */
+	pushw	%ax
 	/* Relocate to free base memory, switch stacks */
-	pushw	$6			/* Preserve exit code & far ret addr */
+	pushw	$12			/* Preserve exit code & far ret addr */
 	call	prelocate
-	/* leave "6" on stack as padding out to 4-byte alignment */
+	/* We are now running in RAM */
+	popw	%ax			/* padding */
+	popw	%cs:(rom+2)		/* ROM size */
+	popw	%cs:(rom+0)		/* ROM segment */
+	popw	%ax			/* Original %ax */
+	pushw	%ax			/* 4-byte alignment */
 	pushl	$8			/* Preserve exit code & far ret addr */
 	pushw	$0			/* Set null return address */
 	jmp	_start
@@ -270,10 +281,19 @@ UNDILoader:
 	pushw	$PXENV_UNDI_LOADER	/* PXE 'opcode' */
 	pushl	%eax			/* dummy return address */
 	/* Stack now looks like a normal PXE API call */
+	/* Store ROM segment and size on stack */
+	pushw	%ax
+	pushw	%cs
+	movzbw	%cs:(size-_prefix), %ax
+	shlw	$9, %ax			/* 512-byte blocks */
+	pushw	%ax
 	/* Unpack Etherboot into temporarily claimed base memory */
-	pushw	$14			/* Dummy ret, PXE params, orig ss:sp */
+	pushw	$20			/* Dummy ret, PXE params, orig ss:sp */
 	call	prelocate
-	addw	$2, %sp			/* discard */
+	popw	%ax			/* discard */
+	popw	%cs:(rom+2)		/* ROM size */
+	popw	%cs:(rom+0)		/* ROM segment */
+	popw	%ax			/* Original %ax */
 	/* Inhibit automatic deallocation of base memory */
 	movl	$0, %cs:image_basemem
 	/* Make PXE API call to Etherboot */
