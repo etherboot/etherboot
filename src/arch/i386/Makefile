@@ -253,21 +253,16 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 %.zpxe:	%.zimg $(PXEPREFIX)
 	cat $(PXEPREFIX) $< > $@
 
-# rules to make a disk image (padding to fill an even number of cylinders).
-# VMware reports disk image read errors if it cannot read ahead 36 sectors,
-# probably because the floppyload.S code reads up to that number of sectors in
-# a single request.  Not that 18k matters much these days...
-# Probably not required now that boot1a.s is in use, but shouldn't hurt.
 # You must give the directory name, e.g. use $(BIN)/rtl8139.dsk as the target.
 %.dsk:	%.rom $(DISKLOADER) 
-	cat $(DISKLOADER) $< /dev/zero | head -c 36k > $@
+	cat $(DISKLOADER) $< | dd bs=36k conv=sync > $@
 
 %.zdsk:	%.zrom $(DISKLOADER)
-	cat $(DISKLOADER) $< /dev/zero | head -c 36k > $@
+	cat $(DISKLOADER) $< | dd bs=36k conv=sync > $@
 
 # rules to make a LILO-bootable image
 %.lilo:		%.img $(LILOPREFIX)
-	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
+	cat $(LILOPREFIX) $< | dd ibs=64k conv=sync > $@
 
 %.zlilo:	%.zimg $(LILOPREFIX)
-	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
+	cat $(LILOPREFIX) $< | dd ibs=64k conv=sync > $@

@@ -3,7 +3,7 @@
 use Getopt::Std;
 
 use constant MINROMSIZE => 8192;
-use constant MAXROMSIZE => 65536;
+use constant MAXROMSIZE => 262144;
 
 use constant PCI_PTR_LOC => 0x18;	# from beginning of ROM
 use constant PCI_HDR_SIZE => 0x18;
