@@ -176,7 +176,8 @@ rmode:
  * This routine takes a single word parameter: the number of bytes to
  * be transferred from the old stack to the new stack (excluding the
  * return address and this parameter itself, which will always be
- * copied).
+ * copied).  If this value is negative, the stacks will not be
+ * switched.
  *
  * Control will "return" to the appropriate point in the relocated
  * image.
@@ -227,16 +228,19 @@ prelocate:
 	movw	%ss, %ax
 	movw	%ax, %ds
 	movw	%sp, %si		/* %ds:si = current %ss:sp */
+	movw	%ss:PRELOC_OFFSET_COPY(%si), %cx
+	testw	%cx, %cx
+	js	1f
 	leaw	_stack_offset_pgh(%bx), %ax /* %ax = new %ss */
 	movw	%ax, %es
 	movw	$_stack_size, %di
-	movw	%ss:PRELOC_OFFSET_COPY(%si), %cx
 	addw	$PRELOC_ALWAYS_COPY, %cx
 	subw	%cx, %di		/* %es:di = new %ss:sp */
 	movw	%ax, %ss		/* Set new %ss:sp */
 	movw	%di, %sp
 	cld
 	rep movsb			/* Copy stack contents */
+1:	
 
 	/* Do the image copy backwards, since if there's overlap with
 	 * a forward copy then it means we're going to get trashed
@@ -268,4 +272,28 @@ prelocate:
 	popaw
 	lret				/* Jump to relocated code */
 
+	/* Utility routine to free base memory allocated by prelocate.
+	 * Ensure that said memory is not in use (e.g. for the CPU
+	 * stack) before calling this routine.
+	 */
+	.globl deprelocate
+deprelocate:	
+#ifdef RELOCATE
+	/* Claim an area of base memory from the BIOS and put the
+	 * payload there.
+	 */
+	pushw	%ax
+	pushw	%es
+	movw	$0x40, %ax
+	movw	%ax, %es
+	movw	%es:(0x13), %ax		/* FBMS in kb to %ax */
+	shlw	$6, %ax			/* ... in paragraphs */
+	addw	$_image_size_pgh+0x40-1, %ax /* Add space for image and... */
+	shrw	$6, %ax			/* ...round up to nearest kb */
+	movw	%ax, %es:(0x13)		/* Give memory back to BIOS */
+	popw	%es
+	popw	%ax
+#endif
+	ret
+	
 #endif /* CODE16 */
