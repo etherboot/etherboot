@@ -75,9 +75,6 @@
 #ifdef INCLUDE_PCNET32
 #include "pcnet32_ids.h"
 #endif
-#ifdef INCLUDE_TLAN
-#include "tlan_ids.h"
-#endif
 /* other PCI NICs go here */
 #endif	/* INCLUDE_*PCI */
 

@@ -286,19 +286,19 @@ dfe530txs	0x1186,0x1002	D-Link DFE 530TXS
 #amd_lance_home	0x1022,0x2001		AMD Lance Home based card
 
 family		tlan
-netel10		0xae34,0x0e11		Compaq Netelligent 10 T PCI UTP
-netel100	0xae32,0x0e11		Compaq Netelligent 10/100 TX PCI UTP
-netflex3i	0xae35,0x0e11		Compaq Integrated NetFlex-3/P
-thunder		0xf130,0x0e11		Compaq NetFlex-3/P
-netflex3b	0xf150,0x0e11		Compaq NetFlex-3/P
-netel100pi	0xae43,0x0e11		Compaq Netelligent Integrated 10/100 TX UTP
-netel100d	0xae40,0x0e11		Compaq Netelligent Dual 10/100 TX PCI UTP
-netel100i	0xb011,0x0e11		Compaq Netelligent 10/100 TX Embedded UTP
-oc2183		0x0013,0x108d		Olicom OC-2183/2185
-oc2325		0x0012,0x108d		Olicom OC-2325
-oc2326		0x0014,0x108d		Olicom OC-2326
-netelligent_10_100_ws_5100	0xb030,0x0e11		Compaq Netelligent 10/100 TX UTP
-netelligent_10_t2		0xb012,0x0e11		Compaq Netelligent 10 T/2 PCI UTP/Coax
+netel10		0x0e11,0xae34		Compaq Netelligent 10 T PCI UTP
+netel100	0x0e11,0xae32		Compaq Netelligent 10/100 TX PCI UTP
+netflex3i	0x0e11,0xae35		Compaq Integrated NetFlex-3/P
+thunder		0x0e11,0xf130		Compaq NetFlex-3/P
+netflex3b	0x0e11,0xf150		Compaq NetFlex-3/P
+netel100pi	0x0e11,0xae43		Compaq Netelligent Integrated 10/100 TX UTP
+netel100d	0x0e11,0xae40		Compaq Netelligent Dual 10/100 TX PCI UTP
+netel100i	0x0e11,0xb011		Compaq Netelligent 10/100 TX Embedded UTP
+oc2183		0x108d,0x0013		Olicom OC-2183/2185
+oc2325		0x108d,0x0012		Olicom OC-2325
+oc2326		0x108d,0x0014		Olicom OC-2326
+netelligent_10_100_ws_5100	0x0e11,0xb030		Compaq Netelligent 10/100 TX UTP
+netelligent_10_t2		0x0e11,0xb012		Compaq Netelligent 10 T/2 PCI UTP/Coax
 
 family		tiara
 tiara		-		Tiara, Fujitsu Lancard
