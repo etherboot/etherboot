@@ -342,7 +342,7 @@ foreach my $pci (sort keys %pcient) {
 }
 foreach my $img (sort keys %buildent) {
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
-	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg\n";
+	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg \$(BIN)/$img.sym\n";
 }
 
 print "ROMS\t:=\n";
