@@ -57,9 +57,9 @@ ROMENTRY=$($(ROMTYPE)ENTRY)
 ROMEXIT=$($(ROMTYPE)EXIT)
 
 # Other real-mode entry loaders
-FLOPPYPREFIX=	$(BIN)/floppyprefix.o
-FLOPPYENTRY=	$(BIN)/floppyprefix.entry.o
-FLOPPYEXIT=	$(BIN)/floppyprefix.exit.o
+DSKPREFIX=	$(BIN)/floppyprefix.o
+DSKENTRY=	$(BIN)/floppyprefix.entry.o
+DSKEXIT=	$(BIN)/floppyprefix.exit.o
 COMPREFIX=	$(BIN)/comprefix.o
 COMENTRY=	$(BIN)/comprefix.entry.o
 COMEXIT=	$(BIN)/comprefix.exit.o
@@ -236,34 +236,64 @@ SUFFIXES +=	com
 
 # rules to make a LILO loadable image
 SUFFIXES +=	lilo zlilo
-%.lilo:	%.bin $(LILOPREFIX)
-	$(PERL) util/makelilo.pl $(LILOPREFIX) $< > $@
 
-%.zlilo: %.zbin $(LILOPREFIX)
-	$(PERL) util/makelilo.pl $(LILOPREFIX) $< > $@
+$(BIN)/%.lilo.rt: $(BIN)/%.rt.o $(LILOEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(LILOEXIT)
+
+$(BIN)/%.lilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LILOENTRY) $(PREFIXOBJS) $< $(LILOEXIT)
+
+$(BIN)/%.zlilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(ZPREFIXOBJS) $(BIN)/%.lilo.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LILOENTRY) $(ZPREFIXOBJS) $(BIN)/$*.lilo.rt2.zo $< $(LILOEXIT)
+
+$(BIN)/%.lilo: $(BIN)/%.lilo.prf.bin $(BIN)/%.lilo.rt.bin
+	$(PERL) util/makelilo.pl $^ > $@
+
+$(BIN)/%.zlilo: $(BIN)/%.zlilo.prf.bin $(BIN)/%.lilo.rt1.bin
+	$(PERL) util/makelilo.pl $^ > $@
 
 # rules to generate a PXE loadable image
 SUFFIXES +=	pxe zpxe
-%.pxe:	%.bin $(PXEPREFIX)
-	cat $(PXEPREFIX) $< > $@
 
-%.zpxe:	%.zbin $(PXEPREFIX)
-	cat $(PXEPREFIX) $< > $@
+$(BIN)/%.pxe.rt: $(BIN)/%.rt.o $(PXEEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(PXEEXIT)
+
+$(BIN)/%.pxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(PXEENTRY) $(PREFIXOBJS) $< $(PXEEXIT)
+
+$(BIN)/%.zpxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(ZPREFIXOBJS) $(BIN)/%.pxe.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(PXEENTRY) $(ZPREFIXOBJS) $(BIN)/$*.pxe.rt2.zo $< $(PXEEXIT)
+
+$(BIN)/%.pxe: $(BIN)/%.pxe.prf.bin $(BIN)/%.pxe.rt.bin
+	cat $^ > $@
+
+$(BIN)/%.zpxe: $(BIN)/%.zpxe.prf.bin $(BIN)/%.pxe.rt1.bin
+	cat $^ > $@
 
 # rules to generate the .dsk/.zdsk floppy images
 SUFFIXES +=	dsk zdsk
-%.dsk:	%.bin $(FLOPPYPREFIX)
-	cat $(FLOPPYPREFIX) $< > $@
 
-%.zdsk:	%.zbin $(FLOPPYPREFIX)
-	cat $(FLOPPYPREFIX) $< > $@
+$(BIN)/%.dsk.rt: $(BIN)/%.rt.o $(DSKEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(DSKEXIT)
 
-# rules to write the .img/.zimg image onto a blank floppy
+$(BIN)/%.dsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(DSKENTRY) $(PREFIXOBJS) $< $(DSKEXIT)
+
+$(BIN)/%.zdsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(ZPREFIXOBJS) $(BIN)/%.dsk.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(DSKENTRY) $(ZPREFIXOBJS) $(BIN)/$*.dsk.rt2.zo $< $(DSKEXIT)
+
+$(BIN)/%.dsk: $(BIN)/%.dsk.prf.bin $(BIN)/%.dsk.rt.bin
+	cat $^ > $@
+
+$(BIN)/%.zdsk: $(BIN)/%.zdsk.prf.bin $(BIN)/%.dsk.rt1.bin
+	cat $^ > $@
+
+# rules to write the .dsk/.zdsk image onto a blank floppy
 SUFFIXES +=	fd0 zfd0
-%.fd0:	%.dsk $(FLOPPYPREFIX)
+%.fd0:	%.dsk
 	dd if=$< bs=512 conv=sync of=/dev/fd0
 
-%.zfd0:	%.zdsk $(FLOPPYPREFIX)
+%.zfd0:	%.zdsk
 	dd if=$< bs=512 conv=sync of=/dev/fd0
 
 # rule to make a non-emulation ISO boot image
