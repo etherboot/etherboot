@@ -22,8 +22,8 @@ SECTIONS {
 	}	
 	.text.nocompress : {
 		*(.text*.nocompress)
-		_compressed_verbatim_end = . ;
 		. = ALIGN(16);
+		_compressed_verbatim_end = . ;
 	} = 0x9090
 
 	. = ALIGN(16);
@@ -97,16 +97,13 @@ SECTIONS {
 	_verbatim_size = _verbatim_end - _verbatim_start + _zfile_size;
 	/* _verbatim_size is the actual amount that has to be copied to
 	base memory */
-	_verbatim_size_tail = _verbatim_size % 512;
-	_verbatim_size_pages = (_verbatim_size + 511) / 512;
+	_verbatim_size_tail = (_verbatim_size) % 512;
+	_verbatim_size_pages = ((_verbatim_size) + 511) / 512;
 	_runtime_size = _runtime_end - _runtime_start ;
 	_image_size = _prefix_size + _runtime_size + _zfile_size;
 	/* _image_size is the amount of base memory needed to run,
 	cf _verbatim_size */
-	/* for some reason _image_size / 16 gives the wrong value, ld bug?
-	_image_size_pgh = _image_size / 16 ;
-	*/
-	_image_size_pgh = (_prefix_size + _runtime_size + _zfile_size + 15) / 16 ;
+	_image_size_pgh = (_image_size + 15) / 16 ;
 	decompress = DEFINED(decompress) ? decompress : 0;
 	/DISCARD/ : {
 		*(.comment)
