@@ -224,7 +224,7 @@ const char *p)			/* Packet */
 /**************************************************************************
 ETH_POLL - Wait for a frame
 ***************************************************************************/
-static int t595_poll(struct nic *nic)
+static int t595_poll(struct nic *nic, int retrieve)
 {
 	/* common variables */
 	/* variables for 3C595 */
@@ -259,6 +259,8 @@ static int t595_poll(struct nic *nic)
 	rx_fifo = status & RX_BYTES_MASK;
 	if (rx_fifo==0)
 		return 0;
+
+	if ( ! retrieve ) return 1;
 
 		/* read packet */
 #ifdef EDEBUG
@@ -450,6 +452,18 @@ static void t595_disable(struct dev *dev)
 	GO_WINDOW(1);
 }
 
+static void t595_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
 /**************************************************************************
 ETH_PROBE - Look for an adapter
 ***************************************************************************/
@@ -463,6 +477,9 @@ static int t595_probe(struct dev *dev, struct pci_device *pci)
 		return 0;
 /*	eth_nic_base = probeaddrs[0] & ~3; */
 	eth_nic_base = pci->ioaddr;
+
+	nic->irqno  = 0;
+	nic->ioaddr = pci->ioaddr & ~3;
 
 	GO_WINDOW(0);
 	outw(GLOBAL_RESET, BASE + VX_COMMAND);
@@ -494,7 +511,8 @@ static int t595_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable  = t595_disable;
 	nic->poll     = t595_poll;
 	nic->transmit = t595_transmit;
-	return nic;
+	nic->irq      = t595_irq;
+	return 1;
 
 }
 
