@@ -392,7 +392,6 @@ int await_pxe_udp ( int ival __unused, void *ptr,
 	}
 	memcpy ( SEGOFF16_TO_PTR ( udp_read->buffer ), &udp->payload, size );
 	udp_read->buffer_size = size;
-	hex_dump ( udp_read->buffer, udp_read->buffer_size );
 
 	return 1;
 }
