@@ -2711,3 +2711,5 @@ images and contributed the first cut at the code for geniso.
 
 + Small patch to support 3Com tulip version from Jacek Kalinski
 
++ Dag Lem provided a new pci_id for the eepro100 Intel "82801EB/ER 
+(ICH5/ICH5R)"
