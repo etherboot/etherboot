@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# floppyfw initfile
+#
+# nicked from:
+# hal91's initfile (/linuxrc), the bootup script of the system
+#
+
+VERSION=2.1.6
+
+#
+/bin/busybox echo "Booting floppyfw" 
+
+#PATH="/bin:/sbin:/usr/bin:/usr/sbin"
+PATH="/bin"
+TERM=linux
+ignoreeof=10
+no_exit_on_failed_exec=yes
+export PATH TERM ignoreeof
+umask 022
+
+/bin/busybox echo "mounting: proc"
+/bin/busybox mount -t proc /proc /proc
+
+/bin/busybox echo "Generating links. (Thanks to busybox.lineo.com)"
+/bin/busybox --install -s
+
+echo "Generated"
+
+# Modified by Gem, based on coyote distro, slight change by Ken Yap
+ROOTDEV=`sed 's/.*root=\([^ ]*\) .*/\1/' /proc/cmdline`
+FSTYPE=`echo ${ROOTDEV} | cut -f 2 -d ,`
+DEVICE=`echo ${ROOTDEV} | cut -f 1 -d ,`
+# filesystem not specified ?
+if [ ${FSTYPE} = ${DEVICE} ]; then
+# default filesystem is vfat 
+  FSTYPE='vfat'
+fi
+if [ ${DEVICE} = '/dev/nfs' ]
+then
+    DEVICE=/dev/fd0
+fi
+echo "mounting: ${DEVICE} (${FSTYPE})"
+mount -t ${FSTYPE} ${DEVICE} /mnt/tmp
+
+
+[ -f /mnt/tmp/floppyfw/floppyfw.ini ] && cat /mnt/tmp/floppyfw/floppyfw.ini \
+| tr -d '\015' >/floppyfw.ini
+
+[ -f /floppyfw.ini ] && chmod 777 /floppyfw.ini
+[ -f /floppyfw.ini ] && exec /floppyfw.ini
+
+echo
+echo "** floppyfw.ini failed.. starting a shell"
+echo
+exec sh
