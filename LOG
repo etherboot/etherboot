@@ -2461,3 +2461,5 @@ Baum that might help with booting DOS.
 Released as Etherboot 5.1.8 (development)
 
 + Alignment bug fix for the 3c90x driver contributed by Neil Newell.
+
++ Rob Main found a bug in appending the MACHINE_INFO to the DHCP request.
