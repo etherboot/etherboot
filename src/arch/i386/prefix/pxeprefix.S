@@ -21,6 +21,8 @@ n:
 	push	%cs
 	pop	%ds
 	
+#ifndef PXELOADER_KEEP_ALL
+		
 	movw	$hellomsgend-hellomsg, %cx
 	movw	$hellomsg-_start, %si
 	movw	$0x0007, %bx			/* page 0, attribute 7 (normal) */
@@ -182,6 +184,7 @@ pxe_setmem:
 	movw	$pxeKmsg-_start, %si
 	movw	$pxemsgend-pxeKmsg, %cx
 	jmp	pxe_print
+#endif /* PXELOADER_KEEP_ALL */
 no_pxe:
 	movw	$pxemsg-_start, %si
 	movw	$pxemsgend-pxemsg, %cx
