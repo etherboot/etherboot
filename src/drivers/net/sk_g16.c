@@ -469,7 +469,7 @@ static struct priv	p_data;
 
 static int   SK_probe1(struct nic *nic, short ioaddr1);
 
-static int SK_poll(struct nic *nic);
+static int SK_poll(struct nic *nic, int retrieve);
 static void SK_transmit(
 struct nic *nic,
 const char *d,			/* Destination */
@@ -505,7 +505,7 @@ static void SK_print_ram(struct nic *nic);
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int SK_poll(struct nic *nic)
+static int SK_poll(struct nic *nic, int retrieve)
 {
 	/* return true if there's an ethernet packet ready to read */
 	struct priv *p;         /* SK_G16 private structure */
@@ -517,6 +517,11 @@ static int SK_poll(struct nic *nic)
 	p = nic->priv_data;
     csr0 = SK_read_reg(CSR0);      /* store register for checking */
 
+    rmdp = p->rmdhead + p->rmdnum;
+    packet_there = 0;
+
+    if ( !(rmdp->u.s.status & RX_OWN) && !retrieve ) return 1;
+      
     /*
      * Acknowledge all of the current interrupt sources, disable
      * Interrupts (INEA = 0)
@@ -535,8 +540,6 @@ static int SK_poll(struct nic *nic)
 	putchar('\n');
     }
 
-    rmdp = p->rmdhead + p->rmdnum;
-    packet_there = 0;
     /* As long as we own the next entry, check status and send
      * it up to higher layer
      */
@@ -741,6 +744,21 @@ static void SK_disable(struct dev *dev)
 }
 
 /**************************************************************************
+IRQ - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void SK_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
+/**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 static int SK_probe(struct dev *dev, unsigned short *probe_addrs)
@@ -763,10 +781,13 @@ static int SK_probe(struct dev *dev, unsigned short *probe_addrs)
 	/* if board found */
 	if (ioaddr != 0)
 	{
+	        nic->ioaddr = ioaddr & ~3;
+		nic->irqno  = 0;
 		/* point to NIC specific routines */
 		dev->disable  = SK_disable;
 		nic->poll     = SK_poll;
 		nic->transmit = SK_transmit;
+		nic->irq      = SK_irq;
 		/* FIXME set dev->devid */
 		return 1;
 	}
