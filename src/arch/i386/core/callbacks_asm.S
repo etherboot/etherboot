@@ -32,12 +32,14 @@
 
 /* Offsets from current %esp */
 /* Outgoing structure */
-#define EC_OFFSET_REGISTERS 0
+#define EC_OFFSET_FLAGS 0
+#define EC_OFFSET_REGISTERS ( EC_OFFSET_FLAGS + 4 )
 #define EC_OFFSET_SEG_REGS ( EC_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
 #define EC_OFFSET_ADDRESSES ( EC_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
 #define EC_OFFSET_PARAMS ( EC_OFFSET_ADDRESSES + 16 )
 /* Return structure */
-#define ECR_OFFSET_REGISTERS 0
+#define ECR_OFFSET_FLAGS 0
+#define ECR_OFFSET_REGISTERS ( ECR_OFFSET_FLAGS + 4 )
 #define ECR_OFFSET_SEG_REGS ( ECR_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
 #define ECR_OFFSET_PARAMS ( ECR_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
 
@@ -64,7 +66,8 @@ _ext_call:
 	 * ext_params		%esp + EC_OFFSET_PARAMS
 	 * addresses		%esp + EC_OFFSET_ADDRESSES
 	 * seg_registers	%esp + EC_OFFSET_SEG_REGS
-	 * registers		%esp + EC_OFFSET_REGISTERS ( = %esp + 0 )
+	 * registers		%esp + EC_OFFSET_REGISTERS
+	 * flags		%esp + EC_OFFSET_FLAGS ( = %esp + 0 )
 	 *
 	 * stack_ptr : used to record the address of the top of this
 	 * stack, i.e. %ebp + EC_SIGBLOCK_LENGTH.  This is recorded
@@ -106,7 +109,6 @@ _ext_call:
 	pushl	%ecx		/* length */
 	pushl	%eax		/* Signature */
 	movl	%esp, %ebp	/* and preserve stack position in %ebp */
-	/* %ebx = stack_ptr from signature block */
 
 	/* Save default addresses for a near call */
 	leal	ec_return, %eax
@@ -130,14 +132,11 @@ _ext_call:
 	/* Save registers.  (Current register contents are fairly
 	 * meaningless, but using pushal is the most efficient way to
 	 * allocate the stack space.)
-	 *
-	 * Record %ebx (i.e. &(signature block)) as the value for
-	 * %esp.  This is used later to indicate the location to which
-	 * to copy the stack before transferring to the external
-	 * routine.  
 	 */
 	pushal
-	movl	%ebx, 12(%esp)		/* Record %ebx for %esp */
+
+	/* Save flags */
+	pushfl
 
 	/* Set %ebx to point to first argument in list */
 	leal	(EC_OFFSET_ARGUMENTS+4)(%ebp), %ebx
@@ -270,6 +269,12 @@ process_ec_params_done:
 	 * register values and jump to the function.
 	 */
 
+	/* Restore flags.  (It is safe to do this; cs and ss are
+	 * already reloaded, and we don't use the other segment
+	 * registers before they get reloaded anyway.)
+	 */
+	popfl
+	
 	/* Restore general-purpose registers */
 	popal
 
