@@ -213,7 +213,7 @@ static struct pci_id_info pci_id_tbl[] = {
     { "ADMtek AN981 Comet", { 0x09811317, 0xffffffff, 0, 0, 0, 0 },
       TULIP_IOTYPE, 256, COMET },
     { "ADMTek AN983 Comet", { 0x12161113, 0xffffffff, 0, 0, 0, 0 },
-      TULIP_IOTYPE, 256, MX98715 },
+      TULIP_IOTYPE, 256, COMET },
     { "ADMtek Centaur-P", { 0x09851317, 0xffffffff, 0, 0, 0, 0 },
       TULIP_IOTYPE, 256, COMET },
     { "ADMtek Centaur-C", { 0x19851317, 0xffffffff, 0, 0, 0, 0 },
