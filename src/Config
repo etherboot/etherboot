@@ -70,6 +70,8 @@
 #			option to set a UC (or multiple UCs) rather than munge the
 #			client Vendor Class ID.
 #			Requires DHCP support.
+#	-DLEGACY_SITE_OPTIONS
+#			Use old options 128-130, otherwise 248-250
 #	-DALLOW_ONLY_ENCAPSULATED
 #			Ignore Etherboot-specific options that are not within
 #			the Etherboot encapsulated options field.  This option
@@ -350,6 +352,12 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # CFLAGS+= -DCONSOLE_PC_KBD
 # for FILO support it will make main call pci_init
 # CFLAGS+= -DCONFIG_FILO
+
+# RFC3942 requires implementations to stop using site options
+# 128-223 and use 224-254 instead. This option allows the
+# old numbers for options 128-130, for backward compatibility
+# with old mknbi images, at the cost of non-compliancy
+CFLAGS+=	-DLEGACY_SITE_OPTIONS
 
 # Enabling this causes Etherboot to ignore Etherboot-specific options
 # that are not within an Etherboot encapsulated options field.

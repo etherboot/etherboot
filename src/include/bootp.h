@@ -169,14 +169,24 @@
 #define RFC1533_VENDOR_MAJOR	0
 #define RFC1533_VENDOR_MINOR	0
 
+/* We only renumber the options 128-130, the menu options were deprecated
+   when menuing was moved out of Etherboot */
+#ifdef	LEGACY_SITE_OPTIONS
 #define RFC1533_VENDOR_MAGIC	128
 #define RFC1533_VENDOR_ADDPARM	129
 #define	RFC1533_VENDOR_ETHDEV	130
+#else
+#define RFC1533_VENDOR_MAGIC	248
+#define RFC1533_VENDOR_ADDPARM	249
+#define	RFC1533_VENDOR_ETHDEV	250
+#endif
+/* We should really apply for an official Etherboot encap option */
+#define RFC1533_VENDOR_ETHERBOOT_ENCAP 150
+/* I'll leave it to FREEBSD to decide if they want to renumber */
 #ifdef	IMAGE_FREEBSD
 #define RFC1533_VENDOR_HOWTO    132
 #define RFC1533_VENDOR_KERNEL_ENV    133
 #endif
-#define RFC1533_VENDOR_ETHERBOOT_ENCAP 150
 #define RFC1533_VENDOR_MNUOPTS	160
 #define RFC1533_VENDOR_NIC_DEV_ID 175
 #define RFC1533_VENDOR_SELECTION 176
