@@ -160,7 +160,7 @@ DISKLOADER=	bin/boot1a.bin
 COMPREFIX=	bin/comprefix.bin
 LILOPREFIX=	bin/liloprefix.bin
 
-START32=	bin32/start32.o bin32/memsizes.o
+START32=	bin32/start32.o bin32/pcbios.o bin32/memsizes.o
 ELF_START32=	bin32/start32.o bin32/linuxbios.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/misc.o
