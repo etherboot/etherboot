@@ -587,8 +587,10 @@ int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned in
 		if ((rc = fnc(tr->u.data.download,
 			      ++bcounter, len, len < packetsize)) <= 0)
 			return(rc);
-		if (len < packetsize)		/* End of data */
+		if (len < packetsize) {	/* End of data --- fnc should not have returned */
+			printf("tftp download complete, but\n");
 			return (1);
+		}
 	}
 	return (0);
 }

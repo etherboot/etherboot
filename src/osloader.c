@@ -535,7 +535,7 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 		} else 
 			return 0;
 	}
-	do {
+	for (;;) {
 		if (len == 0) /* Detect truncated files */
 			eof = 0;
 		while (tctx.seglen == 0) {
@@ -584,13 +584,15 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 			/* Avoid lock-up */
 			if ( sh.length == 0 ) longjmp(restart_etherboot, -2); 
 		}
+		if ((len <= 0) && !eof)
+			break;
 		i = (tctx.seglen > len) ? len : tctx.seglen;
 		memcpy(phys_to_virt(curaddr), data, i);
 		tctx.seglen -= i;
 		curaddr += i;
 		len -= i;
 		data += i;
-	} while ((len > 0) || eof);
+	} 
 	return 0;
 }
 #endif
