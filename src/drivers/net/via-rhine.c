@@ -956,7 +956,7 @@ rhine_probe1 (struct nic *nic, struct pci_device *pci, int ioaddr, int chip_id, 
     pci_read_config_byte(pci, PCI_REVISION, &revision_id);
 
     /* D-Link provided reset code (with comment additions) */
-    if (revision_id >= 0x40)  {
+    if (revision_id >= 0x40) {
 	unsigned char byOrgValue;
 	
 	if(rhine_debug > 0)
@@ -1019,8 +1019,6 @@ rhine_probe1 (struct nic *nic, struct pci_device *pci, int ioaddr, int chip_id, 
     for (i = 0; i < ETH_ALEN; i++)
 	nic->node_addr[i] = inb (byPAR0 + i);
     printf ("IO address %hX Ethernet Address: %!\n", ioaddr, nic->node_addr);
-
-
 
     /* restart MII auto-negotiation */
     WriteMII (0, 9, 1, ioaddr);
