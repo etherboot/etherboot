@@ -15,6 +15,11 @@
  * ARP_ROOTSERVER.  The root disk is something the operating system we are
  * about to load needs to use.  This is different from the OSKit 0.97 logic.  */
 
+/* NOTE 3: Symlink handling introduced by Anselm M Hoffmeister, 2003-July-14
+ * If a symlink is encountered, it is followed as far as possible (recursion
+ * possible, maximum 16 steps). There is no clearing of ".."'s inside the
+ * path, so please DON'T DO THAT. thx. */
+
 #define START_OPORT 700		/* mountd usually insists on secure ports */
 #define OPORT_SWEEP 200		/* make sure we don't leave secure range */
 
@@ -254,7 +259,68 @@ void nfs_umountall(int server)
 		}
 	}
 }
+/***************************************************************************
+ * NFS_READLINK (AH 2003-07-14)
+ * This procedure is called when read of the first block fails -
+ * this probably happens when it's a directory or a symlink
+ * In case of successful readlink(), the dirname is manipulated,
+ * so that inside the nfs() function a recursion can be done.
+ **************************************************************************/
+static int nfs_readlink(int server, int port, char *fh, char *path, char *nfh,
+	int sport)
+{
+	struct rpc_t buf, *rpc;
+	unsigned long id;
+	long *p;
+	int retries;
+	int pathlen = strlen(path);
 
+	id = rpc_id++;
+	buf.u.call.id = htonl(id);
+	buf.u.call.type = htonl(MSG_CALL);
+	buf.u.call.rpcvers = htonl(2);	/* use RPC version 2 */
+	buf.u.call.prog = htonl(PROG_NFS);
+	buf.u.call.vers = htonl(2);	/* nfsd is version 2 */
+	buf.u.call.proc = htonl(5); // 5 =^= READLINK (NFS v2, v3)
+	p = rpc_add_credentials((long *)buf.u.call.data);
+	memcpy(p, nfh, NFS_FHSIZE);
+	p += (NFS_FHSIZE / 4);
+	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
+		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
+		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
+			(char *)p - (char *)&buf, &buf);
+		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
+			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
+			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
+			    rpc->u.reply.astatus || rpc->u.reply.data[0]) {
+				rpc_printerror(rpc);
+				if (rpc->u.reply.rstatus) {
+					/* RPC failed, no verifier, data[0] */
+					return -9999;
+				}
+				if (rpc->u.reply.astatus) {
+					/* RPC couldn't decode parameters */
+					return -9998;
+				}
+				return -ntohl(rpc->u.reply.data[0]);
+			} else {
+				// It *is* a link.
+				// Now append everything to dirname, filename TOO!
+				retries = strlen ( (char *)(&(rpc->u.reply.data[2]) ));
+				path[pathlen++] = '/';
+				while ( ( retries + pathlen ) > 298 ) {
+					retries--;
+				}
+				if ( retries > 0 ) {
+					memcpy(path + pathlen, &(rpc->u.reply.data[2]), retries + 1);
+				} else { retries = 0; }
+				path[pathlen + retries] = 0;
+				return 0;
+			}
+		}
+	}
+	return -1;
+}
 /**************************************************************************
 NFS_LOOKUP - Lookup Pathname
 **************************************************************************/
@@ -379,6 +445,7 @@ NFS - Download extended BOOTP data, or kernel image from NFS server
 **************************************************************************/
 int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
 {
+	static int recursion = 0;
 	int sport;
 	int err, namelen = strlen(name);
 	char dirname[300], *fname;
@@ -399,8 +466,14 @@ int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
 	if (oport > START_OPORT+OPORT_SWEEP) {
 		oport = START_OPORT;
 	}
-
-	memcpy(dirname, name, namelen + 1);
+	if ( name != dirname ) {
+		memcpy(dirname, name, namelen + 1);
+	}
+	recursion++;
+	if ( recursion > 16 ) {
+		printf ( "\nRecursion: More than 16 symlinks followed. Abort.\n" );
+		return	0;
+	}
 	fname = dirname + (namelen - 1);
 	while (fname >= dirname) {
 		if (*fname == '/') {
@@ -450,8 +523,27 @@ int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
 	len = NFS_READ_SIZE;	/* first request is always full size */
 	do {
 		err = nfs_read(ARP_SERVER, nfs_port, filefh, offs, len, sport);
+		if ((err <= -21)&&(err >= -22) && (offs == 0)) {
+			// An error occured. NFS servers tend to sending
+			// errors 21 / 22 when symlink instead of real file
+			// is requested. So check if it's a symlink!
+			block = nfs_readlink(ARP_SERVER, nfs_port, dirfh, dirname,
+					filefh, sport);
+			if ( 0 == block ) {
+				printf("\nLoading symlink:%s ..",dirname);
+				return nfs ( dirname, fnc );
+			}
+			printf ( "read error: " );
+			if ( err == -21 ) {
+				printf ( "is a directory\n" );
+			} else {
+				printf ( "is not a symlink\n" );
+			}
+			nfs_umountall(ARP_SERVER);
+			return 0;
+		}
 		if (err) {
-			printf("reading at offset %d: ", offs);
+			printf("reading at offset %d (%d): ", offs, err);
 			nfs_printerror(err);
 			nfs_umountall(ARP_SERVER);
 			return 0;
