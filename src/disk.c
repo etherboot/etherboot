@@ -171,7 +171,8 @@ int disk_load(struct dev *dev)
 
 	printf("Searching for image...\n");
 	result = 0;
-	increment = (disk->direction < 0)?-1:1;
+	/* Only check for 16byte aligned images */
+	increment = (disk->direction < 0)?-16:16;
 	/* Load a buffer, and see if it contains the start of an image
 	 * we can boot from disk.
 	 */
