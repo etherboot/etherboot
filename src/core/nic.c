@@ -681,7 +681,7 @@ int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
 			+ 1; /* null terminator */
 		blockidx = 0; /* Reset counters */
 		retry = 0;
-		blksize = request->blksize;
+		blksize = TFTP_DEFAULTSIZE_PACKET;
 		lport++; /* Use new local port */
 		rport = request->port;
 		if ( !udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, lport,
@@ -735,7 +735,7 @@ int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
 					while ( *(p++) ) {};
 				}
 			}
-			if ( blksize > request->blksize ) {
+			if ( blksize < TFTP_DEFAULTSIZE_PACKET || blksize > request->blksize ) {
 				/* Incorrect blksize - error and abort */
 				xmit.opcode = htons(TFTP_ERROR);
 				xmit.u.err.errcode = 8;

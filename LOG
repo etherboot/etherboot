@@ -2787,3 +2787,7 @@ with one Makefile define.
 assignment.
 
 + RIS filename patch which seems to work for many people.
+
++ Thanks to the help of Daniel Nilsson, tracked down and fixed a bug
+where the tftp code did not fall back to 512 byte blocks when an OACK
+was NOT received.
