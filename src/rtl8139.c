@@ -185,6 +185,7 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 	struct pci_device *pci)
 {
 	int i;
+	int linkfail;
 	int speed10, fullduplex;
 
 	/* There are enough "RTL8139" strings on the console already, so
@@ -216,6 +217,12 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 		fullduplex ? "full" : "half");
 
 	rtl_reset(nic);
+
+	linkfail = inb(ioaddr + MediaStatus) & MSRLinkFail;
+	if ( linkfail ) {
+		printf("Cable not connected or other link failure\n");
+		return(0);
+	}
 
 	nic->reset = rtl_reset;
 	nic->poll = rtl_poll;
