@@ -18,15 +18,15 @@ TARGET_ARCH:= $(shell if [ \! -r .compile-options ] ; then ( \
                 else if [ "$$cpu" = "Alpha" ] ; then \
                   echo -fno-strength-reduce; \
                 else echo main\(\)\{\} >.compile-options.c; \
-                  if gcc -mpentium -o .compile-options.o -c \
+                  if gcc -mcpu=pentium -o .compile-options.o -c \
                          .compile-options.c &>/dev/null; then \
-                     echo -mpentium -fstrength-reduce; \
-                 else if gcc -m486 -malign-functions=2 -malign-jumps=2 \
+                     echo -mcpu=pentium -fstrength-reduce; \
+                 else if gcc -mcpu=486 -malign-functions=2 -malign-jumps=2 \
                              -malign-loops=2 -o .compile-options.o -c \
                              .compile-options.c &>/dev/null; then \
-                  echo -n -m486 -malign-functions=2 -malign-jumps=2; \
+                  echo -n -mcpu=486 -malign-functions=2 -malign-jumps=2; \
                   echo ' '-malign-loops=2 -fno-strength-reduce; \
-                else echo -m486; \
+                else echo -mcpu=486; \
               fi;fi;fi;fi;fi;fi) > .compile-options; \
               rm -f .compile-options.c .compile-options.o; \
               fi; cat .compile-options)
