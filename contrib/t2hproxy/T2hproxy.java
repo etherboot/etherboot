@@ -254,19 +254,15 @@ public class T2hproxy implements Runnable {
 	 *  Description of the Method
 	 *
 	 *@param  block      Description of the Parameter
-	 *@param  lastblock  Description of the Parameter
 	 *@return            Description of the Return Value
 	 */
-	private boolean sendDataBlock(int block, boolean lastblock) {
+	private boolean sendDataBlock(int block) {
 		int retry;
 		for (retry = 0; retry < MAX_RETRIES; retry++) {
 			try {
 				responsesocket.send(response);
 			} catch (Exception e) {
 				log.info(e.toString(), e);
-			}
-			if (lastblock) {
-				return (true);
 			}
 			int ablock;
 			if ((ablock = waitForAck()) == block) {
@@ -407,7 +403,7 @@ public class T2hproxy implements Runnable {
 			buffer.position(0);
 			buffer.putShort(TFTP_DATA).putShort((short) block);
 			response.setLength(start + length);
-			if (!sendDataBlock(block, length <= 0)) {
+			if (!sendDataBlock(block)) {
 				break;
 			}
 			buffer.position(start);
