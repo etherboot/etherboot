@@ -114,7 +114,7 @@ CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-I include -I arch/$(ARCH)/include \
 		-DARCH=$(ARCH)
 
-IDENT=		'$(@F) $(VERSION) Etherboot (GPL)'
+IDENT=		'$(@F) $(VERSION) www.etherboot.org (GPL)'
 
 # Find out if we're using binutils 2.9.1 which uses a different syntax in some
 # places (most prominently in the opcode prefix area).
