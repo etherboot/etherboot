@@ -377,12 +377,13 @@ xstart_lm:
 	pushl	%edi
 	pushl	%ebx
 
+	/* Cache virt_offset && (virt_offset & 0xfffff000) */
+	movl	virt_offset, %ebp
+	movl	%ebp, %ebx
+	andl	$0xfffff000, %ebx
+
 	/* Switch to using physical addresses */
 	call	_virt_to_phys
-
-	/* Cache virt_offset & 0xfffff000 */
-	mov	%ebp, %ebx
-	andl	$0xfffff000, %ebx
 
 	/* Initialize the page tables */
 	/* Level 4 */
@@ -428,7 +429,6 @@ pgt_level2_loop:
 	/* Save virt_offset */
 	pushl	%ebp
 
-	
 	/* Setup for the jmp to 64bit long mode */
 	leal	start_lm(%ebp), %eax
 	movl	%eax, 0x00 + start_lm_addr(%ebp)
@@ -441,12 +441,10 @@ pgt_level2_loop:
 	movl	$FLAT_CODE_SEG, %eax
 	movl	%eax, 0x04 + end_lm_addr(%ebp)
 
-	
 	/* Enable PAE mode */
 	movl	%cr4, %eax
 	orl	$X86_CR4_PAE, %eax
 	movl	%eax, %cr4
-
 
 	/* Enable long mode */
 	movl	$MSR_K6_EFER, %ecx

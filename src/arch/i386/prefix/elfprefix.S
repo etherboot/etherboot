@@ -1,7 +1,9 @@
 #include "elf.h"
 
-	.section ".hdrs", "a"
-	
+	.section ".prefix", "a", @progbits
+
+#define LOAD_ADDR 0x10000
+
 	/* ELF Header */
 	.globl elf_header
 elf_header:	
@@ -9,7 +11,7 @@ e_ident:	.byte	0x7f, 'E', 'L', 'F', 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
 e_type:		.short	ET_EXEC
 e_machine:	.short	EM_386
 e_version:	.long	1
-e_entry:	.long	_start
+e_entry:	.long	LOAD_ADDR + _start - elf_header
 e_phoff:	.long	elf_program_header - elf_header
 e_shoff:	.long	0
 e_flags:	.long	0
@@ -33,11 +35,11 @@ phdr1_p_align:	.long	0
 
 /* The decompressor */
 phdr2_p_type:	.long	PT_LOAD
-phdr2_p_offset:	.long	_start_offset
-phdr2_p_vaddr:	.long	_start
-phdr2_p_paddr:	.long	_start
-phdr2_p_filesz:	.long	_image_size
-phdr2_p_memsz:	.long	_image_mem_size
+phdr2_p_offset:	.long	0
+phdr2_p_vaddr:	.long	elf_header
+phdr2_p_paddr:	.long	LOAD_ADDR
+phdr2_p_filesz:	.long	_verbatim_size
+phdr2_p_memsz:	.long	_image_size
 phdr2_p_flags:	.long	PF_R | PF_W | PF_X
 phdr2_p_align:	.long	0
 
@@ -83,8 +85,11 @@ elf_note:
 	.balign 4
 elf_note_end:
 
-#if 1
-	.text
-	.globl _start
-_start:
-#endif	
+	/* Dummy routines to satisfy the build */
+	.section ".text16", "ax", @progbits
+	.globl	prefix_exit
+prefix_exit:
+
+	.globl	prefix_exit_end
+prefix_exit_end:
+	.previous

@@ -8,8 +8,10 @@
 	.equ	X86_CR4_PAE,   0x00000020
 	.equ	CR0_PG,        0x80000000
 
-	.section ".hdrs", "a"
-	
+	.section ".prefix", "ax", @progbits
+
+#define LOAD_ADDR 0x10000
+		
 	/* ELF Header */
 	.globl elf_header
 elf_header:	
@@ -17,7 +19,7 @@ e_ident:	.byte	0x7f, 'E', 'L', 'F', 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
 e_type:		.short	ET_EXEC
 e_machine:	.short	EM_X86_64
 e_version:	.long	1
-e_entry:	.long	_start
+e_entry:	.long	LOAD_ADDR + elf_start - elf_header
 e_phoff:	.long	elf_program_header - elf_header
 e_shoff:	.long	0
 e_flags:	.long	0
@@ -41,11 +43,11 @@ phdr1_p_align:	.long	0
 
 /* The decompressor */
 phdr2_p_type:	.long	PT_LOAD
-phdr2_p_offset:	.long	_start_offset
-phdr2_p_vaddr:	.long	_start
-phdr2_p_paddr:	.long	_start
-phdr2_p_filesz:	.long	_image_size
-phdr2_p_memsz:	.long	_image_mem_size
+phdr2_p_offset:	.long	0
+phdr2_p_vaddr:	.long	elf_header
+phdr2_p_paddr:	.long	LOAD_ADDR
+phdr2_p_filesz:	.long	_verbatim_size
+phdr2_p_memsz:	.long	_image_size
 phdr2_p_flags:	.long	PF_R | PF_W | PF_X
 phdr2_p_align:	.long	0
 
@@ -91,9 +93,7 @@ elf_note:
 	.balign 4
 elf_note_end:
 
-	.text
-	.globl _start
-_start:
+elf_start:
 	.code64
 	/* Reload the gdt to something I know */
 	leaq	_gdt(%rip), %rax
@@ -101,11 +101,11 @@ _start:
 	lgdt	gdtptr(%rip)
 
 	/* Enter 32bit compatibility mode */
-	leaq	start32(%rip), %rax
-	movl	%eax, 0x00 + start32_addr(%rip)
-	ljmp	*start32_addr(%rip)
+	leaq	elf_start32(%rip), %rax
+	movl	%eax, 0x00 + elf_start32_addr(%rip)
+	ljmp	*elf_start32_addr(%rip)
 
-start32:	
+elf_start32:	
 	.code32
 	/* Reload the data segments */
 	movl	$FLAT_DATA_SEG, %eax
@@ -131,17 +131,15 @@ start32:
 
 	/* Save the first argument */
 	pushl	%ebx
-	jmp	_payload_start
+	jmp	_start
 
-	.data
-	.globl gdtptr
 gdtptr:	
-	.word	_gdt_end - _gdt
+	.word	_gdt_end - _gdt -1
 	.long	_gdt
 	.long	0
 _gdt:
-start32_addr:
-	.long	start32
+elf_start32_addr:
+	.long	elf_start32
 	.long	FLAT_CODE_SEG
 _pmcs:
 	/* 32 bit protected mode code segment, base 0 */
@@ -153,3 +151,13 @@ _pmds:
 	.word	0xffff,0
 	.byte	0,0x93,0xcf,0
 _gdt_end:	
+
+
+	/* Dummy routines to satisfy the build */
+	.section ".text16", "ax", @progbits
+	.globl	prefix_exit
+prefix_exit:
+
+	.globl	prefix_exit_end
+prefix_exit_end:
+	.previous

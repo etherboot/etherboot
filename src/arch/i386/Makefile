@@ -77,13 +77,12 @@ PXEEXIT=	$(BIN)/pxeprefix.exit.o
 NULLPREFIX=	$(BIN)/nullprefix.o
 NULLENTRY=	$(BIN)/nullprefix.entry.o
 NULLEXIT=	$(BIN)/nullprefix.exit.o
-
-# ELF loader
 ELFPREFIX=	$(BIN)/elfprefix.o
-
-
-# Silly value for apply_elf_prefix...
-VIRTLOADADDR:=0x20000
+ELFENTRY=	$(BIN)/elfprefix.entry.o
+ELFEXIT=	$(BIN)/elfprefix.exit.o
+LMELFPREFIX=	$(BIN)/lmelf_prefix.o
+LMELFENTRY=	$(BIN)/lmelf_prefix.entry.o
+LMELFEXIT=	$(BIN)/lmelf_prefix.exit.o
 
 include		$(BIN)/Roms
 
@@ -193,35 +192,39 @@ $(BIN)/%.zrom: $(BIN)/%.zrom.prf.bin $(BIN)/%.rom.rt1.bin $(BIN)/%.rom.rt2.zbin
 
 # general rules for ELF images
 SUFFIXES +=	elf zelf
-$(BIN)/elfprefix.tmp:	$(BIN)/elfprefix.o arch/i386/prefix/elfprefix.lds $(MAKEDEPS)
-	$(LD) -T arch/i386/prefix/elfprefix.lds $< -o $@
+$(BIN)/%.elf.rt: $(BIN)/%.rt.o $(ELFEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(ELFEXIT)
 
-$(BIN)/elfprefix:	$(BIN)/elfprefix.tmp $(MAKEDEPS)
-	$(OBJCOPY) -O binary $< $@
+$(BIN)/%.elf.prf: $(BIN)/%.rt.o $(ELFENTRY) $(ELFEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(ELFENTRY) $(PREFIXOBJS) $< $(ELFEXIT)
 
-$(BIN)/%.elf:	$(BIN)/%.raw $(BIN)/%.raw.prf $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(VIRTLOADADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)` > $@
+$(BIN)/%.zelf.prf: $(BIN)/%.rt.o $(ELFENTRY) $(ELFEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
+		$(ELFENTRY) $(ZPREFIXOBJS) $< $(ELFEXIT)
 
-$(BIN)/%.zelf:	$(BIN)/%.zraw $(BIN)/%.raw.prf $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(VIRTLOADADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
+$(BIN)/%.elf: $(BIN)/%.elf.prf.bin $(BIN)/%.elf.rt.bin
+	cat $^ > $@
+
+$(BIN)/%.zelf: $(BIN)/%.zelf.prf.bin $(BIN)/%.elf.rt1.bin $(BIN)/%.elf.rt2.zbin
+	cat $^ > $@
 
 # general rules for Long Mode ELF images
 SUFFIXES +=	lmelf zlmelf
-$(BIN)/lmelf_prefix.tmp:	$(BIN)/lmelf_prefix.o arch/i386/prefix/elfprefix.lds $(MAKEDEPS)
-	$(LD) -T arch/i386/prefix/elfprefix.lds $< -o $@
+$(BIN)/%.lmelf.rt: $(BIN)/%.rt.o $(LMELFEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(LMELFEXIT)
 
-$(BIN)/lmelf_prefix:	$(BIN)/lmelf_prefix.tmp $(MAKEDEPS)
-	$(OBJCOPY) -O binary $< $@
+$(BIN)/%.lmelf.prf: $(BIN)/%.rt.o $(LMELFENTRY) $(LMELFEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LMELFENTRY) $(PREFIXOBJS) $< $(LMELFEXIT)
 
-$(BIN)/%.lmelf:	$(BIN)/%.raw $(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$*.raw.ptf | (read l1; read d1 d2 bss rest; echo $$bss)
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(VIRTLOADADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)` > $@
+$(BIN)/%.zlmelf.prf: $(BIN)/%.rt.o $(LMELFENTRY) $(LMELFEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
+		$(LMELFENTRY) $(ZPREFIXOBJS) $< $(LMELFEXIT)
 
-$(BIN)/%.zlmelf:	$(BIN)/%.zraw $(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(VIRTLOADADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
+$(BIN)/%.lmelf: $(BIN)/%.lmelf.prf.bin $(BIN)/%.lmelf.rt.bin
+	cat $^ > $@
+
+$(BIN)/%.zlmelf: $(BIN)/%.zlmelf.prf.bin $(BIN)/%.lmelf.rt1.bin $(BIN)/%.lmelf.rt2.zbin
+	cat $^ > $@
 
 # rules to generate a DOS loadable .com executable
 SUFFIXES +=	com
