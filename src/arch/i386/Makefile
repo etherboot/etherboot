@@ -355,7 +355,7 @@ $(BIN)/%.zraw: $(BIN)/%.zraw.prf.bin $(BIN)/%.raw.rt1.bin $(BIN)/%.raw.rt2.zbin
 # rule to make a non-emulation ISO boot image
 SUFFIXES +=	iso
 %.iso:	util/geniso %.zlilo
-	bash util/geniso $*.iso $*.zlilo
+	ISOLINUX_BIN=${ISOLINUX_BIN} bash util/geniso $*.iso $*.zlilo
 
 # rule to make a floppy emulation ISO boot image
 SUFFIXES +=	liso

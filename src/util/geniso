@@ -7,17 +7,17 @@
 # the ISO image is the first argument so that a list of .zlilo images
 # to include can be specified
 #
-# This should be the location of the isolinux.bin file
 case $# in
 0|1)
 	echo Usage: $0 foo.iso foo.zlilo ...
 	exit 1
 	;;
 esac
-isolinux_bin=util/isolinux.bin
+# This should be the default location of the isolinux.bin file
+isolinux_bin=${ISOLINUX_BIN:-util/isolinux.bin}
 if [ ! -r $isolinux_bin ]
 then
-	echo $0: requires $isolinux_bin
+	echo $0: $isolinux_bin not found, please install, or set ISOLINUX_BIN in arch/i386/config correctly
 	exit 1
 fi
 out=$1

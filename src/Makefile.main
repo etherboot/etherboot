@@ -180,14 +180,14 @@ SRCS+=	core/isapnp.c
 SRCS+=	core/pcmcia.c core/i82365.c
 SRCS+=	core/pxe_export.c core/dns_resolver.c
 
-SRCS+=	$(FILO)/drivers/ide_x.c  
-SRCS+=	$(FILO)/fs/blockdev.c $(FILO)/fs/eltorito.c $(FILO)/fs/fsys_ext2fs.c $(FILO)/fs/fsys_fat.c $(FILO)/fs/fsys_iso9660.c
-SRCS+=	$(FILO)/fs/fsys_reiserfs.c $(FILO)/fs/vfs.c $(FILO)/fs/fsys_jfs.c $(FILO)/fs/fsys_minix.c $(FILO)/fs/fsys_xfs.c  
-SRCS+=	$(FILO)/main/elfload.c $(FILO)/main/elfnote.c $(FILO)/main/filo_x.c $(FILO)/main/lib.c $(FILO)/main/linuxbios_x.c 
-SRCS+=	$(FILO)/main/pci_x.c $(FILO)/main/malloc_x.c $(FILO)/main/printf_x.c $(FILO)/main/console_x.c 
-SRCS+=	$(FILO)/$(ARCH)/context.c $(FILO)/$(ARCH)/linux_load.c $(FILO)/$(ARCH)/segment.c $(FILO)/$(ARCH)/sys_info.c 
-SRCS+=	$(FILO)/$(ARCH)/switch.S $(FILO)/usb/debug_x.c $(FILO)/usb/scsi_cmds.c $(FILO)/usb/uhci.c $(FILO)/usb/usb.c 
-SRCS+=	$(FILO)/usb/ohci.c $(FILO)/usb/usb_scsi_low.c  $(FILO)/usb/usb_x.c
+FILO_SRCS+=	$(FILO)/drivers/ide_x.c  
+FILO_SRCS+=	$(FILO)/fs/blockdev.c $(FILO)/fs/eltorito.c $(FILO)/fs/fsys_ext2fs.c $(FILO)/fs/fsys_fat.c $(FILO)/fs/fsys_iso9660.c
+FILO_SRCS+=	$(FILO)/fs/fsys_reiserfs.c $(FILO)/fs/vfs.c $(FILO)/fs/fsys_jfs.c $(FILO)/fs/fsys_minix.c $(FILO)/fs/fsys_xfs.c  
+FILO_SRCS+=	$(FILO)/main/elfload.c $(FILO)/main/elfnote.c $(FILO)/main/filo_x.c $(FILO)/main/lib.c $(FILO)/main/linuxbios_x.c 
+FILO_SRCS+=	$(FILO)/main/pci_x.c $(FILO)/main/malloc_x.c $(FILO)/main/printf_x.c $(FILO)/main/console_x.c 
+FILO_SRCS+=	$(FILO)/$(ARCH)/context.c $(FILO)/$(ARCH)/linux_load.c $(FILO)/$(ARCH)/segment.c $(FILO)/$(ARCH)/sys_info.c 
+FILO_SRCS+=	$(FILO)/$(ARCH)/switch.S $(FILO)/usb/debug_x.c $(FILO)/usb/scsi_cmds.c $(FILO)/usb/uhci.c $(FILO)/usb/usb.c 
+FILO_SRCS+=	$(FILO)/usb/ohci.c $(FILO)/usb/usb_scsi_low.c  $(FILO)/usb/usb_x.c
 
 
 BOBJS+=		$(BIN)/main.o $(BIN)/osloader.o $(BIN)/nfs.o $(BIN)/misc.o
@@ -202,18 +202,21 @@ BOBJS+=		$(BIN)/vsprintf.o $(BIN)/string.o
 BOBJS+=		$(BIN)/pcmcia.o $(BIN)/i82365.o
 BOBJS+=		$(BIN)/pxe_export.o $(BIN)/dns_resolver.o
 
-BOBJS+=		$(BIN)/ide_x.o $(BIN)/pci_x.o
-BOBJS+=		$(BIN)/blockdev.o $(BIN)/eltorito.o $(BIN)/fsys_ext2fs.o $(BIN)/fsys_fat.o $(BIN)/fsys_iso9660.o $(BIN)/fsys_reiserfs.o $(BIN)/vfs.o
-BOBJS+=		$(BIN)/fsys_jfs.o $(BIN)/fsys_minix.o $(BIN)/fsys_xfs.o  
-BOBJS+=		$(BIN)/elfload.o  $(BIN)/elfnote.o  $(BIN)/filo_x.o $(BIN)/lib.o $(BIN)/linuxbios_x.o $(BIN)/malloc_x.o $(BIN)/printf_x.o $(BIN)/console_x.o   
-BOBJS+=		$(BIN)/context.o  $(BIN)/linux_load.o  $(BIN)/segment.o  $(BIN)/sys_info.o $(BIN)/switch.o
-BOBJS+=		$(BIN)/debug_x.o  $(BIN)/scsi_cmds.o $(BIN)/uhci.o $(BIN)/usb.o $(BIN)/ohci.o $(BIN)/usb_scsi_low.o $(BIN)/usb_x.o
+FILO_OBJS+=		$(BIN)/ide_x.o $(BIN)/pci_x.o
+FILO_OBJS+=		$(BIN)/blockdev.o $(BIN)/eltorito.o $(BIN)/fsys_ext2fs.o $(BIN)/fsys_fat.o $(BIN)/fsys_iso9660.o $(BIN)/fsys_reiserfs.o $(BIN)/vfs.o
+FILO_OBJS+=		$(BIN)/fsys_jfs.o $(BIN)/fsys_minix.o $(BIN)/fsys_xfs.o  
+FILO_OBJS+=		$(BIN)/elfload.o  $(BIN)/elfnote.o  $(BIN)/filo_x.o $(BIN)/lib.o $(BIN)/linuxbios_x.o $(BIN)/malloc_x.o $(BIN)/printf_x.o $(BIN)/console_x.o   
+FILO_OBJS+=		$(BIN)/context.o  $(BIN)/linux_load.o  $(BIN)/segment.o  $(BIN)/sys_info.o $(BIN)/switch.o
+FILO_OBJS+=		$(BIN)/debug_x.o  $(BIN)/scsi_cmds.o $(BIN)/uhci.o $(BIN)/usb.o $(BIN)/ohci.o $(BIN)/usb_scsi_low.o $(BIN)/usb_x.o
 
 BLIB=		$(BIN)/bootlib.a 
-LIBS=		$(BLIB) $(GLIB)
+FILOLIB=	$(BIN)/filolib.a
+LIBS=		$(BLIB)
+ifdef	INCLUDE_FILO
+LIBS+=		$(FILOLIB)
+endif
 UTILS+=		$(BIN)/nrv2b
-STDDEPS=	$(START) $(BLIB) $(UTILS)
-ELF_DEPS=	$(ELF_START) $(BLIB)
+STDDEPS=	$(START) $(UTILS)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
 # If you are confident that gcc 2.96 works for you, you can remove the lines
 # that check gcc in the toolcheck rule
@@ -279,6 +282,9 @@ $(BLIB):	$(BOBJS)
 	$(AR) r $@ $(BOBJS)
 	$(RANLIB) $@
 
+$(FILOLIB):	$(FILO_OBJS)
+	$(AR) r $@ $(FILO_OBJS)
+	$(RANLIB) $@
 
 # LinuxBIOS support code
 $(BIN)/linuxbios.o:	firmware/linuxbios/linuxbios.c include/etherboot.h include/dev.h firmware/linuxbios/linuxbios_tables.h

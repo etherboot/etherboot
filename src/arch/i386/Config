@@ -118,3 +118,5 @@ ifeq "$(shell uname -s)" "FreeBSD"
 CFLAGS+=	-DIMAGE_FREEBSD -DELF_IMAGE -DAOUT_IMAGE
 endif
 
+# An alternate location for isolinux.bin can be set here
+# ISOLINUX_BIN=/path/to/isolinux.bin
