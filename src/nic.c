@@ -382,7 +382,7 @@ void build_ip_hdr(unsigned long destip, int ttl, int protocol, int option_len,
 	ip->chksum = 0;
 	ip->src.s_addr = arptable[ARP_CLIENT].ipaddr.s_addr;
 	ip->dest.s_addr = destip;
-	ip->chksum = ipchksum((unsigned short *)buf, sizeof(struct iphdr));
+	ip->chksum = ipchksum((unsigned short *)buf, sizeof(struct iphdr) + option_len);
 }
 
 void build_udp_hdr(unsigned long destip, 
@@ -870,7 +870,7 @@ static void send_igmp_reports(unsigned long now)
 			ip_transmit(sizeof(igmp), &igmp);
 #ifdef	MDEBUG
 			printf("Sent IGMP report to: %@\n", igmp.igmp.group.s_addr);
-#endif			       
+#endif
 			/* Don't send another igmp report until asked */
 			igmptable[i].time = 0;
 		}
@@ -952,7 +952,7 @@ void leave_group(int slot)
 		igmp.igmp.chksum = ipchksum((unsigned short *)&igmp.igmp, sizeof(igmp));
 		ip_transmit(sizeof(igmp), &igmp);
 #ifdef	MDEBUG
-		printf("Sent IGMP leave for: %@\n", igmp.group.s_addr);
+		printf("Sent IGMP leave for: %@\n", igmp.igmp.group.s_addr);
 #endif	
 	}
 	memset(&igmptable[slot], 0, sizeof(igmptable[0]));
