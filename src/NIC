@@ -214,3 +214,9 @@ smc9000		-		SMC9000
 
 family		tiara
 tiara		-		Tiara, Fujitsu Lancard
+
+family		ide_disk
+ide_disk	0x0000,0x0000	Generic IDE disk support
+
+family		pc_floppy
+pc_floppy	-		Generic PC floppy support

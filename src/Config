@@ -79,12 +79,6 @@
 #	-DCAN_BOOT_DISK
 #			Can boot from floppy/hd if bootimage matches the
 #			pattern "/dev/[fhs]d*".
-#	-DPC_FLOPPY
-#			Support direct PC flopy controller access,
-#			instead of going through the BIOS
-#	-DIDE_DISK
-#			Support direct ide disk controller access,
-#			instead of going through the BIOS
 #	-DTRY_FLOPPY_FIRST
 #			If > 0, tries that many times to read the boot
 #			sector from a floppy drive before booting from

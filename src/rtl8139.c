@@ -472,7 +472,7 @@ static struct pci_id rtl8139_nics[] = {
 		"Realtek 8139" },
 	{ PCI_VENDOR_ID_DLINK,		PCI_DEVICE_ID_DFE530TXP,
                 "DFE530TX+/DFE538TX" },
-        { PCI_VENDOR_ID_SMC_1211,       PCI_DEVICE_ID_SMC_1211,
+        { PCI_VENDOR_ID_SMC2,		PCI_DEVICE_ID_SMC2_1211,
                 "SMC EZ10/100" },
 };
 

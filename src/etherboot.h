@@ -491,7 +491,7 @@ extern inline int rom_address_ok(struct rom_info *rom, int assigned_rom_segment)
 
 /* Define a type for use by setjmp and longjmp */
 typedef	struct {
-	unsigned long	buf[7];
+	unsigned long	buf[6];
 } jmpbuf[1];
 
 /* Define a type for passing info to a loaded program */
@@ -534,6 +534,8 @@ extern void nfs_umountall P((int));
 extern int url_slam P((const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)));
 
 /* config.c */
+extern struct nic nic;
+struct dev *dev;
 extern void print_config(void);
 extern int  eth_probe(int adapter);
 extern int  eth_poll(void);
@@ -611,7 +613,7 @@ extern void relocate_to(unsigned long phys_dest);
 #define relocate() do {} while(0)
 #endif
 extern void disk_init P((void));
-extern unsigned int disk_read P((int drv,int c,int h,int s,char *buf));
+extern unsigned int pcbios_disk_read P((int drv,int c,int h,int s,char *buf));
 
 /* start32.S */
 struct os_entry_regs {
@@ -692,9 +694,6 @@ extern unsigned char *end_of_rfc1533;
 extern int freebsd_howto;
 extern char freebsd_kernel_env[];
 #endif
-
-/* config.c */
-extern struct nic nic;
 
 /* bootmenu.c */
 

@@ -2017,7 +2017,7 @@ static struct pci_id tulip_nics[] = {
 		"ADMtek Centaur-P" },
 	{ PCI_VENDOR_ID_ADMTEK, 0x0981,
 		"ADMtek AN981 Comet" },
-	{ PCI_VENDOR_ID_SMC_1211, 0x1216,
+	{ PCI_VENDOR_ID_SMC2, PCI_DEVICE_ID_SMC2_1216,
 		"ADMTek AN983 Comet" },
         { 0x125B, 0x1400,
 		"ASIX AX88140"},

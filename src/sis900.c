@@ -121,6 +121,15 @@ static struct pci_id   pci_isa_bridge_list[] = {
 		"SIS 85C503/5513 PCI to ISA bridge"},
 };
 
+static struct pci_driver sis_bridge_driver __pci_driver = {
+	.type     = BRIDGE_DRIVER,
+	.name     = "",
+	.probe    = 0,
+	.ids      = pci_isa_bridge_list,
+	.id_count = sizeof(pci_isa_bridge_list)/sizeof(pci_isa_bridge_list[0]),
+	.class    = 0,
+};
+
 /* Function Prototypes */
 
 static int sis900_probe(struct dev *dev, struct pci_device *pci);
@@ -191,11 +200,13 @@ static int sis630e_get_mac_addr(struct pci_device * pci_dev, struct nic *nic)
 	struct pci_device	p[1];
 
 	/* find PCI to ISA bridge */
-	eth_find_pci(pci_isa_bridge_list, 
-	    sizeof(pci_isa_bridge_list)/sizeof(pci_isa_bridge_list[0]), p);
+	memset(p, 0, sizeof(p));
+	do {
+		find_pci(BRIDGE_DRIVER, p);
+	} while(p->driver && p->driver != &sis_bridge_driver);
 
 	/* error on failure */
-	if (!p->probe_id)
+	if (!p->driver)
 	    return 0;
 
 	pcibios_read_config_byte(p->bus,p->devfn, 0x48, &reg);
@@ -1168,4 +1179,5 @@ static struct pci_driver sis900_driver __pci_driver = {
 	.probe    = sis900_probe,
 	.ids      = sis900_nics,
 	.id_count = sizeof(sis900_nics)/sizeof(sis900_nics[0]),
+	.class    = 0,
 };

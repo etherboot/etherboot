@@ -1,7 +1,8 @@
-#ifdef IDE_DISK
-
 #include "etherboot.h"
 #include "timer.h"
+#include "pci.h"
+#include "isa.h"
+#include "disk.h"
 
 #define BSY_SET_DURING_SPINUP 1
 /*
@@ -25,9 +26,13 @@
  * 
  *
  */
+struct controller {
+	uint16_t cmd_base;
+	uint16_t ctrl_base;
+};
 
 struct harddisk_info {
-	uint16_t controller_port;
+	struct controller *ctrl;
 	uint16_t heads;
 	uint16_t cylinders;
 	uint16_t sectors_per_track;
@@ -43,35 +48,33 @@ struct harddisk_info {
 	int basedrive;
 };
 
-#define NUM_HD (8)
 
 #define IDE_SECTOR_SIZE 0x200
 
-#define IDE_BASE1             (0x1F0u) /* primary controller */
-#define IDE_BASE2             (0x170u) /* secondary */
-#define IDE_BASE3             (0x0F0u) /* third */
-#define IDE_BASE4             (0x070u) /* fourth */
+#define IDE_BASE0             (0x1F0u) /* primary controller */
+#define IDE_BASE1             (0x170u) /* secondary */
+#define IDE_BASE2             (0x0F0u) /* third */
+#define IDE_BASE3             (0x070u) /* fourth */
 
-#define IDE_REG_EXTENDED_OFFSET   (0x200u)
+#define IDE_REG_EXTENDED_OFFSET   (0x204u)
 
-#define IDE_REG_DATA(base)           ((base) + 0u) /* word register */
-#define IDE_REG_ERROR(base)          ((base) + 1u)
-#define IDE_REG_PRECOMP(base)        ((base) + 1u)
-#define IDE_REG_FEATURE(base)        ((base) + 1u)
-#define IDE_REG_SECTOR_COUNT(base)   ((base) + 2u)
-#define IDE_REG_SECTOR_NUMBER(base)  ((base) + 3u)
-#define IDE_REG_LBA_LOW(base)        ((base) + 3u)
-#define IDE_REG_CYLINDER_LSB(base)   ((base) + 4u)
-#define IDE_REG_LBA_MID(base)	     ((base) + 4u)
-#define IDE_REG_CYLINDER_MSB(base)   ((base) + 5u)
-#define IDE_REG_LBA_HIGH(base)	     ((base) + 5u)
-#define IDE_REG_DRIVEHEAD(base)      ((base) + 6u)
-#define IDE_REG_DEVICE(base)	     ((base) + 6u)
-#define IDE_REG_STATUS(base)         ((base) + 7u)
-#define IDE_REG_COMMAND(base)        ((base) + 7u)
-#define IDE_REG_ALTSTATUS(base)      ((base) + IDE_REG_EXTENDED_OFFSET + 6u)
-#define IDE_REG_DEVICE_CONTROL(base) ((base) + IDE_REG_EXTENDED_OFFSET + 6u)
-#define IDE_REG_ADDRESS(base)        ((base) + IDE_REG_EXTENDED_OFFSET + 7u)
+#define IDE_REG_DATA(base)           ((ctrl)->cmd_base + 0u) /* word register */
+#define IDE_REG_ERROR(base)          ((ctrl)->cmd_base + 1u)
+#define IDE_REG_PRECOMP(base)        ((ctrl)->cmd_base + 1u)
+#define IDE_REG_FEATURE(base)        ((ctrl)->cmd_base + 1u)
+#define IDE_REG_SECTOR_COUNT(base)   ((ctrl)->cmd_base + 2u)
+#define IDE_REG_SECTOR_NUMBER(base)  ((ctrl)->cmd_base + 3u)
+#define IDE_REG_LBA_LOW(base)        ((ctrl)->cmd_base + 3u)
+#define IDE_REG_CYLINDER_LSB(base)   ((ctrl)->cmd_base + 4u)
+#define IDE_REG_LBA_MID(base)	     ((ctrl)->cmd_base + 4u)
+#define IDE_REG_CYLINDER_MSB(base)   ((ctrl)->cmd_base + 5u)
+#define IDE_REG_LBA_HIGH(base)	     ((ctrl)->cmd_base + 5u)
+#define IDE_REG_DRIVEHEAD(base)      ((ctrl)->cmd_base + 6u)
+#define IDE_REG_DEVICE(base)	     ((ctrl)->cmd_base + 6u)
+#define IDE_REG_STATUS(base)         ((ctrl)->cmd_base + 7u)
+#define IDE_REG_COMMAND(base)        ((ctrl)->cmd_base + 7u)
+#define IDE_REG_ALTSTATUS(base)      ((ctrl)->ctrl_base + 2u)
+#define IDE_REG_DEVICE_CONTROL(base) ((ctrl)->ctrl_base + 2u)
 
 struct ide_pio_command
 {
@@ -198,14 +201,15 @@ struct ide_pio_command
 
 
 
+struct controller    controller;
 struct harddisk_info harddisk_info[2];
 
-static int await_ide(int (*done)(unsigned long base), 
-	unsigned long base, unsigned long timeout)
+static int await_ide(int (*done)(struct controller *ctrl), 
+	struct controller *ctrl, unsigned long timeout)
 {
 	int result;
 	for(;;) {
-		result = done(base);
+		result = done(ctrl);
 		if (result) {
 			return 0;
 		}
@@ -224,18 +228,18 @@ static int await_ide(int (*done)(unsigned long base),
  */
 #define IDE_TIMEOUT (32*TICKS_PER_SEC)
 
-static int not_bsy(unsigned long base)
+static int not_bsy(struct controller *ctrl)
 {
-	return !(inb(IDE_REG_STATUS(base)) & IDE_STATUS_BSY);
+	return !(inb(IDE_REG_STATUS(ctrl)) & IDE_STATUS_BSY);
 }
 #if  !BSY_SET_DURING_SPINUP
-static int timeout(unsigned long base)
+static int timeout(struct controller *ctrl)
 {
 	return 0;
 }
 #endif
 
-static int ide_software_reset(unsigned base)
+static int ide_software_reset(struct controller *ctrl)
 {
 	/* Wait a little bit in case this is immediately after
 	 * hardware reset.
@@ -245,32 +249,32 @@ static int ide_software_reset(unsigned base)
 	 * is set.  If the bsy bit does not clear in a reasonable
 	 * amount of time give up.
 	 */
-	if (await_ide(not_bsy, base, currticks() + IDE_TIMEOUT) < 0) {
+	if (await_ide(not_bsy, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
 
 	/* Disable Interrupts and reset the ide bus */
 	outb(IDE_CTRL_HD15 | IDE_CTRL_SRST | IDE_CTRL_NIEN, 
-		IDE_REG_DEVICE_CONTROL(base));
+		IDE_REG_DEVICE_CONTROL(ctrl));
 	udelay(5);
-	outb(IDE_CTRL_HD15 | IDE_CTRL_NIEN, IDE_REG_DEVICE_CONTROL(base));
+	outb(IDE_CTRL_HD15 | IDE_CTRL_NIEN, IDE_REG_DEVICE_CONTROL(ctrl));
 	mdelay(2);
-	if (await_ide(not_bsy, base, currticks() + IDE_TIMEOUT) < 0) {
+	if (await_ide(not_bsy, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
 	return 0;
 }
 
 static void pio_set_registers(
-	unsigned long base, const struct ide_pio_command *cmd)
+	struct controller *ctrl, const struct ide_pio_command *cmd)
 {
 	uint8_t device;
 	/* Disable Interrupts */
-	outb(IDE_CTRL_HD15 | IDE_CTRL_NIEN, IDE_REG_DEVICE_CONTROL(base));
+	outb(IDE_CTRL_HD15 | IDE_CTRL_NIEN, IDE_REG_DEVICE_CONTROL(ctrl));
 
 	/* Possibly switch selected device */
-	device = inb(IDE_REG_DEVICE(base));
-	outb(cmd->device,          IDE_REG_DEVICE(base));
+	device = inb(IDE_REG_DEVICE(ctrl));
+	outb(cmd->device,          IDE_REG_DEVICE(ctrl));
 	if ((device & (1UL << 4)) != (cmd->device & (1UL << 4))) {
 		/* Allow time for the selected drive to switch,
 		 * The linux ide code suggests 50ms is the right
@@ -278,57 +282,57 @@ static void pio_set_registers(
 		 */
 		mdelay(50); 
 	}
-	outb(cmd->feature,         IDE_REG_FEATURE(base));
-	outb(cmd->sector_count2,   IDE_REG_SECTOR_COUNT(base));
-	outb(cmd->sector_count,    IDE_REG_SECTOR_COUNT(base));
-	outb(cmd->lba_low2,        IDE_REG_LBA_LOW(base));
-	outb(cmd->lba_low,         IDE_REG_LBA_LOW(base));
-	outb(cmd->lba_mid2,        IDE_REG_LBA_MID(base));
-	outb(cmd->lba_mid,         IDE_REG_LBA_MID(base));
-	outb(cmd->lba_high2,       IDE_REG_LBA_HIGH(base));
-	outb(cmd->lba_high,        IDE_REG_LBA_HIGH(base));
-	outb(cmd->command,         IDE_REG_COMMAND(base));
+	outb(cmd->feature,         IDE_REG_FEATURE(ctrl));
+	outb(cmd->sector_count2,   IDE_REG_SECTOR_COUNT(ctrl));
+	outb(cmd->sector_count,    IDE_REG_SECTOR_COUNT(ctrl));
+	outb(cmd->lba_low2,        IDE_REG_LBA_LOW(ctrl));
+	outb(cmd->lba_low,         IDE_REG_LBA_LOW(ctrl));
+	outb(cmd->lba_mid2,        IDE_REG_LBA_MID(ctrl));
+	outb(cmd->lba_mid,         IDE_REG_LBA_MID(ctrl));
+	outb(cmd->lba_high2,       IDE_REG_LBA_HIGH(ctrl));
+	outb(cmd->lba_high,        IDE_REG_LBA_HIGH(ctrl));
+	outb(cmd->command,         IDE_REG_COMMAND(ctrl));
 	
 }
 
 
-static int pio_non_data(unsigned long base, const struct ide_pio_command *cmd)
+static int pio_non_data(struct controller *ctrl, const struct ide_pio_command *cmd)
 {
 	/* Wait until the busy bit is clear */
-	if (await_ide(not_bsy, base, currticks() + IDE_TIMEOUT) < 0) {
+	if (await_ide(not_bsy, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
 
-	pio_set_registers(base, cmd);
-	if (await_ide(not_bsy, base, currticks() + IDE_TIMEOUT) < 0) {
+	pio_set_registers(ctrl, cmd);
+	if (await_ide(not_bsy, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
 	/* FIXME is there more error checking I could do here? */
 	return 0;
 }
 
-static int pio_data_in(unsigned long base, const struct ide_pio_command *cmd,
+static int pio_data_in(struct controller *ctrl, const struct ide_pio_command *cmd,
 	void *buffer, size_t bytes)
 {
 	unsigned int status;
 
 	/* FIXME handle commands with multiple blocks */
 	/* Wait until the busy bit is clear */
-	if (await_ide(not_bsy, base, currticks() + IDE_TIMEOUT) < 0) {
+	if (await_ide(not_bsy, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
 
 	/* How do I tell if INTRQ is asserted? */
-	pio_set_registers(base, cmd);
-	if (await_ide(not_bsy, base, currticks() + IDE_TIMEOUT) < 0) {
+	pio_set_registers(ctrl, cmd);
+	if (await_ide(not_bsy, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
-	status = inb(IDE_REG_STATUS(base));
+	status = inb(IDE_REG_STATUS(ctrl));
 	if (!(status & IDE_STATUS_DRQ)) {
 		return -1;
 	}
-	insw(IDE_REG_DATA(base), buffer, bytes/2);
-	status = inb(IDE_REG_STATUS(base));
+	insw(IDE_REG_DATA(ctrl), buffer, bytes/2);
+	status = inb(IDE_REG_STATUS(ctrl));
 	if (status & IDE_STATUS_DRQ) {
 		return -1;
 	}
@@ -336,7 +340,7 @@ static int pio_data_in(unsigned long base, const struct ide_pio_command *cmd,
 }
 
 #if 0
-static int pio_packet(unsigned long base, int in,
+static int pio_packet(struct controller *ctrl, int in,
 	const void *packet, int packet_len,
 	void *buffer, int buffer_len)
 {
@@ -346,24 +350,24 @@ static int pio_packet(unsigned long base, int in,
 	memset(&cmd, 0, sizeof(cmd));
 
 	/* Wait until the busy bit is clear */
-	if (await_ide(not_bsy, base, currticks() + IDE_TIMEOUT) < 0) {
+	if (await_ide(not_bsy, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
-	pio_set_registers(base, cmd);
+	pio_set_registers(ctrl, cmd);
 	ndelay(400);
-	if (await_ide(not_bsy, base, currticks() + IDE_TIMEOUT) < 0) {
+	if (await_ide(not_bsy, ctrl, currticks() + IDE_TIMEOUT) < 0) {
 		return -1;
 	}
-	status = inb(IDE_REG_STATUS(base));
+	status = inb(IDE_REG_STATUS(ctrl));
 	if (!(status & IDE_STATUS_DRQ)) {
 		return -1;
 	}
 	while(packet_len > 1) {
-		outb(*pbuf, IDE_REG_DATA(base));
+		outb(*pbuf, IDE_REG_DATA(ctrl));
 		pbuf++;
 		packet_len -= 1;
 	}
-	inb(IDE_REG_ALTSTATUS(base));
+	inb(IDE_REG_ALTSTATUS(ctrl));
 	if (await_ide){}
 	/*FIXME finish this function */
 	
@@ -394,7 +398,7 @@ static inline int ide_read_sector_chs(
 		info->slave |
 		IDE_DH_CHS;
 	cmd.command = IDE_CMD_READ_SECTORS;
-	return pio_data_in(info->controller_port, &cmd, buffer, IDE_SECTOR_SIZE);
+	return pio_data_in(info->ctrl, &cmd, buffer, IDE_SECTOR_SIZE);
 }
 
 static inline int ide_read_sector_lba(
@@ -412,7 +416,7 @@ static inline int ide_read_sector_lba(
 		info->slave | 
 		IDE_DH_LBA;
 	cmd.command = IDE_CMD_READ_SECTORS;
-	return pio_data_in(info->controller_port, &cmd, buffer, IDE_SECTOR_SIZE);
+	return pio_data_in(info->ctrl, &cmd, buffer, IDE_SECTOR_SIZE);
 }
 
 static inline int ide_read_sector_lba48(
@@ -431,39 +435,49 @@ static inline int ide_read_sector_lba48(
 	cmd.lba_high2 = (sector >> 40) & 0xff;
 	cmd.device = IDE_DH_DEFAULT | info->slave | IDE_DH_LBA;
 	cmd.command = IDE_CMD_READ_SECTORS_EXT;
-	return pio_data_in(info->controller_port, &cmd, buffer, IDE_SECTOR_SIZE);
+	return pio_data_in(info->ctrl, &cmd, buffer, IDE_SECTOR_SIZE);
 }
 
 
-static int ide_read_sector(struct harddisk_info *info, void *buffer, sector_t sector)
+static int ide_read(struct disk *disk, sector_t sector)
 {
+	struct harddisk_info *info = disk->priv;
 	int result;
+
+	/* Report the buffer is empty */
+	disk->sector = 0;
+	disk->bytes = 0;
 	if (sector > info->sectors) {
 		return -1;
 	}
 	if (info->address_mode == ADDRESS_MODE_CHS) {
-		result = ide_read_sector_chs(info, buffer, sector);
+		result = ide_read_sector_chs(info, disk->buffer, sector);
 	}
 	else if (info->address_mode == ADDRESS_MODE_LBA) {
-		result = ide_read_sector_lba(info, buffer, sector);
+		result = ide_read_sector_lba(info, disk->buffer, sector);
 	}
 	else if (info->address_mode == ADDRESS_MODE_LBA48) {
-		result = ide_read_sector_lba48(info, buffer, sector);
+		result = ide_read_sector_lba48(info, disk->buffer, sector);
 	}
 	else {
 		result = -1;
 	}
+	/* On success report the buffer has data */
+	if (result != -1) {
+		disk->bytes = IDE_SECTOR_SIZE;
+		disk->sector = sector;
+	}
 	return result;
 }
 
-static int init_drive(struct harddisk_info *info, unsigned base, int slave,
+static int init_drive(struct harddisk_info *info, struct controller *ctrl, int slave,
 	int basedrive, unsigned char *buffer)
 {
 	uint16_t* drive_info;
 	struct ide_pio_command cmd;
 	int i;
 
-	info->controller_port = base;
+	info->ctrl = ctrl;
 	info->heads = 0u;
 	info->cylinders = 0u;
 	info->sectors_per_track = 0u;
@@ -480,25 +494,25 @@ static int init_drive(struct harddisk_info *info, unsigned base, int slave,
 
 	/* Select the drive that we are testing */
 	outb(IDE_DH_DEFAULT | IDE_DH_HEAD(0) | IDE_DH_CHS | info->slave, 
-		IDE_REG_DEVICE(base));
+		IDE_REG_DEVICE(ctrl));
 	mdelay(50);
 
 	/* Test to see if the drive registers exist,
 	 * In many cases this quickly rules out a missing drive.
 	 */
 	for(i = 0; i < 4; i++) {
-		outb(0xaa + i, base + 2 + i);
+		outb(0xaa + i, (ctrl->cmd_base) + 2 + i);
 	}
 	for(i = 0; i < 4; i++) {
-		if (inb(base + 2 + i) != 0xaa + i) {
+		if (inb((ctrl->cmd_base) + 2 + i) != 0xaa + i) {
 			return 1;
 		}
 	}
 	for(i = 0; i < 4; i++) {
-		outb(0x55 + i, base + 2 + i);
+		outb(0x55 + i, (ctrl->cmd_base) + 2 + i);
 	}
 	for(i = 0; i < 4; i++) {
-		if (inb(base + 2 + i) != 0x55 + i) {
+		if (inb((ctrl->cmd_base) + 2 + i) != 0x55 + i) {
 			return 1;
 		}
 	}
@@ -511,7 +525,7 @@ static int init_drive(struct harddisk_info *info, unsigned base, int slave,
 	cmd.command = IDE_CMD_IDENTIFY_DEVICE;
 
 	
-	if (pio_data_in(base, &cmd, buffer, IDE_SECTOR_SIZE) < 0) {
+	if (pio_data_in(ctrl, &cmd, buffer, IDE_SECTOR_SIZE) < 0) {
 		/* Well, if that command didn't work, we probably don't have drive. */
 		return 1;
 	}
@@ -525,7 +539,7 @@ static int init_drive(struct harddisk_info *info, unsigned base, int slave,
 		cmd.device = IDE_DH_DEFAULT | IDE_DH_HEAD(0) | IDE_DH_CHS |
 			info->slave;
 		cmd.feature = IDE_FEATURE_STANDBY_SPINUP_DRIVE;
-		if (pio_non_data(base, &cmd) < 0) {
+		if (pio_non_data(ctrl, &cmd) < 0) {
 			/* If the command doesn't work give up on the drive */
 			return 1;
 		}
@@ -537,7 +551,7 @@ static int init_drive(struct harddisk_info *info, unsigned base, int slave,
 		cmd.device = IDE_DH_DEFAULT | IDE_DH_HEAD(0) | IDE_DH_CHS |
 			info->slave;
 		cmd.command = IDE_CMD_IDENTIFY_DEVICE;
-		if(pio_data_in(base, &cmd, buffer, IDE_SECTOR_SIZE) < 0) {
+		if(pio_data_in(ctrl, &cmd, buffer, IDE_SECTOR_SIZE) < 0) {
 			/* If the command didn't work give up on the drive. */
 			return 1;
 		}
@@ -601,7 +615,7 @@ static int init_drive(struct harddisk_info *info, unsigned base, int slave,
 		memset(&cmd, 0, sizeof(cmd));
 		cmd.device = IDE_DH_DEFAULT | IDE_DH_HEAD(0) | IDE_DH_CHS | info->slave;
 		cmd.feature = IDE_FEATURE_CFA_ENABLE_POWER_MODE1;
-		if (pio_non_data(base, &cmd) < 0) {
+		if (pio_non_data(ctrl, &cmd) < 0) {
 			/* If I need to power up the drive, and I can't
 			 * give up.
 			 */
@@ -616,13 +630,13 @@ static int init_drive(struct harddisk_info *info, unsigned base, int slave,
 	return 0;
 }
 
-static int init_controller(unsigned base, int basedrive, unsigned char *buffer) 
+static int init_controller(struct controller *ctrl, int basedrive, unsigned char *buffer) 
 {
 	struct harddisk_info *info;
 
 	/* Intialize the harddisk_info structures */
 	memset(harddisk_info, 0, sizeof(harddisk_info));
-	
+
 	/* Put the drives ide channel in a know state and wait
 	 * for the drives to spinup.  
 	 *
@@ -651,11 +665,11 @@ static int init_controller(unsigned base, int basedrive, unsigned char *buffer)
 	 * 
 	 */
 #if !BSY_SET_DURING_SPINUP
-	if (await_ide(timeout, base, IDE_TIMEOUT) < 0) {
+	if (await_ide(timeout, ctrl, IDE_TIMEOUT) < 0) {
 		return -1;
 	}
 #endif
-	if (ide_software_reset(base) < 0) {
+	if (ide_software_reset(ctrl) < 0) {
 		return -1;
 	}
 
@@ -670,191 +684,212 @@ static int init_controller(unsigned base, int basedrive, unsigned char *buffer)
 
 	/* Now initialize the individual drives */
 	info = &harddisk_info[0];
-	init_drive(info, base, 0, basedrive, buffer);
+	init_drive(info, ctrl, 0, basedrive, buffer);
 	if (info->drive_exists && !info->slave_absent) {
 		basedrive++;
 		info++;
-		init_drive(info, base, 1, basedrive, buffer);
+		init_drive(info, ctrl, 1, basedrive, buffer);
 	}
 
 	return 0;
 }
 
-static int disk_read_sectors(
-	struct harddisk_info *info, 
-	unsigned char *buffer,
-	sector_t base_sector, unsigned int sectors)
+static void ide_disable(struct dev *dev)
 {
-	sector_t sector = 0;
-	unsigned long offset;
-	int result = 0;
-	for(offset = 0; offset < sectors; offset++) {
-		sector = base_sector + offset;
-		if (sector >= info->sectors) {
-			sector -= info->sectors;
-		}
-		result = ide_read_sector(
-			info, buffer + (offset << 9), sector);
-		if (result < 0)
-			break;
-	}
-	if (result < 0) {
-		printf("disk read error at 0x%x\n", sector);
-	}
-	return result;
+	struct disk *disk = (struct disk *)dev;
+	struct harddisk_info *info = disk->priv;
+	ide_software_reset(info->ctrl);
 }
 
-static os_download_t probe_buffer(unsigned char *buffer, unsigned int len,
-	int increment, unsigned int offset, unsigned int *roffset)
+#ifdef CONFIG_PCI
+static int ide_pci_probe(struct dev *dev, struct pci_device *pci)
 {
-	os_download_t os_download;
-	unsigned int end;
-	end = 0;
-	os_download = 0;
-	if (increment > 0) {
-		end = len - IDE_SECTOR_SIZE;
-	}
-	do {
-		offset += increment;
-		os_download = probe_image(buffer + offset, len - offset);
-	} while(!os_download && (offset != end));
-	*roffset = offset;
-	return os_download;
-}
-
-static int load_image(
-	struct harddisk_info *info, 
-	unsigned char *buffer, unsigned int buf_sectors,
-	sector_t block, unsigned int offset,
-	os_download_t os_download)
-{
-	sector_t skip_sectors;
-
-	skip_sectors = 0;
-	while(1) {
-		skip_sectors = os_download(buffer + offset, 
-			(buf_sectors << 9) - offset, 0);
-			block += skip_sectors + buf_sectors;
-		if (block >= info->sectors) {
-			block -= info->sectors;
+	struct disk *disk = (struct disk *)dev;
+	struct harddisk_info *info;
+	adjust_pci_device(pci);
+	
+	if (dev->index < 2) {
+		if ((pci->class & 1) == 0) {
+			/* IDE special pci mode */
+			controller.cmd_base  = IDE_BASE0;
+			controller.ctrl_base = IDE_BASE0 + IDE_REG_EXTENDED_OFFSET;
+		} else {
+			/* IDE normal pci mode */
+			uint32_t base;
+			pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_0, &base);
+			controller.cmd_base = base & ~3;
+			pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_1, &base);
+			controller.ctrl_base = base & ~3;
 		}
-
-		offset = 0;
-		buf_sectors = 1;
-		if (disk_read_sectors(info, buffer, block, 1) < 0) {
+	} 
+	else if (dev->index < 4) {
+		if ((pci->class & (1 << 2)) == 0) {
+			/* IDE special pci mode */
+			controller.cmd_base  = IDE_BASE1;
+	 		controller.ctrl_base = IDE_BASE1 + IDE_REG_EXTENDED_OFFSET;
+		} else {
+			/* IDE normal pci mode */
+			uint32_t base;
+			pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_2, &base);
+			controller.cmd_base = base & ~3;
+			pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_3, &base);
+			controller.ctrl_base = base & ~3;
+		}
+	}
+	else {
+		/* past all of the drives */
+		dev->index = 0;
+		return 0;
+	}
+	if ((dev->index & 1) == 0) {
+		if (init_controller(&controller, disk->drive, disk->buffer) < 0) {
+			/* nothing behind the controller */
+			dev->index += 2;
 			return 0;
 		}
 	}
-}
-
-
-int url_file(const char *name,
-	int (*fnc)(unsigned char *, unsigned int, unsigned int, int))
-{
-	static unsigned short ide_base[] = {
-		IDE_BASE1, 
-#if (NUM_HD >= 3)
-		IDE_BASE2, 
-#endif
-#if (NUM_HD >= 5)
-		IDE_BASE3, 
-#endif
-#if (NUM_HD >= 7)
-		IDE_BASE4,
-#endif
-	};
-	static unsigned char buffer[32*IDE_SECTOR_SIZE];
-	struct harddisk_info *info;
-	unsigned int drive;
-	os_download_t os_download;
-	unsigned int disk_offset, offset, len;
-	volatile int increment, inc;
-	int i;
-	volatile sector_t block;
-	sector_t buf_sectors;
-	jmpbuf real_restart;
-
-	disk_offset = 0;
-	increment = 1;
-	if (memcmp(name, "disk", 4) != 0) {
-		printf("Not a disk device\n");
-		return 0;
-	}
-	name = name + 4;
-	drive = strtoul(name, &name, 10);
-	if ((name[0] == '+') || (name[0] == '-')) {
-		increment = (name[0] == '-')? -1 : 1;
-		name++;
-		disk_offset = strtoul(name, &name, 10);
-	}
-	if (name[0]) {
-		printf("Junk '%s' at end of disk url\n", name);
-		return 0;
-	}
-	if (drive/2 > sizeof(ide_base)/sizeof(ide_base[0])) {
-		printf("Not that many drives\n");
-		return 0;
-	}
-	if (init_controller(ide_base[drive/2], drive & ~1, buffer) < 0) {
-		printf("Nothing behind the controller\n");
-		return 0;
-	}
-	
-	info = &harddisk_info[drive & 1];
+	info = &harddisk_info[dev->index & 1];
 	if (!info->drive_exists) {
-		printf("unknown_drive\n");
+		/* unknown driver */
 		return 0;
 	}
+	disk->hw_sector_size   = IDE_SECTOR_SIZE;
+	disk->sectors_per_read = 1;
+	disk->sectors          = info->sectors;
+	dev->index++;
+	dev->disable = ide_disable;
+	disk->read   = ide_read;
+	disk->priv   = info;
 	
-	/* Load a buffer, and see if it contains the start of an image
-	 * we can boot from disk.
-	 */
-	len = sizeof(buffer);
-	buf_sectors = sizeof(buffer) / IDE_SECTOR_SIZE;
-	inc = increment;
-	block = disk_offset >> 9;
-	if (buf_sectors/2 > block) {
-		block = (info->sectors - (buf_sectors/2)) + block;
-	}
-	/* let probe buffer assume offset always needs to be incremented */
-	offset = (len/2 + (disk_offset & 0x1ff)) - inc;
-
-
-	/* Catch longjmp so if this image fails to load, I start looking
-	 * for the next image where I left off looking for this image.
-	 */
-	memcpy(&real_restart, &restart_etherboot, sizeof(jmpbuf));
-	i = setjmp(restart_etherboot);
-	if ((i != 0) && (i != -2)) {
-		memcpy(&restart_etherboot, &real_restart, sizeof(jmpbuf));
-		longjmp(restart_etherboot, i);
-	}
-	/* Read the canidate sectors into the buffer */
-	if (disk_read_sectors(info, buffer, block, buf_sectors) < 0) {
-		return -1;
-	}
-	if (inc == increment) {
-		os_download = probe_buffer(buffer, len, inc, offset, &offset);
-		if (os_download)
-			goto load_image;
-		inc = -inc;
-	}
-	os_download = probe_buffer(buffer, len, inc, offset, &offset);
-	if (os_download)
-		goto load_image;
-
-	memcpy(&restart_etherboot, &real_restart, sizeof(jmpbuf));
-	return 0;
- load_image:
-	return load_image(info, buffer, buf_sectors, block, offset, os_download);
-
+	return 1;
 }
+static struct pci_id ide_controllers[] = {
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82801CA_11,    "PIIX4" },
+#if 0  /* Currently I don't need any entries in this table so ignore it */
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82371FB_0,     "PIIX" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82371FB_1,     "PIIX" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82371MX,       "MPIIX" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82371SB_1,     "PIIX3" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82371AB,       "PIIX4" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82801AB_1,     "PIIX4" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82443MX_1,     "PIIX4" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82801AA_1,     "PIIX4" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82372FB_1,     "PIIX4" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82451NX,       "PIIX4" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82801BA_9,     "PIIX4" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82801BA_8,     "PIIX4" },
+{ PCI_VENDOR_ID_INTEL,       PCI_DEVICE_ID_INTEL_82801CA_10,    "PIIX4" },
+{ PCI_VENDOR_ID_VIA,         PCI_DEVICE_ID_VIA_82C561,          "VIA_IDE" },
+{ PCI_VENDOR_ID_VIA,         PCI_DEVICE_ID_VIA_82C576_1,        "VP_IDE" },
+{ PCI_VENDOR_ID_VIA,         PCI_DEVICE_ID_VIA_82C586_1,        "VP_IDE" },
+{ PCI_VENDOR_ID_PROMISE,     PCI_DEVICE_ID_PROMISE_20246,       "PDC20246" },
+{ PCI_VENDOR_ID_PROMISE,     PCI_DEVICE_ID_PROMISE_20262,       "PDC20262" },
+{ PCI_VENDOR_ID_PROMISE,     PCI_DEVICE_ID_PROMISE_20265,       "PDC20265" },
+{ PCI_VENDOR_ID_PROMISE,     PCI_DEVICE_ID_PROMISE_20267,       "PDC20267" },
+{ PCI_VENDOR_ID_PROMISE,     PCI_DEVICE_ID_PROMISE_20268,       "PDC20268" },
+{ PCI_VENDOR_ID_PROMISE,     PCI_DEVICE_ID_PROMISE_20268R,      "PDC20268" },
+{ PCI_VENDOR_ID_PCTECH,      PCI_DEVICE_ID_PCTECH_RZ1000,       "RZ1000" },
+{ PCI_VENDOR_ID_PCTECH,      PCI_DEVICE_ID_PCTECH_RZ1001,       "RZ1001" },
+{ PCI_VENDOR_ID_PCTECH,      PCI_DEVICE_ID_PCTECH_SAMURAI_IDE,  "SAMURAI" },
+{ PCI_VENDOR_ID_CMD,         PCI_DEVICE_ID_CMD_640,             "CMD640" },
+{ PCI_VENDOR_ID_CMD,         PCI_DEVICE_ID_CMD_643,             "CMD646" },
+{ PCI_VENDOR_ID_CMD,         PCI_DEVICE_ID_CMD_646,             "CMD648" },
+{ PCI_VENDOR_ID_CMD,         PCI_DEVICE_ID_CMD_648,             "CMD643" },
+{ PCI_VENDOR_ID_CMD,         PCI_DEVICE_ID_CMD_649,             "CMD649" },
+{ PCI_VENDOR_ID_SI,          PCI_DEVICE_ID_SI_5513,             "SIS5513" },
+{ PCI_VENDOR_ID_OPTI,        PCI_DEVICE_ID_OPTI_82C621,         "OPTI621" },
+{ PCI_VENDOR_ID_OPTI,        PCI_DEVICE_ID_OPTI_82C558,         "OPTI621V" },
+{ PCI_VENDOR_ID_OPTI,        PCI_DEVICE_ID_OPTI_82C825,         "OPTI621X" },
+{ PCI_VENDOR_ID_TEKRAM,      PCI_DEVICE_ID_TEKRAM_DC290,        "TRM290" },
+{ PCI_VENDOR_ID_NS,          PCI_DEVICE_ID_NS_87410,            "NS87410" },
+{ PCI_VENDOR_ID_NS,          PCI_DEVICE_ID_NS_87415,            "NS87415" },
+{ PCI_VENDOR_ID_HOLTEK2,     PCI_DEVICE_ID_HOLTEK2_6565,        "HT6565" },
+{ PCI_VENDOR_ID_ARTOP,       PCI_DEVICE_ID_ARTOP_ATP850UF,      "AEC6210" },
+{ PCI_VENDOR_ID_ARTOP,       PCI_DEVICE_ID_ARTOP_ATP860,        "AEC6260" },
+{ PCI_VENDOR_ID_ARTOP,       PCI_DEVICE_ID_ARTOP_ATP860R,       "AEC6260R" },
+{ PCI_VENDOR_ID_WINBOND,     PCI_DEVICE_ID_WINBOND_82C105,      "W82C105" },
+{ PCI_VENDOR_ID_UMC,         PCI_DEVICE_ID_UMC_UM8673F,         "UM8673F" },
+{ PCI_VENDOR_ID_UMC,         PCI_DEVICE_ID_UMC_UM8886A,         "UM8886A" },
+{ PCI_VENDOR_ID_UMC,         PCI_DEVICE_ID_UMC_UM8886BF,        "UM8886BF" },
+{ PCI_VENDOR_ID_TTI,         PCI_DEVICE_ID_TTI_HPT343,          "HPT34X" },
+{ PCI_VENDOR_ID_TTI,         PCI_DEVICE_ID_TTI_HPT366,          "HPT366" },
+{ PCI_VENDOR_ID_AL,          PCI_DEVICE_ID_AL_M5229,            "ALI15X3" },
+{ PCI_VENDOR_ID_CONTAQ,      PCI_DEVICE_ID_CONTAQ_82C693,       "CY82C693" },
+{ 0x3388,                    0x8013,                            "HINT_IDE" },
+{ PCI_VENDOR_ID_CYRIX,       PCI_DEVICE_ID_CYRIX_5530_IDE,      "CS5530" },
+{ PCI_VENDOR_ID_AMD,         PCI_DEVICE_ID_AMD_COBRA_7401,      "AMD7401" },
+{ PCI_VENDOR_ID_AMD,         PCI_DEVICE_ID_AMD_VIPER_7409,      "AMD7409" },
+{ PCI_VENDOR_ID_AMD,         PCI_DEVICE_ID_AMD_VIPER_7411,      "AMD7411" },
+{ PCI_VENDOR_ID_PDC,         PCI_DEVICE_ID_PDC_1841,            "PDCADMA" },
+{ PCI_VENDOR_ID_EFAR,        PCI_DEVICE_ID_EFAR_SLC90E66_1,     "SLC90E66" },
+{ PCI_VENDOR_ID_SERVERWORKS, PCI_DEVICE_ID_SERVERWORKS_OSB4IDE, "OSB4" },
+{ PCI_VENDOR_ID_SERVERWORKS, PCI_DEVICE_ID_SERVERWORKS_CSB5IDE, "OSB5" },
+{ PCI_VENDOR_ID_ITE,         PCI_DEVICE_ID_ITE_IT8172G,         "ITE8172G" },
+#endif
+};
 
-void disk_disable(void)
+static struct pci_driver ide_driver __pci_driver = {
+	.type      = DISK_DRIVER,
+	.name      = "IDE",
+	.probe     = ide_pci_probe,
+	.ids       = ide_controllers,
+	.id_count  = sizeof(ide_controllers)/sizeof(ide_controllers),
+	.class     = PCI_CLASS_STORAGE_IDE,
+};
+#endif
+
+#if 0 && defined(CONFIG_ISA)
+static int ide_isa_probe(struct dev * dev, unsigned short *probe_addrs)
 {
-	if (harddisk_info[0].drive_exists) {
-		return;
+	struct disk *disk = (struct disk *)dev;
+	int index;
+	unsigned short *addr;
+	struct harddisk_info *info;
+
+	for(index = 0, addr = probe_addrs; *addr; addr++, index += 2) {
+		if (index +1 < dev->index)
+			continue;
+		if (index == dev->index) {
+			controller.cmd_base = *addr;
+			controller.ctrl_base = *addr + IDE_REG_EXTENDED_OFFSET;
+			if (init_controller(&controller, disk->drive, disk->buffer) < 0) {
+				/* nothing behind the controller */
+				dev->index += 2;
+				return 0;
+			}
+		} else {
+			index++;
+		}
+		info = &harddisk_info[index & 1];
+		if (!info->drive_exists) {
+			/* unknown drive */
+			return 0;
+		}
+		disk->sectors_per_read = 1;
+		disk->sectors = info->sectors;
+		dev->index++;
+		dev->disable = ide_disable;
+		disk->read   = ide_read;
+		disk->priv   = info;
+		
+		return 1;
 	}
-	ide_software_reset(harddisk_info[0].controller_port);
+	dev->index = 0;
+	return 0;
 }
-#endif /* IDE_DISK */
+
+static unsigned short ide_base[] = {
+	IDE_BASE0,
+	IDE_BASE1, 
+	IDE_BASE2, 
+	IDE_BASE3, 
+	0
+};
+static struct isa_driver ide_isa_driver __isa_driver = {
+	.type    = DISK_DRIVER,
+	.name    = "IDE/ISA",
+	.probe   = ide_isa_probe,
+	.ioaddrs = ide_base,
+};
+
+#endif

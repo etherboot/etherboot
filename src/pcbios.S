@@ -438,8 +438,8 @@ disk_init:
 DISK_READ - Read a sector from disk
 **************************************************************************/
 #ifdef	CAN_BOOT_DISK
-	.globl	disk_read
-disk_read:
+	.globl	pcbios_disk_read
+pcbios_disk_read:
 	pushl	%ebp
 	movl	%esp,%ebp
 	pushl	%ebx

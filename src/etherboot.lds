@@ -7,18 +7,23 @@ SECTIONS {
 		_text = . ;
 		*(.text)
 		*(.text.*)
-		. = ALIGN(4);
-		pci_drivers = .;
-		*(.rodata.pci_drivers)
-		epci_drivers = .;
-		. = ALIGN(4);
-		isa_drivers = .;
-		*(.rodata.isa_drivers)
-		eisa_drivers = .;
-		. = ALIGN(16);
-		*(.rodata)
-		*(.rodata.*)
 	} = 0x9090
+	.rodata : {
+		. = ALIGN(4);
+		*(.rodata)
+	}
+	.rodata.pci_drivers : {
+		. = ALIGN(4);
+		pci_drivers = . ;
+		*(.rodata.pci_drivers);
+		pci_drivers_end = . ;
+	}
+	.rodata.isa_drivers : {
+		. = ALIGN(4);
+		isa_drivers = . ;
+		*(.rodata.isa_drivers);
+		isa_drivers_end = .;
+	}
 	.text16 : {
 		. = ALIGN(16);
 		_text16 = .;

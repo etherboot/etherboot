@@ -143,6 +143,7 @@ bin32/$pci--%.o:	bin32/%.o bin32/$pci.o \$(MAKEDEPS)
 
 EOF
 }
+
 # Do the ISA entries
 foreach my $isa (sort keys %isaent) {
 	(my $macro = $isa) =~ tr/\-/_/;

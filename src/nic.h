@@ -8,34 +8,7 @@
 #ifndef	NIC_H
 #define NIC_H
 
-#define ISAPNP_VENDOR(a,b,c)	(((((a)-'A'+1)&0x3f)<<2)|\
-				((((b)-'A'+1)&0x18)>>3)|((((b)-'A'+1)&7)<<13)|\
-				((((c)-'A'+1)&0x1f)<<8))
-
-#define	GENERIC_ISAPNP_VENDOR	ISAPNP_VENDOR('P','N','P')
-
-/* Need to check the packing of this struct if Etherboot is ported */
-struct dev_id
-{
-	uint8_t		encap_len;
-	uint8_t		tag;
-	uint8_t		len;
-	uint8_t		bus_type;
-#define	PCI_BUS_TYPE	1
-#define	ISA_BUS_TYPE	2
-	uint16_t	vendor_id;
-	uint16_t	device_id;
-};
-
-/* Dont use sizeof, that will include the padding */
-#define	DEV_ID_SIZE	8
-
-
-struct dev
-{
-	void		(*disable)P((struct dev *));
-	struct dev_id	devid;	/* device ID string (sent to DHCP server) */
-};
+#include "dev.h"
 
 /*
  *	Structure returned from eth_probe and passed to other driver
@@ -54,7 +27,5 @@ struct nic
 	unsigned int	packetlen;
 	void		*priv_data;	/* driver can hang private data here */
 };
-
-#define NIC_DRIVER 1
 
 #endif	/* NIC_H */

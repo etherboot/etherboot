@@ -1,4 +1,3 @@
-#ifdef PC_FLOPPY
 #if 0
 #  include <arch/io.h>
 #  include <floppy_subr.h>
@@ -8,15 +7,14 @@
 #else
 #include "etherboot.h"
 #include "timer.h"
-#  define udelay(n)	waiton_timer2(((n)*TICKS_PER_MS)/1000)
-#  define mdelay(n)	waiton_timer2(((n)*TICKS_PER_MS))
+#include "disk.h"
+#include "isa.h"
 #endif
 
 
+#undef MDEBUG
 
-#ifndef FD_BASE 
-#  define FD_BASE 0x3f0
-#endif
+static int FD_BASE = 0x3f0;
 
 #define FD_DRIVE 0
 
@@ -377,7 +375,7 @@ static unsigned char collect_interrupt(void)
 			if (nr == 2) {
 				pcn = reply_buffer[1];
 #ifdef MDEBUG
-				printf("SENSEI %02x %02x\n", 
+				printf("SENSEI %hx %hx\n", 
 					reply_buffer[0], reply_buffer[1]);
 #endif
 			}
@@ -641,7 +639,7 @@ static void show_floppy(void)
 	printf("floppy driver state\n");
 	printf("-------------------\n");
 
-	printf("fdc_bytes: %02x %02x xx %02x %02x %02x xx %02x\n",
+	printf("fdc_bytes: %hx %hx xx %hx %hx %hx xx %hx\n",
 		inb(FD_BASE + 0), inb(FD_BASE + 1),
 		inb(FD_BASE + 3), inb(FD_BASE + 4), inb(FD_BASE + 5), 
 		inb(FD_BASE + 7));
@@ -698,7 +696,7 @@ static void floppy_recalibrate(void)
 }
 
 
-static int floppy_seek(unsigned track)
+static int __floppy_seek(unsigned track)
 {
 	unsigned char cmd[3];
 	unsigned char reply[MAX_REPLIES];
@@ -712,7 +710,7 @@ static int floppy_seek(unsigned track)
 	if (old_track == track) {
 		return 1;
 	}
-	
+
 	/* Compute the distance we are about to move,
 	 * We need to know this so we know how long to sleep... 
 	 */
@@ -730,7 +728,7 @@ static int floppy_seek(unsigned track)
 	if (output_command(cmd, 3) < 0)
 		return 0;
 	
-	/* Sleep for the time it takes to step throuhg distance tracks.
+	/* Sleep for the time it takes to step through distance tracks.
 	 */
 	mdelay(distance*DRIVE_H1440_SRT/1000);
 
@@ -758,12 +756,40 @@ static int floppy_seek(unsigned track)
 #ifdef MDEBUG
 		printf("seek failed\n");
 		printf("nr = %d\n", nr);
-		printf("ST0 = %02x\n", reply[0]);
-		printf("PCN = %02x\n", reply[1]);
+		printf("ST0 = %hx\n", reply[0]);
+		printf("PCN = %hx\n", reply[1]);
 		printf("status = %d\n", inb(FD_STATUS));
 #endif
 	}
 	return success;
+}
+
+static int floppy_seek(unsigned track)
+{
+	unsigned old_track;
+	int result;
+	/* assume success */
+	result = 1;
+
+	/* Look up the old track and see if we need to
+	 * do anything.
+	 */
+	old_track = drive_state[FD_DRIVE].track;
+	if (old_track == track) {
+		return result;
+	}
+	/* For some reason seeking many tracks at once is
+	 * problematic so only seek a single track at a time.
+	 */
+	while(result && (old_track > track)) {
+		old_track--;
+		result = __floppy_seek(old_track);
+	}
+	while(result && (track > old_track)) {
+		old_track++;
+		result = __floppy_seek(old_track);
+	}
+	return result;
 }
 
 static int read_ok(unsigned head)
@@ -801,13 +827,13 @@ static int read_ok(unsigned head)
 	if (!result_ok) {
 #ifdef MDEBUG
 		printf("result_bytes = %d\n", nr);
-		printf("ST0 = %02x\n", results[0]);
-		printf("ST1 = %02x\n", results[1]);
-		printf("ST2 = %02x\n", results[2]);
-		printf("  C = %02x\n", results[3]);
-		printf("  H = %02x\n", results[4]);
-		printf("  R = %02x\n", results[5]);
-		printf("  N = %02x\n", results[6]);
+		printf("ST0 = %hx\n", results[0]);
+		printf("ST1 = %hx\n", results[1]);
+		printf("ST2 = %hx\n", results[2]);
+		printf("  C = %hx\n", results[3]);
+		printf("  H = %hx\n", results[4]);
+		printf("  R = %hx\n", results[5]);
+		printf("  N = %hx\n", results[6]);
 #endif
 	}
 	return result_ok;
@@ -915,54 +941,41 @@ static int floppy_read_sectors(
 	return ret;
 }
 
-
-static int __floppy_read(char *dest, unsigned long offset, unsigned long length)
+static int floppy_read(struct disk *disk, sector_t base_sector)
 {
-	unsigned head, track, sector, byte_offset, sector_offset;
+	unsigned head, track, sector, byte_offset;
+	unsigned long block;
 	int ret;
 
+	disk->sector = 0;
+	disk->bytes  = 0;
+
+	block = base_sector;
+	block /= disk->sectors_per_read;
+
 	/* break the offset up into sectors and bytes */
-	byte_offset = offset % 512;
-	sector_offset = offset / 512;
+	byte_offset = 0;
 
 	/* Find the disk block we are starting with... */
-	sector = (sector_offset % DISK_H1440_SECT) + 1;
-	head = (sector_offset / DISK_H1440_SECT) % DISK_H1440_HEAD;
-	track = (sector_offset / (DISK_H1440_SECT *DISK_H1440_HEAD))% DISK_H1440_TRACK;
+	sector = 1;
+	head = block % DISK_H1440_HEAD;
+	track = (block / DISK_H1440_HEAD)% DISK_H1440_TRACK;
 
 	/* First seek to our start track */
 	if (!floppy_seek(track)) {
 		return -1;
 	}
 	/* Then read the data */
-	ret = floppy_read_sectors(dest, byte_offset, length, sector, head, track);
+	ret = floppy_read_sectors(
+		disk->buffer, byte_offset, SECTOR_SIZE*disk->sectors_per_read, sector, head, track);
 	if (ret >= 0) {
+		disk->sector = block * disk->sectors_per_read;
+		disk->bytes = SECTOR_SIZE * disk->sectors_per_read;
 		return ret;
 	}
 	/* If we failed reset the fdc... */
 	floppy_reset();
 	return -1;
-}
-
-static int floppy_read(char *dest, unsigned long offset, unsigned long length)
-{
-	int result, bytes_read;
-#ifdef MDEBUG
-	printf("floppy_read\n");
-#endif
-	bytes_read = 0;
-	do {
-		int max_errors = 3;
-		do {
-			result = __floppy_read(dest + bytes_read, offset, length - bytes_read);
-			if (max_errors-- == 0) {
-				return (bytes_read)?bytes_read: -1;
-			}
-		} while (result <= 0);
-		offset += result;
-		bytes_read += result;
-	} while(bytes_read < length);
-	return bytes_read;
 }
 
 /* Determine the floppy disk controller type */
@@ -1091,31 +1104,49 @@ static void floppy_reset(void)
 	fdc_state.in_sync = 1;
 }
 
-static void floppy_fini(void)
+static void floppy_fini(struct dev *dev)
 {
 	/* Disable the floppy and the floppy drive controller */
 	set_dor(0, 0, 0);
 }
 
-
-int floppy_load(int floppy, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)) 
+static int floppy_probe(struct dev *dev, unsigned short *probe_addrs)
 {
-	static unsigned char track_buffer[DISK_H1440_SECT*512];
-	const unsigned long max_block = DISK_H1440_HEAD * DISK_H1440_TRACK;
-	unsigned long block;
-	int rc;
-	
-	floppy_init();
-	rc = -1;
-	for(block= 0; (rc < 0) && (block < max_block); block++) {
-		floppy_read(track_buffer, block *sizeof(track_buffer), 
-			sizeof(track_buffer));
-		rc = fnc(track_buffer, block +1, sizeof(track_buffer), 0);
+	struct disk *disk = (struct disk *)dev;
+	unsigned short *addr;
+
+	if (!probe_addrs || !*probe_addrs)
+		return 0;
+	for(addr = probe_addrs; *addr; addr++) {
+		/* FIXME handle multiple drives per controller */
+		/* FIXME test to see if I have a drive or a disk in
+		 * the driver during the probe routine.
+		 */
+		/* FIXME make this work under the normal bios */
+		FD_BASE = *addr;
+		if (floppy_init() != 0) {
+			/* nothing at this address */
+			continue;
+		}
+		/* O.k. I have a floppy controller */
+		disk->hw_sector_size   = SECTOR_SIZE;
+		disk->sectors_per_read = DISK_H1440_SECT;
+		disk->sectors          = DISK_H1440_HEAD*DISK_H1440_TRACK*DISK_H1440_SECT;
+		dev->disable           = floppy_fini;
+		disk->read             = floppy_read;
+		return 1;
 	}
-	if(rc < 0) {
-		rc = fnc(track_buffer, block +1, 0, 1);
-	}
-	floppy_fini();
-	return rc;
+	return 0;
 }
-#endif /* PC_FLOPPY */
+
+static unsigned short floppy_ioaddrs[] =
+{
+	0x3F0, 0x370, 0
+};
+static struct isa_driver skel_isa_driver __isa_driver = {
+	.type    = FLOPPY_DRIVER,
+	.name    = "PC flopyy",
+	.probe   = floppy_probe,
+	.ioaddrs = floppy_ioaddrs,
+	
+};

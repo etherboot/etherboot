@@ -360,15 +360,14 @@ SETJMP - Save stack context for non-local goto
 **************************************************************************/
 	.globl	setjmp
 setjmp:
-	movl	4(%esp),%ecx
-	movl	0(%esp),%edx
+	movl	4(%esp),%ecx		/* jmpbuf */
+	movl	0(%esp),%edx		/* return address */
 	movl	%edx,0(%ecx)
 	movl	%ebx,4(%ecx)
 	movl	%esp,8(%ecx)
 	movl	%ebp,12(%ecx)
 	movl	%esi,16(%ecx)
 	movl	%edi,20(%ecx)
-	movl	%eax,24(%ecx)
 	movl	$0,%eax
 	ret
 
@@ -377,8 +376,8 @@ LONGJMP - Non-local jump to a saved stack context
 **************************************************************************/
 	.globl	longjmp
 longjmp:
-	movl	4(%esp),%edx
-	movl	8(%esp),%eax
+	movl	4(%esp),%edx		/* jumpbuf */
+	movl	8(%esp),%eax		/* result */
 	movl	0(%edx),%ecx
 	movl	4(%edx),%ebx
 	movl	8(%edx),%esp

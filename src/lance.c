@@ -603,7 +603,7 @@ static struct isa_driver ni6510_driver __isa_driver = {
 static struct pci_id lance_nics[] = {
 	{ PCI_VENDOR_ID_AMD,		PCI_DEVICE_ID_AMD_LANCE,
 		"AMD Lance/PCI" },
-	{ PCI_VENDOR_ID_AMD_HOMEPNA,	PCI_DEVICE_ID_AMD_HOMEPNA,
+	{ PCI_VENDOR_ID_AMD,		PCI_DEVICE_ID_AMD_HOMEPNA,
 		"AMD Lance/HomePNA" },
 };
 static struct pci_driver lancepci_driver __pci_driver = {

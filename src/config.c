@@ -24,8 +24,7 @@ static char	packet[ETH_FRAME_LEN];
 struct nic	nic =
 {
 	{
-		(void (*)(struct dev *))dummy,	/* dev.disable */
-		
+		0,				/* dev.disable */
 		{
 			DEV_ID_SIZE-1,
 			RFC1533_VENDOR_NIC_DEV_ID,
@@ -34,6 +33,9 @@ struct nic	nic =
 			0,
 			0
 		},				/* dev.devid */
+		0,				/* index */
+		PROBE_NONE,			/* to_probe */
+		{},				/* state */
 	},
 	(int (*)(struct nic *))dummy,		/* poll */
 	(void (*)(struct nic *, const char *,
@@ -76,7 +78,7 @@ void print_config(void)
 #ifdef CONFIG_PCI
 {
 	const struct pci_driver *driver;
-	for(driver = pci_drivers; driver < epci_drivers; driver++) {
+	for(driver = pci_drivers; driver < pci_drivers_end; driver++) {
 		printf("[%s]", driver->name);
 	}
 }
@@ -84,7 +86,7 @@ void print_config(void)
 #ifdef CONFIG_ISA
 {
 	const struct isa_driver *driver;
-	for(driver = isa_drivers; driver < eisa_drivers; driver++) {
+	for(driver = isa_drivers; driver < isa_drivers_end; driver++) {
 		printf("[%s]", driver->name);
 	}
 }
@@ -95,97 +97,123 @@ void print_config(void)
 #ifdef CONFIG_PCI
 int pci_probe(int last_adapter, struct dev *dev, int type)
 {
-	static struct pci_device pdev;
-	const struct pci_driver *driver;
+/*
+ *	NIC probing is in pci device order, followed by the 
+ *      link order of the drivers.  A driver that matches 
+ *      on vendor and device id will supersede a driver
+ *      that matches on pci class.
+ *
+ *	If you want to probe for another device behind the same pci
+ *      device just increment index.  And the previous probe call
+ *      will be repeated.
+ */
+	struct pci_probe_state *state = &dev->state.pci;
 	if (last_adapter == -1) {
-		pdev.probe_id = 0;
-		pdev.bus = 0;
-		pdev.devfn = 0;
+		state->advance = 1;
+		state->dev.driver = 0;
+		state->dev.bus    = 0;
+		state->dev.devfn  = 0;
 	}
-	for(driver = pci_drivers; driver < epci_drivers; driver++) {
-		if (driver->type != type)
-			continue;
-		printf("[%s]", driver->name);
-		eth_find_pci(driver->ids, driver->id_count, &pdev);
-		if (pdev.probe_id == 0) 
-			continue;
+	if (state->advance) {
+		find_pci(type, &state->dev);
+		dev->index = 0;
+	}
+	state->advance = 1;
+
+	if (state->dev.driver == 0)
+		return -1;
+
 #if 0
-		if (pdev.romaddr != ((unsigned long) rom.rom_segment << 4)) {
-			continue;
-		}
+	/* FIXME the romaddr code needs a total rethought to be useful */
+	if (state->dev.romaddr != ((unsigned long) rom.rom_segment << 4)) {
+		continue;
+	}
 #endif
-		dev->devid.bus_type = PCI_BUS_TYPE;
-		dev->devid.vendor_id = htons(pdev.vendor);
-		dev->devid.device_id = htons(pdev.dev_id);
-		
-		if ((*driver->probe)(dev, &pdev))
-			return 0;
+	dev->devid.bus_type = PCI_BUS_TYPE;
+	dev->devid.vendor_id = htons(state->dev.vendor);
+	dev->devid.device_id = htons(state->dev.dev_id);
+	
+	printf("[%s]", state->dev.name);
+	if (state->dev.driver->probe(dev, &state->dev)) {
+		state->advance = !dev->index;
+		return 0;
 	}
 	return -1;
 }
 #else
-#define pci_probe(x, y) (-1)
+#define pci_probe(l, d, t) (-1)
 #endif
 
 #ifdef CONFIG_ISA
 int isa_probe(int last_adapter, struct dev *dev, int type)
 {
 /*
- *	NIC probing is in link order.
+ *	NIC probing is in the order the drivers were linked togeter.
  *	If for some reason you want to change the order,
  *	just change the order you list the drivers in.
  */
-	static const struct isa_driver *driver;
+	struct isa_probe_state *state = &dev->state.isa;
 	if (last_adapter == -1) {
-		driver = isa_drivers;
+		state->driver = isa_drivers;
+		state->index = 0;
 	}
-	for(; driver < eisa_drivers; driver++)
+	for(; state->driver < isa_drivers_end; state->driver++)
 	{
-		if (driver->type != type)
+		if (state->driver->type != type)
 			continue;
-		printf("[%s]", driver->name);
+		printf("[%s]", state->driver->name);
 		dev->devid.bus_type = ISA_BUS_TYPE;
+		dev->index = state->index;
 		/* driver will fill in vendor and device IDs */
-		if ((*driver->probe)(dev, driver->ioaddrs))
+		if (state->driver->probe(dev, state->driver->ioaddrs)) {
+			state->index = dev->index;
+			if (dev->index == 0)
+				state->driver++;
 			return 0;
+		}
 	}
 	return -1;
 }
 #else
-#define isa_probe(x, y) (-1)
+#define isa_probe(l, d, t) (-1)
 #endif
 
-int probe(int last_adapter, struct dev *dev, int type)
+int probe(int adapter, struct dev *dev, int type)
 {
-	static int to_probe;
-#define PROBE_NONE 0
-#define PROBE_PCI  1
-#define PROBE_ISA  2
-	int adapter;
 	
-	printf("Probing...");
-	adapter = -1;
 #ifndef TRY_ALL_DEVICES
-	last_adapter = -1;
+	adapter = -1;
 #endif
-	if (last_adapter == -1) {
-		to_probe = PROBE_PCI;
+	if (adapter == -1) {
+		dev->to_probe = PROBE_PCI;
+		memset(&dev->state, 0, sizeof(dev->state));
 	}
-	if (to_probe == PROBE_PCI) {
-		adapter = pci_probe(last_adapter, dev, type);
+	if (dev->to_probe == PROBE_PCI) {
+		printf("Probing pci...");
+		adapter = pci_probe(adapter, dev, type);
+		printf("\n");
 		if (adapter == -1) {
-			to_probe = PROBE_ISA;
+			dev->to_probe = PROBE_ISA;
 		}
 	}
-	if (to_probe == PROBE_ISA) {
-		adapter = isa_probe(last_adapter, dev, type);
+	if (dev->to_probe == PROBE_ISA) {
+		printf("Probing isa...");
+		adapter = isa_probe(adapter, dev, type);
+		printf("\n");
 		if (adapter == -1) {
-			to_probe = PROBE_NONE;
+			dev->to_probe = PROBE_NONE;
 		}
 	}
 	return adapter;
 }
 
+void disable(struct dev *dev)
+{
+	if (dev->disable) {
+		dev->disable(dev);
+		dev->disable = 0;
+	}
+}
 int eth_probe(int last_adapter)
 {
 	return probe(last_adapter, &nic.dev, NIC_DRIVER);
@@ -204,5 +232,5 @@ void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p)
 
 void eth_disable(void)
 {
-	(*nic.dev.disable)(&nic.dev);
+	disable(&nic.dev);
 }

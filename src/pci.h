@@ -21,6 +21,8 @@
  * your option) any later version.
  */
 
+#include "pci_ids.h"
+
 #define PCI_COMMAND_IO			0x1	/* Enable response in I/O space */
 #define PCI_COMMAND_MEM			0x2	/* Enable response in mem space */
 #define PCI_COMMAND_MASTER		0x4	/* Enable bus mastering */
@@ -45,6 +47,7 @@
 #define PCI_COMMAND             0x04    /* 16 bits */
 
 #define PCI_REVISION            0x08    /* 8 bits  */
+#define PCI_CLASS_REVISION      0x08    /* 32 bits  */
 #define PCI_CLASS_CODE          0x0b    /* 8 bits */
 #define PCI_SUBCLASS_CODE       0x0a    /* 8 bits */
 #define PCI_HEADER_TYPE         0x0e    /* 8 bits */
@@ -91,7 +94,7 @@ union bios32 {
 	char chars[16];
 };
 
-#define KERN_CODE_SEG	0x8	/* This _MUST_ match start.S */
+#define KERN_CODE_SEG	0x08	/* This _MUST_ match start.S */
 
 /* Stuff for asm */
 #define save_flags(x) \
@@ -102,111 +105,25 @@ __asm__ __volatile__("pushfl ; popl %0":"=g" (x): /* no input */ :"memory")
 #define restore_flags(x) \
 __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 
-#define PCI_VENDOR_ID_ADMTEK            0x1317
-#define PCI_DEVICE_ID_ADMTEK_0985       0x0985
-#define PCI_VENDOR_ID_REALTEK           0x10ec
-#define PCI_DEVICE_ID_REALTEK_8029      0x8029
-#define PCI_DEVICE_ID_REALTEK_8129      0x8129
-#define PCI_DEVICE_ID_REALTEK_8139      0x8139
-#define PCI_VENDOR_ID_WINBOND2          0x1050
-#define PCI_DEVICE_ID_WINBOND2_89C940   0x0940
-#define PCI_DEVICE_ID_WINBOND2_89C840   0x0840
-#define PCI_VENDOR_ID_COMPEX            0x11f6
-#define PCI_DEVICE_ID_COMPEX_RL2000     0x1401
-#define PCI_DEVICE_ID_COMPEX_RL100ATX   0x2011
-#define PCI_VENDOR_ID_KTI               0x8e2e
-#define PCI_DEVICE_ID_KTI_ET32P2        0x3000
-#define PCI_VENDOR_ID_NETVIN            0x4a14
-#define PCI_DEVICE_ID_NETVIN_NV5000SC   0x5000
-#define	PCI_VENDOR_ID_HOLTEK		0x12c3
-#define	PCI_DEVICE_ID_HOLTEK_HT80232	0x0058
-#define PCI_VENDOR_ID_3COM		0x10b7
-#define PCI_DEVICE_ID_3COM_3C590	0x5900
-#define PCI_DEVICE_ID_3COM_3C595	0x5950
-#define PCI_DEVICE_ID_3COM_3C595_1	0x5951
-#define PCI_DEVICE_ID_3COM_3C595_2	0x5952
-#define PCI_DEVICE_ID_3COM_3C900TPO	0x9000
-#define PCI_DEVICE_ID_3COM_3C900COMBO	0x9001
-#define PCI_DEVICE_ID_3COM_3C905TX	0x9050
-#define PCI_DEVICE_ID_3COM_3C905T4	0x9051
-#define PCI_DEVICE_ID_3COM_3C905B_TX	0x9055
-#define PCI_DEVICE_ID_3COM_3C905C_TXM	0x9200
-#define PCI_VENDOR_ID_INTEL		0x8086
-#define PCI_DEVICE_ID_INTEL_82557	0x1229
-#define PCI_DEVICE_ID_INTEL_82559ER	0x1209
-#define PCI_DEVICE_ID_INTEL_ID1029	0x1029
-#define PCI_DEVICE_ID_INTEL_ID1030	0x1030
-#define PCI_DEVICE_ID_INTEL_ID1038	0x1038
-#define PCI_DEVICE_ID_INTEL_82562	0x2449
-#define PCI_DEVICE_ID_INTEL_82542        	0x1000
-#define PCI_DEVICE_ID_INTEL_82543GC_FIBER  	0x1001
-#define PCI_DEVICE_ID_INTEL_82543GC_COPPER 	0x1004
-#define PCI_DEVICE_ID_INTEL_82544EI_COPPER 	0x1008
-#define PCI_DEVICE_ID_INTEL_82544GC_CREB   	0x100D
-#define PCI_VENDOR_ID_AMD		0x1022
-#define PCI_DEVICE_ID_AMD_LANCE		0x2000
-#define PCI_VENDOR_ID_AMD_HOMEPNA	0x1022
-#define PCI_DEVICE_ID_AMD_HOMEPNA	0x2001
-#define PCI_VENDOR_ID_SMC_1211          0x1113
-#define PCI_DEVICE_ID_SMC_1211          0x1211
-#define PCI_VENDOR_ID_DEC		0x1011
-#define PCI_DEVICE_ID_DEC_TULIP		0x0002
-#define PCI_DEVICE_ID_DEC_TULIP_FAST	0x0009
-#define PCI_DEVICE_ID_DEC_TULIP_PLUS	0x0014
-#define PCI_DEVICE_ID_DEC_21142		0x0019
-#define PCI_VENDOR_ID_SMC		0x10B8
-#ifndef	PCI_DEVICE_ID_SMC_EPIC100
-# define PCI_DEVICE_ID_SMC_EPIC100	0x0005
-#endif
-#define PCI_VENDOR_ID_MACRONIX		0x10d9
-#define PCI_DEVICE_ID_MX987x3		0x0512
-#define PCI_DEVICE_ID_MX987x5		0x0531
-#define PCI_VENDOR_ID_LINKSYS		0x11AD
-#define PCI_DEVICE_ID_LC82C115		0xC115
-#define PCI_VENDOR_ID_VIATEC		0x1106
-#define PCI_DEVICE_ID_VIA_RHINE_I	0x3043
-#define PCI_DEVICE_ID_VIA_VT6102	0x3065
-#define PCI_DEVICE_ID_VIA_86C100A	0x6100
-#define PCI_VENDOR_ID_DAVICOM		0x1282
-#define	PCI_DEVICE_ID_DM9009		0x9009
-#define PCI_DEVICE_ID_DM9102		0x9102
-#define PCI_VENDOR_ID_SIS         	0x1039
-#define PCI_DEVICE_ID_SIS900     	0x0900   
-#define PCI_DEVICE_ID_SIS7016    	0x7016  
-#define	PCI_VENDOR_ID_DLINK		0x1186
-#define	PCI_DEVICE_ID_DFE530TXP		0x1300
-#define	PCI_VENDOR_ID_NS		0x100B
-#define	PCI_DEVICE_ID_DP83815		0x0020
-#define PCI_VENDOR_ID_OLICOM		0x108d
-#define PCI_DEVICE_ID_OLICOM_OC3136	0x0001
-#define PCI_DEVICE_ID_OLICOM_OC2315	0x0011
-#define PCI_DEVICE_ID_OLICOM_OC2325	0x0012
-#define PCI_DEVICE_ID_OLICOM_OC2183	0x0013
-#define PCI_DEVICE_ID_OLICOM_OC2326	0x0014
-#define PCI_DEVICE_ID_OLICOM_OC6151	0x0021
-#define PCI_VENDOR_ID_NETGEAR		0x1385
-#define PCI_DEVICE_ID_NETGEAR_MA301	0x4100
-#define PCI_VENDOR_ID_HARRIS        	0x1260
-#define PCI_DEVICE_ID_HARRIS_PRISM2	0x3873
 
-struct pci_id {
-	unsigned short vendor, dev_id;
-	const char *name;
-};
+
+struct pci_device;
+typedef int (*pci_probe_t)(struct dev *, struct pci_device *);
 
 struct pci_device {
-	unsigned short	vendor, dev_id;
-	const char	*name;
+	uint32_t		class;
+	uint16_t		vendor, dev_id;
+	const char		*name;
 	/* membase and ioaddr are silly and depricated */
-	unsigned int	membase;
-	unsigned int	ioaddr;
-	unsigned char	devfn;
-	unsigned char	bus;
-	struct pci_id *	probe_id;
-	unsigned int	romaddr;
+	unsigned int		membase;
+	unsigned int		ioaddr;
+	unsigned int		romaddr;
+	unsigned char		devfn;
+	unsigned char		bus;
+	const struct pci_driver	*driver;
 };
 
-extern void eth_find_pci(struct pci_id *idlist, int ids, struct pci_device *dev);
+extern void find_pci(int type, struct pci_device *dev);
 
 extern int pcibios_read_config_byte(unsigned int bus, unsigned int device_fn, unsigned int where, uint8_t *value);
 extern int pcibios_write_config_byte (unsigned int bus, unsigned int device_fn, unsigned int where, uint8_t value);
@@ -216,18 +133,33 @@ extern int pcibios_read_config_dword(unsigned int bus, unsigned int device_fn, u
 extern int pcibios_write_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, uint32_t value);
 void adjust_pci_device(struct pci_device *p);
 
+
+struct pci_id {
+	unsigned short vendor, dev_id;
+	const char *name;
+};
+
 struct dev;
+/* Most pci drivers will use this */
 struct pci_driver {
 	int type;
 	const char *name;
-	int (*probe)(struct dev *, struct pci_device *);
+	pci_probe_t probe;
 	struct pci_id *ids;
 	int id_count;
+
+/* On a few occasions the hardware is standardized enough that
+ * we only need to know the class of the device and not the exact
+ * type to drive the device correctly.  If this is the case
+ * set a class value other than 0.
+ */
+	unsigned short class;
 };
 
 #define __pci_driver	__attribute__ ((unused,__section__(".rodata.pci_drivers")))
 /* Defined by the linker... */
 extern const struct pci_driver pci_drivers[];
-extern const struct pci_driver epci_drivers[];
+extern const struct pci_driver pci_drivers_end[];
+
 
 #endif	/* PCI_H */

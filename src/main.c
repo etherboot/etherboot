@@ -21,6 +21,7 @@ Literature dealing with the network protocols:
 
 #include "etherboot.h"
 #include "nic.h"
+#include "disk.h"
 
 jmpbuf			restart_etherboot;
 struct arptable_t	arptable[MAX_ARP];
@@ -177,7 +178,7 @@ static inline void try_floppy_first(void)
 	disk_init();
 	for (i = TRY_FLOPPY_FIRST; i-- > 0; ) {
 		putchar('.');
-		if (disk_read(0, 0, 0, 0, ((char *)FLOPPY_BOOT_LOCATION)) != 0x8000) {
+		if (pcbios_disk_read(0, 0, 0, 0, ((char *)FLOPPY_BOOT_LOCATION)) != 0x8000) {
 			printf("using floppy\n");
 			exit(0);
 		}
@@ -291,11 +292,6 @@ int main(void)
 /**************************************************************************
 LOADKERNEL - Try to load kernel image
 **************************************************************************/
-#if 1
-extern int url_file(const char *name,
-	int (*fnc)(unsigned char *, unsigned int, unsigned int, int));
-
-#endif
 struct proto {
 	char *name;
 	int (*load)(const char *name,
@@ -1432,9 +1428,7 @@ void cleanup(void)
 #endif
 	/* Stop receiving packets */
 	eth_disable();
-#ifdef DOWNLOAD_PROTO_DISK
 	disk_disable();
-#endif
 	console_fini();
 }
 

@@ -167,7 +167,7 @@ W89C840FLAGS=	-DINCLUDE_W89C840
 
 SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
 SRCS+=	main.c pci.c osloader.c nfs.c pxe.c misc.c config.c relocate.c heap.c
-SRCS+=	floppy.c pc_floppy.c proto_slam.c proto_tftm.c ide_disk.c
+SRCS+=	floppy.c disk.c proto_slam.c proto_tftm.c 
 
 # ROM loaders: LZ version (prefix Z), PCI header version (prefix P)
 RLOADER=	bin/rloader.bin
@@ -183,9 +183,10 @@ START32=	bin32/start32.o bin32/pcbios.o bin32/memsizes.o bin32/linuxbios.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/pxe.o bin32/misc.o
 BOBJS32+=	bin32/proto_slam.o bin32/proto_tftm.o
-BOBJS32+=	bin32/floppy.o bin32/pc_floppy.o bin32/ide_disk.o
+BOBJS32+=	bin32/floppy.o
 BOBJS32+=	bin32/serial.o bin32/timer.o  bin32/relocate.o bin32/heap.o
-BLIB32=		bin32/bootlib.a
+BOBJS32+=	bin32/disk.o
+BLIB32=		bin32/bootlib.a 
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf
 STDDEPS32=	$(START32) $(BLIB32) $(UTILS)
@@ -284,11 +285,9 @@ bin32/relocate.o:	relocate.c etherboot.h osdep.h
 
 bin32/heap.o:		heap.c etherboot.h osdep.h
 
+bin32/disk.o:		disk.c disk.h etherboot.h osdep.h
+
 bin32/floppy.o:		floppy.c etherboot.h osdep.h
-
-bin32/pc_floppy.o:	pc_floppy.c etherboot.h osdep.h timer.h
-
-bin32/ide_disk.o:	ide_disk.c etherboot.h osdep.h timer.h
 
 bin32/timer.o:		timer.c timer.h etherboot.h osdep.h
 
@@ -373,21 +372,21 @@ bin/%.bin:	bin/%.o
 	$(LD32) -Ttext 0x10000 $(LDBINARY32) -o $@ $<
 
 # general ruls for generating .img files
-bin32/%.tmp: bin32/%.o bin32/config-pci.o bin32/pci.o $(STDDEPS32)
-	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-pci.o $< bin32/pci.o $(LIBS32)
+bin32/%.tmp: bin32/%.o bin32/config.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config.o $< bin32/pci.o $(LIBS32)
 	@$(SIZE32) $@ | $(CHECKSIZE)
 
 bin32/%.img: bin32/%.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
 # general rule for .huf (compressed binary code), may be overridden
-%.huf:	%.img bin/lzhuf $(MAKEDEPS)
+bin32/%.huf:	bin32/%.img bin/lzhuf $(MAKEDEPS)
 	bin/lzhuf e $< $@
 
-%.huf.o: %.huf huf.lds $(MAKEDEPS)
+bin32/%.hufo: bin32/%.huf huf.lds $(MAKEDEPS)
 	ld -T huf.lds -b binary $< -o $@
 
-bin32/%.lzimg: bin32/%.huf.o bin32/unhuf.o $(MAKEDEPS)
+bin32/%.lzimg: bin32/%.hufo bin32/unhuf.o $(MAKEDEPS)
 	ld -T unhuf.lds bin32/unhuf.o $< -o $@
 
 
@@ -402,16 +401,16 @@ bin32/%.lzrom:	bin32/%.lzimg $(RLOADER) $(START16)
 
 
 # general rules for ELF images
-bin32/%.img.o:	bin32/%.img $(MAKEDEPS)
+bin32/%.imgo:	bin32/%.imgo $(MAKEDEPS)
 	ld -T img.lds -b binary $< -o $@
 
-bin32/%.lzimg.o:	bin32/%.lzimg $(MAKEDEPS)
+bin32/%.lzimgo:	bin32/%.lzimg $(MAKEDEPS)
 	ld -T img.lds -b binary $< -o $@
 
-bin32/%.elf:	bin32/%.img.o $(ELFPREFIX) $(MAKEDEPS)
+bin32/%.elf:	bin32/%.imgo $(ELFPREFIX) $(MAKEDEPS)
 	ld -T elfprefix.lds $(ELFPREFIX) $< -o $@
 
-bin32/%.lzelf:	bin32/%.lzimg.o $(ELFPREFIX) $(MAKEDEPS)
+bin32/%.lzelf:	bin32/%.lzimgo $(ELFPREFIX) $(MAKEDEPS)
 	ld -T elfprefix.lds $(ELFPREFIX) $< -o $@
 
 
@@ -464,7 +463,9 @@ clean:
 	$(RM) $(UTILS) bin/*.s bin/*.o bin/*.bin
 	$(RM) $(BLIB32)
 	$(RM) bin32/*.o bin32/*.tmp
-	$(RM) bin32/*.img bin32/*.lzimg bin32/*.huf
+	$(RM) bin32/*.img bin32/*.lzimg 
+	$(RM) bin32/*.imgo bin32/.lzimgo 
+	$(RM) bin32/*.huf bin32/%.hufo
 	$(RM) bin32/*.rom bin32/*.lzrom
 	$(RM) bin32/*.com
 	$(RM) bin32/*.dsk bin32/*.lzdsk

@@ -96,7 +96,7 @@ static struct pci_driver skel_driver __pci_driver = {
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
-static int skel_isa_probe(void *ptr, unsigned short *probe_addrs)
+static int skel_isa_probe(struct dev *dev, unsigned short *probe_addrs)
 {
 	struct nic *nic = (struct nic *)dev;
 	/* if probe_addrs is 0, then routine can use a hardwired default */

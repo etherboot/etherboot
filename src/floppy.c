@@ -30,7 +30,7 @@ static unsigned int disk_read_retry(int dev,int c,int h,int s)
 {
 	int retry = 3,rc;
 
-	while (retry-- && (rc = disk_read(dev,c,h,s,BOOTSECT)) != 0);
+	while (retry-- && (rc = pcbios_disk_read(dev,c,h,s,BOOTSECT)) != 0);
 	if (BOOTSIG != 0xAA55) {
 		printf("not a boot sector");
 		return(0xFFFF); }

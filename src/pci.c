@@ -84,6 +84,10 @@ int pcibios_write_config_dword (unsigned int bus, unsigned int device_fn, unsign
 
 #else	 /* CONFIG_PCI_DIRECT  not defined */
 
+#if defined(RELOCATE)
+#error "32bit bios calls are currently broken with relocation enabled"
+#endif
+
 static struct {
 	unsigned long address;
 	unsigned short segment;
@@ -128,7 +132,7 @@ static unsigned long bios32_service(unsigned long service)
 }
 
 int pcibios_read_config_byte(unsigned int bus,
-        unsigned int device_fn, unsigned int where, unsigned char *value)
+        unsigned int device_fn, unsigned int where, uint8_t *value)
 {
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
@@ -150,7 +154,7 @@ int pcibios_read_config_byte(unsigned int bus,
 }
 
 int pcibios_read_config_word(unsigned int bus,
-        unsigned int device_fn, unsigned int where, unsigned short *value)
+        unsigned int device_fn, unsigned int where, uint16_t *value)
 {
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
@@ -172,7 +176,7 @@ int pcibios_read_config_word(unsigned int bus,
 }
 
 int pcibios_read_config_dword(unsigned int bus,
-        unsigned int device_fn, unsigned int where, unsigned int *value)
+        unsigned int device_fn, unsigned int where, uint32_t *value)
 {
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
@@ -194,7 +198,7 @@ int pcibios_read_config_dword(unsigned int bus,
 }
 
 int pcibios_write_config_byte (unsigned int bus,
-	unsigned int device_fn, unsigned int where, unsigned char value)
+	unsigned int device_fn, unsigned int where, uint8_t value)
 {
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
@@ -216,7 +220,7 @@ int pcibios_write_config_byte (unsigned int bus,
 }
 
 int pcibios_write_config_word (unsigned int bus,
-	unsigned int device_fn, unsigned int where, unsigned short value)
+	unsigned int device_fn, unsigned int where, uint16_t value)
 {
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
@@ -238,7 +242,7 @@ int pcibios_write_config_word (unsigned int bus,
 }
 
 int pcibios_write_config_dword (unsigned int bus,
-	unsigned int device_fn, unsigned int where, unsigned int value)
+	unsigned int device_fn, unsigned int where, uint32_t value)
 {
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
@@ -356,26 +360,75 @@ static void pcibios_init(void)
 }
 #endif	/* CONFIG_PCI_DIRECT not defined*/
 
-static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
+static void scan_drivers(
+	int type, 
+	uint32_t class, uint16_t vendor, uint16_t device,
+	const struct pci_driver *last_driver, struct pci_device *dev)
 {
-	unsigned int first_bus, first_devfn, first_i;
+	const struct pci_driver *skip_driver = last_driver;
+	
+	/* Assume there is only one match of the correct type */
+	const struct pci_driver *driver;
+	for(driver = pci_drivers; driver < pci_drivers_end; driver++) {
+		int i;
+		if (driver->type != type)
+			continue;
+		if (skip_driver) {
+			if (skip_driver == driver) 
+				skip_driver = 0;
+			continue;
+		}
+		for(i = 0; i < driver->id_count; i++) {
+			if ((vendor == driver->ids[i].vendor) &&
+				(device == driver->ids[i].dev_id)) {
+
+				dev->driver = driver;
+				dev->name   = driver->ids[i].name;
+				goto out;
+			}
+		}
+	}
+	for(driver = pci_drivers; driver < pci_drivers_end; driver++) {
+		if (driver->type != type)
+			continue;
+		if (skip_driver) {
+			if (skip_driver == driver)
+				skip_driver = 0;
+			continue;
+		}
+		if (last_driver == driver)
+			continue;
+		if ((class >> 8) == driver->class) {
+			dev->driver = driver;
+			dev->name   = driver->name;
+			goto out;
+		}
+	}
+ out:
+	return;
+}
+
+static void scan_bus(int type, struct pci_device *dev)
+{
+	unsigned int first_bus, first_devfn;
+	const struct pci_driver *first_driver;
 	unsigned int devfn, bus, buses;
 	unsigned char hdr_type = 0;
-	unsigned short vendor, device;
+	uint32_t class;
+	uint16_t vendor, device;
 	uint32_t l, membase, ioaddr, romaddr;
-	int i, reg;
-	unsigned int pci_ioaddr = 0;
+	int reg;
 
-	first_bus = 0;
-	first_devfn = 0;
-	first_i = 0;
-	if (dev->probe_id) {
-		first_bus = dev->bus;
-		first_devfn = dev->devfn;
-		first_i = dev->probe_id - id +1;
-		dev->probe_id = 0;
-		dev->bus = 0;
-		dev->devfn = 0;
+	first_bus    = 0;
+	first_devfn  = 0;
+	first_driver = 0;
+	if (dev->driver) {
+		first_driver = dev->driver;
+		first_bus    = dev->bus;
+		first_devfn  = dev->devfn;
+		dev->driver  = 0;
+		dev->bus     = 0;
+		dev->devfn   = 0;
 	}
 		
 	/* Scan all PCI buses, until we find our card.
@@ -400,8 +453,13 @@ static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 			vendor = l & 0xffff;
 			device = (l >> 16) & 0xffff;
 
+			pcibios_read_config_dword(bus, devfn, PCI_REVISION, &l);
+			class = (l >> 8) & 0xffffff;
+
 #if	DEBUG
-			printf("%hhx:%hhx.%hhx [%hX/%hX]\n",
+		{
+			int i;
+			printf("%hhx:%hhx.%hhx %hx [%hX/%hX]\n",
 				bus, PCI_SLOT(devfn), PCI_FUNC(devfn),
 				vendor, device);
 			for(i = 0; i < 256; i++) {
@@ -415,57 +473,55 @@ static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 					printf("\n");
 				}
 			}
+		}
 #endif
-			for (i = first_i; i < ids; i++) {
-				if (vendor != id[i].vendor)
+			scan_drivers(type, class, vendor, device, first_driver, dev);
+			first_driver = 0;
+			if (!dev->driver)
+				continue;
+
+			dev->devfn = devfn;
+			dev->bus = bus;
+			dev->class = class;
+			dev->vendor = vendor;
+			dev->dev_id = device;
+			
+			
+			/* Get the ROM base address */
+			pcibios_read_config_dword(bus, devfn, 
+				PCI_ROM_ADDRESS, &romaddr);
+			romaddr >>= 10;
+			dev->romaddr = romaddr;
+			
+			/* Get the ``membase'' */
+			pcibios_read_config_dword(bus, devfn,
+				PCI_BASE_ADDRESS_1, &membase);
+			dev->membase = membase;
+				
+			/* Get the ``ioaddr'' */
+			for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
+				pcibios_read_config_dword(bus, devfn, reg, &ioaddr);
+				if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0 || (ioaddr & PCI_BASE_ADDRESS_SPACE_IO) == 0)
 					continue;
-				if (device != id[i].dev_id)
-					continue;
-
-				dev->devfn = devfn;
-				dev->bus = bus;
-				dev->vendor = id[i].vendor;
-				dev->dev_id = id[i].dev_id;
-				dev->name = id[i].name;
-				dev->probe_id = &id[i];
-
 				
-				/* Get the ROM base address */
-				pcibios_read_config_dword(bus, devfn, PCI_ROM_ADDRESS, &romaddr);
-				romaddr >>= 10;
-				dev->romaddr = romaddr;
 				
-				/* Get the ``membase'' */
-				pcibios_read_config_dword(bus, devfn,
-					PCI_BASE_ADDRESS_1, &membase);
-				dev->membase = membase;
+				/* Strip the I/O address out of the returned value */
+				ioaddr &= PCI_BASE_ADDRESS_IO_MASK;
 				
-				/* Get the ``ioaddr'' */
-				for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
-					pcibios_read_config_dword(bus, devfn, reg, &ioaddr);
-					if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0 || (ioaddr & PCI_BASE_ADDRESS_SPACE_IO) == 0)
-						continue;
-
-
-					/* Strip the I/O address out of the returned value */
-					ioaddr &= PCI_BASE_ADDRESS_IO_MASK;
-
-					/* Take the first one or the one that matches in boot ROM address */
-					dev->ioaddr = ioaddr;
-				}
-				printf("Found %s ROM address %#hx\n",
-					dev->name, romaddr);
-				return;
-
+				/* Take the first one or the one that matches in boot ROM address */
+				dev->ioaddr = ioaddr;
 			}
-			first_i = 0;
+			printf("Found %s ROM address %#hx\n",
+				dev->name, romaddr);
+			return;
 		}
 		first_devfn = 0;
 	}
 	first_bus = 0;
 }
 
-void eth_find_pci(struct pci_id *idlist, int ids, struct pci_device *dev)
+
+void find_pci(int type, struct pci_device *dev)
 {
 #ifndef	CONFIG_PCI_DIRECT
 	if (!pcibios_entry) {
@@ -476,8 +532,7 @@ void eth_find_pci(struct pci_id *idlist, int ids, struct pci_device *dev)
 		return;
 	}
 #endif
-	scan_bus(idlist, ids, dev);
-	/* return values are in pcidev structures */
+	return scan_bus(type, dev);
 }
 
 /*

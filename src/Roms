@@ -16,6 +16,7 @@ IMGS32	+= bin32/eepro100.img bin32/eepro100.lzimg
 IMGS32	+= bin32/epic100.img bin32/epic100.lzimg
 IMGS32	+= bin32/exos205.img bin32/exos205.lzimg
 IMGS32	+= bin32/fa311.img bin32/fa311.lzimg
+IMGS32	+= bin32/ide_disk.img bin32/ide_disk.lzimg
 IMGS32	+= bin32/lance.img bin32/lance.lzimg
 IMGS32	+= bin32/natsemi.img bin32/natsemi.lzimg
 IMGS32	+= bin32/ne.img bin32/ne.lzimg
@@ -24,6 +25,7 @@ IMGS32	+= bin32/ni5010.img bin32/ni5010.lzimg
 IMGS32	+= bin32/ni5210.img bin32/ni5210.lzimg
 IMGS32	+= bin32/ni6510.img bin32/ni6510.lzimg
 IMGS32	+= bin32/ns8390.img bin32/ns8390.lzimg
+IMGS32	+= bin32/pc_floppy.img bin32/pc_floppy.lzimg
 IMGS32	+= bin32/prism2_pci.img bin32/prism2_pci.lzimg
 IMGS32	+= bin32/prism2_plx.img bin32/prism2_plx.lzimg
 IMGS32	+= bin32/rtl8139.img bin32/rtl8139.lzimg
@@ -78,6 +80,7 @@ ROMS32	+= bin32/82562et.rom bin32/82562et.lzrom
 ROMS32	+= bin32/82562em.rom bin32/82562em.lzrom
 ROMS32	+= bin32/epic100.rom bin32/epic100.lzrom
 ROMS32	+= bin32/fa311too.rom bin32/fa311too.lzrom
+ROMS32	+= bin32/ide_disk.rom bin32/ide_disk.lzrom
 ROMS32	+= bin32/lancepci.rom bin32/lancepci.lzrom
 ROMS32	+= bin32/pcnetfastiii.rom bin32/pcnetfastiii.lzrom
 ROMS32	+= bin32/amdhomepna.rom bin32/amdhomepna.lzrom
@@ -145,6 +148,7 @@ ROMS32	+= bin32/ne2100.rom bin32/ne2100.lzrom
 ROMS32	+= bin32/ni5010.rom bin32/ni5010.lzrom
 ROMS32	+= bin32/ni5210.rom bin32/ni5210.lzrom
 ROMS32	+= bin32/ni6510.rom bin32/ni6510.lzrom
+ROMS32	+= bin32/pc_floppy.rom bin32/pc_floppy.lzrom
 ROMS32	+= bin32/sk_g16.rom bin32/sk_g16.lzrom
 ROMS32	+= bin32/smc9000.rom bin32/smc9000.lzrom
 ROMS32	+= bin32/tiara.rom bin32/tiara.lzrom
@@ -152,210 +156,222 @@ ROMS32	+= bin32/wd.rom bin32/wd.lzrom
 
 # Rules to build the driver object files
 
-bin32/3c595.o:	3c595.c $(MAKEDEPS) pci.h 3c595.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/3c595.o:	3c595.c $(MAKEDEPS) pci.h 3c595.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(3C595FLAGS) -o $@ -c $<
 
 bin32/3c595--%.o:	bin32/%.o bin32/3c595.o $(MAKEDEPS)
 	$(LD32) -r bin32/3c595.o $< -o $@
 
 
-bin32/3c90x.o:	3c90x.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/3c90x.o:	3c90x.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(3C90XFLAGS) -o $@ -c $<
 
 bin32/3c90x--%.o:	bin32/%.o bin32/3c90x.o $(MAKEDEPS)
 	$(LD32) -r bin32/3c90x.o $< -o $@
 
 
-bin32/davicom.o:	davicom.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/davicom.o:	davicom.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(DAVICOMFLAGS) -o $@ -c $<
 
 bin32/davicom--%.o:	bin32/%.o bin32/davicom.o $(MAKEDEPS)
 	$(LD32) -r bin32/davicom.o $< -o $@
 
 
-bin32/e1000.o:	e1000.c $(MAKEDEPS) pci.h e1000.h e1000_fxhw.c e1000_fxhw.h e1000_phy.c e1000_phy.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/e1000.o:	e1000.c $(MAKEDEPS) pci.h dev.h e1000.h e1000_fxhw.c e1000_fxhw.h e1000_phy.c e1000_phy.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(E1000FLAGS) -o $@ -c $<
 
 bin32/e1000--%.o:	bin32/%.o bin32/e1000.o $(MAKEDEPS)
 	$(LD32) -r bin32/e1000.o $< -o $@
 
 
-bin32/eepro100.o:	eepro100.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/eepro100.o:	eepro100.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(EEPRO100FLAGS) -o $@ -c $<
 
 bin32/eepro100--%.o:	bin32/%.o bin32/eepro100.o $(MAKEDEPS)
 	$(LD32) -r bin32/eepro100.o $< -o $@
 
 
-bin32/epic100.o:	epic100.c $(MAKEDEPS) pci.h epic100.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/epic100.o:	epic100.c $(MAKEDEPS) pci.h dev.h epic100.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(EPIC100FLAGS) -o $@ -c $<
 
 bin32/epic100--%.o:	bin32/%.o bin32/epic100.o $(MAKEDEPS)
 	$(LD32) -r bin32/epic100.o $< -o $@
 
 
-bin32/fa311.o:	fa311.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/fa311.o:	fa311.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(FA311FLAGS) -o $@ -c $<
 
 bin32/fa311--%.o:	bin32/%.o bin32/fa311.o $(MAKEDEPS)
 	$(LD32) -r bin32/fa311.o $< -o $@
 
 
-bin32/lance.o:	lance.c $(MAKEDEPS) pci.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/ide_disk.o:	ide_disk.c $(MAKEDEPS) pci.h dev.h disk.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h osdep.h stdint.h timer.h
+	$(CC32) $(CFLAGS32) $(IDE_DISKFLAGS) -o $@ -c $<
+
+bin32/ide_disk--%.o:	bin32/%.o bin32/ide_disk.o $(MAKEDEPS)
+	$(LD32) -r bin32/ide_disk.o $< -o $@
+
+
+bin32/lance.o:	lance.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(LANCEFLAGS) -o $@ -c $<
 
 bin32/lance--%.o:	bin32/%.o bin32/lance.o $(MAKEDEPS)
 	$(LD32) -r bin32/lance.o $< -o $@
 
 
-bin32/natsemi.o:	natsemi.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/natsemi.o:	natsemi.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(NATSEMIFLAGS) -o $@ -c $<
 
 bin32/natsemi--%.o:	bin32/%.o bin32/natsemi.o $(MAKEDEPS)
 	$(LD32) -r bin32/natsemi.o $< -o $@
 
 
-bin32/ns8390.o:	ns8390.c $(MAKEDEPS) pci.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h stdint.h
+bin32/ns8390.o:	ns8390.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(NS8390FLAGS) -o $@ -c $<
 
 bin32/ns8390--%.o:	bin32/%.o bin32/ns8390.o $(MAKEDEPS)
 	$(LD32) -r bin32/ns8390.o $< -o $@
 
 
-bin32/prism2_pci.o:	prism2_pci.c $(MAKEDEPS) pci.h etherboot.h hfa384x.h linux-asm-io.h linux-asm-string.h nic.h osdep.h p80211hdr.h prism2.c stdint.h timer.h wlan_compat.h
+bin32/prism2_pci.o:	prism2_pci.c $(MAKEDEPS) pci.h dev.h etherboot.h hfa384x.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h p80211hdr.h prism2.c stdint.h timer.h wlan_compat.h
 	$(CC32) $(CFLAGS32) $(PRISM2_PCIFLAGS) -o $@ -c $<
 
 bin32/prism2_pci--%.o:	bin32/%.o bin32/prism2_pci.o $(MAKEDEPS)
 	$(LD32) -r bin32/prism2_pci.o $< -o $@
 
 
-bin32/prism2_plx.o:	prism2_plx.c $(MAKEDEPS) pci.h etherboot.h hfa384x.h linux-asm-io.h linux-asm-string.h nic.h osdep.h p80211hdr.h prism2.c stdint.h timer.h wlan_compat.h
+bin32/prism2_plx.o:	prism2_plx.c $(MAKEDEPS) pci.h dev.h etherboot.h hfa384x.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h p80211hdr.h prism2.c stdint.h timer.h wlan_compat.h
 	$(CC32) $(CFLAGS32) $(PRISM2_PLXFLAGS) -o $@ -c $<
 
 bin32/prism2_plx--%.o:	bin32/%.o bin32/prism2_plx.o $(MAKEDEPS)
 	$(LD32) -r bin32/prism2_plx.o $< -o $@
 
 
-bin32/rtl8139.o:	rtl8139.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/rtl8139.o:	rtl8139.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(RTL8139FLAGS) -o $@ -c $<
 
 bin32/rtl8139--%.o:	bin32/%.o bin32/rtl8139.o $(MAKEDEPS)
 	$(LD32) -r bin32/rtl8139.o $< -o $@
 
 
-bin32/sis900.o:	sis900.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h sis900.h stdint.h
+bin32/sis900.o:	sis900.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h sis900.h stdint.h
 	$(CC32) $(CFLAGS32) $(SIS900FLAGS) -o $@ -c $<
 
 bin32/sis900--%.o:	bin32/%.o bin32/sis900.o $(MAKEDEPS)
 	$(LD32) -r bin32/sis900.o $< -o $@
 
 
-bin32/tulip.o:	tulip.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/tulip.o:	tulip.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(TULIPFLAGS) -o $@ -c $<
 
 bin32/tulip--%.o:	bin32/%.o bin32/tulip.o $(MAKEDEPS)
 	$(LD32) -r bin32/tulip.o $< -o $@
 
 
-bin32/via-rhine.o:	via-rhine.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/via-rhine.o:	via-rhine.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(VIA_RHINEFLAGS) -o $@ -c $<
 
 bin32/via-rhine--%.o:	bin32/%.o bin32/via-rhine.o $(MAKEDEPS)
 	$(LD32) -r bin32/via-rhine.o $< -o $@
 
 
-bin32/w89c840.o:	w89c840.c $(MAKEDEPS) pci.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/w89c840.o:	w89c840.c $(MAKEDEPS) pci.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(W89C840FLAGS) -o $@ -c $<
 
 bin32/w89c840--%.o:	bin32/%.o bin32/w89c840.o $(MAKEDEPS)
 	$(LD32) -r bin32/w89c840.o $< -o $@
 
-bin32/3c503.o:	ns8390.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h stdint.h
+bin32/3c503.o:	ns8390.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(3C503FLAGS) -o $@ -c $<
 
 bin32/3c503--%.o:	bin32/%.o bin32/3c503.o $(MAKEDEPS)
 	$(LD32) -r bin32/3c503.o $< -o $@ 
-bin32/3c507.o:	i82586.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/3c507.o:	i82586.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(3C507FLAGS) -o $@ -c $<
 
 bin32/3c507--%.o:	bin32/%.o bin32/3c507.o $(MAKEDEPS)
 	$(LD32) -r bin32/3c507.o $< -o $@ 
-bin32/3c509.o:	3c509.c $(MAKEDEPS) 3c509.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/3c509.o:	3c509.c $(MAKEDEPS) 3c509.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(3C509FLAGS) -o $@ -c $<
 
 bin32/3c509--%.o:	bin32/%.o bin32/3c509.o $(MAKEDEPS)
 	$(LD32) -r bin32/3c509.o $< -o $@ 
-bin32/3c515.o:	3c515.c $(MAKEDEPS) 3c515_isapnp.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/3c515.o:	3c515.c $(MAKEDEPS) 3c515_isapnp.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(3C515FLAGS) -o $@ -c $<
 
 bin32/3c515--%.o:	bin32/%.o bin32/3c515.o $(MAKEDEPS)
 	$(LD32) -r bin32/3c515.o $< -o $@ 
-bin32/3c529.o:	3c509.c $(MAKEDEPS) 3c509.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/3c529.o:	3c509.c $(MAKEDEPS) 3c509.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(3C529FLAGS) -o $@ -c $<
 
 bin32/3c529--%.o:	bin32/%.o bin32/3c529.o $(MAKEDEPS)
 	$(LD32) -r bin32/3c529.o $< -o $@ 
-bin32/cs89x0.o:	cs89x0.c $(MAKEDEPS) cs89x0.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/cs89x0.o:	cs89x0.c $(MAKEDEPS) cs89x0.h dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(CS89X0FLAGS) -o $@ -c $<
 
 bin32/cs89x0--%.o:	bin32/%.o bin32/cs89x0.o $(MAKEDEPS)
 	$(LD32) -r bin32/cs89x0.o $< -o $@ 
-bin32/depca.o:	depca.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/depca.o:	depca.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(DEPCAFLAGS) -o $@ -c $<
 
 bin32/depca--%.o:	bin32/%.o bin32/depca.o $(MAKEDEPS)
 	$(LD32) -r bin32/depca.o $< -o $@ 
-bin32/eepro.o:	eepro.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/eepro.o:	eepro.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(EEPROFLAGS) -o $@ -c $<
 
 bin32/eepro--%.o:	bin32/%.o bin32/eepro.o $(MAKEDEPS)
 	$(LD32) -r bin32/eepro.o $< -o $@ 
-bin32/exos205.o:	i82586.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/exos205.o:	i82586.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(EXOS205FLAGS) -o $@ -c $<
 
 bin32/exos205--%.o:	bin32/%.o bin32/exos205.o $(MAKEDEPS)
 	$(LD32) -r bin32/exos205.o $< -o $@ 
-bin32/ne.o:	ns8390.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h stdint.h
+bin32/ne.o:	ns8390.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(NEFLAGS) -o $@ -c $<
 
 bin32/ne--%.o:	bin32/%.o bin32/ne.o $(MAKEDEPS)
 	$(LD32) -r bin32/ne.o $< -o $@ 
-bin32/ne2100.o:	lance.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/ne2100.o:	lance.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(NE2100FLAGS) -o $@ -c $<
 
 bin32/ne2100--%.o:	bin32/%.o bin32/ne2100.o $(MAKEDEPS)
 	$(LD32) -r bin32/ne2100.o $< -o $@ 
-bin32/ni5010.o:	ni5010.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/ni5010.o:	ni5010.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(NI5010FLAGS) -o $@ -c $<
 
 bin32/ni5010--%.o:	bin32/%.o bin32/ni5010.o $(MAKEDEPS)
 	$(LD32) -r bin32/ni5010.o $< -o $@ 
-bin32/ni5210.o:	i82586.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/ni5210.o:	i82586.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(NI5210FLAGS) -o $@ -c $<
 
 bin32/ni5210--%.o:	bin32/%.o bin32/ni5210.o $(MAKEDEPS)
 	$(LD32) -r bin32/ni5210.o $< -o $@ 
-bin32/ni6510.o:	lance.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/ni6510.o:	lance.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(NI6510FLAGS) -o $@ -c $<
 
 bin32/ni6510--%.o:	bin32/%.o bin32/ni6510.o $(MAKEDEPS)
 	$(LD32) -r bin32/ni6510.o $< -o $@ 
-bin32/sk_g16.o:	sk_g16.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h sk_g16.h stdint.h
+bin32/pc_floppy.o:	pc_floppy.c $(MAKEDEPS) dev.h disk.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h osdep.h stdint.h timer.h
+	$(CC32) $(CFLAGS32) $(PC_FLOPPYFLAGS) -o $@ -c $<
+
+bin32/pc_floppy--%.o:	bin32/%.o bin32/pc_floppy.o $(MAKEDEPS)
+	$(LD32) -r bin32/pc_floppy.o $< -o $@ 
+bin32/sk_g16.o:	sk_g16.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h sk_g16.h stdint.h
 	$(CC32) $(CFLAGS32) $(SK_G16FLAGS) -o $@ -c $<
 
 bin32/sk_g16--%.o:	bin32/%.o bin32/sk_g16.o $(MAKEDEPS)
 	$(LD32) -r bin32/sk_g16.o $< -o $@ 
-bin32/smc9000.o:	smc9000.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h smc9000.h stdint.h
+bin32/smc9000.o:	smc9000.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h smc9000.h stdint.h
 	$(CC32) $(CFLAGS32) $(SMC9000FLAGS) -o $@ -c $<
 
 bin32/smc9000--%.o:	bin32/%.o bin32/smc9000.o $(MAKEDEPS)
 	$(LD32) -r bin32/smc9000.o $< -o $@ 
-bin32/tiara.o:	tiara.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
+bin32/tiara.o:	tiara.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(TIARAFLAGS) -o $@ -c $<
 
 bin32/tiara--%.o:	bin32/%.o bin32/tiara.o $(MAKEDEPS)
 	$(LD32) -r bin32/tiara.o $< -o $@ 
-bin32/wd.o:	ns8390.c $(MAKEDEPS) etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h stdint.h
+bin32/wd.o:	ns8390.c $(MAKEDEPS) dev.h etherboot.h isa.h linux-asm-io.h linux-asm-string.h nic.h ns8390.h osdep.h stdint.h
 	$(CC32) $(CFLAGS32) $(WDFLAGS) -o $@ -c $<
 
 bin32/wd--%.o:	bin32/%.o bin32/wd.o $(MAKEDEPS)
@@ -1032,6 +1048,22 @@ bin32/fa311too.lzrom:	bin32/fa311.lzimg $(PRLOADER) $(START16)
 bin32/fa311too--%.lzrom:	bin32/fa311--%.huf $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x100B,0x0020 -i$(IDENT32) $@
+
+bin32/ide_disk.rom:	bin32/ide_disk.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x0000,0x0000 -i$(IDENT32) $@
+
+bin32/ide_disk--%.rom:	bin32/ide_disk--%.img $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x0000,0x0000 -i$(IDENT32) $@
+
+bin32/ide_disk.lzrom:	bin32/ide_disk.lzimg $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x0000,0x0000 -i$(IDENT32) $@
+
+bin32/ide_disk--%.lzrom:	bin32/ide_disk--%.huf $(PRLOADER) $(START16)
+	cat $(PRLOADER) $(START16) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x0000,0x0000 -i$(IDENT32) $@
 
 bin32/lancepci.rom:	bin32/lance.img $(PRLOADER) $(START16)
 	cat $(PRLOADER) $(START16) $< > $@
@@ -1936,6 +1968,10 @@ bin32/ni5210.lzrom:	bin32/ni5210.lzimg $(RLOADER)
 bin32/ni6510.rom:		bin32/ni6510.img $(RLOADER)
 
 bin32/ni6510.lzrom:	bin32/ni6510.lzimg $(RLOADER)
+
+bin32/pc_floppy.rom:		bin32/pc_floppy.img $(RLOADER)
+
+bin32/pc_floppy.lzrom:	bin32/pc_floppy.lzimg $(RLOADER)
 
 bin32/sk_g16.rom:		bin32/sk_g16.img $(RLOADER)
 
