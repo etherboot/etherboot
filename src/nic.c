@@ -13,7 +13,7 @@ Literature dealing with the network protocols:
 	TFTP - RFC1350, RFC2347 (options), RFC2348 (blocksize), RFC2349 (tsize)
 	RPC - RFC1831, RFC1832 (XDR), RFC1833 (rpcbind/portmapper)
 	NFS - RFC1094, RFC1813 (v3, useful for clarifications, not implemented)
-	IGMP - RFC1112, RFC2365, RFC2236, RFC3171
+	IGMP - RFC1112, RFC2113, RFC2365, RFC2236, RFC3171
 
 **************************************************************************/
 #include "etherboot.h"
@@ -366,16 +366,17 @@ xmit:
 	return 1;
 }
 
-void build_ip_hdr(unsigned long destip, int ttl, int protocol, 
+void build_ip_hdr(unsigned long destip, int ttl, int protocol, int option_len,
 	int len, const void *buf)
 {
 	struct iphdr *ip;
 	ip = (struct iphdr *)buf;
 	ip->verhdrlen = 0x45;
+	ip->verhdrlen += (option_len/4);
 	ip->service = 0;
 	ip->len = htons(len);
 	ip->ident = 0;
-	ip->frags = 0;
+	ip->frags = 0; /* Should we set don't fragment? */
 	ip->ttl = ttl;
 	ip->protocol = protocol;
 	ip->chksum = 0;
@@ -391,7 +392,7 @@ void build_udp_hdr(unsigned long destip,
 	struct iphdr *ip;
 	struct udphdr *udp;
 	ip = (struct iphdr *)buf;
-	build_ip_hdr(destip, ttl, IP_UDP, len, buf);
+	build_ip_hdr(destip, ttl, IP_UDP, 0, len, buf);
 	udp = (struct udphdr *)((char *)buf + sizeof(struct iphdr));
 	udp->src = htons(srcsock);
 	udp->dest = htons(destsock);
@@ -850,21 +851,25 @@ static void send_igmp_reports(unsigned long now)
 	int i;
 	for(i = 0; i < MAX_IGMP; i++) {
 		if (igmptable[i].time && (now >= igmptable[i].time)) {
-			struct igmp igmp;
+			struct igmp_ip_t igmp;
+			igmp.router_alert[0] = 0x94;
+			igmp.router_alert[1] = 0x04;
+			igmp.router_alert[2] = 0;
+			igmp.router_alert[3] = 0;
 			build_ip_hdr(igmptable[i].group.s_addr, 
-				1, IP_IGMP, sizeof(igmp), &igmp);
-			igmp.type = IGMPv2_REPORT;
+				1, IP_IGMP, sizeof(igmp.router_alert), sizeof(igmp), &igmp);
+			igmp.igmp.type = IGMPv2_REPORT;
 			if (last_igmpv1 && 
 				(now < last_igmpv1 + IGMPv1_ROUTER_PRESENT_TIMEOUT)) {
-				igmp.type = IGMPv1_REPORT;
+				igmp.igmp.type = IGMPv1_REPORT;
 			}
-			igmp.response_time = 0;
-			igmp.chksum = 0;
-			igmp.group.s_addr = igmptable[i].group.s_addr;
-			igmp.chksum = ipchksum((unsigned short *)&igmp.type, 8);
+			igmp.igmp.response_time = 0;
+			igmp.igmp.chksum = 0;
+			igmp.igmp.group.s_addr = igmptable[i].group.s_addr;
+			igmp.igmp.chksum = ipchksum((unsigned short *)&igmp.igmp, sizeof(igmp.igmp));
 			ip_transmit(sizeof(igmp), &igmp);
 #ifdef	MDEBUG
-			printf("Sent IGMP report to: %@\n", igmp.group.s_addr);
+			printf("Sent IGMP report to: %@\n", igmp.igmp.group.s_addr);
 #endif			       
 			/* Don't send another igmp report until asked */
 			igmptable[i].time = 0;
@@ -876,12 +881,14 @@ static void process_igmp(struct iphdr *ip, unsigned long now)
 {
 	struct igmp *igmp;
 	int i;
+	unsigned iplen;
 	if (!ip || (ip->protocol == IP_IGMP) ||
 		nic.packetlen < ETH_HLEN + sizeof(struct igmp)) {
 		return;
 	}
-	igmp = (struct igmp *)&nic.packet[ETH_HLEN];
-	if (ipchksum((unsigned short *)&igmp->type, 8) != 0)
+	iplen = (ip->verhdrlen & 0xf)*4;
+	igmp = (struct igmp *)&nic.packet[ETH_HLEN + iplen];
+	if (ipchksum((unsigned short *)&igmp, ip->len - iplen) != 0)
 		return;
 	if ((igmp->type == IGMP_QUERY) && 
 		(ip->dest.s_addr == htonl(GROUP_ALL_HOSTS))) {
@@ -931,14 +938,18 @@ void leave_group(int slot)
 	 * and igmpv1 compatibility is not enabled.
 	 */
 	if (igmptable[slot].group.s_addr) {
-		struct igmp igmp;
+		struct igmp_ip_t igmp;
+		igmp.router_alert[0] = 0x94;
+		igmp.router_alert[1] = 0x04;
+		igmp.router_alert[2] = 0;
+		igmp.router_alert[3] = 0;
 		build_ip_hdr(htonl(GROUP_ALL_HOSTS),
-			1, IP_IGMP, sizeof(igmp), &igmp);
-		igmp.type = IGMP_LEAVE;
-		igmp.response_time = 0;
-		igmp.chksum = 0;
-		igmp.group.s_addr = igmptable[slot].group.s_addr;
-		igmp.chksum = ipchksum((unsigned short *)&igmp.type,8);
+			1, IP_IGMP, sizeof(igmp.router_alert), sizeof(igmp), &igmp);
+		igmp.igmp.type = IGMP_LEAVE;
+		igmp.igmp.response_time = 0;
+		igmp.igmp.chksum = 0;
+		igmp.igmp.group.s_addr = igmptable[slot].group.s_addr;
+		igmp.igmp.chksum = ipchksum((unsigned short *)&igmp.igmp, sizeof(igmp));
 		ip_transmit(sizeof(igmp), &igmp);
 #ifdef	MDEBUG
 		printf("Sent IGMP leave for: %@\n", igmp.group.s_addr);
@@ -978,6 +989,7 @@ int await_reply(int (*reply)(int ival, void *ptr,
 {
 	unsigned long time, now;
 	struct	iphdr *ip;
+	unsigned iplen;
 	struct	udphdr *udp;
 	unsigned short ptype;
 	int result;
@@ -1017,9 +1029,10 @@ int await_reply(int (*reply)(int ival, void *ptr,
 		ip = 0;
 		if ((ptype == IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
 			ip = (struct iphdr *)&nic.packet[ETH_HLEN];
-			if (ip->verhdrlen != 0x45)
+			if ((ip->verhdrlen < 0x45) || (ip->verhdrlen > 0x4F)) 
 				continue;
-			if (ipchksum((unsigned short *)ip, sizeof(struct iphdr)) != 0)
+			iplen = (ip->verhdrlen & 0xf) * 4;
+			if (ipchksum((unsigned short *)ip, iplen) != 0)
 				continue;
 			if (ip->frags & htons(0x3FFF)) {
 				static int warned_fragmentation = 0;
@@ -1033,8 +1046,8 @@ int await_reply(int (*reply)(int ival, void *ptr,
 		udp = 0;
 		if (ip && (ip->protocol == IP_UDP) && 
 			(nic.packetlen >= 
-				ETH_HLEN + sizeof(struct iphdr) + sizeof(struct udphdr))) {
-			udp = (struct udphdr *)&nic.packet[ETH_HLEN + sizeof(struct iphdr)];
+				ETH_HLEN + iplen + sizeof(struct udphdr))) {
+			udp = (struct udphdr *)&nic.packet[ETH_HLEN + iplen];
 			if (udp->chksum && udpchksum(ip)) {
 				printf("UDP checksum error\n");
 				continue;

@@ -7,6 +7,7 @@
 struct meminfo meminfo;
 static int lb_failsafe = 1;
 static struct cmos_entries lb_boot[MAX_BOOT_ENTRIES];
+static struct cmos_checksum lb_checksum;
 
 #undef DEBUG_LINUXBIOS
 
@@ -116,10 +117,37 @@ static unsigned cmos_read(unsigned offset, unsigned int size)
 	return value;
 }
 
+static unsigned cmos_read_checksum(void)
+{
+	unsigned sum = 
+		(cmos_read(lb_checksum.location, 8) << 8) |
+		cmos_read(lb_checksum.location +8, 8);
+	return sum & 0xffff;
+}
+
+static int cmos_valid(void)
+{
+	unsigned i;
+	unsigned sum, old_sum;
+	sum = 0;
+	if ((lb_checksum.tag != LB_TAG_OPTION_CHECKSUM) || 
+		(lb_checksum.type != CHECKSUM_PCBIOS) ||
+		(lb_checksum.size != sizeof(lb_checksum))) {
+		return 0;
+	}
+	for(i = lb_checksum.range_start; i <= lb_checksum.range_end; i+= 8) {
+		sum += cmos_read(i, 8);
+	}
+	sum = (~sum)&0x0ffff;
+	old_sum = cmos_read_checksum();
+	return sum == old_sum;
+}
+
 static void cmos_write(unsigned offset, unsigned int size, unsigned setting)
 {
 	unsigned addr, old_addr;
 	unsigned value, mask, shift;
+	unsigned sum;
 	
 	addr = offset/8;
 	
@@ -128,12 +156,22 @@ static void cmos_write(unsigned offset, unsigned int size, unsigned setting)
 	setting = (setting << shift) & mask;
 
 	old_addr = inb(0x70);
+	sum = cmos_read_checksum();
+	sum = (~sum) & 0xffff;
 
 	outb(addr | (old_addr &0x80), 0x70);
 	value = inb(0x71);
+	sum -= value;
 	value &= ~mask;
 	value |= setting;
+	sum += value;
 	outb(value, 0x71);
+
+	sum = (~sum) & 0x0ffff;
+	outb((lb_checksum.location/8) | (old_addr & 0x80), 0x70);
+	outb((sum >> 8) & 0xff, 0x71);
+	outb(((lb_checksum.location +8)/8) | (old_addr & 0x80), 0x70);
+	outb(sum & 0xff, 0x71);
 
 	outb(old_addr, 0x70);
 
@@ -162,6 +200,11 @@ static void read_linuxbios_values(struct meminfo *info,
 			struct cmos_entries *entry;
 			tbl = (struct cmos_option_table *)rec;
 			for_each_crec(tbl, crec) {
+				/* Pick off the checksum entry and keep it */
+				if (crec->tag == LB_TAG_OPTION_CHECKSUM) {
+					memcpy(&lb_checksum, crec, sizeof(lb_checksum));
+					continue;
+				}
 				if (crec->tag != LB_TAG_OPTION)
 					continue;
 				entry = (struct cmos_entries *)crec;
@@ -291,23 +334,21 @@ void get_memsizes(void)
 unsigned long get_boot_order(unsigned long order)
 {
 	int i;
+	int checksum_valid;
+	checksum_valid = cmos_valid();
 	for(i = 0; i < MAX_BOOT_ENTRIES; i++) {
 		unsigned long boot;
 		boot = order >> (i*BOOT_BITS) & BOOT_MASK;
-		if (!lb_failsafe && (lb_boot[i].bit > 0)) {
+		if (!lb_failsafe && checksum_valid && (lb_boot[i].bit > 0)) {
 			boot = cmos_read(lb_boot[i].bit, lb_boot[i].length);
 			if ((boot & BOOT_TYPE_MASK) >= BOOT_NOTHING) {
 				boot = BOOT_NOTHING;
 			} else {
-#if 0
-				/* FIXME update the cmos checksum before changing anything */
-				
 				/* Set the failsafe bit on all of 
 				 * the boot entries... 
 				 */
 				cmos_write(lb_boot[i].bit, lb_boot[i].length,
 					boot | BOOT_FAILSAFE);
-#endif
 			}
 		}
 		order &= ~(BOOT_MASK << (i * BOOT_BITS));

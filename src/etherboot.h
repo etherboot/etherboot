@@ -351,11 +351,16 @@ struct udphdr {
 };
 
 struct igmp {
-	struct iphdr ip;
 	uint8_t  type;
 	uint8_t  response_time;
 	uint16_t chksum;
 	in_addr group;
+};
+
+struct igmp_ip_t { /* Format of an igmp ip packet */
+	struct iphdr ip;
+	uint8_t router_alert[4]; /* Router alert option */
+	struct igmp igmp;
 };
 
 #define IGMP_QUERY	0x11
@@ -538,7 +543,7 @@ extern void rx_qdrain P((void));
 extern int tftp P((const char *name, int (*)(unsigned char *, unsigned int, unsigned int, int)));
 extern int ip_transmit P((int len, const void *buf));
 extern void build_ip_hdr P((unsigned long destip, int ttl, int protocol, 
-	int len, const void *buf));
+	int option_len, int len, const void *buf));
 extern void build_udp_hdr P((unsigned long destip, 
 	unsigned int srcsock, unsigned int destsock, int ttl,
 	int len, const void *buf));
