@@ -1,9 +1,3 @@
-#define EB51
-
-#ifdef EB50
-#define __unused __attribute__((unused))
-#endif
-
 /**************************************************************************
 *
 *    tlan.c -- Etherboot device driver for the Texas Instruments ThunderLAN
@@ -60,17 +54,16 @@
 #define HZ 100
 #define TX_TIME_OUT	  (6*HZ)
 
-#ifdef EB50
-#define	cpu_to_le32(val) (val)
-#define	le32_to_cpu(val) (val)
-#define	virt_to_bus(x) ((unsigned long) x)
-#define	bus_to_virt(x) ((unsigned long) x)
-#endif
-
 /* Condensed operations for readability. */
 #define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
 #define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
+//#define EDEBUG
+#ifdef EDEBUG
+#define dprintf(x) printf x
+#else
+#define dprintf(x)
+#endif
 
 static void TLan_ResetLists(struct nic *nic __unused);
 static void TLan_ResetAdapter(struct nic *nic __unused);
@@ -182,7 +175,6 @@ static struct pci_id_info tlan_pci_tbl[] = {
 	 0, 0},
 };
 
-
 struct TLanList {
 	u32 forward;
 	u16 cStat;
@@ -193,8 +185,6 @@ struct TLanList {
 	} buffer[TLAN_BUFFERS_PER_LIST];
 };
 
-
-
 struct TLanList tx_ring[TLAN_NUM_TX_LISTS];
 static unsigned char txb[TLAN_MAX_FRAME_SIZE * TLAN_NUM_TX_LISTS];
 
@@ -203,9 +193,7 @@ static unsigned char rxb[TLAN_MAX_FRAME_SIZE * TLAN_NUM_RX_LISTS];
 
 typedef u8 TLanBuffer[TLAN_MAX_FRAME_SIZE];
 
-
 int chip_idx;
-
 
 /*****************************************************************
 * TLAN Private Information Structure
@@ -215,46 +203,28 @@ struct tlan_private {
 	unsigned short vendor_id;	/* PCI Vendor code */
 	unsigned short dev_id;	/* PCI Device code */
 	const char *nic_name;
-	u8 *padBuffer;
-	u8 *rxBuffer;
-	struct TLanList *rx_head_desc;
-	u32 rxHead;
-	u32 rxTail;
-	u32 rxEocCount;
 	unsigned int cur_rx, dirty_rx;	/* Producer/consumer ring indicies */
-	unsigned int cur_tx, dirty_tx;
 	unsigned rx_buf_sz;	/* Based on mtu + Slack */
 	struct TLanList *txList;
-	struct TLanList *rxList;
-	u8 *txBuffer;
 	u32 txHead;
 	u32 txInProgress;
 	u32 txTail;
 	int eoc;
-	u32 txBusyCount;
 	u32 phyOnline;
-	u32 timerSetAt;
-	u32 timerType;
-	u32 adapterRev;
 	u32 aui;
-	u32 debug;
 	u32 duplex;
 	u32 phy[2];
 	u32 phyNum;
 	u32 speed;
 	u8 tlanRev;
 	u8 tlanFullDuplex;
-	char devName[8];
 	u8 link;
-	u8 is_eisa;
 	u8 neg_be_verbose;
 } TLanPrivateInfo;
 
 static struct tlan_private *priv;
 
 u32 BASE;
-
-
 
 /***************************************************************
 *	TLan_ResetLists
@@ -281,13 +251,11 @@ void TLan_ResetLists(struct nic *nic __unused)
 	for (i = 0; i < TLAN_NUM_TX_LISTS; i++) {
 		list = &tx_ring[i];
 		list->cStat = TLAN_CSTAT_UNUSED;
-/*		list->buffer[0].address = 0; */
 		list->buffer[0].address = virt_to_bus(txb + 
 				(i * TLAN_MAX_FRAME_SIZE)); 
 		list->buffer[2].count = 0;
 		list->buffer[2].address = 0;
 		list->buffer[9].address = 0;
-/*		list->forward = 0; */
 	}
 
 	priv->cur_rx = 0;
@@ -441,7 +409,7 @@ void TLan_FinishReset(struct nic *nic)
 	if ((tlan_pci_tbl[chip_idx].flags & TLAN_ADAPTER_UNMANAGED_PHY)
 	    || (priv->aui)) {
 		status = MII_GS_LINK;
-		printf("TLAN:  %s: Link forced.\n", priv->nic_name);
+		dprintf(("TLAN:  %s: Link forced.\n", priv->nic_name));
 	} else {
 		TLan_MiiReadReg(nic, phy, MII_GEN_STS, &status);
 		udelay(1000);
@@ -453,26 +421,26 @@ void TLan_FinishReset(struct nic *nic)
 			TLan_MiiReadReg(nic, phy, TLAN_TLPHY_PAR,
 					&tlphy_par);
 
-			printf("TLAN: %s: Link active with ",
-			       priv->nic_name);
+			dprintf(("TLAN: %s: Link active with ",
+			       priv->nic_name));
 			if (!(tlphy_par & TLAN_PHY_AN_EN_STAT)) {
-				printf("forced 10%sMbps %s-Duplex\n",
+				dprintf(("forced 10%sMbps %s-Duplex\n",
 				       tlphy_par & TLAN_PHY_SPEED_100 ? ""
 				       : "0",
 				       tlphy_par & TLAN_PHY_DUPLEX_FULL ?
-				       "Full" : "Half");
+				       "Full" : "Half"));
 			} else {
-				printf
-				    ("AutoNegotiation enabled, at 10%sMbps %s-Duplex\n",
+				dprintf
+				    (("AutoNegotiation enabled, at 10%sMbps %s-Duplex\n",
 				     tlphy_par & TLAN_PHY_SPEED_100 ? "" :
 				     "0",
 				     tlphy_par & TLAN_PHY_DUPLEX_FULL ?
-				     "Full" : "Half");
-				printf("TLAN: Partner capability: ");
+				     "Full" : "Half"));
+				dprintf(("TLAN: Partner capability: "));
 				for (i = 5; i <= 10; i++)
 					if (partner & (1 << i))
-						printf("%s", media[i - 5]);
-				printf("\n");
+						dprintf(("%s", media[i - 5]));
+				dprintf(("\n"));
 			}
 
 			TLan_DioWrite8(BASE, TLAN_LED_REG, TLAN_LED_LINK);
@@ -485,7 +453,7 @@ void TLan_FinishReset(struct nic *nic)
 			TLan_PhyMonitor(nic);
 #endif
 		} else if (status & MII_GS_LINK) {
-			printf("TLAN: %s: Link active\n", priv->nic_name);
+			dprintf(("TLAN: %s: Link active\n", priv->nic_name));
 			TLan_DioWrite8(BASE, TLAN_LED_REG, TLAN_LED_LINK);
 		}
 	}
@@ -503,17 +471,12 @@ void TLan_FinishReset(struct nic *nic)
 		TLan_SetMac(nic, 0, nic->node_addr);
 		priv->phyOnline = 1;
 		outb((TLAN_HC_INT_ON >> 8), BASE + TLAN_HOST_CMD + 1);
-/*		if ( debug >= 1 && debug != TLAN_DEBUG_PROBE ) {
-			outb( ( TLAN_HC_REQ_INT >> 8 ), BASE + TLAN_HOST_CMD + 1 );
-		}
-
-		*/
 		outl(virt_to_bus(&rx_ring), BASE + TLAN_CH_PARM);
 		outl(TLAN_HC_GO | TLAN_HC_RT, BASE + TLAN_HOST_CMD);
 	} else {
-		printf
-		    ("TLAN: %s: Link inactive, will retry in 10 secs...\n",
-		     priv->nic_name);
+		dprintf
+		    (("TLAN: %s: Link inactive, will retry in 10 secs...\n",
+		     priv->nic_name));
 		/* TLan_SetTimer( nic, (10*HZ), TLAN_TIMER_FINISH_RESET ); */
 		mdelay(10000);
 		TLan_FinishReset(nic);
@@ -555,18 +518,15 @@ static int tlan_poll(struct nic *nic, int retrieve)
 
 	nic->packetlen = framesize;
 
-#ifdef EBDEBUG
-     printf(".%d.", framesize); 
-#endif
+	dprintf((".%d.", framesize)); 
      
 	memcpy(nic->packet, rxb +
 	       (priv->cur_rx * TLAN_MAX_FRAME_SIZE), nic->packetlen);
 
 	rx_ring[entry].cStat = 0;
-#ifdef EBDEBUG
-	hex_dump(nic->packet, nic->packetlen);
-	printf("%d", entry);  
-#endif
+
+	dprintf(("%d", entry));  
+
 	entry = (entry + 1) % TLAN_NUM_RX_LISTS;
 	priv->cur_rx = entry;
 	if (eoc) {
@@ -579,11 +539,9 @@ static int tlan_poll(struct nic *nic, int retrieve)
 	} else {
 		host_cmd = TLAN_HC_ACK | ack | (0x000C0000);
 		outl(host_cmd, BASE + TLAN_HOST_CMD);
-#ifdef EBDEBUG
-		printf("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM)); 
-		host_int = inw(BASE + TLAN_HOST_INT);
-		printf("PI-2: 0x%hX\n", host_int); 
-#endif
+		
+		dprintf(("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM))); 
+		dprintf(("PI-2: 0x%hX\n", inw(BASE + TLAN_HOST_INT)));
 	}
 	refill_rx(nic);
 	return (1);		/* initially as this is called to flush the input */
@@ -604,7 +562,6 @@ static void refill_rx(struct nic *nic __unused)
 
 }
 
-/* #define EBDEBUG */
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
@@ -627,9 +584,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 #endif
 	int entry = 0;
 
-#ifdef EBDEBUG
-	printf("INT0-0x%hX\n", host_int);
-#endif
+	dprintf(("INT0-0x%hX\n", host_int));
 
 	if (!priv->phyOnline) {
 		printf("TRANSMIT:  %s PHY is not ready\n", priv->nic_name);
@@ -642,7 +597,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 		printf("TRANSMIT: %s is busy (Head=%d Tail=%d)\n",
 		       priv->nic_name, priv->txList, priv->txTail);
 		tx_ring[entry].cStat = TLAN_CSTAT_UNUSED;
-		priv->txBusyCount++;
+//		priv->txBusyCount++;
 		return;
 	}
 
@@ -688,10 +643,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 
 	tail_list->cStat = TLAN_CSTAT_READY;
 
-#ifdef EBDEBUG
-	host_int = inw(BASE + TLAN_HOST_INT);
-	printf("INT1-0x%hX\n", host_int);
-#endif
+	dprintf(("INT1-0x%hX\n", inw(BASE + TLAN_HOST_INT)));
 
 	if (!priv->txInProgress) {
 		priv->txInProgress = 1;
@@ -699,15 +651,11 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 		outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
 	} else {
 		if (priv->txTail == 0) {
-#ifdef EBDEBUG
-			printf("Out buffer\n");
-#endif
+			dprintf(("Out buffer\n"));
 			(priv->txList + (TLAN_NUM_TX_LISTS - 1))->forward =
 			    virt_to_le32desc(tail_list);
 		} else {
-#ifdef EBDEBUG
-			printf("Fix this \n");
-#endif
+			dprintf(("Fix this \n"));
 			(priv->txList + (priv->txTail - 1))->forward =
 			    virt_to_le32desc(tail_list);
 		}
@@ -715,10 +663,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 	
 	CIRC_INC(priv->txTail, TLAN_NUM_TX_LISTS);
 
-#ifdef EBDEBUG
-	host_int = inw(BASE + TLAN_HOST_INT);
-	printf("INT2-0x%hX\n", host_int);
-#endif
+	dprintf(("INT2-0x%hX\n", inw(BASE + TLAN_HOST_INT)));
 
 	to = currticks() + TX_TIME_OUT;
 	while ((tail_list->cStat == TLAN_CSTAT_READY) && currticks() < to);
@@ -773,11 +718,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-#ifdef EB51
 static void tlan_disable(struct dev *dev __unused)
-#else
-static void tlan_disable(struct nic *nic __unused)
-#endif
 {
 	/* put the card in its initial state */
 	/* This function serves 3 purposes.
@@ -830,15 +771,10 @@ PROBE - Look for an adapter, this routine's visible to the outside
 
 #define board_found 1
 #define valid_link 0
-#ifdef EB51
 static int tlan_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *) dev;
-#else
-struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
-{
-#endif
-		u16 data = 0;
+	u16 data = 0;
 	int err;
 	int i;
 
@@ -849,21 +785,19 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 	nic->ioaddr = pci->ioaddr & ~3;
 
 	BASE = pci->ioaddr;
-	printf("\n");
-	printf("tlan.c: %s, %s\n", drv_version, drv_date);
-	printf("%s: Probing for Vendor 0x%hX, Device 0x%hX",
-	       pci->name, pci->vendor, pci->dev_id);
+	
+	printf("tlan.c: Found %s, Vendor 0x%hX, Device 0x%hX\n", 
+		pci->name, pci->vendor, pci->dev_id);
 
-
-	/* I really must find out what this does */
+	/* Set nic as PCI bus master */
 	adjust_pci_device(pci);
 
 	/* Point to private storage */
 	priv = &TLanPrivateInfo;
+
 	/* Figure out which chip we're dealing with */
 	i = 0;
 	chip_idx = -1;
-
 	while (tlan_pci_tbl[i].name) {
 		if ((((u32) pci->dev_id << 16) | pci->vendor) ==
 		    (tlan_pci_tbl[i].id.pci & 0xffffffff)) {
@@ -887,19 +821,16 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 	if (err) {
 		printf("TLAN: %s: Error reading MAC from eeprom: %d\n",
 		       pci->name, err);
-	} else
-		printf("\nAddress: %!\n", nic->node_addr);
+	} else 
+		/* Print out some hardware info */
+		printf("%s: %! at ioaddr %hX, ", 
+			pci->name, nic->node_addr, pci->ioaddr);
 
 	priv->tlanRev = TLan_DioRead8(BASE, TLAN_DEF_REVISION);
-	printf("\nRevision = 0x%hX\n", priv->tlanRev);
+	printf("revision: 0x%hX\n", priv->tlanRev);
 
 	TLan_ResetLists(nic);
 	TLan_ResetAdapter(nic);
-/*
-	data = inl(BASE + TLAN_HOST_CMD);
-	data |= TLAN_HC_EOC;
-	outw(data, BASE + TLAN_HOST_CMD);
-*/
 
 	data = inl(BASE + TLAN_HOST_CMD);
 	data |= TLAN_HC_INT_OFF;
@@ -908,23 +839,16 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 	TLan_SetMulticastList(nic);
 	udelay(100); 
 	priv->txList = tx_ring;
-	priv->rxList = rx_ring;
+
 /*	if (board_found && valid_link)
 	{*/
 	/* point to NIC specific routines */
-#ifdef EB51
+
 	dev->disable = tlan_disable;
 	nic->poll = tlan_poll;
 	nic->transmit = tlan_transmit;
 	nic->irq    = tlan_irq;
 	return 1;
-#else
-	nic->disable = tlan_disable;
-	nic->poll = tlan_poll;
-	nic->transmit = tlan_transmit;
-	nic->irq    = tlan_irq;
-	return nic;
-#endif
 }
 
 
@@ -942,20 +866,20 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 *****************************************************************************/
 
 
-	/***************************************************************
-	 *	TLan_EeSendStart
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		io_base		The IO port base address for the
-	 *				TLAN device with the EEPROM to
-	 *				use.
-	 *
-	 *	This function sends a start cycle to an EEPROM attached
-	 *	to a TLAN chip.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_EeSendStart
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		io_base		The IO port base address for the
+*				TLAN device with the EEPROM to
+*				use.
+*
+*	This function sends a start cycle to an EEPROM attached
+*	to a TLAN chip.
+*
+**************************************************************/
 
 void TLan_EeSendStart(u16 io_base)
 {
@@ -970,32 +894,29 @@ void TLan_EeSendStart(u16 io_base)
 	TLan_ClearBit(TLAN_NET_SIO_EDATA, sio);
 	TLan_ClearBit(TLAN_NET_SIO_ECLOK, sio);
 
-}				/* TLan_EeSendStart */
+}	/* TLan_EeSendStart */
 
-
-
-
-	/***************************************************************
-	 *	TLan_EeSendByte
-	 *
-	 *	Returns:
-	 *		If the correct ack was received, 0, otherwise 1
-	 *	Parms:	io_base		The IO port base address for the
-	 *				TLAN device with the EEPROM to
-	 *				use.
-	 *		data		The 8 bits of information to
-	 *				send to the EEPROM.
-	 *		stop		If TLAN_EEPROM_STOP is passed, a
-	 *				stop cycle is sent after the
-	 *				byte is sent after the ack is
-	 *				read.
-	 *
-	 *	This function sends a byte on the serial EEPROM line,
-	 *	driving the clock to send each bit. The function then
-	 *	reverses transmission direction and reads an acknowledge
-	 *	bit.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_EeSendByte
+*
+*	Returns:
+*		If the correct ack was received, 0, otherwise 1
+*	Parms:	io_base		The IO port base address for the
+*				TLAN device with the EEPROM to
+*				use.
+*		data		The 8 bits of information to
+*				send to the EEPROM.
+*		stop		If TLAN_EEPROM_STOP is passed, a
+*				stop cycle is sent after the
+*				byte is sent after the ack is
+*				read.
+*
+*	This function sends a byte on the serial EEPROM line,
+*	driving the clock to send each bit. The function then
+*	reverses transmission direction and reads an acknowledge
+*	bit.
+*
+**************************************************************/
 
 int TLan_EeSendByte(u16 io_base, u8 data, int stop)
 {
@@ -1029,34 +950,31 @@ int TLan_EeSendByte(u16 io_base, u8 data, int stop)
 
 	return (err);
 
-}				/* TLan_EeSendByte */
+}	/* TLan_EeSendByte */
 
-
-
-
-	/***************************************************************
-	 *	TLan_EeReceiveByte
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		io_base		The IO port base address for the
-	 *				TLAN device with the EEPROM to
-	 *				use.
-	 *		data		An address to a char to hold the
-	 *				data sent from the EEPROM.
-	 *		stop		If TLAN_EEPROM_STOP is passed, a
-	 *				stop cycle is sent after the
-	 *				byte is received, and no ack is
-	 *				sent.
-	 *
-	 *	This function receives 8 bits of data from the EEPROM
-	 *	over the serial link.  It then sends and ack bit, or no
-	 *	ack and a stop bit.  This function is used to retrieve
-	 *	data after the address of a byte in the EEPROM has been
-	 *	sent.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_EeReceiveByte
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		io_base		The IO port base address for the
+*				TLAN device with the EEPROM to
+*				use.
+*		data		An address to a char to hold the
+*				data sent from the EEPROM.
+*		stop		If TLAN_EEPROM_STOP is passed, a
+*				stop cycle is sent after the
+*				byte is received, and no ack is
+*				sent.
+*
+*	This function receives 8 bits of data from the EEPROM
+*	over the serial link.  It then sends and ack bit, or no
+*	ack and a stop bit.  This function is used to retrieve
+*	data after the address of a byte in the EEPROM has been
+*	sent.
+*
+**************************************************************/
 
 void TLan_EeReceiveByte(u16 io_base, u8 * data, int stop)
 {
@@ -1090,30 +1008,28 @@ void TLan_EeReceiveByte(u16 io_base, u8 * data, int stop)
 		TLan_SetBit(TLAN_NET_SIO_EDATA, sio);
 	}
 
-}				/* TLan_EeReceiveByte */
+}	/* TLan_EeReceiveByte */
 
-
-
-	/***************************************************************
-	 *	TLan_EeReadByte
-	 *
-	 *	Returns:
-	 *		No error = 0, else, the stage at which the error
-	 *		occurred.
-	 *	Parms:
-	 *		io_base		The IO port base address for the
-	 *				TLAN device with the EEPROM to
-	 *				use.
-	 *		ee_addr		The address of the byte in the
-	 *				EEPROM whose contents are to be
-	 *				retrieved.
-	 *		data		An address to a char to hold the
-	 *				data obtained from the EEPROM.
-	 *
-	 *	This function reads a byte of information from an byte
-	 *	cell in the EEPROM.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_EeReadByte
+*
+*	Returns:
+*		No error = 0, else, the stage at which the error
+*		occurred.
+*	Parms:
+*		io_base		The IO port base address for the
+*				TLAN device with the EEPROM to
+*				use.
+*		ee_addr		The address of the byte in the
+*				EEPROM whose contents are to be
+*				retrieved.
+*		data		An address to a char to hold the
+*				data obtained from the EEPROM.
+*
+*	This function reads a byte of information from an byte
+*	cell in the EEPROM.
+*
+**************************************************************/
 
 int TLan_EeReadByte(u16 io_base, u8 ee_addr, u8 * data)
 {
@@ -1143,44 +1059,44 @@ int TLan_EeReadByte(u16 io_base, u8 ee_addr, u8 * data)
 
 	return ret;
 
-}				/* TLan_EeReadByte */
+}	/* TLan_EeReadByte */
 
 
 /*****************************************************************************
 ******************************************************************************
 
-	ThunderLAN Driver MII Routines
+ThunderLAN Driver MII Routines
 
-	These routines are based on the information in Chap. 2 of the
-	"ThunderLAN Programmer's Guide", pp. 15-24.
+These routines are based on the information in Chap. 2 of the
+"ThunderLAN Programmer's Guide", pp. 15-24.
 
 ******************************************************************************
 *****************************************************************************/
 
 
-	/***************************************************************
-	 *	TLan_MiiReadReg
-	 *
-	 *	Returns:
-	 *		0	if ack received ok
-	 *		1	otherwise.
-	 *
-	 *	Parms:
-	 *		dev		The device structure containing
-	 *				The io address and interrupt count
-	 *				for this device.
-	 *		phy		The address of the PHY to be queried.
-	 *		reg		The register whose contents are to be
-	 *				retreived.
-	 *		val		A pointer to a variable to store the
-	 *				retrieved value.
-	 *
-	 *	This function uses the TLAN's MII bus to retreive the contents
-	 *	of a given register on a PHY.  It sends the appropriate info
-	 *	and then reads the 16-bit register value from the MII bus via
-	 *	the TLAN SIO register.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_MiiReadReg
+*
+*	Returns:
+*		0	if ack received ok
+*		1	otherwise.
+*
+*	Parms:
+*		dev		The device structure containing
+*				The io address and interrupt count
+*				for this device.
+*		phy		The address of the PHY to be queried.
+*		reg		The register whose contents are to be
+*				retreived.
+*		val		A pointer to a variable to store the
+*				retrieved value.
+*
+*	This function uses the TLAN's MII bus to retreive the contents
+*	of a given register on a PHY.  It sends the appropriate info
+*	and then reads the 16-bit register value from the MII bus via
+*	the TLAN SIO register.
+*
+**************************************************************/
 
 int TLan_MiiReadReg(struct nic *nic __unused, u16 phy, u16 reg, u16 * val)
 {
@@ -1243,23 +1159,23 @@ int TLan_MiiReadReg(struct nic *nic __unused, u16 phy, u16 reg, u16 * val)
 
 }				/* TLan_MiiReadReg */
 
-	/***************************************************************
-	 *	TLan_MiiSendData
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		base_port	The base IO port of the adapter	in
-	 *				question.
-	 *		dev		The address of the PHY to be queried.
-	 *		data		The value to be placed on the MII bus.
-	 *		num_bits	The number of bits in data that are to
-	 *				be placed on the MII bus.
-	 *
-	 *	This function sends on sequence of bits on the MII
-	 *	configuration bus.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_MiiSendData
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		base_port	The base IO port of the adapter	in
+*				question.
+*		dev		The address of the PHY to be queried.
+*		data		The value to be placed on the MII bus.
+*		num_bits	The number of bits in data that are to
+*				be placed on the MII bus.
+*
+*	This function sends on sequence of bits on the MII
+*	configuration bus.
+*
+**************************************************************/
 
 void TLan_MiiSendData(u16 base_port, u32 data, unsigned num_bits)
 {
@@ -1286,22 +1202,19 @@ void TLan_MiiSendData(u16 base_port, u32 data, unsigned num_bits)
 
 }				/* TLan_MiiSendData */
 
-
-
-
-	/***************************************************************
-	 *	TLan_MiiSync
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		base_port	The base IO port of the adapter in
-	 *				question.
-	 *
-	 *	This functions syncs all PHYs in terms of the MII configuration
-	 *	bus.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_MiiSync
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		base_port	The base IO port of the adapter in
+*				question.
+*
+*	This functions syncs all PHYs in terms of the MII configuration
+*	bus.
+*
+**************************************************************/
 
 void TLan_MiiSync(u16 base_port)
 {
@@ -1319,28 +1232,25 @@ void TLan_MiiSync(u16 base_port)
 
 }				/* TLan_MiiSync */
 
-
-
-
-	/***************************************************************
-	 *	TLan_MiiWriteReg
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		dev		The device structure for the device
-	 *				to write to.
-	 *		phy		The address of the PHY to be written to.
-	 *		reg		The register whose contents are to be
-	 *				written.
-	 *		val		The value to be written to the register.
-	 *
-	 *	This function uses the TLAN's MII bus to write the contents of a
-	 *	given register on a PHY.  It sends the appropriate info and then
-	 *	writes the 16-bit register value from the MII configuration bus
-	 *	via the TLAN SIO register.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_MiiWriteReg
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		dev		The device structure for the device
+*				to write to.
+*		phy		The address of the PHY to be written to.
+*		reg		The register whose contents are to be
+*				written.
+*		val		The value to be written to the register.
+*
+*	This function uses the TLAN's MII bus to write the contents of a
+*	given register on a PHY.  It sends the appropriate info and then
+*	writes the 16-bit register value from the MII configuration bus
+*	via the TLAN SIO register.
+*
+**************************************************************/
 
 void TLan_MiiWriteReg(struct nic *nic __unused, u16 phy, u16 reg, u16 val)
 {
@@ -1373,26 +1283,26 @@ void TLan_MiiWriteReg(struct nic *nic __unused, u16 phy, u16 reg, u16 val)
 
 }				/* TLan_MiiWriteReg */
 
-	/***************************************************************
-	 *	TLan_SetMac
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		dev	Pointer to device structure of adapter
-	 *			on which to change the AREG.
-	 *		areg	The AREG to set the address in (0 - 3).
-	 *		mac	A pointer to an array of chars.  Each
-	 *			element stores one byte of the address.
-	 *			IE, it isn't in ascii.
-	 *
-	 *	This function transfers a MAC address to one of the
-	 *	TLAN AREGs (address registers).  The TLAN chip locks
-	 *	the register on writing to offset 0 and unlocks the
-	 *	register after writing to offset 5.  If NULL is passed
-	 *	in mac, then the AREG is filled with 0's.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_SetMac
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		dev	Pointer to device structure of adapter
+*			on which to change the AREG.
+*		areg	The AREG to set the address in (0 - 3).
+*		mac	A pointer to an array of chars.  Each
+*			element stores one byte of the address.
+*			IE, it isn't in ascii.
+*
+*	This function transfers a MAC address to one of the
+*	TLAN AREGs (address registers).  The TLAN chip locks
+*	the register on writing to offset 0 and unlocks the
+*	register after writing to offset 5.  If NULL is passed
+*	in mac, then the AREG is filled with 0's.
+*
+**************************************************************/
 
 void TLan_SetMac(struct nic *nic __unused, int areg, char *mac)
 {
@@ -1411,22 +1321,22 @@ void TLan_SetMac(struct nic *nic __unused, int areg, char *mac)
 
 }				/* TLan_SetMac */
 
-	/*********************************************************************
-	 *	TLan_PhyDetect
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		dev	A pointer to the device structure of the adapter
-	 *			for which the PHY needs determined.
-	 *
-	 *	So far I've found that adapters which have external PHYs
-	 *	may also use the internal PHY for part of the functionality.
-	 *	(eg, AUI/Thinnet).  This function finds out if this TLAN
-	 *	chip has an internal PHY, and then finds the first external
-	 *	PHY (starting from address 0) if it exists).
-	 *
-	 ********************************************************************/
+/*********************************************************************
+*	TLan_PhyDetect
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		dev	A pointer to the device structure of the adapter
+*			for which the PHY needs determined.
+*
+*	So far I've found that adapters which have external PHYs
+*	may also use the internal PHY for part of the functionality.
+*	(eg, AUI/Thinnet).  This function finds out if this TLAN
+*	chip has an internal PHY, and then finds the first external
+*	PHY (starting from address 0) if it exists).
+*
+********************************************************************/
 
 void TLan_PhyDetect(struct nic *nic)
 {
@@ -1479,7 +1389,7 @@ void TLan_PhyPowerDown(struct nic *nic)
 {
 
 	u16 value;
-	printf("%s: Powering down PHY(s).\n", priv->nic_name);
+	dprintf(("%s: Powering down PHY(s).\n", priv->nic_name));
 	value = MII_GC_PDOWN | MII_GC_LOOPBK | MII_GC_ISOLATE;
 	TLan_MiiSync(BASE);
 	TLan_MiiWriteReg(nic, priv->phy[priv->phyNum], MII_GEN_CTL, value);
@@ -1506,7 +1416,7 @@ void TLan_PhyPowerUp(struct nic *nic)
 {
 	u16 value;
 
-	printf("%s: Powering up PHY.\n", priv->nic_name);
+	dprintf(("%s: Powering up PHY.\n", priv->nic_name));
 	TLan_MiiSync(BASE);
 	value = MII_GC_LOOPBK;
 	TLan_MiiWriteReg(nic, priv->phy[priv->phyNum], MII_GEN_CTL, value);
@@ -1528,7 +1438,7 @@ void TLan_PhyReset(struct nic *nic)
 
 	phy = priv->phy[priv->phyNum];
 
-	printf("%s: Reseting PHY.\n", priv->nic_name);
+	dprintf(("%s: Reseting PHY.\n", priv->nic_name));
 	TLan_MiiSync(BASE);
 	value = MII_GC_LOOPBK | MII_GC_RESET;
 	TLan_MiiWriteReg(nic, phy, MII_GEN_CTL, value);
@@ -1559,7 +1469,7 @@ void TLan_PhyStartLink(struct nic *nic)
 	u16 tctl;
 
 	phy = priv->phy[priv->phyNum];
-	printf("%s: Trying to activate link.\n", priv->nic_name);
+	dprintf(("%s: Trying to activate link.\n", priv->nic_name));
 	TLan_MiiReadReg(nic, phy, MII_GEN_STS, &status);
 	TLan_MiiReadReg(nic, phy, MII_GEN_STS, &ability);
 
@@ -1593,8 +1503,8 @@ void TLan_PhyStartLink(struct nic *nic)
 			 * but the card need additional time to start AN.
 			 * .5 sec should be plenty extra.
 			 */
-			printf("TLAN: %s: Starting autonegotiation.\n",
-			       priv->nic_name);
+			dprintf(("TLAN: %s: Starting autonegotiation.\n",
+			       priv->nic_name));
 			mdelay(4000);
 			TLan_PhyFinishAutoNeg(nic);
 			/* TLan_SetTimer( dev, (2*HZ), TLAN_TIMER_PHY_FINISH_AN ); */
@@ -1677,7 +1587,7 @@ void TLan_PhyFinishAutoNeg(struct nic *nic)
 		return;
 	}
 
-	printf("TLAN: %s: Autonegotiation complete.\n", priv->nic_name);
+	dprintf(("TLAN: %s: Autonegotiation complete.\n", priv->nic_name));
 	TLan_MiiReadReg(nic, phy, MII_AN_ADV, &an_adv);
 	TLan_MiiReadReg(nic, phy, MII_AN_LPA, &an_lpa);
 	mode = an_adv & an_lpa & 0x03E0;
@@ -1708,13 +1618,13 @@ void TLan_PhyFinishAutoNeg(struct nic *nic)
 		    || (an_adv & an_lpa & 0x0040)) {
 			TLan_MiiWriteReg(nic, phy, MII_GEN_CTL,
 					 MII_GC_AUTOENB | MII_GC_DUPLEX);
-			printf
-			    ("TLAN:  Starting internal PHY with FULL-DUPLEX\n");
+			dprintf
+			    (("TLAN:  Starting internal PHY with FULL-DUPLEX\n"));
 		} else {
 			TLan_MiiWriteReg(nic, phy, MII_GEN_CTL,
 					 MII_GC_AUTOENB);
-			printf
-			    ("TLAN:  Starting internal PHY with HALF-DUPLEX\n");
+			dprintf
+			    (("TLAN:  Starting internal PHY with HALF-DUPLEX\n"));
 		}
 	}
 
@@ -1728,23 +1638,23 @@ void TLan_PhyFinishAutoNeg(struct nic *nic)
 
 #ifdef MONITOR
 
-	/*********************************************************************
-        *
-        *      TLan_phyMonitor
-        *
-        *      Returns:
-        *              None
-        *
-        *      Params:
-        *              dev             The device structure of this device.
-        *
-        *
-        *      This function monitors PHY condition by reading the status
-        *      register via the MII bus. This can be used to give info
-        *      about link changes (up/down), and possible switch to alternate
-        *      media.
-        *
-        * ******************************************************************/
+/*********************************************************************
+*
+*      TLan_phyMonitor
+*
+*      Returns:
+*              None
+*
+*      Params:
+*              dev             The device structure of this device.
+*
+*
+*      This function monitors PHY condition by reading the status
+*      register via the MII bus. This can be used to give info
+*      about link changes (up/down), and possible switch to alternate
+*      media.
+*
+********************************************************************/
 
 void TLan_PhyMonitor(struct net_device *dev)
 {
@@ -1786,7 +1696,6 @@ void TLan_PhyMonitor(struct net_device *dev)
 
 #endif				/* MONITOR */
 
-#ifdef EB51
 static struct pci_id tlan_nics[] = {
 	PCI_ROM(0x0e11, 0xae34, "netel10", "Compaq Netelligent 10 T PCI UTP"),
 	PCI_ROM(0x0e11, 0xae32, "netel100","Compaq Netelligent 10/100 TX PCI UTP"),
@@ -1811,4 +1720,3 @@ static struct pci_driver tlan_driver __pci_driver = {
 	.id_count = sizeof(tlan_nics) / sizeof(tlan_nics[0]),
 	.class = 0,
 };
-#endif
