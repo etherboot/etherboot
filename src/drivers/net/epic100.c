@@ -211,7 +211,7 @@ static void set_rx_mode(void)
 	memset(mc_filter, 0xff, sizeof(mc_filter));
 	outl(0x0C, rxcon);
 	for(i = 0; i < 4; i++)
-		outw((unsigned short *)mc_filter[i], mc0 + i*4);
+		outw(((unsigned short *)mc_filter)[i], mc0 + i*4);
 	return;
 }
 	
@@ -257,7 +257,6 @@ epic100_open(void)
 epic100_init_ring(void)
 {
     int i;
-    char  *p;
 
     cur_rx = cur_tx = 0;
 
@@ -300,7 +299,6 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
     unsigned short nstype;
     unsigned char *txp;
     int entry;
-    int status;
 
     /* Calculate the next Tx descriptor entry. */
     entry = cur_tx % TX_RING_SIZE;
