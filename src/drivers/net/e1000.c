@@ -82,10 +82,6 @@ typedef enum {
 /* Define this to behave more like the Linux driver. */
 #undef LINUX_DRIVER
 
-/* Define this (and implement the needed functions) if you want to differ
- * between port and memory mapped io. */
-#undef PORT_IO_AND_MEMORY_IO_DIFFER
-
 #include "e1000_hw.h"
 
 /* NIC specific static variables go here */
@@ -170,6 +166,18 @@ static int e1000_detect_gig_phy(struct e1000_hw *hw);
         readl((a)->hw_addr + E1000_82542_##reg + ((offset) << 2)))
 
 #define E1000_WRITE_FLUSH(a) {uint32_t x; x = E1000_READ_REG(a, STATUS);}
+
+uint32_t
+e1000_io_read(struct e1000_hw *hw __unused, uint32_t port)
+{
+        return inl(port);
+}
+
+void
+e1000_io_write(struct e1000_hw *hw __unused, uint32_t port, uint32_t value)
+{
+        outl(value, port);
+}
 
 static inline void e1000_pci_set_mwi(struct e1000_hw *hw)
 {
@@ -707,6 +715,19 @@ e1000_clear_vfta(struct e1000_hw *hw)
 }
 
 /******************************************************************************
+* Writes a value to one of the devices registers using port I/O (as opposed to
+* memory mapped I/O). Only 82544 and newer devices support port I/O. *
+* hw - Struct containing variables accessed by shared code
+* offset - offset to write to * value - value to write
+*****************************************************************************/
+void e1000_write_reg_io(struct e1000_hw *hw, uint32_t offset, uint32_t value){
+	uint32_t io_addr = hw->io_base;
+	uint32_t io_data = hw->io_base + 4;
+	e1000_io_write(hw, io_addr, offset);
+	e1000_io_write(hw, io_data, value);
+}
+
+/******************************************************************************
  * Set the phy type member in the hw struct.
  *
  * hw - Struct containing variables accessed by shared code
@@ -981,11 +1002,7 @@ e1000_reset_hw(struct e1000_hw *hw)
 
 	/* Must reset the PHY before resetting the MAC */
 	if((hw->mac_type == e1000_82541) || (hw->mac_type == e1000_82547)) {
-#ifdef PORT_IO_AND_MEMORY_IO_DIFFER
 		E1000_WRITE_REG_IO(hw, CTRL, (ctrl | E1000_CTRL_PHY_RST));
-#else
-		E1000_WRITE_REG(hw, CTRL, (ctrl | E1000_CTRL_PHY_RST));
-#endif
 		mdelay(5);
 	}
 
@@ -997,7 +1014,6 @@ e1000_reset_hw(struct e1000_hw *hw)
 	DEBUGOUT("Issuing a global reset to MAC\n");
 
 	switch(hw->mac_type) {
-#ifdef PORT_IO_AND_MEMORY_IO_DIFFER
 		case e1000_82544:
 		case e1000_82540:
 		case e1000_82545:
@@ -1008,7 +1024,6 @@ e1000_reset_hw(struct e1000_hw *hw)
 			 * reset, so use IO-mapping as a workaround to issue the reset */
 			E1000_WRITE_REG_IO(hw, CTRL, (ctrl | E1000_CTRL_RST));
 			break;
-#endif
 		case e1000_82545_rev_3:
 		case e1000_82546_rev_3:
 			/* Reset is performed on a shadow of the control register */
@@ -3507,6 +3522,11 @@ static void e1000_disable (struct dev *dev __unused)
 	iounmap(hw.hw_addr);
 }
 
+#define IORESOURCE_IO	0x00000100     /* Resource type */
+#define BAR_0		0
+#define BAR_1		1
+#define BAR_5		5
+
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 You should omit the last argument struct pci_device * for a non-PCI NIC
@@ -3515,7 +3535,7 @@ static int e1000_probe(struct dev *dev, struct pci_device *p)
 {
 	struct nic *nic = (struct nic *)dev;
 	unsigned long mmio_start, mmio_len;
-	int ret_val;
+	int ret_val, i;
 
 	if (p == 0)
 		return 0;
@@ -3539,6 +3559,14 @@ static int e1000_probe(struct dev *dev, struct pci_device *p)
 	mmio_len   = pci_bar_size(p,  PCI_BASE_ADDRESS_0);
 	hw.hw_addr = ioremap(mmio_start, mmio_len);
 
+	for(i = BAR_1; i <= BAR_5; i++) {
+		if(pci_bar_size(p, i) == 0)
+			continue;                
+		if(pci_find_capability(p, i) & IORESOURCE_IO) {
+			hw.io_base = pci_bar_start(p, i);
+			break;
+                }        
+	}
 	adjust_pci_device(p);
 
 	/* From Matt Hortman <mbhortman@acpthinclient.com> */

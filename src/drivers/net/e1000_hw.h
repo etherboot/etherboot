@@ -907,8 +907,8 @@ struct e1000_hw {
 	e1000_ms_type master_slave;
 	e1000_ms_type original_master_slave;
 	e1000_ffe_config ffe_config_state;
-	uint32_t io_base;
 #endif
+	uint32_t io_base;
 	uint32_t phy_id;
 #ifdef LINUX_DRIVER
 	uint32_t phy_revision;
