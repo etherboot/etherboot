@@ -77,10 +77,9 @@ static int do_printf(char *buf, const char *fmt, const int *dp)
 	char *p, *s;
 
 	s = buf;
-	while (*fmt != '\0') {
+	for ( ; *fmt != '\0'; ++fmt) {
 		if (*fmt != '%') {
 			buf ? *s++ = *fmt : putchar(*fmt);
-			fmt++;
 			continue;
 		}
 		if (*++fmt == 's') {
@@ -168,7 +167,6 @@ static int do_printf(char *buf, const char *fmt, const int *dp)
 			for (p = tmp; p < q; ++p)
 				buf ? *s++ = *p : putchar(*p);
 		}
-		fmt++;
 	}
 	if (buf)
 		*s = '\0';
