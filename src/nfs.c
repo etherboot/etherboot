@@ -483,6 +483,8 @@ int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
 	if ( name != dirname ) {
 		memcpy(dirname, name, namelen + 1);
 	}
+	recursion = 0;
+nfssymlink:
 	if ( recursion > NFS_MAXLINKDEPTH ) {
 		printf ( "\nRecursion: More than %d symlinks followed. Abort.\n", NFS_MAXLINKDEPTH );
 		return	0;
@@ -545,7 +547,8 @@ int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
 					filefh, sport);
 			if ( 0 == block ) {
 				printf("\nLoading symlink:%s ..",dirname);
-				return nfs ( dirname, fnc );
+				goto nfssymlink;
+				//return nfs ( dirname, fnc );
 			}
 			nfs_printerror(err);
 			nfs_umountall(ARP_SERVER);
