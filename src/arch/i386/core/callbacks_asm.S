@@ -371,6 +371,8 @@ process_ec_params_done:
 	popw	%ds			/* non-stack variables.		*/
 	addl	$4, %esp		/* Skip ss and cs */
 
+	.globl	extcall_breakpoint
+extcall_breakpoint:	
 	/* Call to routine */
 	cmpl	$0, 4(%esp)
 	jne	1f
@@ -770,18 +772,31 @@ _in_call_far:
  * REAL-MODE CALLBACK INTERFACE
  *
  * This must be copied down to base memory in order for external
- * programs to be able to make calls in to Etherboot.  Copy everything
- * from _rm_callback_interface to _rm_callback_interface_end and
- * update the variable rm_etherboot_location with the current physical
- * address of Etherboot (i.e. virt_to_phys(_text)).
+ * programs to be able to make calls in to Etherboot.  Store the
+ * current physical address of Etherboot (i.e. virt_to_phys(_text)) in
+ * (uint32_t)rm_etherboot_location, then copy
+ * (uint16_t)rm_callback_interface_size bytes starting at
+ * &((void)rm_callback_interface).
+ *
+ * There are two defined entry points:
+ *   Offset RM_IN_CALL     = 0		Near call entry point
+ *   Offset RM_IN_CALL_FAR = 2		Far call entry point
  *
  * Note that the routines _prot_to_real and _real_to_prot double as
  * trampoline fragments for external calls (calls from Etherboot to
  * real-mode code).
  ****************************************************************************
  */
-	.globl	_rm_callback_interface
-_rm_callback_interface:
+
+	.globl	rm_callback_interface
+	.code16
+rm_callback_interface:
+	.globl	_rm_in_call
+_rm_in_call:
+	jmp	_real_in_call
+	.globl	_rm_in_call_far
+_rm_in_call_far:
+	jmp	_real_in_call_far
 
 /****************************************************************************
  * _real_in_call
@@ -818,10 +833,24 @@ _rm_callback_interface:
 #define RIC2_OFFSET_ORIG_OPCODE ( RIC2_OFFSET_PARAMS_FROM_R2P + \
 				  RIC_R2P_INSERT_LENGTH + 8 )
 #define RIC2_INSERT_LENGTH ( RIC2_OFFSET_OPCODE_E - RIC2_OFFSET_CALLADDR )
-
+	
 	.code16
-	.globl _real_in_call
 _real_in_call:
+	/* Expand near return address to far return address
+	 */
+	subw	$2, %sp
+	pushw	%bp
+	pushw	%ax
+	movw	%sp, %bp
+	movw	%cs, %ax
+	xchgw	%ax, 6(%bp)
+	movw	%ax, 4(%bp)
+	popw	%ax
+	popw	%bp
+	/* Fall through to _real_call_far */
+	
+	.code16
+_real_in_call_far:
 	/* Allow space for expanded stack */
 	subw	$RIC_INSERT_LENGTH, %sp
 
@@ -861,8 +890,8 @@ _real_in_call:
 	pushl	%eax
 
 	/* Copy opcode, set EB_CALL_FROM_REAL_MODE.  Copy it because
-	 * _in_call() and in_call() expect it at a fixed position, not
-	 * as part of the va_list.
+	 * _in_call() and i386_in_call() expect it at a fixed
+	 * position, not as part of the va_list.
 	 */
 	movl	RIC2_OFFSET_ORIG_OPCODE(%esp), %eax
 	orl	$EB_CALL_FROM_REAL_MODE, %eax
@@ -944,8 +973,6 @@ rm_etherboot_location:	.long 0
 #define P2R_NEW_OFFSET_RETADDR ( P2R_OFFSET_RETADDR + P2R_STRIP_LENGTH )
 
 	.globl _prot_to_real
-	.globl _eprot_to_real
-
 	.code32
 _prot_to_real:
 	/* Store interrupt status and temporary registers */
@@ -980,7 +1007,7 @@ _prot_to_real:
 	movw	%ax, (p2r_rmcs+2)(%ebp)
 	shrl	$16, %eax
 	movb	%al, (p2r_rmcs+4)(%ebp)
-	movzwl	(P2R_OFFSET_SEG_REGS+8)(%esp), %eax /* %eax = RM %ss */
+	movzwl	(P2R_OFFSET_SEG_REGS+8+8)(%esp), %eax /* %eax = RM %ss */
 	shll	$4, %eax		/* %eax = RM SS base */
 	/* Adjust esp */
 	subl	%eax, %esp		/* %esp now less than 0x10000 */
@@ -1072,7 +1099,8 @@ p2r_gdt_end:
 	 * as a prefix, fall through to the following code in the
 	 * trampoline.
 	 */
-_eprot_to_real:
+	.globl	_prot_to_real_end
+_prot_to_real_end:
 
 	/* For the case that this is being used as the return path to
 	 * real-mode code, we now have a 32-bit real-mode far return
@@ -1240,16 +1268,67 @@ r2p_pmds:
 	.byte	0,0x93,0xcf,0
 r2p_gdt_end:
 
-_ereal_to_prot:	
+	.globl	_real_to_prot_end
+_real_to_prot_end:	
 
+rm_callback_interface_end:
 
-	.globl	_rm_callback_interface_end
-_rm_callback_interface_end:
+	.globl	rm_callback_interface_size
+rm_callback_interface_size:
+	.word	rm_callback_interface_end - rm_callback_interface
+
+/* Useful for calculating breakpoints */
+	.equ	p2r_size, _prot_to_real_end - _prot_to_real
+	.equ	r2p_size, _real_to_prot_end - _real_to_prot
+	.equ	trampoline_base_size, EC_SIGBLOCK_LENGTH + p2r_size + r2p_size
 
 /****************************************************************************
  * END OF REAL-MODE CALLBACK INTERFACE
  ****************************************************************************
  */
+
+
+#ifdef PXE_EXPORT
+/****************************************************************************
+ * PXE CALLBACK INTERFACE
+ *
+ * Prepend this to rm_callback_interface to create a real-mode PXE
+ * callback interface.
+ ****************************************************************************
+ */
+	.globl	pxe_callback_interface
+	.code16
+pxe_callback_interface:	
+
+	/* in_call mechanism for !PXE API calls */
+	.globl	_pxe_in_call_far
+_pxe_in_call_far:
+	/* Prepend "PXE API call" and "API version 0x201" to stack */
+	pushl	$0x201
+	jmp	1f
+	/* in_call mechanism for PXENV+ API calls */
+	.globl	_pxenv_in_call_far
+_pxenv_in_call_far:
+	/* Prepend "PXE API call" and "API version 0x200" to stack */
+	pushl	$0x200
+1:	pushl	$EB_OPCODE_PXE
+	/* Perform real-mode in_call */
+	call	pxe_rm_in_call
+	/* Return */
+	addw	$8, %sp
+	lret
+
+pxe_rm_in_call:	
+pxe_attach_rm:
+	/* rm_callback_interface must be appended here */
+
+pxe_callback_interface_end:
+
+	.globl	pxe_callback_interface_size
+pxe_callback_interface_size:
+	.word	pxe_callback_interface_end - pxe_callback_interface
+	
+#endif /* PXE_EXPORT */
 
 	
 /* Temporary demo payload routine */
@@ -1283,7 +1362,7 @@ trial_real_incall:
 	pushw	$0x3456
 	pushl	$0x201
 	pushl	$EB_OPCODE_PXE
-	lcall	$0x8000, $0
+	lcall	$0x8000, $RM_IN_CALL_FAR
 	addw	$14, %sp
 etrial_real_incall:	
 
