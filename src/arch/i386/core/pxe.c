@@ -1,7 +1,11 @@
-#ifdef FREEBSD_PXEEMU
+#ifdef EXPORT_PXE
 #include "etherboot.h"
 #include "osdep.h"
 #include "nic.h"
+#include "pxe.h"
+#include "setjmp.h"
+
+typedef unsigned long vm_offset_t ;
 
 #define UDP_MAX_PAYLOAD	(ETH_MAX_MTU - sizeof(struct iphdr) \
 			 - sizeof(struct udphdr))
@@ -9,6 +13,13 @@ struct udppacket_t {
 	struct iphdr	ip;
 	struct udphdr	udp;
 	uint8_t 	payload[UDP_MAX_PAYLOAD];
+};
+
+struct v86 {
+	uint32_t eax;
+	uint32_t ebx;
+	uint32_t ctl;
+	uint32_t addr;
 };
 
 static int pxeemu_entry(struct v86 *v86_p, int *v86_call_flag,
@@ -35,8 +46,8 @@ static pxenv_t pxenv = {
         {0, 0}                          /* !PXEPtr      */
 };
 
-static jmpbuf		pxeemu_v86call_jbuf;
-static jmpbuf		pxeemu_entry_jbuf;
+static jmp_buf          pxeemu_v86call_jbuf;
+static jmp_buf          pxeemu_entry_jbuf;
 extern char		pxeemu_nbp_active;
 
 #define PXEEMU_EXIT_ADJ		2
@@ -64,7 +75,7 @@ static __inline unsigned int min(unsigned int a, unsigned int b) { return (a < b
 
 static unsigned long pxeemu_nbp_addr = 0x7C00;
 
-static int pxe_download(unsigned char *data, unsigned int len, int eof);
+static sector_t pxe_download(unsigned char *data, unsigned int len, int eof);
 os_download_t pxe_probe(unsigned char *data, unsigned int len)
 {
 	if (*((uint32_t *)(data +2)) == 0x42455850L) {
@@ -74,7 +85,7 @@ os_download_t pxe_probe(unsigned char *data, unsigned int len)
 	return 0;
 }
 
-static int pxe_download(unsigned char *data, unsigned int len, int eof)
+static sector_t pxe_download(unsigned char *data, unsigned int len, int eof)
 {
 	memcpy(phys_to_virt(pxeemu_nbp_addr), data, len);
 	pxeemu_nbp_addr += len;
@@ -108,7 +119,7 @@ static int pxe_download(unsigned char *data, unsigned int len, int eof)
 static int await_udp_pxe(int ival, void *ptr,
 	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
 {
-	t_PXEENV_UDP_READ *s = ptr;
+	t_PXENV_UDP_READ *s = ptr;
 	if (!udp) 
 		return 0;
 	if ((s->dest_ip != 0) && (s->dest_ip != ip->dest.s_addr))
@@ -167,7 +178,7 @@ static int pxeemu_entry(struct v86 *x_v86_p, int *x_pxeemu_v86_flag,
 	    {
 		t_PXENV_UDP_OPEN *s = (t_PXENV_UDP_OPEN*) pxeemu_func_arg;
 		arptable[ARP_CLIENT].ipaddr.s_addr = s->src_ip;
-		s->status = PXENV_STATUS_SUCCESS;
+		s->Status = PXENV_STATUS_SUCCESS;
 		retval = PXENV_EXIT_SUCCESS;		
 		break;
 	    }
@@ -240,7 +251,7 @@ static int pxeemu_entry(struct v86 *x_v86_p, int *x_pxeemu_v86_flag,
 	    case PXENV_UNDI_SHUTDOWN:
 	    {
 		t_PXENV_UNDI_SHUTDOWN *s = (t_PXENV_UNDI_SHUTDOWN*) pxeemu_func_arg;
-		eth_reset();
+		eth_disable();
 		s->Status = PXENV_STATUS_SUCCESS;
 		retval = PXENV_EXIT_SUCCESS;		
 		break;
@@ -267,7 +278,7 @@ void pxeemu_console_putc(uint32_t c)
 	return;
 }
 
-#endif /* FREEBSD_PXEEMU */
+#endif /* EXPORT_PXE */
 /*
  * Local variables:
  *  c-basic-offset: 8

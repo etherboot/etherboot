@@ -30,7 +30,7 @@ currticks:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-#ifdef FREEBSD_PXEEMU
+#ifdef EXPORT_PXE
 	cmpb	$0, pxeemu_nbp_active
 	jne	currticks_postswitch
 #endif
@@ -44,7 +44,7 @@ currticks:
 20:	.code32
 	.previous
 
-#ifdef FREEBSD_PXEEMU
+#ifdef EXPORT_PXE
 currticks_postswitch:
 #endif
 	movl	virt_offset, %ebp
@@ -69,7 +69,7 @@ CONSOLE_PUTC - Print a character on console
 **************************************************************************/
 	.globl	console_putc
 console_putc:
-#ifdef FREEBSD_PXEEMU
+#ifdef EXPORT_PXE
 	.globl	pxeemu_console_putc
 	cmpb	$0, pxeemu_nbp_active
 	je	console_putc_switch
@@ -101,7 +101,7 @@ console_putc_switch:
 	ret
 20:	.code32
 	.previous
-#ifdef FREEBSD_PXEEMU
+#ifdef EXPORT_PXE
 console_putc_exit:
 #endif
 	popl	%edi
@@ -491,8 +491,7 @@ pcbios_disk_read:
 	ret
 #endif
 
-#ifdef FREEBSD_PXEEMU
-.globl initsp
+#ifdef EXPORT_PXE
 .globl pxeemu_nbp_active
 pxeemu_nbp_active: 	.byte	0
 #endif
@@ -574,62 +573,5 @@ __undi_call:
 	popl	%esi
 	popl	%ebp
 	ret
-
-/**************************************************************************
-TRIVIAL_IRQ_HANDLER - simple IRQ handler that just increments a counter
-**************************************************************************/
-	.globl	_trivial_irq_handler_start
-	.globl	_trivial_irq_handler
-	.globl	_trivial_irq_trigger_count
-	.globl	_trivial_irq_chain_to
-	.globl	_trivial_irq_chain
-	.globl	_trivial_irq_handler_end
-	.code16
-_trivial_irq_handler_start:
-_trivial_irq_handler:
-	pushw	%bx
-	call	1f		/* Position-independent access to */
-1:	popw	%bx		/* irq_triggered.		  */
-	incw	%cs:(_trivial_irq_trigger_count-1b)(%bx)
-	popw	%bx
-	iret
-_trivial_irq_trigger_count:	.word	0
-_trivial_irq_chain_to:	.long	0
-_trivial_irq_chain:	.byte	0
-_trivial_irq_handler_end:
-	.code32
-
-/**************************************************************************
-FAKE_IRQ - fake a hardware IRQ
-**************************************************************************/
-	.globl	fake_irq
-fake_irq:
-	pushl	%ebp
-	movl	%esp,%ebp
-	pushl	%esi
-	pushl	%edi
-	pushl	%ebx
-
-	movb	8(%ebp),%cl	/* Convert IRQ number to INT number: */
-	subb	$0x08,%cl	/* Invert bit 3, set bits 4-7 iff irq < 8*/
-	xorb	$0x70,%cl	/* Invert bits 4-6 */
-	andb	$0x7f,%cl	/* Clear bit 7 */
-	movb	%cl,fake_irq_int_instruction+1 /* Store in int instruction */
-
-	pushl	$ 10f
-	pushl	$ 20f - 10f
-	call	_real_call
-	.section ".text16"
-10:	.code16
-fake_irq_int_instruction:
-	int	$0x00		/* Int no. gets replaced */
-	ret
-20:	.code32
-	.previous
-	popl	%ebx
-	popl	%edi
-	popl	%esi
-	popl	%ebp
-	ret
-		
+	
 #endif /* PCBIOS */

@@ -37,16 +37,6 @@
 #define	DEFAULT_KERNELPATH	"/tftpboot/kernel.%@"
 #endif
 
-#ifdef FREEBSD_PXEEMU
-#undef DEFAULT_BOOTFILE
-#undef DEFAULT_BOOTFILE_STRINGIFIED
-#ifndef PXENFSROOTPATH
-#define PXENFSROOTPATH ""
-#endif
-#define DEFAULT_BOOTFILE
-#define DEFAULT_BOOTFILE_STRINGIFIED	PXENFSROOTPATH "/boot/pxeboot"
-#endif
-
 /* Stringify DEFAULT_BOOTFILE here in order to make the Config file more
  * user-friendly - avoids need for "\"...\"" in Config */
 #if defined(DEFAULT_BOOTFILE) && !defined(DEFAULT_BOOTFILE_STRINGIFIED)
@@ -294,7 +284,6 @@ extern int int15 P((int));
 #ifdef	POWERSAVE
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */
-extern void fake_irq ( uint8_t irq );
 
 /* basemem.c */
 extern uint32_t get_free_base_memory ( void );

@@ -31,10 +31,6 @@ int freebsd_howto = 0;
 char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 #endif
 
-#ifdef FREEBSD_PXEEMU
-extern char		pxeemu_nbp_active;
-#endif	/* FREEBSD_PXEBOOT */
-
 static inline unsigned long ask_boot(unsigned *index)
 {
 	unsigned long order = DEFAULT_BOOT_ORDER;

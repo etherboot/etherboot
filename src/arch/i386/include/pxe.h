@@ -38,10 +38,6 @@
  * It's for your own good. :)
  */
 
-/* SEGOFF16_t defined in separate header for Etherboot
- */
-#include <segoff.h>
-
 /* It seems that intel didn't think about ABI,
  * either that or 16bit ABI != 32bit ABI (which seems reasonable)
  * I have to thank Intel for the hair loss I incurred trying to figure
@@ -52,7 +48,9 @@
  * structures passed into PXE
  * Question: does this really work for PXE's expected ABI?
  */
+#ifndef PACKED
 #define	PACKED		__attribute__ ((packed))
+#endif
 
 #define	S_SIZE(s)	s, sizeof(s) - 1
 
@@ -65,7 +63,10 @@
 #define	MAC_ARGS(mac)					\
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] 
 
-#define	PXENFSROOTPATH	"/pxeroot"
+typedef struct {
+	uint16_t		offset;
+	uint16_t		segment;
+} SEGOFF16_t;
 
 typedef struct {
 	uint16_t		Seg_Addr;

@@ -79,7 +79,8 @@ POLL INTERRUPTIONS
 void poll_interruptions(void)
 {
 	int ch;
-#ifdef FREEBSD_PXEEMU
+#ifdef EXPORT_PXE
+extern char		pxeemu_nbp_active;
 	if (pxeemu_nbp_active)
 		return;
 #endif
@@ -122,11 +123,11 @@ void twiddle(void)
 	static unsigned long lastticks = 0;
 	unsigned long ticks;
 #endif
-#ifdef FREEBSD_PXEEMU
+#ifdef EXPORT_PXE
 	extern char pxeemu_nbp_active;
 	if(pxeemu_nbp_active != 0)
 		return;
-#endif
+#endif /* EXPORT_PXE */
 #ifdef	BAR_PROGRESS
 	/* Limit the maximum rate at which characters are printed */
 	ticks = currticks();

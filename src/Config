@@ -141,8 +141,8 @@
 #			Add generic ELF64 kernel boot support (useful for > 4GB disks).
 #	-DWINCE_IMAGE
 #			Add the ability to boot WINCE.... now only sis630 OK!
-#	-DFREEBSD_PXEEMU
-#			Add the ability to boot PXE images... only FreeBSD supported
+#	-DEXPORT_PXE
+#			Add the ability to export a PXE environment to NBP images.
 #	-DX86_BOOTSECTOR_IMAGE
 #			Add the ability to boot 512 byte x86 boot sectors
 #	-DIMAGE_MULTIBOOT
@@ -296,7 +296,7 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
-# CFLAGS+=	-DFREEBSD_PXEEMU
+CFLAGS+=	-DEXPORT_PXE
 
 # Relocate etherboot to just below 4GB.
 # A couple of drivers do not work with relocation, notably lance.
