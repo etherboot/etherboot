@@ -150,6 +150,9 @@ int serial_init(void)
 	int status;
 	int divisor, lcs;
 
+	if (found)
+		return 1;
+
 	divisor = COMBRD;
 	lcs = UART_LCS;
 
@@ -229,6 +232,5 @@ void serial_fini(void)
 	do {
 		status = uart_readb(UART_BASE + UART_LSR);
 	} while((--i > 0) && !(status & UART_LSR_TEMPT));
-	found = 0;
 }
 #endif
