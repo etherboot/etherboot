@@ -17,8 +17,11 @@
 *    along with this program; if not, write to the Free Software
 *    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-*    This code is based on the DOWNLOAD_PROTO_TFTM section of Etherboot 5.3 core/nic.c
-*    and Anselm Martin Hoffmeister's previous proto_tftm.c multicast work
+*    This code is based on the DOWNLOAD_PROTO_TFTM section of 
+*    Etherboot 5.3 core/nic.c and:
+*    
+*    Anselm Martin Hoffmeister's previous proto_tftm.c multicast work
+*    Eric Biederman's proto_slam.c
 *
 *    $Revision$
 *    $Author$
@@ -50,6 +53,7 @@ struct tftm_info {
 	char *data;
 	uint16_t datalen;
 	char yet;
+	int last_packet;
 	unsigned long received_packets;
 	unsigned char *image;
 	unsigned char *bitmap;
@@ -171,9 +175,10 @@ int proto_tftm(struct tftm_info *info)
 		if (tr->opcode == ntohs(TFTP_OACK)) {
 			int i = 0;
 			const char *p = tr->u.oack.data, *e = 0;
-
+#ifdef TTT
 			if (prevblock)	/* shouldn't happen */
 				continue;	/* ignore it */
+#endif
 			len =
 			    ntohs(tr->udp.len) - sizeof(struct udphdr) - 2;
 			if (len > TFTM_MIN_PACKET)
@@ -260,7 +265,9 @@ int proto_tftm(struct tftm_info *info)
 				return (0);
 			} else {
 				unsigned long bitmap_len;
-				info->numblocks = (filesize + block_size - 1)/block_size;
+				info->numblocks = (filesize + block_size + 1 )/block_size;
+				if(!(filesize % block_size))
+					info->numblocks++;
 				if (info->bitmap) {
 					forget(info->bitmap);
 				}
@@ -286,13 +293,13 @@ int proto_tftm(struct tftm_info *info)
 			unsigned char *data;
 			
 			len = ntohs(tr->udp.len) - sizeof(struct udphdr) - 4;
+			
+			if(len < block_size)
+				info->last_packet = 1;
 			if (len > packetsize)	/* shouldn't happen */
 				continue;	/* ignore it */
 			block = ntohs(tp.u.ack.block = tr->u.data.block);
-			if (block > info->numblocks) {
-				printf("ALERT: Invalid packet number\n");
-				continue;
-			}
+
 			/* Compute the expected data length */
 			if (block != info->numblocks -1) {
 				data_len = block_size;
@@ -301,17 +308,6 @@ int proto_tftm(struct tftm_info *info)
 			}
 
 			data = nic.packet + ETH_HLEN + sizeof ( struct iphdr ) + sizeof ( struct udphdr ) + 4;
-						
-			/* If the packet size is wrong drop the packet and then continue */
-			/*if (ntohs(tr->udp->len) != (data_len + (data - (unsigned char*)udp))) {
-				printf("ALERT: udp packet is not the correct size\n");
-				continue;
-			}	
-			*/
-			if (nic.packetlen < data_len + (data - nic.packet)) {
-				printf("ALERT: Ethernet packet shorter than data_len\n");
-				continue;
-			}
 			
 			if (data_len > block_size) {
 				data_len = block_size;
@@ -340,12 +336,13 @@ int proto_tftm(struct tftm_info *info)
 			/* Block order should be continuous */
 			tp.u.ack.block = htons(block = prevblock);
 		}
-		
-		tp.opcode = htons(TFTP_ACK);
-		oport = ntohs(tr->udp.src);
-		udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, iport, oport, TFTP_MIN_PACKET, &tp);	/* ack */
-
-		if (block == info->numblocks) {
+		if(info->ismaster) {
+			tp.opcode = htons(TFTP_ACK);
+			oport = ntohs(tr->udp.src);
+			udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
+				iport, oport, TFTP_MIN_PACKET, &tp);/* ack */
+		}
+		if (info->last_packet) {
 			/* We are done get out */
 			break;
 		}
@@ -395,6 +392,7 @@ int url_tftm(const char *name,
 	info.data = "@";
 	info.datalen = 2;
 	info.name = name;
+	info.last_packet = 0;
 
 
 	if (name[0] != '/') {
