@@ -102,6 +102,7 @@ while(<>) {
 		&addrom($_);
 	}
 }
+close(STDIN);
 
 # Generate the assignments to DOBJS and BINS
 print "# Driver object files and ROM image files\n";
@@ -122,7 +123,7 @@ foreach my $isa (sort keys %isaent) {
 }
 
 # Generate the *.o and config-*.o rules
-print "# Rules to build the driver object files\n";
+print "\n# Rules to build the driver object files\n";
 foreach my $pci (sort keys %drivers) {
 	# For ISA the rule for .o will generated later
 	next if &isaonly($pci);
