@@ -1,0 +1,70 @@
+.TH P910ND 8 "21 November 1999"
+.SH NAME
+p910nd \- port 9100+n printer daemon
+.SH SYNOPSIS
+.B p910nd
+[\fB0|1|2\fR]
+.SH DESCRIPTION
+.I p910nd
+is a small daemon that copies any data received on the port
+it is listening on to the corresponding printer port.
+It is primarily intended for diskless Linux hosts running as printer drivers
+but there is no reason why it could not be used on diskfull hosts.
+Port 9100 is copied to /dev/lp0, 9101 to /dev/lp1 and 9102 to /dev/lp2.
+The default is port 9101 to /dev/lp1 because the first printer port
+on Linux systems is normally /dev/lp1 as /dev/lp0 is usually only
+found on monochrome display cards.
+.SH INSTALLATION
+.I p910nd
+can be run as a standalone daemon or from inetd.
+It will automatically detect if it is running under inetd.
+.LP
+A sample SysVinit script,
+.IR p910nd.sh ,
+is provided for operation as a daemon.
+.I p910nd
+will change its name under ps to match the printer port, i.e.
+.I p9100d, p9101d
+and
+.IR p9102d .
+.LP
+When running under inetd, the
+.I /etc/inetd.conf
+entry should look something like this (with tcpwrappers protection):
+.sp
+.nf
+p9101 stream tcp nowait root /usr/sbin/tcpd /sbin/p910nd
+.fi
+.sp
+Don't forget to add an entry in
+.I /etc/services
+for the corresponding port.
+.LP
+A sample client,
+.IR client.pl ,
+is provided.
+This should be installed as the ifilter (if=) in /etc/printcap.
+.I banner.pl
+should be installed as the ofilter (of=) in /etc/printcap.
+It may be necessary to create a dummy spool file for lpd (lp=).
+This file will be opened but not written to.
+The corresponding C versions are left as an exercise for the reader.
+.LP
+When running under inetd, more than one instance could be started.
+To avoid problems with multiple instances attempting to access the
+printer at the same time, make sure that only one client is active
+at any one time. This can be done by designating one host as the
+spooler and sending all jobs to this host. You will probably
+need to set up an intermediate queue anyway to provide print job filtering.
+.SH "SEE ALSO"
+printcap(5)
+.SH DIAGNOSTICS
+.I p910nd
+logs error messages to syslog.
+.SH COPYRIGHT
+.I p910nd
+is under the GNU Public License
+.SH AUTHOR
+Ken Yap (ken_yap@users.sourceforge.net)
+.SH DATE
+Version 0.3 November 1999

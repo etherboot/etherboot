@@ -1,0 +1,30 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>16-bit README: So should I use Etherboot/32 or Etherboot/16?</TITLE>
+ <LINK HREF="16-4.html" REL=next>
+ <LINK HREF="16-2.html" REL=previous>
+ <LINK HREF="16.html#toc3" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="16-4.html">Next</A>
+<A HREF="16-2.html">Previous</A>
+<A HREF="16.html#toc3">Contents</A>
+<HR>
+<H2><A NAME="s3">3. So should I use Etherboot/32 or Etherboot/16?</A></H2>
+
+<P>
+<P>If you are using etherboot to load Linux, then you probably want Etherboot/32
+because Etherboot/16 is a subset. It only loads tagged images. It can load
+to extended memory if running on a 286 or above. On a 8086/8 loading to
+extended memory will silently fail.
+<P>If you want to make Etherboot/16 ROMs, you need to change the ETHERBOOT
+variable in src/Config.
+<P>
+<HR>
+<A HREF="16-4.html">Next</A>
+<A HREF="16-2.html">Previous</A>
+<A HREF="16.html#toc3">Contents</A>
+</BODY>
+</HTML>

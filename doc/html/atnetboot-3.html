@@ -1,0 +1,59 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Netbooting a 286 with a ramdisk: Various tips</TITLE>
+ <LINK HREF="atnetboot-4.html" REL=next>
+ <LINK HREF="atnetboot-2.html" REL=previous>
+ <LINK HREF="atnetboot.html#toc3" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="atnetboot-4.html">Next</A>
+<A HREF="atnetboot-2.html">Previous</A>
+<A HREF="atnetboot.html#toc3">Contents</A>
+<HR>
+<H2><A NAME="s3">3. Various tips</A></H2>
+
+<P>
+<P>Tip: You can do a mdir directly on the netboot image if you use the
+offset parameter of mtools. In $HOME/.mtoolsrc, put
+<P>
+<HR>
+<PRE>
+drive t: file="/tftpdir/dos.nb" offset=4096
+</PRE>
+<HR>
+<P>Then you can do
+<P>
+<HR>
+<PRE>
+mdir t:
+</PRE>
+<HR>
+<P>4096 is the sum of the header size (512) and the startup segment size
+(3584). It may be different for other versions of mknbi-dos.
+<P>
+<P>
+<P>Caveat: For this trick, access other than reading only may not work. You
+may be able to rewrite things on the "floppy" with mcopy, etc. but the
+declared size in the header will not get updated. If you wish to modify
+things you should work on the "floppy" image, then rebuild with mknbi-dos.
+<P>
+<P>
+<P>Hint: As mentioned before, using an executable compressor like <CODE>lzexe</CODE>
+or <CODE>pklite</CODE> might allow you to squeeze more programs onto the
+"floppy". See a site like 
+<A HREF="http://www.simtel.net/simtel.net/">Simtel.Net</A> for such programs.
+<P>
+<P>
+<P>Note: Of course, this technique works for 386s and higher. However you
+may want to consider netbooting 
+<A HREF="http://www.linux.org">Linux</A> with an initial ramdisk instead
+of DOG.
+<P>
+<HR>
+<A HREF="atnetboot-4.html">Next</A>
+<A HREF="atnetboot-2.html">Previous</A>
+<A HREF="atnetboot.html#toc3">Contents</A>
+</BODY>
+</HTML>

@@ -1,0 +1,24 @@
+mknbi.pl 1.0
+
+mknbi is a utility for building a tagged image for kernel for various
+operating systems. It can also build a tagged image for an Etherboot ROM,
+which isn't really an operating system.
+
+mknbi has several advantages over the mknbi tools in netboot-0.8.1
+and contrib:
+
+It is more portable, as it is written in Perl. It should be possible to
+execute the Perl script unchanged on various platforms to which Perl5
+has been ported.
+
+It will be able to cope with any additional load formats that Etherboot
+might support in future, because the image format specific handling has
+been abstracted into a class, Nbi.pm.
+
+It is more readable. While this is a matter of opinion, my personal
+perspective is that Perl is more concise than C, and this aids
+comprehension because one can keep more context with the limited number
+of lines on the screen. Perl's powerful builtin functions and useful
+data types handle situations such as structure extraction and packing,
+and byte ordering simply. It is relatively easy to add support for new
+features. The drawback is that the programmer must be fluent in Perl.

@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot README: Testing the network booting</TITLE>
+ <LINK HREF="README-5.html" REL=next>
+ <LINK HREF="README-3.html" REL=previous>
+ <LINK HREF="README.html#toc4" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="README-5.html">Next</A>
+<A HREF="README-3.html">Previous</A>
+<A HREF="README.html#toc4">Contents</A>
+<HR>
+<H2><A NAME="s4">4. Testing the network booting</A></H2>
+
+<P>
+<P>Now when you start up Etherboot, it should obtain an IP address and print
+out what it received. If you do not get this to work, turn on debugging
+in bootpd and see if any query was received. You may also wish to use
+the tcpdump utility to watch the network for bootp packets.  If not,
+check your network hardware (cables, etc). If a query was received,
+check if bootpd was able to give an answer. If not, then the Ethernet
+address was not found in /etc/bootptab. If a reply was sent, then only
+faulty hardware or a bug in Etherboot would prevent it being received
+by Etherboot.
+<P>
+<P>
+<P>Assuming an IP address was received, the next thing Etherboot tries to
+do is load a file using tftp. Check your system logs to see if a tftp
+daemon was started up and a file requested. Generally if you run tftpd
+under tcpwrapper security, a log entry will be generated. If not, it
+could be a path problem or file permission problem (the file needs to be
+readable by tftpd). Another problem could be that tftpd needs to reverse
+map the IP address to a name for security checking, and you don't have
+the client's details in /etc/hosts or in DNS, or your tcpwrapper config
+files (/etc/hosts.deny, /etc/hosts/allow) do not allow the access. Fix
+the problem.
+<P>
+<P>
+<P>After the tagged image is loaded, Etherboot will jump to it. If it
+crashes here, check that the image is a tagged image. If it executes
+and stops at the point where it's trying to mount the NFS root,
+then you need to check that you have the "root on NFS" option compiled
+in and that you have compiled in the network card driver.
+<P>
+<H2><A NAME="ss4.1">4.1 Setting up a NFS root filesystem</A>
+</H2>
+
+<P>
+<P>Now you need to set up a NFS root filesystem for the diskless computer.
+Typically this is under /tftpboot/&lt;ip address of computer&gt;. In
+2.1 and higher kernels, this should be /tftpboot/&lt;name of computer
+in bootptab&gt;.  This needs to contain a complete root filesystem
+that will make the kernel boot happily.  This means, for most kernels,
+it should contain /dev, /proc, /etc, /sbin, /bin, /tmp and /var. The
+details vary from distribution to distribution.  Being lazy I just make
+a copy of the necessary files from an existing RedHat 6.0 filesystem and
+modify some key files appropriately. You can find a description in 
+<A HREF="diskless.html">my tutorial</A> and some shell scripts to copy
+the files. Since the amount of disk space needed is relatively small in
+these days of large disks, I don't bother to throw out things that may
+not be needed.
+<P>
+<P>
+<P>One thing to be aware of is that when you host the root filesystem on a
+NFS server that is not Linux, the major and minor numbers of device files
+will be different from what Linux is expecting, so the init process will
+probably break just after it mounts the root NFS, maybe when it tries
+to open the console device. You must create the root filesystem so that
+it is Linux compatible, even though it is hosted on a different Unix.
+One way might be to use cpio to capture a Linux root FS and then to
+unpack on the target Unix system.
+<P>
+<P>
+<P>Warning: Do not attempt to reuse the root filesystem of your server,
+whether by exporting it directly or by making hard links (symbolic links
+will not work). First of all, the configuration files will contain
+information pertaining to the server, not the client, so your client
+will get the wrong information. Secondly, this is a security risk. NFS
+is already not totally safe, but this way you are directly exposing your
+server root to clients. Even if you make hard links, the clients could
+(maliciously or accidentally) overwrite key binaries, making the server
+unusable. Don't try to save a few megabytes of disk space this way. You
+can however share some directories between clients, typically /sbin,
+/bin and /lib.  The sample scripts in the tutorial show you how.
+<P>
+<P>
+<P>The root filesystem should be exported rw and no_root_squash because the
+various processes need to be root and need to write to log files in the
+root partition. You may wish to export /usr and /home filesystems to the
+diskless computer also. These do not need no_root_squash permission. Be
+aware that practically all Linux distributions have a few "bugs" relating
+to symlinks and so forth for diskless booting.  These are mentioned in
+the tutorial.
+<P>
+<H2><A NAME="ss4.2">4.2 Initial ramdisk</A>
+</H2>
+
+<P>
+<P>It is possible to use initial ramdisk (initrd) in addition to, or in
+place of an NFS root. See the ramdisk argument of 
+<A HREF="mknbi.html">mknbi-linux</A>. You will also need to read the
+Linux kernel documentation to see what extra arguments should be passed
+to the kernel to make it use an initrd, and how to arrange the initrd so
+that the startup script within it is called when it's mounted.
+<P>
+<P>
+<P>Initrds are useful for loading modules before the NFS root is mounted,
+or to use some other network filesystem instead of NFS root, for
+example.  Some applications could even run totally out of initrd,
+provided you have the memory, of course. Also traffic on the kernel
+mailing lists indicate that at some point in the future, kernel level
+autoconfiguration (BOOTP/DHCP from the kernel) may be removed from the
+Linux kernel and initrds may be the way to start up a diskless sytem
+that can acquire an identity using a userland DHCP client program.
+<P>
+<H2><A NAME="ss4.3">4.3 Swap over NFS</A>
+</H2>
+
+<P>
+<P>Swap over NFS can be arranged but you have to patch the kernel source.
+There are patches in the contrib directory for NFS swap but for up to date
+patches, try 
+<A HREF=" http://www.math1.rwth-aachen.de/~heine/nfs-swap/">here</A>.
+<P>
+<P>
+<P>Be aware that opinions are divided on NFS swap.  Some people think
+it's a bad thing because it just kills the network if you have lots
+of diskless computers and that you shouldn't be running into a swap
+regime on a diskless computer anyway. Some other people like having a
+bit of insurance.
+<P>
+<P>
+<P>Also have a look at the 
+<A HREF="http://atrey.karlin.mff.cuni.cz/~pavel/nbd/nbd.html">NBD</A>
+Network Block Device web page for swapping over that. This requires a
+2.1 or 2.2 kernel.
+<P>
+<HR>
+<A HREF="README-5.html">Next</A>
+<A HREF="README-3.html">Previous</A>
+<A HREF="README.html#toc4">Contents</A>
+</BODY>
+</HTML>

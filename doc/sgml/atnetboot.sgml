@@ -1,0 +1,230 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>Netbooting a 286 with a ramdisk
+<author>Ken Yap, <tt/ken_yap@users.sourceforge.net/
+<date>14 September 1999
+
+<abstract>
+This document explains how I netbooted a ramdisk onto a 286 and used it
+to run DOS applications.
+</abstract>
+
+<toc>
+
+<sect>Netbooting a 286 with a ramdisk
+
+<p>
+
+I have booted a 286 diskless, using a boot ROM on a network card,
+sending an image of a ramdisk containing a DOS startup floppy disk.
+The 286 then ran programs from the ramdisk. This could be used to send
+programs like telnet, print spoolers, routers and other standalone
+utilities that you want to run on a diskless (and maybe headless and
+keyless) 286. Here are some <url
+url="http://www.geocities.com/SiliconValley/lab/9247/" name="ideas"> for
+what you could run.
+
+<p>
+
+The method could be generalised to other OSes that could run on a 286,
+e.g. <url url="http://epocha.pd.mcs.net/Linux8086/" name="ELKS">. See the
+discussion below for what needs to be done.
+
+<p>
+
+<sect>How to do it
+
+<p>
+
+<enum>
+
+<item>Prepare a floppy containing a bootable DOS. I used <url
+url="http://www.caldera.com/dos/" name="Caldera's DR-DOS">, which is free for
+personal and charitable uses. <it>(It has been confirmed that DR-DOS 7.03 has
+changed in some way that netbooting fails; reason is still unknown. 7.02
+works.)</it> FreeDOS can also be netbooted and the kernel is loaded from the
+tagged image rather than from the floppy image, which means more space for
+applications or data. All the instructions are in the <url name="mknbi"
+url="mknbi.html"> directory that comes with the Etherboot distribution.  You
+can find a <url url="http://etherboot.sourceforge.net/disklesstelnet.zip"
+name="zip file"> containing the components of a tagged image that runs telnet
+on the diskless client.
+
+<item>You can do nearly all manipluations on Linux using <url
+url="http://wauug.erols.com/pub/knaff/mtools/" name="mtools"> on a floppy
+image in a file but you have to get the boot block from DR-DOS first to
+pass to mformat. You can do this by extracting the first 512 bytes from
+a formatted and sys'ed floppy.  The DOS commands are: <tt/format b:/,
+then <tt/sys b:/.
+
+<code>
+dd if=/dev/fd0 of=dosboot.bin bs=512 count=1
+</code>
+
+You also need the kernel files ibmbio.com and ibmdos.com; and command.com.
+
+<code>
+mattrib -rsh a:ibmbio.com a:ibmdos.com
+mcopy a:ibmbio.com a:ibmdos.com a:command.com .
+</code>
+
+<item>Since the RAM available for ramdisk may be limited, in the case
+of a 286 with 1 MB memory: 384k less the 64 kB High Memory Area, giving
+320 kB, you probably want to create a 320kB ramdisk floppy.  If you
+have more extended memory, then you can create larger ramdisks, e.g.
+720kB or even 1.44MB.
+
+<item>Set up a mapping between the floppy image and a drive letter by
+editing .mtoolsrc, see the mtools man pages.
+
+<code>
+drive z: file="/tmp/floppyimage.320"
+</code>
+
+<item>Create the floppy image and copy the boot block onto it in a file
+using mformat (adjust the number of tracks, sectors and heads if you
+are not using a 320kB format).
+
+<code>
+mformat -t 40 -s 8 -h 2 -B dosboot.bin -C z:
+</code>
+
+In what follows, when I write floppy, I mean the image in a disk file
+referred to by z:.
+
+<item>Copy the DOS kernel files onto the floppy.  In the case of DR-DOS
+these are ibmbio.com, ibmdos.com, and command.com. The first two are
+read-only hidden system files so use mattrib to set these attributes.
+
+<item>Copy all the programs you need to run onto the floppy. Don't
+forget any configuration files needed. Also include an autoexec.bat (and
+perhaps config.sys) to start everything up. Don't worry about getting
+the configuration file contents right at this point, you can replace
+them at will on the ramdisk floppy.
+
+<item>Get the <url url="http://etherboot.sourceforge.net/"
+name="Etherboot"> distribution, version 4.4 or higher, and make a boot
+PROM for the card of your choice. You may want to enable the <tt/ASK_BOOT/
+option with a short timeout and <tt/ANS_DEFAULT=ANS_NETWORK/.  This will
+enable you to boot the 286 normally if you need to fix anything. All
+network cards, even the very old ones, should accept a 8 kB boot
+PROM. Most compressed 16 bit images in Etherboot are under 8 kB.
+Burn it into a PROM or find someone to do it for you. If you are using
+a larger PROM, make sure you have burnt it in the right portion of the
+PROM, or burn multiple copies in the address space to be sure. See <url
+url="http://etherboot.sourceforge.net/doc/html/README.html" name="here">
+for some things to watch out for.
+
+<item>Set up bootp/DHCP and tftp services on the server if you haven't
+already. Did I mention read the Etherboot documentation already?
+
+<item>In the same Etherboot distribution, compile the <tt/mknbi-dos/
+program. Use the program to create a tagged image in the directory
+that tftpd fetches from, typically <tt>/tftpdir</tt>. The command is
+probably: <tt>mknbi-dos -x -x -r floppyimage -o /tftpdir/dos.nb</tt>.
+(The two <tt/-x/ flags print out verbose information.) Check that
+the <tt>/etc/bootptab</tt> entry or the dhcpd.conf entry for the 286
+specifies <tt/dos.nb/ as the file to load. You may need the -f flag to
+disable checking if mknbi-dos doesn't recognise your DOS version.
+
+<item>On your 286, disable any floppies or hard disks in the CMOS
+configuration. Also set it to not require a keyboard, if you intend to
+run keyless. If the CMOS setup doesn't allow you to disable the
+keyboard, you have a problem.  One way out might be to attach an
+unloved keyboard, one that is just good enough to pass the probe from
+the BIOS.
+
+<item>Now hit the reset switch and watch the boot PROM take over. It
+should find the bootp/DHCP server and then the tftp server and load the
+tagged image.  Then DOS will start executing, reading autoexec.bat and
+running the commands there.  Hopefully the last command there is the
+program you want leave running.
+
+<item>You may wish to look at the contributed program romid.exe in the
+Etherboot distribution. This is meant to be run from autoexec.bat. It
+returns the ID of the boot ROM installed in an environment variable
+so that the appropriate <url url="http://www.crynwr.com" name="packet
+driver"> can be installed.
+
+<item>Another program I like to invoke in autoexec.bat is pdclksml.com,
+found <url url="http://www.geocities.com/SiliconValley/lab/9247/"
+name="here"> which sets the PC clock using bootp and the UDP time service
+(port 37).
+
+</enum>
+
+Things that I have netbooted in this fashion are:
+
+<itemize>
+
+<item>NCSA telnet, using a version that gets most parameters by bootp.
+I compressed the binary using lzexe to save space.
+
+<item>DOS Kermit 3.16, again using BOOTP. Kermit has better terminal
+emulation than NCSA Telnet and is generally more polished but requires
+a 720kB "floppy". Again I compressed the binary using lzexe.
+
+<item>Non-spooling printer daemon.
+
+<item>DOS syslogd.
+
+<item>Network traffic monitors.
+
+</itemize>
+
+You can find these and other suggested applications <url
+url="http://www.geocities.com/SiliconValley/lab/9247/" name="here">.
+
+<sect>Various tips
+
+<p>
+
+Tip: You can do a mdir directly on the netboot image if you use the
+offset parameter of mtools. In $HOME/.mtoolsrc, put
+
+<code>
+drive t: file="/tftpdir/dos.nb" offset=4096
+</code>
+
+Then you can do
+
+<code>
+mdir t:
+</code>
+
+4096 is the sum of the header size (512) and the startup segment size
+(3584). It may be different for other versions of mknbi-dos.
+
+<p>
+
+Caveat: For this trick, access other than reading only may not work. You
+may be able to rewrite things on the "floppy" with mcopy, etc. but the
+declared size in the header will not get updated. If you wish to modify
+things you should work on the "floppy" image, then rebuild with mknbi-dos.
+
+<p>
+
+Hint: As mentioned before, using an executable compressor like <tt/lzexe/
+or <tt/pklite/ might allow you to squeeze more programs onto the
+"floppy". See a site like <url url="http://www.simtel.net/simtel.net/"
+name="Simtel.Net"> for such programs.
+
+<p>
+
+Note: Of course, this technique works for 386s and higher. However you
+may want to consider netbooting <url
+url="http://www.linux.org" name="Linux"> with an initial ramdisk instead
+of DOG.
+
+<sect>What needs to be done to boot other OSes with ramdisk
+
+<p>
+
+Essentially a version of mknbi similar to <tt/mknbi-dos/ needs to
+be written for that OS and filesystem. For example, for ELKS, the setup
+code in <tt/first.S/ would do validity checks for a <tt/Minix/
+filesystem and <tt/mknbi/ would create a <tt/Minix/ ramdisk.
+
+</article>

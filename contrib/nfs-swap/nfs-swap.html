@@ -1,0 +1,332 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Swapping via NFS for Linux</title>
+    <!-- Changed by: Claus-Justus Heine, 22-Sep-1997 -->
+  </head>
+
+  <body BGCOLOR="white">
+    <BLOCKQUOTE>
+      <CENTER>
+	<h1>Swapping via NFS for Linux</h1>
+      </CENTER>
+      <P>
+	You are visitor number
+	
+	<img src="http://www.math1.rwth-aachen.de/cgi-bin/Count.cgi?df=nfs-swap.dat&frgb=ff0000&ft=2&comma=T" align=absmiddle>
+	
+	since <B>Tue Oct 16 1998</B>. Current time is
+	
+	<!-- Time zone settings doesn't work properly -->
+	<img src="http://www.math1.rwth-aachen.de/cgi-bin/Count.cgi?display=clock&frgb=ff0000&ft=2&tformat=24" align=absmiddle> localtime (MET).
+      <P>
+	<CENTER>
+	  <a name="Contents"><H2>Contents.</H2></A>
+	</CENTER>
+      <P>
+      <MENU>
+	<LI><A HREF="nfs-swap.html#News">News.</A></LI>
+	<LI><A HREF="nfs-swap.html#Stability">Stability.</A></LI>
+	<LI><A HREF="nfs-swap.html#Applying">Applying the patches.</A></LI>
+	<LI><A HREF="nfs-swap.html#Enable">Enabling swapping via NFS.</A></LI>
+	<LI><A HREF="nfs-swap.html#Implementation">Implementations Notes.</A></LI>
+	<LI><A HREF="nfs-swap.html#Download">Downloading.</A></LI>
+	<LI><A HREF="nfs-swap.html#Relations">Related Work.</A></LI>
+	<LI><A HREF="nfs-swap.html#Apologies">Apologies.</A></LI>
+	<LI><A HREF="nfs-swap.html#Credits">Credits.</A></LI>
+      </MENU>
+      <HR>
+      <p>
+	<CENTER>
+	  <A href="nfs-swap.html#Contents" name="News"><H2>News.</H2></A>
+	</CENTER>
+      <P>
+	The <TT>Mayersche Buchhandling</TT> is opening Germany's
+	biggest book store in Cologne. The equipment includes 20
+	diskless Linux stations with -- wow! -- my NFS swap
+	hacks. They were using
+
+	<A HREF="patches/linux-2.0.32-nfs-swap.diff.gz">patches/linux-2.0.32-nfs-swap.diff.gz</A>
+
+	with a slight modification needed to make it compile with
+	Linux v2.0.35. This is first hand information. One of the
+	Cellists of the
+
+	<A HREF="../coll-arco/coll.arco.html">Coll 'arco Chamber Orchestra</A>
+
+	was one of the guys who had to install the computer equipment.
+      <p>
+      <HR>
+      <P>
+	<CENTER>
+	  <a href="nfs-swap.html#Contents" name="Stability"><H2>Which of the patches are considered to be stable?</H2></A>
+	</CENTER>
+      <P>
+	<TT>linux-2.0.32-nfs-swap.diff.gz</TT> -- <B>yes</B>, the
+	others: <B>no</B>. I didn't test
+	<TT>linux-2.0.35-nfs-swap.diff.gz</TT> extensively yet, and
+	the 2.1 stuff may or may not work.
+      <p>
+      <HR>
+      <P>
+	<CENTER>
+	  <A HREF="nfs-swap.html#Contents" name="Applying"><H2>How to apply the patch files</H2></A>
+	</CENTER>
+      <P>
+	To apply the patches below, change to the location of your
+	kernel source tree, probably
+      <P>
+	<TT>/usr/src/linux/</TT>
+      <p>
+	and run the patch command like this
+      <P>
+      <PRE>
+	gunzip -c /usr/src/linux-2.0.35-nfs-swap.diff.gz |  patch -p1 -l -s
+      </PRE>
+      <p>
+	where you have to replace
+	<tt>/usr/src/linux-2.0.35-nfs-swap.diff.gz</TT> by the name of
+	the patch file your are actually using. The example given above
+	asume that you have down-loaded the patch file into
+	<TT>/usr/src/</TT>.
+      <p>
+	After applying the patch you have to reconfigure your
+	kernel. Answer <TT>yes</tt> to the <TT>Swapping via network</TT>
+	question in the <TT>Networking options</TT> menu as well as to
+	the <TT>NFS filesystem support</TT> and <TT>Allow swap files to
+	  be on NFS filesystems</TT> configuration options in the
+	filesystem configuration menu.
+      <P>
+      <HR>
+      <P>
+	<CENTER>
+	  <A HREF="nfs-swap.html#Contents" NAME="Enable"><H2>How to enable swapping using the NFS protocol</H2></A>
+	</CENTER>
+      <P>
+	After you have recompiled and installed the kernel in the usual
+	way you have to reboot. Afterwards you can enable swapping to
+	files located on an NFS server by using the commands
+	<TT>dd</TT>, <TT>mkswap</TT> and <TT>swapon</TT> which are
+	available on virtually any Linux machine. Proceed as follows
+	(customize to your needs!!!). The example assumes that your
+	machine also gets its root filesystem via NFS.
+      <P>
+      <PRE>
+	dd if=/dev/zero of=/SWAPFILE bs=1k count=20480
+	mkswap /SWAPFILE 20480
+	sync
+	swapon /SWAPFILE
+      </PRE>
+      <P>
+	That's it. You have created a 20MB swapfile and told your kernel
+	to use it. Please refer to the man-pages for the respective
+	programs for more information (<TT>man 8 swapon</TT>, <TT>man 8
+	  mkswap</TT>).
+      <P>
+	Swapping via NFS is <B>really</B> slow. But should work.
+      <P>
+      <HR>
+      <P>
+	<CENTER>
+	  <A HREF="nfs-swap.html#Contents" NAME="Implementation"><H2>Implementation notes.</H2></A>
+	</CENTER>
+      <P>
+	There are several problems one easily runs into when trying to
+	implement swapping via any network protocal. Plus some
+	additional traps when doing this via the sucking NFS (let's call
+	it <CODE>Network Failure System</CODE>) protocol.
+      <P>
+	The main problem, however, is that receiving data packets
+	via the network consumes memory as such. Each packet first has
+	to be copied into the systems RAM by the network device
+	layer. Only after it has been copied into a previous allocated
+	memory block one can have a look at its contents and devide what
+	to do with it.
+      <P>
+	This means that it would be possible to bring a machine using
+	any network-based swapping mechanism down to its knees by simply
+	flood-pinging it.
+      <P>
+	Therefor the patches implement all (v2.1) or some (v2.0) of
+	the following hacks:
+      <UL>
+	<LI>
+	  <P>
+	    Means to drop network packets not needed for swapping when
+	    the machine is running out of memory. This is save, the
+	    senders of those packets will simply retry after a short
+	    timeout when our poor NFS-swap machine doesn't ack the
+	    packets.
+	  <P>
+	</LI>
+	<LI>
+	  <P>
+	    Introduce yet another level of memory allocation priority:
+	  <P>
+	    The <CODE>GFP_ATOMIC</CODE> level that used to be the
+	    highest priority is moved one level up (but making sure
+	    <CODE>get_free_pages()</CODE> won't sleep) and the highest,
+	    newly introduced level is now called
+	    <CODE>GFP_NUCLEONIC</CODE>. Maybe this better should have
+	    been called <CODE>GFP_SWAP</CODE>.
+	  <P>
+	    Normal interrupt handlers (i.e. those that aren't involved
+	    in swapping) still use <CODE>GFP_ATOMIC</CODE>, as soon as a
+	    network device is needed for swapping, it will use
+	    <CODE>GFP_NUCLEONIC</CODE> which allows to use up every and
+	    the last page.
+	  <P>
+	</LI>
+	<LI>
+	  <P>
+	    <CODE>/proc/sys/vm/freepages</CODE> now contains a fourth
+	    component which gives the number of pages reserved for
+	    swapping purposes (<CODE>GFP_ATOMIC</CODE> won't get these
+	    pages).
+	  <P>
+	</LI>
+      </UL>
+      <P>
+	If you dare to use these patches, then please try to break them.
+	Stress test the nfs client with flood-pings, possibly use
+	several tcpspray's as well and busy the network-swapping machine
+	with some memory consuming computations. Several concurrent
+	kernel compilations are probably a nice way.
+      <P>
+	Of course, if you congest the network with <TT>tcpspray</TT> and
+	flood-pings the poor nfs client won't be very responsive any
+	more, as the performance of network swapping depends on the
+	network bandwidth that can be used for that purpose.
+      <P>
+	The patches are a little bit ugly. But should work,
+	basically. What is especially painful with the 2.1 patches is
+	the resurrection of the <TT>->pg_swap_entry</TT> component of
+	<TT>struct page</TT> which disappeared a long time
+	ago. Nowadays, <TT>page->offset</TT> is used as well for the
+	file offset of a page as for the swap entry (in an un-patched
+	kernel). I probably should start creating some special
+	<TT>struct swap_ops</TT> structure and stop using
+	<TT>file->write_page</TT> and <TT>file->read_page</TT>.
+      <P>
+      <HR>
+      <P>
+	<CENTER>
+	  <A HREF="nfs-swap.html#Contents" NAME="Download"><H2>Where to download the patch files from</H2></A>
+	</CENTER>
+      <p>
+	<CENTER>
+	  <TABLE CELLPADDING=10 BORDER>
+	    <TR>
+	      <TH BGCOLOR="#808080"><FONT COLOR="white">
+		  Protocol
+	      </TH>
+	      <TH BGCOLOR="#808080"><FONT COLOR="white">
+		  Location
+	      </TH>
+	    </TR><TR>
+	      <TD BGCOLOR="#e0e0e0">
+		HTTP
+	      </TD><TD BGCOLOR="#e0e0e0">
+		<A HREF="patches/">patches/</A>
+	      </TD>
+	    </TR><TR>
+	      <TD BGCOLOR="#e0e0e0">
+		FTP
+	      </TD><TD BGCOLOR="#e0e0e0">
+		<A HREF="ftp://iris1.math1.rwth-aachen.de/pub/linux/nfs-swap/">iris1.math1.rwth-aachen.de</A>
+	      </TD>
+	    </TR>
+	  </TABLE>
+	</CENTER>	
+      <P>
+      <HR>
+      <P>
+	<CENTER>
+	  <A HREF="nfs-swap.html#Contents" NAME="Relations"><H2>Related work</H2></A>
+	</CENTER>
+      <p>
+	Visit <A HREF="mailto:pavel@atrey.karlin.mff.cuni.cz">Pavel
+	Machek</A>'s <TT>Network Block Device</TT> patches at <A
+	HREF="http://atrey.karlin.mff.cuni.cz/~pavel/nbd/nbd.html">Pavel's
+	nbd page</A>. His hacks to allow swap files to be located on
+	<TT>nbd</TT> volumes are partly based on my <TT>nfs-swap</TT>
+	patches. His approach is probably superior to mine as the
+	network block device protocol he has developed is faster than
+	the NFS protocol.
+      <P>
+	<CENTER>
+	  <A HREF="nfs-swap.html#Contents" NAME="Apologies"><H2>Apologies</H2></A>
+	</CENTER>
+      <p>
+	I have to apologize by <A
+	HREF="mailto:pavel@atrey.karlin.mff.cuni.cz">Pavel Machek</A>
+	for blaming him publically for having forgotten my
+	name. Thinking of myself I have to admit that I forget names
+	(and email addresses and phone numbers) quite often ...
+      <P>
+      <HR>
+      <P>
+	<CENTER>
+	  <A HREF="nfs-swap.html#Contents" NAME="Credits"><H2>Credits.</H2></A>
+	</CENTER>
+      <p>
+      <UL>
+	<LI><A HREF="mailto:pavel@atrey.karlin.mff.cuni.cz">Pavel Machek</A></LI>
+      <P>
+	Fruitful discussions about one year ago when I started to
+	really implement the thing and to make it more or less stable
+	...
+      <P>
+	<LI>Volker Seebode</LI>
+      <P>
+	For testing and using the stuff in prefessional environments
+	(thinking about Germany's biggest book store ...).
+      <P>
+	<LI>Many others ...</LI>
+      <P>
+	Particulary, there was one guy who tried to implement an (IMHO
+	never working) hack to implement NFS swapping via
+	NFS. Unluckily, I have <A
+	HREF="nfs-swap.html#Apologies">forgotten</A> his name ...
+      </UL>
+      <P>
+    </BLOCKQUOTE>
+    <HR>
+    <P>
+      <CENTER>
+	<TABLE BORDER CELLPADDING=0 CALLSPACING=0 BGCOLOR="#40ff00">
+	  <TR>
+	    <TD VALIGN="middle" ALIGN="middle" WIDTH=80 HEIGHT=40><A
+	    HREF="../claus.html#Math"><IMG ALIGN=MIDDLE
+	    SRC="../images/math.gif" ALT="Math" BORDER=0></A></TD> <TD
+	    VALIGN="middle" ALIGN="middle" WIDTH=80><A
+	    HREF="../coll-arco/coll.arco.html"><IMG ALIGN=MIDDLE
+	    SRC="../images/colltiny.gif" ALT="coll' arco"
+	    BORDER=0></A></TD> <TD VALIGN="middle" ALIGN="middle"
+	    WIDTH=80><A HREF="../JSO.html"><em>JSO</em></A></TD> <TD
+	    VALIGN="middle" ALIGN="middle" WIDTH=80><A
+	    HREF="../music.html"><IMG ALIGN=MIDDLE BORDER=0
+	    SRC="../images/bass.gif" ALT="Bass"></A></TD> <TD
+	    VALIGN="middle" ALIGN="middle" WIDTH=80><A
+	    HREF="../ftape/ftape.html"><IMG ALIGN=MIDDLE
+	    SRC="../images/animtape-small.gif" ALT="Ftape"
+	    BORDER=0></A></TD> <TD VALIGN="middle" ALIGN="middle"
+	    WIDTH=80><A HREF="../nfs-swap/nfs-swap.html"><IMG
+	    ALIGN=MIDDLE SRC="../images/network2.gif" ALT="NFS Swap"
+	    BORDER=0></A></TD> <TD VALIGN="middle" ALIGN="middle"
+	    WIDTH=80 HEIGHT=40><A HREF="../claus.html#Menu"><IMG
+	    ALIGN=MIDDLE SRC="../images/cH-1.gif" ALT="Me"
+	    BORDER=0></A></TD>
+	  </TR>
+	</TABLE>	
+      </CENTER>
+    <p><hr>
+    <address><a href="mailto:heine@math1.rwth-aachen.de (Claus-Justus Heine)"><IMG ALIGN=BOTTOM SRC="../images/post2.gif" ALT="" border=0>Claus-Justus Heine</a></address>
+    <!-- Created: Mon Sep 22 14:34:36 MEST 1997 -->
+    <!-- hhmts start -->
+Last modified: Fri Oct 16 15:16:47 CETDST 1998
+<!-- hhmts end -->
+  </body>
+</html>
+<!--  LocalWords:  Linux linux nfs dif gz JSO Justus Sep MEST
+ -->

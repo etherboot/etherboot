@@ -1,0 +1,36 @@
+For the impatient, "cd src" and "make". Your ROM images will be in
+bin32/xxx.rom and bin32/xxx.lzrom, where xxx is the name of your NIC
+driver.  See src/NIC for the list of supported NICs.  To make the mknbi
+tools, "cd mknbi", edit the Makefile to set the installation directories,
+"make" and then "make install".
+
+More likely if you are unfamiliar with Etherboot you should read the
+documentation starting with index.html if you have a Web browser, or
+doc/text/README.txt if you just have a plain text login.
+
+Also read RELNOTES for any additional recent information.
+
+If you are booting FreeBSD, enable -DELF_IMAGE (and optionally
+-DAOUT_IMAGE) in Config. Also you need a GNU as that understands data32
+directives. See the AS define in Makefile.
+
+The index.html file is the same as the one on the Etherboot home page at
+the time the distribution was made. Therefore some of the local file:/
+links from the Distribution section may not work.
+
+Etherboot/32 was built using egcs 2.91.66 and binutils 2.9.1.0 from
+RedHat 6.0, but earlier versions of gcc will probably work. The version
+of as used must recognise the code16 and code32 directives. If not, read
+Makefile about the AS_PSEUDOS define.  However, if your GNU as is 2.9.5
+or later, the support for data32 has been changed and IMO more correct,
+so add -DGAS295 to CFLAGS.  If you wish to rebuild the *loader.bin and
+floppyload.bin files (normally not necessary), you must have nasm or
+as86. Furthermore the version of as86 used must recognise the -b option
+AND implement it correctly. (If you find that as86 puts a few bytes
+before the signature: AA 55, of rloader.bin, it is buggy.) Also note
+objcopy is used instead of objdump as in older versions of Etherboot.
+
+Etherboot/16 was built with Dev86src-0.14.9 from the ELKS tools
+distribution (http://www.cix.co.uk/~mayday/).  A couple of defines in
+Config may need to be edited to suit your installation. It uses the -d
+flag to ld86 for producing headerless binaries.

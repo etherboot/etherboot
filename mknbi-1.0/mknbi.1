@@ -1,0 +1,463 @@
+.rn '' }`
+''' $RCSfile$$Revision$$Date$
+'''
+''' $Log$
+'''
+.de Sh
+.br
+.if t .Sp
+.ne 5
+.PP
+\fB\\$1\fR
+.PP
+..
+.de Sp
+.if t .sp .5v
+.if n .sp
+..
+.de Ip
+.br
+.ie \\n(.$>=3 .ne \\$3
+.el .ne 3
+.IP "\\$1" \\$2
+..
+.de Vb
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve
+.ft R
+
+.fi
+..
+'''
+'''
+'''     Set up \*(-- to give an unbreakable dash;
+'''     string Tr holds user defined translation string.
+'''     Bell System Logo is used as a dummy character.
+'''
+.tr \(*W-|\(bv\*(Tr
+.ie n \{\
+.ds -- \(*W-
+.ds PI pi
+.if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.if (\n(.H=4u)&(1m=20u) .ds -- \(*W\h'-12u'\(*W\h'-8u'-\" diablo 12 pitch
+.ds L" ""
+.ds R" ""
+'''   \*(M", \*(S", \*(N" and \*(T" are the equivalent of
+'''   \*(L" and \*(R", except that they are used on ".xx" lines,
+'''   such as .IP and .SH, which do another additional levels of
+'''   double-quote interpretation
+.ds M" """
+.ds S" """
+.ds N" """""
+.ds T" """""
+.ds L' '
+.ds R' '
+.ds M' '
+.ds S' '
+.ds N' '
+.ds T' '
+'br\}
+.el\{\
+.ds -- \(em\|
+.tr \*(Tr
+.ds L" ``
+.ds R" ''
+.ds M" ``
+.ds S" ''
+.ds N" ``
+.ds T" ''
+.ds L' `
+.ds R' '
+.ds M' `
+.ds S' '
+.ds N' `
+.ds T' '
+.ds PI \(*p
+'br\}
+.\"	If the F register is turned on, we'll generate
+.\"	index entries out stderr for the following things:
+.\"		TH	Title 
+.\"		SH	Header
+.\"		Sh	Subsection 
+.\"		Ip	Item
+.\"		X<>	Xref  (embedded
+.\"	Of course, you have to process the output yourself
+.\"	in some meaninful fashion.
+.if \nF \{
+.de IX
+.tm Index:\\$1\t\\n%\t"\\$2"
+..
+.nr % 0
+.rr F
+.\}
+.TH MKNBI 1 "Mknbi 1.0" "2000-08-07" "Etherboot tools"
+.UC
+.if n .hy 0
+.if n .na
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.de CQ          \" put $1 in typewriter font
+.ft CW
+'if n "\c
+'if t \\&\\$1\c
+'if n \\&\\$1\c
+'if n \&"
+\\&\\$2 \\$3 \\$4 \\$5 \\$6 \\$7
+'.ft R
+..
+.\" @(#)ms.acc 1.5 88/02/08 SMI; from UCB 4.2
+.	\" AM - accent mark definitions
+.bd B 3
+.	\" fudge factors for nroff and troff
+.if n \{\
+.	ds #H 0
+.	ds #V .8m
+.	ds #F .3m
+.	ds #[ \f1
+.	ds #] \fP
+.\}
+.if t \{\
+.	ds #H ((1u-(\\\\n(.fu%2u))*.13m)
+.	ds #V .6m
+.	ds #F 0
+.	ds #[ \&
+.	ds #] \&
+.\}
+.	\" simple accents for nroff and troff
+.if n \{\
+.	ds ' \&
+.	ds ` \&
+.	ds ^ \&
+.	ds , \&
+.	ds ~ ~
+.	ds ? ?
+.	ds ! !
+.	ds /
+.	ds q
+.\}
+.if t \{\
+.	ds ' \\k:\h'-(\\n(.wu*8/10-\*(#H)'\'\h"|\\n:u"
+.	ds ` \\k:\h'-(\\n(.wu*8/10-\*(#H)'\`\h'|\\n:u'
+.	ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'^\h'|\\n:u'
+.	ds , \\k:\h'-(\\n(.wu*8/10)',\h'|\\n:u'
+.	ds ~ \\k:\h'-(\\n(.wu-\*(#H-.1m)'~\h'|\\n:u'
+.	ds ? \s-2c\h'-\w'c'u*7/10'\u\h'\*(#H'\zi\d\s+2\h'\w'c'u*8/10'
+.	ds ! \s-2\(or\s+2\h'-\w'\(or'u'\v'-.8m'.\v'.8m'
+.	ds / \\k:\h'-(\\n(.wu*8/10-\*(#H)'\z\(sl\h'|\\n:u'
+.	ds q o\h'-\w'o'u*8/10'\s-4\v'.4m'\z\(*i\v'-.4m'\s+4\h'\w'o'u*8/10'
+.\}
+.	\" troff and (daisy-wheel) nroff accents
+.ds : \\k:\h'-(\\n(.wu*8/10-\*(#H+.1m+\*(#F)'\v'-\*(#V'\z.\h'.2m+\*(#F'.\h'|\\n:u'\v'\*(#V'
+.ds 8 \h'\*(#H'\(*b\h'-\*(#H'
+.ds v \\k:\h'-(\\n(.wu*9/10-\*(#H)'\v'-\*(#V'\*(#[\s-4v\s0\v'\*(#V'\h'|\\n:u'\*(#]
+.ds _ \\k:\h'-(\\n(.wu*9/10-\*(#H+(\*(#F*2/3))'\v'-.4m'\z\(hy\v'.4m'\h'|\\n:u'
+.ds . \\k:\h'-(\\n(.wu*8/10)'\v'\*(#V*4/10'\z.\v'-\*(#V*4/10'\h'|\\n:u'
+.ds 3 \*(#[\v'.2m'\s-2\&3\s0\v'-.2m'\*(#]
+.ds o \\k:\h'-(\\n(.wu+\w'\(de'u-\*(#H)/2u'\v'-.3n'\*(#[\z\(de\v'.3n'\h'|\\n:u'\*(#]
+.ds d- \h'\*(#H'\(pd\h'-\w'~'u'\v'-.25m'\f2\(hy\fP\v'.25m'\h'-\*(#H'
+.ds D- D\\k:\h'-\w'D'u'\v'-.11m'\z\(hy\v'.11m'\h'|\\n:u'
+.ds th \*(#[\v'.3m'\s+1I\s-1\v'-.3m'\h'-(\w'I'u*2/3)'\s-1o\s+1\*(#]
+.ds Th \*(#[\s+2I\s-2\h'-\w'I'u*3/5'\v'-.3m'o\v'.3m'\*(#]
+.ds ae a\h'-(\w'a'u*4/10)'e
+.ds Ae A\h'-(\w'A'u*4/10)'E
+.ds oe o\h'-(\w'o'u*4/10)'e
+.ds Oe O\h'-(\w'O'u*4/10)'E
+.	\" corrections for vroff
+.if v .ds ~ \\k:\h'-(\\n(.wu*9/10-\*(#H)'\s-2\u~\d\s+2\h'|\\n:u'
+.if v .ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'\v'-.4m'^\v'.4m'\h'|\\n:u'
+.	\" for low resolution devices (crt and lpr)
+.if \n(.H>23 .if \n(.V>19 \
+\{\
+.	ds : e
+.	ds 8 ss
+.	ds v \h'-1'\o'\(aa\(ga'
+.	ds _ \h'-1'^
+.	ds . \h'-1'.
+.	ds 3 3
+.	ds o a
+.	ds d- d\h'-1'\(ga
+.	ds D- D\h'-1'\(hy
+.	ds th \o'bp'
+.	ds Th \o'LP'
+.	ds ae ae
+.	ds Ae AE
+.	ds oe oe
+.	ds Oe OE
+.\}
+.rm #[ #] #H #V #F C
+.SH "NAME"
+mknbi \- make network bootable image
+.SH "SYNOPSIS"
+\fBmknbi\fR --target=\fItarget\fR [--output=\fIoutputfile\fR] \fItarget-specific-arguments\fR
+.PP
+\fBmknbi-linux\fR [--output=\fIoutputfile\fR] \fIkernelimage\fR [\fIramdisk\fR]
+.PP
+\fBmknbi-rom\fR [--output=\fIoutputfile\fR] \fIROM\-image\fR
+.PP
+\fBmknbi-fdos\fR [--output=\fIoutputfile\fR] \fIkernel.sys floppyimage\fR
+.PP
+\fBmknbi-dos\fR [--output=\fIoutputfile\fR] \fIfloppyimage\fR
+.SH "DESCRIPTION"
+\fBmknbi\fR is a program that makes network bootable images for various
+operating systems suitable for network loading by Etherboot or Netboot.
+.PP
+\fBmknbi\fR can be invoked with the \fB--target\fR option or links can be made
+to it under target specific names.
+.PP
+\fB--target\fR=\fItarget\fR Specify the target binary. Currently available are
+linux, rom, fdos and dos.
+.PP
+\fB--output=\fR\fIoutputfile\fR Specify the output file, can be used with
+all variants.  Stdout is the default.
+.PP
+The package must be installed in the destination location before the
+executables can be run, because it looks for library files.
+.PP
+Each of the variants will be described separately.
+.SH "MKNBI\-LINUX"
+\fBmknbi-linux\fR makes a tagged image from a Linux kernel image, either
+a zImage or a bzImage.
+.SH "MKNBI\-LINUX OPTIONS"
+\fB--param=\fR\fIstring\fR Replace the default parameter string with the
+specified one. This option overrides all the following options so you
+should know what you are doing.
+.PP
+\fB--append\fR=\fIstring\fR Appends the specified string to the existing
+parameter string. This option operates after the other parameter options
+have been evaluated.
+.PP
+\fB--rootdir\fR=\fIrootdir\fR Define name of directory to mount via NFS from
+the boot server.
+.PP
+In the absence of this option, the default is to use the directory
+\f(CW/tftpboot/\fR\fI%s\fR, with the \fI%s\fR representing the hostname or
+IP\-address of the booting system, depending on whether the hostname
+attribute is present in the BOOTP/DHCP reply.
+.PP
+If \f(CWrom\fR is given, and if the BOOTP/DHCP server is able to handle the RFC 1497
+extensions, the value of the rootpath option is used as the root directory.
+.PP
+If the name given to the option starts with \f(CW/dev/\fR, the corresponding
+device is used as the root device, and no NFS directory will be mounted.
+.PP
+\fB--ipaddrs=\fR\fIstring\fR Define client and server IP addresses.
+.PP
+In the absence of this option no IP addresses are defined, and the
+kernel should determine the IP addresses by itself, usually by using
+RARP, BOOTP or DHCP.  Note that the kernel's query is \fIin addition to\fR
+the query made by the bootrom, and requires the IP: kernel level
+autoconfiguration (CONFIG_IP_PNP) feature to be included in the kernel.
+.PP
+If \f(CWrom\fR is given as the argument to this option, all necessary IP
+addresses for NFS root mounting will be inherited from the BOOTP/DHCP
+answer the bootrom got from the server.
+.PP
+It's also possible to define the addresses during compilation of the boot
+image. Then, all addresses must be seperated by a colon, and ordered in
+the following way:
+.PP
+\f(CW--ipaddrs=\fR\fIclient:server:gateway:netmask:hostname[:dev]\fR
+.PP
+Using this option \fBmknbi-linux\fR will automatically convert system names
+into decimal IP addresses for the first three entries in this string. The
+\fBhostname\fR entry will be used by the kernel to set the host name of the
+booted Linux diskless client.  When more than one network interface is
+installed in the diskless client, it is possible to specify the name of
+the interface to use for mounting the root directory via NFS by giving
+the optional value \f(CWdev\fR.  This entry has to start with the string
+\f(CWeth\fR followed by a number from 0 to 9. However, if only one interface
+is installed in the client, this \f(CWdev\fR entry including the preceding
+semicolon can be left out.
+.PP
+Run the program thus:
+.PP
+\f(CWmknbi-linux\fR \fIkernel-image\fR [\fIramdisk-image\fR] > \f(CWlinux.nb\fR
+.PP
+Then move \fIlinux.nb\fR to where the network booting process expects to
+find it.
+.SH "MKNBI\-LINUX BOOTP/DHCP VENDOR TAGS"
+\fBmknbi-linux\fR includes a startup code at the beginning of the Linux
+kernel which is able to detect certain BOOTP vendor defined tags. These
+can be used to modify the kernel loading process at runtime. To use
+these tags with bootpd, a publicly available BOOTP server daemon, you
+can use the following syntax in the \fI/etc/bootptab\fR file:
+.PP
+\f(CWT\fR\fInumber\fR\f(CW="\fR\fIstring\fR\f(CW"\fR
+.PP
+For example, to specify a different root NFS device, you can use:
+.PP
+\f(CWT130="eth1"\fR
+.PP
+The following tags are presently supported by \fBmknbi-linux\fR:
+.PP
+\fB129\fR The \fIstring\fR value given with this tag is appended verbatim to
+the end of the kernel command line.  It can be used to specify arguments
+like I/O addresses or DMA channels required for special hardware
+like SCSI adapters, network cards etc. Please consult the Linux kernel
+documentation about the syntax required by those options. It is the same
+as the \fB--append\fR command line option to \fBmknbi-linux\fR, but works at
+runtime instead of compile time.
+.PP
+\fB130\fR With this tag it is possible to the select the network adapter
+used for mounting root via NFS on a multihomed diskless client. The
+syntax for the \fIstring\fR value is the same as for the \f(CWdev\fR entry used
+with the \fB--ipaddrs=\fR option as described above. However note that the
+\fBmknbi-linux\fR runtime loader does not check the syntax of the string.
+.PP
+The same tags will work in DHCP with the appropriate syntax for your
+DHCP server configuration file.
+.SH "MKNBI\-ROM"
+\fBmknbi-rom\fR makes a tagged image from an Etherboot \f(CW.rom\fR or \f(CW.lzrom\fR
+boot ROM image.  This allows it to be netbooted using an existing
+ROM. This is useful for developing Etherboot drivers.
+.PP
+Run mknbi like this:
+.PP
+\f(CWmknbi-rom nic.lzrom\fR > \f(CWnic.nb\fR
+.PP
+Move \fInic.nb\fR to where the network booting process expects to find it.
+The boot ROM will load this as the \fIoperating system\fR and execute the
+ROM image.
+.SH "MKNBI\-FDOS"
+\fBmknbi-fdos\fR makes a tagged image from a FreeDOS kernel file and a
+floppy image.  Note that the kernel image is not read from the floppy
+section of the tagged image, but is a separate section in the tagged
+image. The bootloader has been adjusted to jump to it directly. This
+means the space that would be taken up on the \fIfloppy\fR by the kernel
+image file can now be used for applications and data.
+.PP
+Obtain a distribution of FreeDOS with a recent kernel, probably at least
+2006. It has been tested with 2012 but nothing older. You can get the
+FreeDOS kernel here:
+.PP
+\f(CWftp://ftp.gcfl.net/freedos/kernel/\fR
+.PP
+Follow the instructions to make a bootable floppy. Then get an image
+of the floppy with:
+.PP
+\f(CWdd if=/dev/fd0 of=/tmp/floppyimage\fR
+.PP
+Also extract \fIkernel.sys\fR from the floppy. You can do this from the
+image using the mtools package, by specifying a file as a \fIdrive\fR
+with a declaration like this in \fI~/.mtoolsrc\fR:
+.PP
+\f(CWdrive x: file="/tmp/floppyimage"\fR
+.PP
+Then run:
+.PP
+\f(CWmcopy x:kernel.sys .\fR
+.PP
+Then run mknbi by:
+.PP
+\f(CWmknbi-fdos kernel.sys /tmp/floppyimage\fR > \f(CWfreedos.nb\fR
+.PP
+where \fIkernel.sys\fR and \fI/tmp/floppyimage\fR are the files extracted above.
+Then move \fIfreedos.nb\fR to where the network booting process expects to
+find it.
+.PP
+If you have got it to netboot successfully, then you can go back and
+add your files to the floppy image. You can delete \fIkernel.sys\fR in
+the floppy image to save space, that is not needed. Note that you can
+create a floppy image of any size you desire with the mformat program
+from mtools, you are not restricted to the actual size of the boot floppy.
+.SH "MKNBI\-FDOS OPTIONS"
+\fB--harddisk\fR Make the boot ramdisk the first hard disk, i.e. C:. One
+reason you might want to do this is because you want to use the real
+floppy. The limit on \*(L"disk size\*(R" in the boot image is not raised by this
+option so that is not a reason to use this option.
+.SH "MKNBI\-DOS"
+\fBmknbi-dos\fR makes a tagged image from a floppy image containing a
+bootable DOS filesystem.  It is not necessary to build the filesystem
+on a physical floppy if you have the mtools package, but you need a
+bootable floppy of any size to start with. First extract the boot block
+from the floppy:
+.PP
+\f(CWdd if=/dev/fd0 of=bootblock bs=512 count=1\fR
+.PP
+Then get the DOS kernel files (this is correct for DR\-DOS, the names
+are different in MS\-DOS):
+.PP
+\f(CWmcopy a:ibmbio.com a:ibmdos.com .\fR
+.PP
+Next make an entry in \fI~/.mtoolsrc\fR to declare a floppy to be mapped
+to a file:
+.PP
+\f(CWdrive x: file="/tmp/floppyimage"\fR
+.PP
+Now format a floppy of the desired size, in this case a 2.88 MB floppy,
+at the same time writing the bootblock onto it:
+.PP
+\f(CWmformat -C -t 160 -s 18 -h 2 -B bootblock x:\fR
+.PP
+Finally, copy all your desired files onto the floppy:
+.PP
+\f(CWmcopy ibmbio.com ibmdos.com config.sys autoexec.bat app.exe app.dat ... x:\fR
+.PP
+If you happen to have a media of the same size you could test if the
+image is bootable by copying it onto the media, and then booting it:
+.PP
+\f(CWdd if=/tmp/floppyimage of=/dev/fd0\fR
+.PP
+Then run mknbi-dos over the image \fI/tmp/floppyimage\fR to create a
+tagged image:
+.PP
+\f(CWmknbi-dos /tmp/floppyimage\fR > \f(CWdos.nb\fR
+.PP
+Move \fIdos.nb\fR to where the network booting process expects to find it.
+.SH "MKNBI\-DOS OPTIONS"
+\fB--harddisk\fR Make the boot ramdisk the first hard disk, i.e. C:. One
+reason you might want to do this is because you want to use the real
+floppy. The limit on \*(L"disk size\*(R" in the boot image is not raised by this
+option so that is not a reason to use this option.
+.SH "BUGS"
+Please report all bugs to the author.
+.SH "SEE ALSO"
+Etherboot tutorial at \f(CWhttp://etherboot.sourceforge.net/\fR Mtools package
+is at \f(CWhttp://wauug.erols.com/pub/knaff/mtools/\fR Make sure you have a
+recent version, the ability to map a drive to a file is not present in
+old versions.
+.SH "COPYRIGHT"
+\fBmknbi\fR is under the GNU Public License
+.SH "AUTHOR"
+Ken Yap (\f(CWken_yap@users.sourceforge.net\fR)
+.SH "DATE"
+Version 1.0 April 2000
+
+.rn }` ''
+.IX Title "MKNBI 1"
+.IX Name "mknbi - make network bootable image"
+
+.IX Header "NAME"
+
+.IX Header "SYNOPSIS"
+
+.IX Header "DESCRIPTION"
+
+.IX Header "MKNBI\-LINUX"
+
+.IX Header "MKNBI\-LINUX OPTIONS"
+
+.IX Header "MKNBI\-LINUX BOOTP/DHCP VENDOR TAGS"
+
+.IX Header "MKNBI\-ROM"
+
+.IX Header "MKNBI\-FDOS"
+
+.IX Header "MKNBI\-FDOS OPTIONS"
+
+.IX Header "MKNBI\-DOS"
+
+.IX Header "MKNBI\-DOS OPTIONS"
+
+.IX Header "BUGS"
+
+.IX Header "SEE ALSO"
+
+.IX Header "COPYRIGHT"
+
+.IX Header "AUTHOR"
+
+.IX Header "DATE"
+

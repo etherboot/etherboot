@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Draft Net Boot Image Proposal 0.3: Boot prom entry points.</TITLE>
+ <LINK HREF="spec-7.html" REL=next>
+ <LINK HREF="spec-5.html" REL=previous>
+ <LINK HREF="spec.html#toc6" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="spec-7.html">Next</A>
+<A HREF="spec-5.html">Previous</A>
+<A HREF="spec.html#toc6">Contents</A>
+<HR>
+<H2><A NAME="s6">6. Boot prom entry points.</A></H2>
+
+<P>
+<P><B>(gk)</B>As mentioned above the net boot process has to provide
+interrupt 78h as an entry point in case, the returnable flag (bit 9 of
+the flags field in the image header) of the boot image has been set.
+When calling this interface interrupt, the caller has to load the AH
+register with a value indicating the type of operation requested:
+<P>
+<HR>
+<PRE>
+       00h  -  Installation check
+               Input:  none
+               Output: AX  -  returns the value 474Bh
+                       BX  -  flags indicating what further services are
+                              provided by the net boot program:
+                               Bit 0 - packet driver interface (see below)
+                               Bits 1 to 15 are unused and have to be zero
+
+       01h  -  Cleanup and terminate the boot process services. This will
+               also remove the services provided by interrupt 87h.
+               Input:  none
+               Output: none
+</PRE>
+<HR>
+<P>
+<P>
+<P>Further functions are not yet defined. These functions are only available
+to boot images which have the first magic number at the beginning of the
+image header, and have the returnable flag set in the flags field.
+<P>
+<P>
+<P>In order to provide compatibility with net boot programs written to match
+an earlier version of this document, the loaded image should check for the
+existence of interrupt 78h by looking at it's vector. If that's 0:0, or if
+it does not return a proper magic ID after calling the installation check
+function, the boot image has to assume that the net boot program does not
+support this services interrupt.
+<P>
+<P>
+<P>If the bit 0 of register BX of function 00h is set, the boot program
+has to provide a 
+<A HREF="http://www.crynwr.com">packet driver</A>
+interface at interrupt 79h as described in the packet driver interface
+standard, version 1.09, published by FTP Software, Inc., which is not
+repeated here. It serves as an interface to the system's network card. It
+is important to note that the net boot process has to provide a clean
+packet driver interface without any handles being defined when the boot
+image gets started. It is expected that the boot image sets up it's own
+TCP/IP or other network's stack on top of this packet driver interface.
+When the boot image returns to the net boot process, it has to return
+a clean packet driver interface as well, without any handles being
+defined.<B>(gk)</B>
+<P>
+<HR>
+<A HREF="spec-7.html">Next</A>
+<A HREF="spec-5.html">Previous</A>
+<A HREF="spec.html#toc6">Contents</A>
+</BODY>
+</HTML>

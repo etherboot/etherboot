@@ -1,0 +1,248 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot README: Etherboot</TITLE>
+
+ <LINK HREF="old-README.html#toc1" REL=contents>
+</HEAD>
+<BODY>
+Next
+Previous
+<A HREF="old-README.html#toc1">Contents</A>
+<HR>
+<H2><A NAME="s1">1. Etherboot</A></H2>
+
+<P>
+<P>Currently there seem to be two different packages for installing a
+disk-less PC-based UNIX station.
+<P>
+<OL>
+<LI>On sunsite in pub/linux/system/Linux-boot/netboot-nfs.tar.gz is a
+package that contains code for patching a 1.2.x Linux kernel to boot from
+an NFS mounted file-system and to accept an NFS mounted swap file. This
+package also comes with code for making your own BOOT-prom. Unfortunately,
+the BOOT-prom code suffers from two major drawbacks.
+</LI>
+<LI>
+<OL>
+<LI>Currently, only Western Digital and SMC Ethernet cards are
+supported.
+</LI>
+<LI>You need to have a DOS based 16bit C compiler and assembly
+code development system for making the BOOT-prom images.  (for your
+convenience, the original kernel patches from this package are found in
+the directory `netboot-0.x'; please copy the entire package from sunsite,
+if you need more information on it. I did not write any of the files in
+this directory, so please refer to the respective copyright information
+in that directory)
+</LI>
+</OL>
+
+</LI>
+<LI>FreeBSD comes with its own code for booting disk-less UNIX
+PC's. This code supports a wide variety of popular Ethernet cards
+(Western Digital, SMC, NE1000, NE2000, 3COM 3c503, 3COM 3c509).  Actually,
+the code does auto-detection, so you can even have one BOOT-prom image
+for different cards (although, EPROM size is a limiting factor; if you
+want to support all different cards with the same BOOT-prom image you
+will probably have to remove some of the more advanced features of the
+code). Besides, the code can be compiled in an 32bit environment, using
+standard GCC.  Obviously, this package does not directly support Linux.
+</LI>
+<LI>
+<UL>
+<LI>FreeBSD uses a different kind of Makefile, thus Linux/GNUmake do
+not know what to do with this code. (I have been told, that there is a
+`pmake' for Linux now; I did not know about this when I ported the code,
+so I had to convert the Makefile manually)
+</LI>
+<LI>The package assumes that GCC outputs FreeBSD-style aout-files.
+</LI>
+<LI>Not surprisingly, the code does not know how to load a Linux
+kernel image; let alone, how to pass a command line to the linux kernel.
+(for your convenience, I copied a part of the current FreeBSD source
+tree into the directory `netboot-freebsd'. Please consult these files
+for copyright information; you can download the complete FreeBSD source
+tree from quite a lot of FTP servers, so please use Archie for finding
+the one nearest to you)
+</LI>
+</UL>
+
+</LI>
+</OL>
+<P>Since both Western Digital and SMC Ethernet cards are a lot more
+expensive then NE2000 cards (you can get the latter for as little as
+$10 if you do not mind buying a used one), I was looking into how to
+obtain a BOOT-prom for an NE2000 card. For lack of an DOS development
+system, I decided to go with the FreeBSD code.
+<P>
+<P>
+<P>In the directory `patches', you can find the changes that I had to
+make in order to get the package support my system. You need to apply
+two patches to the freebsd-code:
+<P>
+<P>
+<P>
+<HR>
+<PRE>
+  patch -p0 &lt;netboot-freebsd-compiles-with-linux.patch
+  patch -p0 &lt;netboot-freebsd-loads-linux-kernel.patch
+</PRE>
+<HR>
+<P>(This directory also contains a modified set of patches for
+patching 1.3.x kernels; as the patch file is based on the code in
+`netboot-0.x/lx1.2.2-patch', please consult that directory for copyright
+information!)
+<P>
+<P>
+<P>If you rather want to try standard settings, you should have a look at
+the files in the directory `binaries'. I pre-compiled both *.com and
+*.rom files for all supported ethernet cards. All images will fit in a
+16KB EPROM. I could only test the NE2000 code, but I expect that for
+the majority of users the other files will probably work
+`out-of-the-box', too. Even if you want to try these images, please
+read on first, so you know what to do with the files!
+<P>
+<P>
+<P>If you want to compile your own code, you should edit
+netboot-freebsd/Makefile or netboot-freebsd/Makefile.linux and make
+the BOOT-prom images (specify Makefile.linux as your makefile if you
+compile under Linux).
+<P>
+<P>
+<P>I never tried building BOOT-prom images in an a.out environment
+(neither did I try compiling under FreeBSD), but I have been told that
+there are some old versions of `objdump' that might cause
+problems. So, if you are stuck with extracting the text and data
+segment from the compiled binaries, you should either try to update to
+a newer release of `objdump' or -- preferably -- compile the code in
+an ELF environment.
+<P>
+<P>
+<P>Please note, that the BOOT-prom images still support loading FreeBSD,
+so if you ever decide switching from Linux to FreeBSD you do not have
+to burn a new EPROM.
+<P>
+<P>
+<P>Apart from the FreeBSD file format, the BOOT-prom auto-detects Linux
+kernels and `tagged files'; the latter is the format that is prefered
+by the netboot-0.x code. If you want to use this format, you need
+the utilities that come with the netboot-0.x package. For your
+convenience I copied them into the directory `netboot-0.x' (please
+note, that I did not write any of the files in that directory, so
+please refer to the Copyright information that comes with those
+files).
+<P>
+<P>
+<P>After calling `make' you will have both a *.com and a *.rom file for
+your Ethernet card. The *.rom file is exactly 16kB long (please check,
+that the total size of text segment plus data segment does not exceed
+16kB; the sizes are displayed during compilation) and needs to be put
+into the EPROM. The *.com file can be used for testing the code before
+burning an EPROM. You should load the *.com file from a boot-disk. I
+noticed that having other drivers or newer versions of DOS loaded
+before calling the *.com file can cause serious problems, thus I
+suggest you format a new DOS disk with system files (format a: /s) and
+then rename *.com into command.com when you copy it onto the disk (you
+could also specify the original name as your SHELL= in config.sys).
+<P>
+<P>
+<P>You will now have to setup your server to provide the necessary
+services for the disk-less workstation. The following instructions
+should get you started:
+<P>
+<P>
+<P>(These instructions assume, that you do *not* use the `tagged file
+format' that is used by the `netboot-0.x' package; if you prefer to
+use that format instead, you might want to have a look at
+ftp://ftp.ix.de/pub/ix/linux/iX-Terminal)
+<P>
+<UL>
+<LI>The server has to provide the disk-less workstation with its IP
+address, which is queried using the bootp-protocol; thus you will have to
+install a bootp-demon, activate it in /etc/services and /etc/inetd.conf
+and supply an entry in /etc/bootptab; if you want to change to a
+subdirectory before starting the bootp-demon (see below), you will have
+to put the configuration file into &lt;subdirectory&gt;/etc/bootptab.
+(if you are on a local sub-net that is not directly connected to
+the Internet, you can for instance use the IP addresses 192.168.x.y,
+otherwise please ask either your network administrator or your Internet
+service provider for your own IP address(es))
+</LI>
+<LI> The BOOT-prom code loads a configuration file from either the file
+given in the BOOTP record (that is the file given in the bf= field),
+or `cfg.&lt;IP-number&gt;', or `/tftpboot/cfg.&lt;IP-number&gt;'. You
+will have to setup a tftp-demon for this (it has to be activated in
+/etc/services and /etc/inetd.conf). Make sure the configuration files
+are world-readable.
+
+For security reasons you might want to consider, whether you can chroot
+to a subdirectory before starting the tftp-demon (in this case, the demon
+should probably be compiled statically and you will have to supply a `lib'
+directory that contains the startup code (such as `ld-linux.so.1'); you
+might also have to install `libc.so.x') If you do change to a subdirectory
+for the tftp-demon, you should do the same thing for the bootp-demon
+(beware! the bootp- demon will return a filename for the kernel file,
+only if this file is visible to the demon!)
+
+The configuration file should set the host-name, the name of the kernel
+image (in case you did not use bootp in order to set a kernel file name),
+the path for the root file-system, and any command line parameters that
+need to be passed to the kernel; I used the following file (your mileage
+is likely to vary!):
+
+<HR>
+<PRE>
+    hostname appendix.uni-muenster.de
+    kernel vmlinuz
+    rootfs 192.168.0.1:/usr/boot/root/appendix
+    linuxcmd sbpcd=0x230,SoundBlaster
+</PRE>
+<HR>
+
+
+Press `help' at the boot-prompt for a list of the possible
+commands. Configuration files must not be longer than 512 bytes.
+
+If you do not supply a configuration file, you could instead have a
+`tagged' kernel image loaded by TFTP; the BOOT-prom will autodetect,
+whether it reads a configuration file or a `tagged' kernel image!
+</LI>
+<LI>After loading the configuration file, the BOOT-prom code attempts to
+mount the root file system, where it looks for the kernel image (if
+you used `tagged files', the kernel will be loaded by TFTP instead
+of NFS!). So please configure both your mount demon and your nfs
+demon properly. (You might have to restart these demons after
+changing their configuration files; you could also consider sending
+the inet-demon a '-HUP' signal, if you want it to reread
+/etc/inetd.conf)
+
+The BOOT-prom will then load the kernel image from the root file
+system and try to auto-detect, if this is a FreeBSD or a
+(compressed) Linux kernel.
+
+If it is a Linux kernel, the root file system is unmounted, a Linux
+command line is constructed and the kernel is started; if you
+applied the patches in either `netboot-0.x/lx1.2.2-patch' or
+`patches/lx1.3.15-patch' to your kernel, the kernel will then try to
+remount its root file system.
+</LI>
+<LI>For mounting the root file system, the kernel will probably have to
+use RARP first. In order for this to be successful, your server will
+have to have the appropriate RARP table entries (c.f. man rarp for
+further information; putting `/sbin/rarp -s 192.168.0.3 00:00:1B:38:F9:50'
+in one of my /etc/rc.d/rc... files worked for me).
+</LI>
+<LI>From here on, booting continues as usual.
+</LI>
+</UL>
+<P>Good luck and enjoy using your new disk-less workstation
+<P>Markus <CODE>(gutschk@math.uni-muenster.de)</CODE>
+<P>
+<HR>
+Next
+Previous
+<A HREF="old-README.html#toc1">Contents</A>
+</BODY>
+</HTML>

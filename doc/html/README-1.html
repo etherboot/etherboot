@@ -1,0 +1,245 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot README: Introduction</TITLE>
+ <LINK HREF="README-2.html" REL=next>
+
+ <LINK HREF="README.html#toc1" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="README-2.html">Next</A>
+Previous
+<A HREF="README.html#toc1">Contents</A>
+<HR>
+<H2><A NAME="s1">1. Introduction</A></H2>
+
+<P>
+<P>Etherboot is a package for creating ROM images that can download code
+over the network to be executed on an x86 computer. Etherboot requires
+the PC architecture, it does not work for other Linux platforms such as
+Alphas or Suns. Typically the computer is diskless and the code is Linux
+or FreeBSD, but these are not the only possibilities. The code uses the
+bootp, tftp and NFS Internet Protocols.
+<P>
+<P>
+<P>Etherboot is Open Source. Please support it by joining the Open Source
+community and sharing. See the Etherboot home page for some ways you
+can help Etherboot.
+<P>
+<P>
+<P><I>Disclaimer: Etherboot comes with NO warranties of any kind. It is
+hoped that it will be useful to you, and NO responsibility is accepted for
+any outcome of using it. Etherboot also comes with NO support, although
+you can get helpful advice from the Netboot mailing list referred to on
+the Etherboot home page, and from the Internet in general.</I>
+<P>
+<H2><A NAME="ss1.1">1.1 What hardware is supported?</A>
+</H2>
+
+<P>
+<P>The following is the current NIC configuration file as of 2000-11-04.
+<P>Even if your NIC does not appear in the list, it may still be supported
+if the chip is one of those supported.  Many OEMs use chips from
+foundries. An exhaustive list of brand names is impossible.  The best
+strategy is to read the number on the LAN controller chip on the board.
+<P>
+<HR>
+<PRE>
+# This is the config file for creating Makefile rules for Etherboot ROMs
+#
+# To make a ROM for a supported NIC add a line of the form
+#
+# ROM           Driver-name     PCI-IDs
+#
+# ROM is the desired output name for both .rom and .lzrom images.
+# Driver name is the driver it uses (can be omitted if the same as ROM).
+# PCI IDs are the PCI vendor and device IDs of the PCI NIC
+#   (leave blank for ISA NICs).
+#
+# All PCI ROMs that share a single driver are only built once (because they
+# only have different PCI-IDs, but identical code).  ISA ROMS are built for
+# each ROM type, because different vendors used a different logic around the
+# basic chip.  The most popular example is the NS8390, which some cards use
+# in PIO mode, some in DMA mode.  Two chips currently don't fit into this nice
+# black-and-white scheme (the Lance and the NS8390).  Their driver deals
+# with both PCI and ISA cards.  These drivers will be treated similarly to
+# ISA only drivers by genrules.pl and are compiled for each ROM type that is
+# ISA, and additionally compiled for the PCI card type.
+#
+# Then do: make clean, make Roms and make
+#
+# Send additions to this file to &lt;ken_yap@users.sourceforge.net>
+#
+# 3Com503, aka Etherlink II, also /16 model
+3c503           ns8390
+# 3Com507 (i82586 based)
+3c507           i82586
+# 3c509, ISA/EISA
+3c509
+# 3c529 == MCA 3c509
+3c529           3c509
+# 3c59x cards (Vortex)
+3c590           3c595           0x10b7,0x5900
+3c595           3c595           0x10b7,0x5950
+3c595-1         3c595           0x10b7,0x5951
+3c595-2         3c595           0x10b7,0x5952
+# 3C90x cards device IDs
+# Original 90x revisions:
+#   0x9000 : 10 Base TPO
+#   0x9001 : 10/100 T4
+#   0x9050 : 10/100 TPO
+#   0x9051 : 10 Base Combo
+# Newer 90xB revisions:
+#   0x9004 : 10 Base TPO
+#   0x9005 : 10 Base Combo
+#   0x9006 : 10 Base TP and Base2
+#   0x900A : 10 Base FL
+#   0x9055 : 10/100 TPO
+#   0x9056 : 10/100 T4
+#   0x905A : 10 Base FX
+# Newer 90xC revision:
+#   0x9200 : 10/100 TPO (3C905C-TXM)
+3c905-tpo       3c90x           0x10b7,0x9000
+3c905-t4        3c90x           0x10b7,0x9001
+3c905-tpo100    3c90x           0x10b7,0x9050
+3c905-combo     3c90x           0x10b7,0x9051
+3c905b-tpo      3c90x           0x10b7,0x9004
+3c905b-combo    3c90x           0x10b7,0x9005
+3c905b-tpb2     3c90x           0x10b7,0x9006
+3c905b-fl       3c90x           0x10b7,0x900a
+3c905b-tpo100   3c90x           0x10b7,0x9055
+3c905b-t4       3c90x           0x10b7,0x9056
+3c905b-fx       3c90x           0x10b7,0x905a
+3c905c-tpo      3c90x           0x10b7,0x9200
+# Crystal Semiconductor CS89x0
+cs89x0
+# Digital DE100 and DE200
+depca           depca
+# Intel Etherexpress Pro/100
+eepro100        eepro100        0x8086,0x1229
+82559er         eepro100        0x8086,0x1209
+# SMC 83c170 EPIC/100
+epic100         epic100         0x10b8,0x0005
+# Exos 205 (i82586 based)
+exos205         i82586
+# Lance PCI PCNet/32
+lancepci        lance           0x1022,0x2000
+# Linksys LNE100TX and other NICs using this Tulip clone chip
+lc82c115        tulip           0x11ad,0xc115
+# Netgear FA310TX and other NICs using this Tulip clone chip
+lc82c168        tulip           0x11ad,0x0002
+# Tulip clones based on the ADMtek Centaur-P
+admtek0985      tulip           0x1317,0x0985
+# Reported by Ranjan Parthasarathy
+stmicro         tulip           0x1317,0x0981
+# Tulip clones based on the Macronix 987x5
+mx987x5         tulip           0x10d9,0x0531
+# Davicom DM9102
+davicom9102     davicom         0x1282,0x9102
+davicom9009     davicom         0x1282,0x9009
+# NE1000/2000 and clones (ISA)
+ne              ns8390
+# Novell NE2100 (Lance based, also works on NE1500)
+ne2100          lance
+# NE2000 PCI clone (RTL8029)
+nepci           ns8390          0x10ec,0x8029
+# Winbond 86C940
+winbond940      ns8390          0x1050,0x0940
+# Compex RL2000
+compexrl2000    ns8390          0x11f6,0x1401
+# KTI ET32P2
+ktiet32p2       ns8390          0x8e2e,0x3000
+# NetVin 5000SC
+nv5000sc        ns8390          0x4a14,0x5000
+# Racal-Interlan NI5010
+ni5010          ni5010
+# Racal-Interlan NI5210
+ni5210          i82586
+# Racal-Interlan NI6510 (Lance based)
+ni6510          lance
+# Base driver for Tulip clones
+tulip           tulip           0x1011,0x0002
+# Tulip-Fast
+tulipfast       tulip           0x1011,0x0009
+# Tulip+
+tulip+          tulip           0x1011,0x0014
+# Tulip 21142
+tulip21142      tulip           0x1011,0x0019
+# Realtek 8029 (NE2000 PCI clone)
+rtl8029         ns8390          0x10ec,0x8029
+# Realtek 8139
+rtl8139         rtl8139         0x10ec,0x8139
+# SMC1211 (uses Realtek 8139 but with different IDs)
+smc1211         rtl8139         0x1112,0x1211
+# Schneider and Koch G16
+sk_g16
+# SMC9000
+smc9000
+# Tiara, Fujitsu Lancard
+tiara
+# Old base driver for Tulip clones
+otulip          otulip          0x1011,0x0002
+# Rhine-I, e.g. D-Link DFE-530TX
+dlink-530tx     via-rhine       0x1106,0x3043
+# Rhine-II
+via-rhine       via-rhine       0x1106,0x6100
+# WD8003/8013, SMC8216/8416
+wd              ns8390
+# Winbond W89c840
+winbond840      w89c840         0x1050,0x0840
+# Compex RL100-ATX
+compexrl100atx  w89c840         0x11f6,0x2011
+</PRE>
+<HR>
+<P>
+<P>
+<P>All Etherboot drivers are autoprobing, which means they attempt to detect
+the hardware addresses at which the card is installed. It's fairly easy
+to write a driver if you know C and are familiar with Ethernet hardware
+interfacing. Please read the section on 
+<A HREF="README-9.html#driver">Writing an Etherboot Driver</A> if you wish to do so.
+<P>
+<H2><A NAME="ss1.2">1.2 Availability of this document</A>
+</H2>
+
+<P>
+<P>This document and related documents are also kept online at 
+<A HREF="http://etherboot.sourceforge.net/">the Etherboot Home Page</A>.
+This will in general have the latest distributions and documentation.
+<P>
+<P>
+<P>The contents of this document are copyright Ken Yap and Markus Gutschke.
+However permission is granted to copy and reproduce this document in
+full or in part provided this document is identified as the source.
+<P>
+<P>
+<P>For a talk/tutorial type introduction to what Etherboot does and how to
+set it up, see my 
+<A HREF="diskless.html">SLUG talk</A>. You may
+wish to review this before reading further.
+<P>
+<P>
+<P>An older version of this README, which is now out of date, can be
+accessed via 
+<A HREF="old-README.html">this link</A>.
+<P>
+<H2><A NAME="ss1.3">1.3 Getting help</A>
+</H2>
+
+<P>
+<P>There is a mailing list for all netbooting related
+issues. To subscribe follow the instructions on the 
+<A HREF="http://etherboot.sourceforge.net/">Etherboot home page</A>.
+<P>
+<P>
+<P>With the major exception of the following section, and the section on
+Writing an Etherboot Driver, most of the information on diskless booting
+is not specific to Etherboot but can be used for the Netboot package also.
+<P>
+<HR>
+<A HREF="README-2.html">Next</A>
+Previous
+<A HREF="README.html#toc1">Contents</A>
+</BODY>
+</HTML>

@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot README: Setting up a diskless boot</TITLE>
+ <LINK HREF="README-4.html" REL=next>
+ <LINK HREF="README-2.html" REL=previous>
+ <LINK HREF="README.html#toc3" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="README-4.html">Next</A>
+<A HREF="README-2.html">Previous</A>
+<A HREF="README.html#toc3">Contents</A>
+<HR>
+<H2><A NAME="s3">3. Setting up a diskless boot</A></H2>
+
+<P>
+<P>In this section I assume you want to boot a Linux kernel. Booting a
+FreeBSD kernel will be documented soon.  Booting a DOS kernel is similar,
+the main differences being in the way you set up the tagged image.
+<P>
+<H2><A NAME="ss3.1">3.1 Making a tagged image</A>
+</H2>
+
+<P>
+<P>Etherboot expects to download a 
+<A HREF="spec.html">tagged image</A>
+containing the code to be executed. Briefly explained, a tagged image
+is a wrapper around the pieces of code or data that need to be put in
+various places in the computer's memory. It contains a directory telling
+how large the pieces are and where they go in memory. It also says where
+to start execution.
+<P>
+<P>
+<P>A tagged image is created using a utility program. The 
+<A HREF="mknbi.html">utility program</A> is specific to the kernel you
+want to load. The version for Linux is called mknbi-linux and that for
+DOS is mknbi-dos. These utilities are found in the mknbi directory of
+the distribution.
+<P>
+<H2><A NAME="ss3.2">3.2 Compiling a custom kernel</A>
+</H2>
+
+<P>
+<P>You will almost certainly have to compile a custom kernel because the kernel
+needs to have the "Root file system on NFS" option compiled in.  (You need to
+select "NFS filesystem support" as built-in, not a module, and possibly also
+"Kernel level autoconfiguration" before this option will appear.)  You should
+also select "BOOTP support" and/or "DHCP support".  "RARP support" is not
+needed.  In 2.2 kernels you have to enable the "Kernel level autoconfiguration"
+option under IP networking to access the BOOTP support question.  And unless
+you are using an initrd (initial ramdisk) you will have to compile in the
+driver for your network card too. For details, see the file
+/usr/src/linux/Documentation/nfsroot.txt in a Linux kernel source distribution.
+<P>
+<P>
+<P>After you have compiled the custom kernel, make the tagged image,
+typically like this:
+<P>
+<HR>
+<PRE>
+        mknbi-linux --output=/tftpdir/vmlinuz.xterm zImage
+</PRE>
+<HR>
+<P>Then put the tagged image in where the tftp daemon expects to find it,
+in this example /tftpdir. Make sure it is world-readable because typically
+the tftp daemon runs as an unprivileged user. It is recommended that you
+set a path explicitly for tftpd instead of relying on any defaults. For
+example:
+<P>
+<HR>
+<PRE>
+tftp    dgram   udp     wait    root    /usr/sbin/tcpd  in.tftpd /tftpdir
+</PRE>
+<HR>
+<P>
+<H2><A NAME="ss3.3">3.3 Setting up a bootp daemon</A>
+</H2>
+
+<P>
+<P>Now set up a bootp daemon. In RedHat 5.2 this means installing the
+bootp RPM package, making sure that the bootps service is active in
+/etc/inetd.conf,  and editing /etc/bootptab. The essential pieces of
+information you need to put in bootptab are:
+<P>
+<OL>
+<LI>The domain name of the machine.
+</LI>
+<LI>The Ethernet (MAC) address of the network card, which you generally
+obtain from a sticker on the card, a configuration program for the card,
+or in the last resort, from watching the output of Etherboot or from the
+packets sent from the card when trying to boot, using the debug option
+of bootpd.
+</LI>
+<LI>The name of the tagged image file, relative to the tftpdir
+directory.
+</LI>
+<LI>The IP address you intend to give it.
+</LI>
+<LI>The IP addresses of various servers. You will need at least the
+tftp server's address.
+</LI>
+</OL>
+<P>
+<P>
+<P>Here is an example of a /etc/bootptab for the bootpd supplied with RedHat
+Linux 5.2 and probably many versions of Unix:
+<P>
+<HR>
+<PRE>
+.default:\
+        :ht=ethernet:\
+        :hd=/tftpdir:bf=null:\
+        :ds=nameserver:\
+        :hn:to=36000:
+xterm.ken.net.au:tc=.default:ha=08002BB7F380:ip=192.168.26.100:bf=vmlinuz.xterm
+</PRE>
+<HR>
+<P>The first entry sets up some common defaults which applies
+to all succeeding entries which can be "included" using the
+tc=.default attribute. The first field is the domain name of the
+machine. The ha attribute is the Ethernet address.  The ip attribute is
+self-explanatory. The bf field specifies the tagged image filename. For
+more details, consult the bootptab man page.
+<P>
+<P>
+<P>Please note that if you use the ef (extension file) attribute to be
+able to send more configuration data to the diskless machine, you must
+run bootpef everytime bootptab is modified.
+<P>
+<H2><A NAME="ss3.4">3.4 Setting up a DHCP daemon</A>
+</H2>
+
+<P>
+<P>As an alternative to bootp, you could set up a DHCP server which has the
+advantage of automating the handing out of IP addresses.  In RedHat 6.0,
+bootpd is not supplied and DHCPD is preferred.  However the kernel will
+still do a bootp request to find the IP address for mounting the NFS
+filesystem. The exceptions to the last sentence are recent kernels in
+the 2.2 series (2.2.15 or 2.2.16 onwards), which can autoconfigure using
+DHCP thanks to code by Chip Salzenberg. It is rumoured that this feature
+will not be ported to 2.4 kernels because DHCP autoconfig is a userland
+issue. You may perhaps wish to investigate the --rootdir=rom option in
+<A HREF="mknbi.html">mknbi-linux</A> which tells the kernel to take
+the address from the initial DHCP reply, or to use initrds in
+conjunction with a userland DHCP client program to configure the
+netbooted machine.
+<P>
+<P>
+<P>This is the roughly equivalent dhcpd.conf file to the above bootptab:
+<P>
+<HR>
+<PRE>
+option domain-name "ken.net.au";
+option domain-name-servers 192.168.26.1;
+option broadcast-address 192.168.26.255;
+use-host-decl-names on;
+subnet 192.168.26.0 netmask 255.255.255.0 {
+        filename "/tftpdir/vmlinuz.xterm";
+        host xterm {
+                hardware ethernet 08:00:2B:B7:F3:80;
+                fixed-address xterm.ken.net.au;
+                filename "/tftpdir/vmlinuz.xterm";
+        }
+}
+</PRE>
+<HR>
+<P>You don't have to use fixed addresses, of course, but if you use
+dynamic addresses, then you have to deal with the resulting issues of
+NFS mounting.
+<P>
+<P>
+<P>More information about DHCP can be found at the 
+<A HREF="http://web.syr.edu/~jmwobus/comfaqs/dhcp.faq.html">DHCP FAQ Web Page</A>.
+<P>
+<P>
+<P>If you are on a local network that is not directly
+connected to the Internet, you can use the "private" IP
+addresses 192.168.x.y (or in the other ranges mentioned in 
+<A HREF="http://ds.internic.net/rfc/rfc1918.txt">RFC1918</A>). Otherwise
+please ask either your network administrator or your Internet service
+provider for your own IP address(es).
+<P>
+<H2><A NAME="ss3.5">3.5 Setting up a tftp daemon</A>
+</H2>
+
+<P>
+<P>Now set up a tftp daemon. This means installing the tftp package and
+making sure that the tftp service is active in /etc/inetd.conf. If you
+want to be very careful You may wish to use the secure (-s) option of
+tftpd, this chroots to the specified directory, but then your pathnames
+in bootptab or dhcpd.conf must be relative to the new root directory.
+<P>
+<P>
+<P>If you are booting many clients you should be aware of the limitations
+of running tftpd from inetd. Typically inetd has limits on how often a
+daemon can be spawned, to detect runaway daemons. If many clients
+request the tftp service within a short period, inetd may shutdown that
+service.  If you have a setup where there are many clients, it may be
+better to use a more flexible replacement for inetd, such as xinetd.
+Another solution is to run a dedicated tftpd that is not spawned from
+inetd. One such tftpd can be found here at:
+<CODE>ftp://nilo.on.openprojects.net/pub/nilo/snapshots</CODE>
+<P>
+<HR>
+<A HREF="README-4.html">Next</A>
+<A HREF="README-2.html">Previous</A>
+<A HREF="README.html#toc3">Contents</A>
+</BODY>
+</HTML>

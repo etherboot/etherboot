@@ -1,0 +1,258 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot README: Unpacking, compiling and testing the package</TITLE>
+ <LINK HREF="README-3.html" REL=next>
+ <LINK HREF="README-1.html" REL=previous>
+ <LINK HREF="README.html#toc2" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="README-3.html">Next</A>
+<A HREF="README-1.html">Previous</A>
+<A HREF="README.html#toc2">Contents</A>
+<HR>
+<H2><A NAME="s2">2. Unpacking, compiling and testing the package</A></H2>
+
+<P>
+<P><EM>This section is Etherboot specific.</EM>
+<P>
+<H2><A NAME="ss2.1">2.1 Unpacking the distribution</A>
+</H2>
+
+<P>
+<P>Unpack the distribution using gunzip and tar, using one of the following
+commands, where you replace x by the patchlevel number:
+<P>
+<P>
+<P>
+<HR>
+<PRE>
+        tar zxvf etherboot-4.6.x.tar.gz
+        gunzip &lt; etherboot-4.6.x.tar.gz | tar xvf -
+        bunzip2 &lt; etherboot-4.6.x.tar.bz2 | tar xvf -
+</PRE>
+<HR>
+<P>
+<H2><A NAME="ss2.2">2.2 Compiling the ROM images</A>
+</H2>
+
+<P>
+<P>To build the ROM images you need a recent release of gcc and the
+binutils tools. This package was compiled with the tools from a RedHat
+6.0 distribution but it should work with any recent Linux or FreeBSD
+distribution. For the 16 bit version you need the bcc tools from the
+Embedded Linux Kernel Subset (ELKS) project, for more details see the
+<A HREF="16.html">notes on 16 bit Etherboot</A>. You need the 16
+bit version only if you intend to run Etherboot on a 286 or 086/088 PC.
+<P>
+<P>
+<P>Assuming you have decided to make the 32 bit version, you only have
+to go to src/, edit the options in Config and say make. This will
+create all the ROM images available in bin32. The .lzrom images are the
+same as the .rom images. Since the .lzrom images are smaller and work
+exactly the same, there is no real reason to use .rom images any more,
+unless you are nervous about compression algorithm patents. We believe
+the algorithm used does not infringe patents, having been in public use
+for some time, but we do not know all the legal ramifications. See 
+<A HREF="COPYING_compressor.html">here</A> for more details.
+<P>
+<P>
+<P>Here is a brief description of the options available:
+<P>
+<HR>
+<PRE>
+Basic options:
+
+-DNO_DHCP_SUPPORT-Use BOOTP instead of DHCP
+-DRARP_NOT_BOOTP- Use RARP instead of BOOTP/DHCP
+-DIMAGE_MENU    - Allow to interactively chose between different
+                  bootimages; read vendortags.html for further
+                  information.
+-DMOTD          - Display message of the day; read vendortags.html
+                  for further information.
+-DASK_BOOT=n    - Ask "Boot from Network or from Local? " at startup,
+                  timeout after n seconds (0 = no timeout); this
+                  can be done in a more generic way by using the
+                  IMAGE_MENU, but it requires that the "bootp"
+                  server is accessible, even when booting locally.
+-DANS_DEFAULT=ANS_NETWORK
+                - Assume Network to previous question
+                  (alternative: ANS_LOCAL) on timeout or Return key
+                  See etherboot.h for prompt and answer strings.
+-DEMERGENCYDISKBOOT
+                - if no BOOTP server can be found, then boot from
+                  local disk. The accessibility of the TFTP server
+                  has no effect, though! So configure your BOOTP
+                  server properly. You should probably reduce
+                  MAX_BOOTP_RETRIES to a small number like 3.
+-DNOINT19H      - Take control as soon as BIOS detects the ROM
+                  Normally hooks onto INT19H
+-DMOVEROM       - if your motherboard does not cache adapter memory
+                  space, then this option can speed up loading of
+                  compressed BOOT-Prom images. It has not affect on
+                  uncompressed images. Unless you are very tight on
+                  free space, you will usually want to define this
+                  option.  This flag must be added to LCONFIG!
+-DDELIMITERLINES - print a line of = characters at the start
+                  and also just before starting an image.
+-DSIZEINDICATOR - update a running total of the amount of code
+                  loaded so far, in kilobytes
+-DT509HACK      - send two bootp packets before waiting for a
+                  reply to the first. Makes a 3c509 do bootp
+                  quicker
+-DT503_AUI      - Use AUI by default on 3c503 cards.
+-DCONGESTED     - turns on packet retransmission.  Use it on a
+                  congested network, where the normal operation
+                  can't boot the image.
+-DBACKOFF_LIMIT - sets the maximum RFC951 backoff exponent to n.
+                  Do not set this unreasonably low, because on networks
+                  with many machines they can saturate the link
+                  (the delay corresponding to the exponent is a random
+                  time in the range 0..3.5*2^n seconds).  Use 5 for a
+                  VERY small network (max. 2 minutes delay), 7 for a
+                  medium sized network (max. 7.5 minutes delay) or 10
+                  for a really huge network with many clients, frequent
+                  congestions (max. 1  hour delay).  On average the
+                  delay time will be half the maximum value.  If in
+                  doubt about the consequences, use a larger value.
+                  Also keep in mind that the number of retransmissions
+                  is not changed by this setting, so the default of 20
+                  may no longer be appropriate.  You might need to set
+                  MAX_ARP_RETRIES, MAX_BOOTP_RETRIES, MAX_TFTP_RETRIES
+                  and MAX_RPC_RETRIES to a larger value.
+
+Etherboot/32 only options:
+
+-DAOUT_IMAGE    - Add a.out kernel boot support (generic)
+-DELF_IMAGE     - Add ELF kernel boot support (generic)
+-DIMAGE_MULTIBOOT - Add Multiboot image support (currently only
+                  for ELF images)
+-DIMAGE_FREEBSD - Add FreeBSD image loading support (requires at least
+                  -DAOUT_IMAGE and/or -DELF_IMAGE)
+-DCONSOLE_CRT   - set for CRT console (default if nothing else is set)
+-DCONSOLE_SERIAL- set for serial console.
+-DCONSOLE_DUAL  - set for CRT and serial console, see comment at
+                  -DANSIESC and -DGFX
+-DCOMCONSOLE    - set port, e.g. 0x378
+-DCONSPEED      - set speed, e.g. 57600
+-DCOMPARM       - set Line Control Register value for data bits, stop
+                  bits and parity. See a National Semiconditor 8250/
+                  16450/16550 data sheet for bit meanings.
+                  If undefined, defaults to 0x03 = 8N1.
+-DPASSWD        - enable password protection for boot images; this
+                  requires -DIMAGE_MENU
+-DUSRPARMS      - allow the user to interactively edit parameters
+                  that are passed to the booted kernel; you should
+                  probably enable -DPASSWD as well; this feature
+                  requires -DIMAGE_MENU
+-DANSIESC       - evaluate a subset of common ANSI escape sequences
+                  when displaying the message of the day; this
+                  probably does not make sense unless you also
+                  define -DMOTD or at least -DIMAGE_MENU. It is
+                  possible to combine this option with -DCONSOLE_DUAL,
+                  but you have to be aware that the boot menu will
+                  no longer use ANSI escapes to be compatible with the
+                  serial console. Also be careful with your banners, as
+                  they may confuse your serial console.  Gererally you
+                  lose most of the ANSIESC functionality.
+-DGFX           - support extensions to the ANSI escape sequences for
+                  displaying graphics (icons or logos); this
+                  requires -DANSIESC. It probably does not make sense
+                  to use -DGFX if you have -DCONSOLE_DUAL, as the
+                  serial console normally cannot handle the GFX stuff.
+-DFLOPPY        - boot from floppy/hd if bootimage matches the
+                  pattern "/dev/[fh]d*"; if you do not have
+                  enough space in the EPROM, then disable this
+                  feature and use "mknbi-blkdev" for booting
+                  from a local blockdevice.
+-DTRY_FLOPPY_FIRST
+                - If > 0, tries that many times to read the boot
+                  sector from a floppy drive before booting from
+                  ROM. If successful, does a local boot.
+                  It assumes the floppy is bootable. Requires -DFLOPPY.
+-DCONFIG_PCI_DIRECT
+                - define this for PCI BIOSes that do not implement
+                  BIOS32 or not correctly
+-DINTERNAL_BOOTP_DATA
+                - define if the area 0x93C00-0x93FFF is not available
+                  for use for bootpd_data by the loader for some reason
+
+-DNO_DHCP_SUPPORT-Use BOOTP instead of DHCP
+-DIMAGE_MENU    - Allow to interactively chose between different
+                  bootimages; read vendortags.html for further
+                  information.
+-DMOTD          - Display message of the day; read vendortags.html
+                  for further information.
+-DASK_BOOT=n    - Ask "Boot from Network or from Local? " at startup,
+                  timeout after n seconds (0 = no timeout); this
+                  can be done in a more generic way by using the
+                  IMAGE_MENU, but it requires that the "bootp"
+                  server is accessible, even when booting locally.
+-DANS_DEFAULT=ANS_NETWORK
+                - Assume Network to previous question
+                  (alternative: ANS_LOCAL) on timeout or Return key
+                  See etherboot.h for prompt and answer strings.
+-DEMERGENCYDISKBOOT
+                - if no BOOTP server can be found, then boot from
+                  local disk. The accessibility of the TFTP server
+                  has no effect, though! So configure your BOOTP
+                  server properly.  You should probably reduce
+                  MAX_BOOTP_RETRIES to a small number like 3.
+
+                  pattern "/dev/[fh]d*"; if you do not have
+                  enough space in the EPROM, then disable this
+                  feature and use "mknbi-blkdev" for booting
+                  from a local blockdevice.
+-DCONFIG_PCI_DIRECT
+                - define this for PCI BIOSes that do not implement
+                  BIOS32 or not correctly
+-DINTERNAL_BOOTP_DATA
+                - define if the area 0x93C00-0x93FFF is not available
+                  for use for bootpd_data by the loader for some reason
+</PRE>
+<HR>
+<P>
+<P>
+<P>You may also wish to examine file NIC for other options that may need
+adjustment. If you find you need to adjust the PCI vendor and device IDs,
+add the appropriate line to this file (and send me a copy). If you do
+not set the IDs correctly, the floppy version will work, but the ROM
+will not. The PCI IDs are usually displayed by the BIOS on booting
+up. They can also be read out from a running Linux system using the
+<A HREF="http://atrey.karlin.mff.cuni.cz/~mj/pciutils.html">Linux PCI Utilities</A>.
+<P>
+<H2><A NAME="ss2.3">2.3 Testing the ROM images</A>
+</H2>
+
+<P>
+<P>You can test the image with a floppy before programming an EPROM. On
+Linux just put a blank floppy in fd0 and say make bin32/card.fd0 where
+card is the name of your network card and it will copy a bootable
+image onto the floppy. If you wish to do this by hand, it's easy, just
+make floppyload.bin.pre and prepend floppyload.bin.pre to card.rom
+(or card.lzrom) and write this combined binary to the floppy raw,
+i.e. starting at the boot block. Like this:
+<P>
+<P>
+<P>
+<HR>
+<PRE>
+        cat floppyload.bin.pre 3c509.lzrom > /dev/fd0
+</PRE>
+<HR>
+<P>When you boot with this floppy it will load the Etherboot ROM image from
+floppy and execute it. It should be able to detect your card. To get
+the bootrom to acquire an IP address and load the intended code, you
+need to set up bootp, tftp and NFS services, which we will discuss next.
+<P>
+<P>
+<P>We suggest you continue to use floppy booting until you have completed
+the setup of the server and are satisfied that diskless booting works.
+<P>
+<HR>
+<A HREF="README-3.html">Next</A>
+<A HREF="README-1.html">Previous</A>
+<A HREF="README.html#toc2">Contents</A>
+</BODY>
+</HTML>

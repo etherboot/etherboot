@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>SLUG talk: Setting up a diskless Linux system: X-terminal</TITLE>
+ <LINK HREF="diskless-8.html" REL=next>
+ <LINK HREF="diskless-6.html" REL=previous>
+ <LINK HREF="diskless.html#toc7" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="diskless-8.html">Next</A>
+<A HREF="diskless-6.html">Previous</A>
+<A HREF="diskless.html#toc7">Contents</A>
+<HR>
+<H2><A NAME="X-terminal"></A> <A NAME="s7">7. X-terminal</A></H2>
+
+<P>
+<P>The reason I started this. I had a 486DX2/66 left over from an upgrade
+and I wanted to have a quiet X-terminal while the server makes noise
+somewhere else.
+<P>
+<P>
+<P>486 or Pentium best. 16 MB should be the minimum. Put in the best video
+card&nbsp; you can get for it. Normal NIC should do.
+<P>
+<P>
+<P>On the server, make sure the DC is matched by a clause in
+<CODE>/etc/X11/xdm/Xaccess</CODE> and comment out the <CODE>:0</CODE> in
+<CODE>/etc/X11/xdm/Xservers</CODE>.  Then make sure that xdm is run from
+the init scripts.
+<P>
+<P>
+<P>On the client, run <CODE>X -query</CODE> <I>server</I>
+<P>
+<P>
+<P>You will get the xdm login box and then all your X clients will run on
+the server.
+<P>
+<P>
+<P>I have been using this for several weeks now.
+<P>
+<HR>
+<A HREF="diskless-8.html">Next</A>
+<A HREF="diskless-6.html">Previous</A>
+<A HREF="diskless.html#toc7">Contents</A>
+</BODY>
+</HTML>

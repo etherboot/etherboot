@@ -1,0 +1,1 @@
+-m486 -malign-functions=2 -malign-jumps=2 -malign-loops=2 -fno-strength-reduce

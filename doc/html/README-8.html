@@ -1,0 +1,789 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot README: Frequently Answered Questions</TITLE>
+ <LINK HREF="README-9.html" REL=next>
+ <LINK HREF="README-7.html" REL=previous>
+ <LINK HREF="README.html#toc8" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="README-9.html">Next</A>
+<A HREF="README-7.html">Previous</A>
+<A HREF="README.html#toc8">Contents</A>
+<HR>
+<H2><A NAME="s8">8. Frequently Answered Questions</A></H2>
+
+<P>
+<P>Contributions are invited for this section. Mail them to 
+<A HREF="mailto:ken_yap@users.sourceforge.net">me</A>.
+<P>
+<H2><A NAME="ss8.1">8.1 Building Etherboot</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>What do I need to build Etherboot?
+
+<P>
+<P>You need gcc, gas and objcopy, as well as any accompanying libraries and
+include files. Generally speaking on a package based system using RPM
+or PKG, you will need the C compiler package, the include file package,
+the C library package, the assembler package and the binutils package
+(this may include the assembler). In addition, if you intend to modify
+the assembler files you will need an up-to-date as86 and ld86, not the
+ones that come standard with Linux, but from the ELKS project; or you
+will need nasm. You will also need perl if you modify the file NIC or
+use a different RELOCADDR value in the Makefile than the default, and
+m4 if you modify this file README.xsgml.
+<P>
+</LI>
+<LI>I get an error from as saying data32 is an unknown directive.
+
+<P>
+<P>Your gas is too old, upgrade to 2.9.1 at least.
+<P>
+</LI>
+<LI>I get an error from as saying data32 (and others) should be
+prefixes.
+
+<P>
+<P>Support for extended directives changed in syntax between gas 2.9.1 and
+gas 2.9.5. Disable -DGAS291 in Config to allow for the new syntax. In
+recent versions of Etherboot, this should be automatically detected.
+<P>
+</LI>
+<LI>The documentation talks about mknbi-linux and mknbi-dos. Where
+are they?
+
+<P>
+<P>These are 
+<A HREF="mknbi.html">utilities</A> in the mknbi-1.0
+directory.  You need to cd into this directory, edit Makefile and run
+make and make install to install the utilities in their final location.
+<P>
+</LI>
+<LI>Why don't you provide prebuilt ROM images?
+
+<P>
+<P>Etherboot is constantly updated, and binary images would get out of
+date soon.  Binaries can lose any external indication of what release
+they were from. Old binaries might float around and create problems for
+users who are not aware that bugs have been fixed in newer versions. Also
+there are some user configurable options you might want to change.
+For this reason, Etherboot is provided in source form for you to build.
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.2">8.2 Testing Etherboot</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>I put the ROM image on floppy like you wrote (cat floppyload.bin.pre
+bin32/foo.rom > /dev/fd0, or make bin32/foo.fd0) but the floppy prints
+out hex numbers when it boots.
+
+<P>
+<P>The floppy you use should be an error-free, preferably a recently
+formatted floppy. Do not trust new floppies; they have been known to
+lose their manufacturer formatting in storage. You don't need to put a
+filesystem of any sort on it, FAT or ext2 or otherwise. Another possible
+cause is that there are alignment differences between the drive used to
+write the floppy and that used on the target machine. As far as I know
+the floppy boot should work on all floppy sizes (1.44M, 720k, and even
+1.2M and 360k if you can still find these), but beware of differences
+between drives, e.g. writing a 360k floppy in a 1.2M drive creates narrow
+tracks which may not overwrite previous contents.
+<P>
+</LI>
+<LI>My network adapter is detected but I get no reply to the
+BOOTP/DHCP request.
+
+<P>
+<P>Do you have a BOOTP or DHCP server running on the same Ethernet segment?
+On many operating systems the server is not enabled by default. Review
+the instructions in the Troubleshooting section. Another thing to
+note is that the BOOTP (or DHCP in fixed address mode) server will not
+reply if it does not know the network adapter's Ethernet address. Since
+the address may be hard to determine if it is not printed on the card
+or you do not have the adapter's setup program, you can copy it from
+Etherboot's startup message. Remember to restart the server if you have
+edited the config file and the server does not automatically reread when
+it discovers an updated config file.
+<P>
+<P>
+<P>Another thing to check is that the BOOTP or DHCP server is allowed
+to receive the query. You may have some protection mechanism such as
+tcpwrappers in front of it. As the booting computer does not have an
+IP address, the request will come from 0.0.0.0 so your rules must allow
+through packets from this address.
+<P>
+<P>
+<P>If the BOOTP or DHCP server is on another Ethernet segment, things
+get more complicated. You need to run a BOOTP or DHCP relay. You will
+probably also need to set the gateway field in the reply so that TFTP
+will work across the gateway. You should read a good explanation of how
+these work, in say, W. Richard Steven's book TCP/IP Illustrated.
+<P>
+</LI>
+<LI>Etherboot gets the BOOTP/DHCP parameters but cannot find a
+TFTP server.
+
+<P>
+<P>Do you have a TFTP server running and is it allowed to serve the client
+in question? For example the tcpwrapper rules may not allow TFTPD to
+respond to the IP address the booting computer is at. You should look
+at the log files on the server for any clues.
+<P>
+</LI>
+<LI>The TFTP server is found but it replies Access violation.
+
+<P>
+<P>Access violation is a blanket reply for many different problems but
+essentially the TFTP server cannot give Etherboot the file requested. Did
+you put the file where TFTPD expects to find it, e.g. on a directory
+that is on its path? Did you make the file world readable? Case of the
+filename is important too.
+<P>
+</LI>
+<LI>I made this kernel and put it in /tftpdir like you
+wrote but Etherboot says Unable to load file.
+
+<P>
+<P>Is the file a tagged image? You cannot use a ordinary kernel image, you
+must process it with 
+<A HREF="mknbi.html">mknbi-linux</A> first.
+<P>
+</LI>
+<LI>I have this proprietary boot ROM and I used mknbi-linux to make a
+tagged image, (or I got this tagged image from the LTSP project), but
+the boot ROM doesn't load it, or it fails to run.
+
+<P>
+<P>Tagged image format is specific to Etherboot and Netboot. It will
+not work with proprietary boot ROMs. You have to find out from the
+supplier what boot procedures you should use. For example, if you are
+using a Lanworks boot ROM, the infomation you need is 
+<A HREF="http://www.3com.com/managedpc">here</A>.
+<P>
+</LI>
+<LI>Why don't you use some standard format instead of tagged image
+format?
+
+<P>
+<P>First of all, tagged image format actually precedes many of the
+proprietary formats in use today. So we were there first. Secondly
+there is no acknowledged standard for the boot image format, although
+there are some contenders now. Perhaps some day there will be an open,
+widely-accepted format. Until then you have to aware that there are
+different ones out there.
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.3">8.3 Hardware capabilities</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>What network cards are supported?
+
+<P>
+<P>See an earlier section in this README document.
+<P>
+</LI>
+<LI>I have a machine with the X processor and Y megabytes of memory.
+What can I expect to run on it?
+
+<P>
+<P>Please note that these estimates are approximate:
+<P>
+<UL>
+<LI>On a 8088/8086 you can only boot ELKS, a 16-bit mini-version of
+Linux, since 0.0.83 there has been support for making a tagged image
+and a ramdisk. However there are few applications for ELKS. For more
+details please go to the ELKS web site and mailing lists. Note that
+there is no networking in ELKS yet.
+</LI>
+<LI>On a 286 you can run DOS. With 384kB of extended memory you can
+run a 320kB ramdisk that can hold NCSA telnet with a VT100 terminal
+emulation. With about 720kB of extended memory you can run DOS Kermit,
+which has telnet capabilities and a VT320 terminal emulation. You can
+run various small application and network services. See 
+<A HREF="atnetboot.html">the AT netbooting document</A> and 
+<A HREF="16.html">the 16-bit HOWTO</A> for some ideas.
+</LI>
+<LI>On a 386 with at least 4MB of memory you can boot Linux. With 4MB
+perhaps only a few telnet sessions are possible. With 8MB you might be
+able to run a text based web browser like Lynx or W3M.
+</LI>
+<LI>On a 486 with 16MB of memory you can run X to make an X-terminal.
+</LI>
+<LI>On a Pentium with 32MB of memory you can run an X-terminal and
+some applications locally, say perhaps printing, daemons to control
+devices, etc.
+</LI>
+<LI>On anything faster and with more memory you could perhaps do
+distributed computation, e.g. a Beowulf cluster.
+</LI>
+</UL>
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.4">8.4 Booting Linux</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>The kernel loads but it cannot configure the network device.
+
+<P>
+<P>Did you compile the network adaptor driver into the kernel? Is the
+network adaptor at an address that is probed by the driver? If not,
+perhaps you need to provide some kernel parameters to help it find the
+hardware.
+<P>
+</LI>
+<LI>The kernel loads but it cannot mount a root filesystem, then it
+asks me to insert a floppy.
+
+<P>
+<P>Did you build the kernel with the root on NFS option? You cannot use
+a stock kernel from a distribution.
+<P>
+</LI>
+<LI>The kernel loads but it cannot find a NFS server for the root
+filesystem.
+
+<P>
+<P>Do you have a NFS server running and is it allowed to serve this client?
+NFS is actually several services. On Linux at least you need: nfsd (either
+kernel or userland version), rpc.mountd and portmapper. Check if the
+tcpwrappers config file is allowing portmapper to receive the request.
+Look at the log files for clues. Did we already mention that log files
+are your friends?
+<P>
+</LI>
+<LI>The root filesystem mounts but it says something about not being
+able to open an initial console. Or alternatively, various services
+complain about not being able to write to the filesystem.
+
+<P>
+<P>Please review the Troubleshooting section for what is required on this
+root filesystem. The situation is complicated by the fact that there are
+many possible ways of setting this up, including using a root filesystem
+that is on ramdisk. If you wish to avoid many of the troubles, try using
+a packaged solution such as 
+<A HREF="http://www.ltsp.org/">LTSP</A>
+or my shell scripts for creating a root filesystem by copying files from
+an existing distribution.
+<P>
+</LI>
+<LI>What is the recommended way of setting up the NFS root?
+
+<P>
+<P>There is no one true way, but several approaches. Network booting is a
+tool and a very flexible one.  Here are just a few suggestions:
+<P>
+<OL>
+<LI>You can make a separate NFS root for each client, but share the
+sharable files between clients using hard links to minimise disk space
+requirements. This is the approach I took in 
+<A HREF="diskless.html">my tutorial</A>. I used this because I was lazy, I have only a
+couple of diskless clients and I could copy the files from an existing
+distribution.
+</LI>
+<LI>You could use the packaged solution from 
+<A HREF="http://www.ltsp.org/">LTSP</A>, which creates a shareable NFS root for
+multiple clients.
+</LI>
+<LI>August H&ouml;randl describes 
+<A HREF="http://elina.htlw16.ac.at/~hoerandl/nfs-root/">his approach</A> which uses a ramdisk for
+the initial startup, and then merges in a readonly NFS filesystem.
+</LI>
+<LI>It is rumoured that the 
+<A HREF="http://www.debian.org/">Debian distribution</A> has a package called diskless that
+contains Perl scripts to create such a filesystem.
+</LI>
+</OL>
+<P>
+<P>
+<P>If you have an approach which you think the world should know about,
+please send the URL of a web page that describes it to 
+<A HREF="mailto:ken_yap@users.sourceforge.net">me</A>.
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.5">8.5 Running X</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>I tried to run X on the client but it aborted.
+
+<P>
+<P>Remember that the config files used by the X server should pertain
+to the client's video adapter and display hardware. If you used a
+<A HREF="http://www.ltsp.org/">LTSP</A> package, please review
+the configuration directions. If you used the copy files from server
+solution, then you need to customise the X server configuration. Another
+thing that may cause the server to abort is lack of a mouse device.
+<P>
+</LI>
+<LI>X -query server runs but all I get is a gray stippled screen.
+
+<P>
+<P>Either you don't have an XDM server running on the server machine or
+it is not allowed to serve this client. In the latter case check XDM's
+Xaccess file, because for security reasons, the ability for clients to
+connect is usually disabled.
+<P>
+</LI>
+<LI>When I am logged in using an X-terminal, I find that the floppy
+drive, sound card and name of the computer are those of the server!?
+
+<P>
+<P>This is to be expected! This is exactly how an X-terminal works. You
+are indeed logged onto the server and the client just provides
+display (screen) and input device (keyboard and mouse) services to the
+application. This is one of the beauties of the X Windowing system model,
+it's <I>network transparent</I>.
+<P>
+</LI>
+<LI>So how do I run applications on the client? I have this (smartcard
+reader, printer, sound card, etc) program that must execute locally.
+
+<P>
+<P>Some client configurations allow you to run applications locally, in
+addition to running them on the server. In fact the printer and sound
+daemons mentioned later are applications that are run on the client.
+<P>
+</LI>
+<LI>X applications cannot find (some) fonts.
+
+<P>
+<P>Do you have an X font server (XFS) running on the server machine, is it
+allowed to serve this client, and has the client been told to use the
+font server? The last point is usually configured in the XF86Config file,
+or by a xset command to modify the font path after logging in.
+<P>
+<P>
+<P>Also note that RedHat (and possibly other distributions) has made XFS
+by default serve only the local machine using a Unix socket.  You need
+to modify the startup script to tell XFS to use a TCP/IP socket.
+<P>
+</LI>
+<LI>How much CPU power and memory do I need on the client? On the
+server?
+
+<P>
+<P>It depends on the configuration. There are two major cases: where the
+client is an X-terminal, and not much more; and where the client is
+configured to run applications locally.
+<P>
+<P>
+<P>An X server will fit in 16MB of memory, and 32MB is quite adequate.
+Performance depends on the CPU, video card and your expectations.
+An old Pentium 200 with a PCI video card does very well, but if you are
+not fussy, a high-end 486 with a VLB video card can be satisfying too.
+<P>
+<P>
+<P>If you want to run apps locally, well how long is a piece of string?
+Netscape will need say another 16MB. It all depends. Whatever you do,
+it's worth trimming down on the services you run on the client. Don't
+run more virtual consoles than you need and don't run unneeded daemons.
+<P>
+<P>
+<P>As for the server, in the X-terminal case this has all the applications
+running on it, so it should be adequate for the multiuser aspect. A
+high-end Pentium, with 64 MB of memory to start with, and between 8 and
+16MB for each extra client is a good starting point. It will also depend
+on your mix of client access, statistically perhaps not everybody will
+be running at the same time. Remember that you don't have to have one
+big server for all your clients, you can and you should distribute the
+load across servers.
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.6">8.6 Other client applications</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>How can I print to a printer attached to a diskless client?
+
+<P>
+<P>There is a server program called p910nd at the Etherboot site (and
+improved versions of it at 
+<A HREF="http://www.ltsp.org/">LTSP</A>)
+that funnels data from a TCP/IP connection to the printer port. You
+can instruct lpd or 
+<A HREF="http://www.cups.org/">CUPS</A> on the
+server to send jobs across the network to p910nd.
+<P>
+</LI>
+<LI>How can I output sound on the client?
+
+<P>
+<P>There is a package called 
+<A HREF="http://www.solucorp.qc.ca">virtualfs</A> that proxies the sound devices across
+the network. It can also proxy the floppy drive.
+<P>
+<P>
+<P>Another solution is 
+<A HREF="http://www.tux.org/~ricdude/EsounD.html">EsounD</A><P>
+</LI>
+<LI>How can I access the floppy on the client?
+
+<P>
+<P>Besides virtualfs mentioned above, recent distributions of 
+<A HREF="http://wauug.erols.com/pub/knaff/mtools/">mtools</A> have a
+floppyd. This only works with the mtools utilities though.
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.7">8.7 Booting FreeBSD</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>Where are the instructions for booting FreeBSD?
+
+<P>
+<P>For now, there is just a short document in the doc directory. Better
+versions of this document depend on contributions from the FreeBSD
+community, I am unable to test FreeBSD because I don't run it.
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.8">8.8 Booting other operating systems (DOS, Windows)</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>I want to boot FreeDOS.
+
+<P>
+<P>The new mknbi utility supports creating tagged images from FreeDOS
+kernels now.  See the 
+<A HREF="mknbi.html">man page</A> for
+details.  FreeDOS is a moving target and the layout of the kernel image
+or other things may have changed so you would need to be well acquainted
+with FreeDOS. Please send any corrections to me.
+<P>
+</LI>
+<LI>I cannot boot DR-DOS 7.03.
+
+<P>
+<P>There is some difference between the DR-DOS 7.03 and 7.02 bootblock that
+causes it not to boot. But a 7.02 bootblock works just as well with the
+DR-DOS 7.03 kernel, so you can substitute that. There are instructions
+to extract the bootblock in the 
+<A HREF="atnetboot.html">AT netbooting document</A>.
+<P>
+</LI>
+<LI>DOS dies when I load HIMEM.SYS.
+
+<P>
+<P>Use the /testmem:off option to prevent HIMEM from scribbling over the
+ramdisk which is the floppy A:.
+<P>
+</LI>
+<LI>How do I make A: my real floppy again after booting is complete?
+
+<P>
+<P>Use the rmrd.com program supplied with 
+<A HREF="mknbi.html">mknbi-1.0</A>.
+<P>
+</LI>
+<LI>I want to use the real floppy at the same time I am using the
+ramdisk image of the boot floppy.
+
+<P>
+<P>The --harddisk option of mknbi is intended for this. It causes your boot
+drive to be C:, so you can use A: for the real floppy. See the 
+<A HREF="mknbi.html">man page</A> for more details
+<P>
+</LI>
+<LI>I want to boot Windows.
+
+<P>
+<P>I pass on this one, as I do not have (by choice) any Windows systems
+running on my computers. Perhaps others can contribute to this
+section. However I gather that it is only possible on Windows95A, as
+other versions don't have the necessary support for diskless booting.
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.9">8.9 Hardware issues</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>Where can I get an EPROM made?
+
+<P>
+<P>Depending on where you live, you might find a supplier listed on the
+Commercial Links page. Another possibility is to get the help of someone
+working in a university or industrial lab who has an EPROM programmer.
+If you are handy with hardware, you could buy a kit or build your own.
+There are links to kit suppliers in the Commercial Links part of the
+home page.
+<P>
+<P>
+<P>Some high end adapters, for example the 3Com and Intel ones, accept
+an EEPROM in the socket. This can be programmed in-situ using utility
+programs, some of which or information about are under the contrib
+directory in the Etherboot distribution.
+<P>
+<P>
+<P>Finally some recent motherboard have flash BIOSes which contain
+space where an extension BIOS such as Etherboot can be inserted. The
+Phoenix Award BIOSes can be modified using a program called cbrom.exe
+possibly 
+<A HREF="http://www.ping.be/bios">here</A>. It
+is also reputed to live 
+<A HREF="http://www.boardrunner.com/download/utility/utility.htm">here</A>. Or do a
+Web search for it.  No success has been reported for AMI BIOSes. Dirk von
+Suchodoletz maintains a list of successes and failures 
+<A HREF="http://goe.net/anleitungen/award_board.html">here</A>.
+<P>Here is some text contributed by Dirk von Suchodoletz. He hopes to put
+it on a web site someday:
+<P>
+<HR>
+<PRE>
+6.4 Using your mainboard's BIOS to integrate etherboot-code
+
+Newer mainboards that have an AWARD-BIOS can use etherboot without
+seperate EPROMS and therefore without the necessity of having a
+EPROM-programmer[?]. (Heinrich Rebehn wishes to add: Flashing the BIOS
+is always a (small) risk. Flashing with unsupported, hacked BIOS image
+is *dangerous* and may render your PC unbootable.  If you don't
+have access to a PROM burner you should stay away from experimenting.) In
+order to do this, you need 2 software tools: awdflash.exe, which should be
+included in your mainboard package, and cbrom.exe, which is an OEM-tool
+that allows modifications of the BIOS. awdflash.exe reads and writes
+the flashrom content, whereas cbrom.exe is used to analyze the content
+of the AWARD BIOS image. cbrom.exe can also add code to the BIOS image
+or remove components.  This way you can easily integrate etherboot into
+your mainboards without even opening the PC's case.
+
+After the BIOS image has been saved (e.g. as bios.bin), or in case the
+current version of the BIOS has been copied from the board manufacturer's
+website, 'cbrom bios.bin /d' shows how much space is left on the image
+for your code.
+
+As the flashrom holds the compressed BIOS, cbrom will also compress
+the code when adding it to the BIOS.  Therefore, 8 to 20 kbyte of free
+memory is needed, depending on the network adapter's driver. In case not
+enough memory is left, unneeded BIOS components can be removed from the
+BIOS image to regain space: the manufacturer's logo or the Symbios/NCR
+SCSI-code are note needed for diskless systems. 'cbrom bios.bin
+/[pci|ncr|logo|isa] release' will remove those unnessary components.
+
+The command line "cbrom bios.bin /[pci|isa] bootimg.rom [D000:0]" adds
+the compiled etherboot code to the bios. bootimg.rom is the code we
+would use to burn onto EEPROMs in other cases. Depending on your network
+card, either the pci or isa options have to be used. With isa cards
+you have to tell cbrom to which RAM location the code will be extracted
+at boot time. Attention: Compile the etherboot with the -DASK_BOOT or
+-DEMERGENCYDISKBOOT option to be able to access a disk. The code added
+by cbrom will be executed before the computer seeks for a boot disk
+or floppy.
+
+6.5 Booting with a DOS executable (COM) file
+
+If the computer has to be used with more than one operating systems,
+for example using the computer as an X-Terminal in addition to the
+already installed NT on the harddrive, etherboot has to be used with
+the compile-time option -DASK_BOOT. In case hardware-conflicts beetween
+Windows NT and the installed EPROM exist, creating DOS Executables
+(e.g. using 'make rtl8139.com') can provide a useful remedy. Those DOS
+Executables are comparable in their functionality to .rom images and
+can be used as substitutes.
+
+In case an existing DOS-bootsector, stored in BOOTSECT.DOS, cannot be
+used, creating one has to be done by formatting and installing a harddrive
+using DOS before installing NT (see Win-NT Multiboot-HOWTO). In addition
+the DOS system files are needed (IO.SYS, MSDOS.SYS, or KERNEL.SYS
+when using Freedos) and have to be copied into the directory of the
+NT loader. If using Autoexec.bat to start the .COM file is desired,
+either the particluar COMMAND.COM has to be provided or the etherboot
+file needs to be renamed as COMMAND.COM. This file will then be started
+instead of the DOS-Shell which is useful for avoiding unwanted user
+interaction. Afterwards a line has to be added to BOOT.INI as if DOS
+was to be booted:
+
+[boot loader]
+timeout=20
+default=C:\bootsect.dos #add this line if dhcp/tftp should be default action
+[operating systems]
+multi(0)disk(0)rdisk(0)partition(2)\WINNT="Windows NT Workstation, Version 4.0"
+[VGA-Modus]" /basevideo /sos
+C:\bootsect.dos="DHCP/TFTP (Linux diskless via etherboot)" #our boot option
+</PRE>
+<HR>
+<P>And here are some comments by Rapp Informatik Systeme GmbH about
+cbrom.exe versions:
+<P>
+<HR>
+<PRE>
+Some  more remarks  for cbrom..
+
+There are several version numbers of cbrom.exe  p.e. 1.x  and 2.x.
+and there is a cbrom called cbrom6.exe.  First cbrom.exe with Version
+1.x  (newest 1.32)  is for Award Bios Version 4.5x   and cbrom6.exe is
+for Award Bios Version 6.xx.
+
+So because it seems a lot people become confused  and use cbrom 1.x
+for the new 6.x  Bios Award merged this together  to a cbrom.exe   with
+Version number 2.x ( newest know 2.04) witch now runs on Award 4.5x and
+6.xx Bioses.
+
+Now how to find cbrom.exe.  Different  1.x Versions  of cbrom.exe
+could be found  on the net, cbrom6.exe  seems to be gone.  It seems
+that Award/Phoenix do all that cbrom is deleted from servers of board
+manufaktures.  So cbrom.exe Vers 2.04  is not  available on the net.
+If  somebody need this please try to send a demand question to the list -
+I hope somebody will mail it to you.
+</PRE>
+<HR>
+<P>
+</LI>
+<LI>How do I enable the ROM socket on my network adapter? There are
+no jumpers on the card.
+
+<P>
+<P>These jumperless cards need a card-specific utility program to enable
+the ROM. Normally the manufacturer supplies it on a diskette or CDROM.
+You lost the diskette? If you know the manufacturer, you might be able
+to get the program from their website. You have a mystery card? Well the
+first thing to do is to identify the card. If it is an ISA card and made
+in Taiwan or China it's almost certainly a NE2000 clone. For some
+information, try 
+<A HREF="http://members.nbci.com/ken_yap/NIC/">here</A>.
+<P>
+</LI>
+<LI>I would like to boot my laptop diskless from a floppy containing
+Etherboot.
+
+<P>
+<P>The problem is that laptops these days use PCMCIA network adapter cards.
+These in turn connect to the PCMCIA controller when docked. To be able to
+communicate with the PCMCIA card, Etherboot would first have to talk
+to the PCMCIA controller. Until somebody writes the code to do this...
+Booting from disk is different because the kernel will load the PCMCIA
+controller code from disk first. You could always put a Linux kernel on
+the boot floppy.
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.10">8.10 Drivers</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>There is no Etherboot driver for my network adapter. Can you write
+me one?
+
+<P>
+<P>If I were independently wealthy and had nothing else to do in life, sure!
+But unfortunately I have a day job and Etherboot is a hobby. A couple
+of the drivers were written for pay and the others were written by
+volunteers. Perhaps you might like to volunteer?  If you have a good
+grasp of C, and understand basic hardware concepts, it is quite doable,
+and not nearly as difficult as writing a Linux device driver.  See the
+section on 
+<A HREF="README-9.html#driver">Writing an Etherboot Driver</A>. You
+will have the reward of understanding hardware intimately and seeing
+your work benefit users worldwide.
+<P>
+</LI>
+<LI>I see that my network adapter is supported in Linux. Can I use the
+Linux driver in Etherboot? Or maybe you can adapt the Linux source. I
+can send you the file if you just say the word.
+
+<P>
+<P>No, the structure of Linux and Etherboot drivers are quite different.
+There are several reasons: Linux drivers are more complicated and written
+to give good performance, whereas Etherboot drivers are written to be
+simple. Linux drivers are interrupt driven, whereas Etherboot drivers
+are polling. Linux drivers have an elaborate support structure, whereas
+Etherboot drivers are fairly self-standing. Finally Etherboot drivers
+have a difficult constraint on the amount of memory available to it,
+about 32kB near the top of 640kB.
+<P>
+<P>
+<P>But... you can use Linux drivers as a source of reverse-engineering
+information. Several of the drivers in Etherboot were adapted from
+Linux drivers. But don't send me the file; see previous FAQ about
+volunteering. And I have the latest Linux source anyway, doesn't everyone?
+<P>
+</LI>
+</OL>
+<P>
+<H2><A NAME="ss8.11">8.11 Miscellaneous</A>
+</H2>
+
+<P>
+<P>
+<OL>
+<LI>I have a question not covered by this list.
+
+<P>
+<P>Please join the 
+<A HREF="http://sourceforge.net/projects/etherboot">Etherboot mailing lists</A>. These are listed on the
+Etherboot home page.
+<P>
+<P>
+<P>Other lists you can join are the Netboot mailing list (joining details
+on Etherboot home page), and the LTSP mailing lists at 
+<A HREF=" http://www.ltsp.org/">LTSP</A>.  Etherboot and Netboot lists are for
+general netbooting issues, while LTSP is focused more on the LTSP
+packages. However there is a fair amount of overlap between the lists
+and many key people are on all lists.
+<P>
+<P>
+<P>Posting to a list is preferable to mailing me because: you get the
+benefit of a lot of experts seeing your question (no, I don't know
+everything, if only because there are many configurations I have never
+used); if your question is answered, a lot of people see the answer and
+this helps them too; and finally you may not get an immediate (or any)
+reply from me because I may be not reading my email or on holiday or
+just plain grumpy :-).
+<P>
+<P>
+<P>Note that the Netboot mailing list is spam protected.  If your ISP has
+been slack security-wise and had a machine of theirs get onto one of the
+Open Relay Blacklists, then you will not be allowed to post. The only
+things I can suggest are to change your ISP to a more responsible one,
+or to get a Web based mailbox.
+<P>
+</LI>
+</OL>
+<P>
+<HR>
+<A HREF="README-9.html">Next</A>
+<A HREF="README-7.html">Previous</A>
+<A HREF="README.html#toc8">Contents</A>
+</BODY>
+</HTML>

@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+#	Make Linux Netinstall Image
+#	Takes a RedHat, TurboLinux or SuSE CD
+#	and creates a network bootable image
+#
+#	mklnim outputfile [path-to-cdrom]
+#
+#	path-to-cdrom defaults to /mnt/cdrom
+#
+if [ $# -lt 1 ]
+then
+	echo Usage: $0 outputfile [path-to-cdrom]
+	exit 1
+fi
+pathtocdrom=${2:-"/mnt/cdrom"}
+trap '' INT
+tmpmount=/tmp/lnim.$$
+mkdir $tmpmount
+if [ -r $pathtocdrom/images/cdboot.img ]
+then
+	bootfloppyimage="$pathtocdrom/images/cdboot.img"
+	echo TurboLinux CDROM
+elif [ -r $pathtocdrom/images/bootnet.img ]
+then
+	bootfloppyimage="$pathtocdrom/images/bootnet.img"
+	append='--append=network'
+	echo RedHat 6.x CDROM
+elif [ -r $pathtocdrom/images/boot.img ]
+then
+	bootfloppyimage="$pathtocdrom/images/boot.img"
+	echo RedHat 5.2 CDROM
+elif [ -r $pathtocdrom/disks/bootdisk ]
+then
+	bootfloppyimage="$pathtocdrom/disks/bootdisk"
+	linuximage=linux
+	initdisk=initdisk.gz
+	echo SuSE 6.x CDROM
+else
+	echo Cannot find either TurboLinux, RedHat or SuSE CD
+	trap INT
+	exit 1
+fi
+mount -t msdos -o loop,ro $bootfloppyimage $tmpmount
+mknbi-linux $append --output=$1 $tmpmount/${linuximage:-vmlinuz} $tmpmount/${initdisk:-initrd.img}
+umount $tmpmount
+rmdir $tmpmount
+trap INT

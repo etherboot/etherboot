@@ -1,0 +1,83 @@
+Etherboot 4.6.11
+
+4.6.11 contains a prefix file that turns an Etherboot image into an
+image that LILO is happy to register as a bootable "Linux" kernel,
+courtesy of Marty Connor and Gary Byers of thinguin.org.
+
+The Davicom 9102 and 9009 driver was contributed by Sten Wang of
+Davicom. It will be merged into tulip.c later.
+
+If you have problems with the kernel trying to mount the tftp directory
+(this can be different from the NFS root directory), then you might need
+the patch to mknbi-1.0/first-linux.S.
+
+There is a possible fix for a bug affecting EEPRO100s. The controller is
+not turned off before handing over control to the image as
+eepro100_disable is empty. Under heavy traffic, the EEPRO100 can pick up
+stray packets which then corrupt the memory area used by the kernel. The
+fix was to implement eepro100_disable, using the command that the Linux
+driver uses, PartialReset.
+
+Another couple of entries for the NIC file: a ST Micro made Tulip clone,
+stmicro (anybody have a better suggestion?), and 82559er, a new Intel
+chip (again, anybody have a better suggestion?).
+
+Patch for mknbi to stop using the tftp root directory as the fallback
+rootpath. IMO it should use the rootpath option or nothing.
+
+4.6.10: Brown paper bag bug found in start32.S. Clock tick interrupts
+not enabled by going into real mode now and then. Please do not use
+4.6.8 or 4.6.9, some drivers will not work.
+
+The major changes in 4.6.9 are bug fixes supplied by Klaus Espenlaub for
+NFS booting with *BSD, the Lance driver and the serial driver. There is
+a correction for a typo in the device ID of the Macronix MX98715 which
+could have created non-functional ROMs.
+
+The major change in 4.6.8 is a fix for a bug in the DHCPREQUEST code
+that sent a DHCPREQUEST packet with a UDP source port of 0. Some DHCP
+servers and some gateways reject or ignore such packets.
+
+The major change in 4.6.7 is a fix for a long-standing bug in loader.S that
+probably prevented booting on some BIOSes.
+
+The major change in 4.6.6 is a new driver for Winbond W89C840 by Igor V.
+Kovalenko.
+
+A long-standing bug in first-linux.S was discovered by Chris Johns.
+Sometimes ES != CS and this caused the INT15 doing the ramdisk moving to
+fail. You can upgrade mknbi separately instead of fetching the whole
+Etherboot distribution.
+
+4.6.4 has experimental changes to support running at 0x88000
+instead of 0x98000 (RELOCADDR) to avoid Disk On Chip drivers. You have
+to edit Makefile to change RELOCADDR and also to select an assembler
+because the loaders have to be rebuilt. Remember that if you choose a
+RELOCADDR of 0x88000, you can only load images up to the 512kB mark or
+above the 1MB mark.  Let me know how it goes.
+
+It seems that forcing 16 bit bus width for NEPCI causes Etherboot
+to fail on the RTL8029. Therefore the #define has been changed to
+NS8390_FORCE_16BIT and should only be turned on for those NEPCI NICs
+that falsely detect 8 bit bus width when it should be 16. The bus width
+detection code needs a rewrite sometime.
+
+Various mknbi tools in contrib and netboot-0.8.1 have been merged into
+one tool, mknbi. The tools from netboot-0.8.1 are now distributed
+separately.  mknbi handles ROM, Linux, FreeDOS, and DOS images. It
+should be reasonably straightforward to support other images.  mkelksnbi
+is obsolete, as ELKS has a Makefile rule for making a tagged image.  If
+anybody uses mknbi-blkdev, please let me know, as I would prefer not to
+have to port it to mknbi, if I can avoid the work. :-)
+
+There is an unconfirmed report that the Lance PCI driver requires
+-DUSE_INTERNAL_BUFFER to work on real NICs (as opposed to the one
+simulated in VMware).
+
+The Lance driver has been fixed to work with VMware.  The change should
+only affect PCI variants of the Lance chip.  Please test it if you can
+(both with real and virtual Lance PCI cards).  Note that Etherboot crashes
+if you try to use any of the "Boot Local" functions (which basically just
+do a int 0x19) in a VMware session.  This seems to be a VMware bug, as we
+don't clobber any memory claimed by the BIOS.  A possible, but not
+generally recommended workaround is to use a RELOCADDR of 0x88000.

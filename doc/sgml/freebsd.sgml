@@ -1,0 +1,72 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>FreeBSD network booting
+<author>Doug Ambrisko (?)
+<date>16 October 1999
+
+<abstract>
+
+These are some notes on FreeBSD network booting with etherboot.
+
+</abstract>
+
+<p>
+
+Add kernel configuration via bootp to kernel.  You can see more options
+in LINT, these are a good set
+
+<code>
+  # Kernel BOOTP support  
+  options         BOOTP           # Use BOOTP to obtain IP address/hostname
+  options         BOOTP_NFSROOT   # NFS mount root filesystem using BOOTP info
+  options         BOOTP_NFSV3     # Use NFS v3 to NFS mount root
+  options         BOOTP_COMPAT    # Workaround for broken bootp daemons.
+</code>
+
+Setup Bootp server or DHCP server, here is an example entry for /etc/bootptab
+refer to the man page bootpd for more information.
+
+<code>
+       .default:\
+             :sm=255.255.255.0:\
+             :gw=your.gateway.ip:\
+             :hn:ht=ether:vm=rfc1048:\
+             :rp="rootfs.ip:/rootfs/path":\
+             :T128="swapfs.ip:/swapfs/path":\
+             :T129=swapsize:\
+             :T130="root,mount,options":\
+             :T131="swap,mount,options":\
+             :ra=255.255.255.255:
+       client01:bf="kernel":ha=00400530d6d9:tc=.default:
+</code>
+ 
+Enable bootpd in inetd by uncommented the "bootps" line.
+
+Setup tftpd, copy your kernel into you tftpboot directory.  Note you should
+make the kernel accessible in both the rootfs and the tftpboot area.
+
+Enable tftpd by uncommenting tftp in /etc/inetd.conf.  If you give the
+full kernel path then remove the /tftpboot directory option in inetd.conf.
+Again for more information look at man tftpd.
+
+Send a SIGHUP to the inetd process.
+
+Make sure you export the rootfs, in /etc/exports and SIGHUP mountd if
+needed.  Refer to the man page mountd for more information.
+
+The swapfile if specified will need to be created.  Just do a "dd" of
+/dev/zero for the size you want into the path specified in the bootptab
+with the IP address appended for example:
+<code>
+	/usr/exports/swap/swap.192.168.1.1
+</code>
+
+Now you should be ready to boot diskless.
+
+Note there are some useful boot time configuration file in /etc/rc.diskless.
+
+Note2 NFS mount of root was broken in current it has been fixed.
+
+</article>

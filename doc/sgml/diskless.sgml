@@ -1,0 +1,257 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>SLUG talk: Setting up a diskless Linux system
+<author>Ken Yap
+<date>30th January 1998
+
+<toc>
+
+<sect>Why network booting?<label id="Why">
+
+<p>
+
+<itemize>
+
+<item>No moving parts, less noise and power consumption
+
+<item>Centralised administration
+
+<item>No tampering
+
+<item>Standalone applications
+
+</itemize>
+
+<sect>How does it work?<label id="How">
+
+<p>
+
+<enum>
+
+<item>Diskless computer (DC) broadcasts MAC address with bootp: Who am I?
+
+<item>Bootp or DHCP server on S looks up DB: Your IP address is X.X.X.X,
+your server is S, your boot file is <tt/vmlinuz.myname/, etc.
+
+<item>DC asks to load file from TFTP server on S: Please give me
+<tt/vmlinuz.myname/
+
+<item>S: Here you are (<tt>/tftpdir/vmlinuz.myname</tt>)
+
+<p>
+
+DC thinks a while (booting Linux).
+
+<p>
+
+<item>DC: Please let me mount <tt>/</tt> with NFS
+
+<item> S: Here is your root FS (<tt>/tftpboot/</tt><it>IPnumber</it>).
+(In 2.2 kernels, <tt>/tftpboot/</tt><it>domainname</it>.)
+
+<item>DC: Please let me mount other NFSes (<tt>/usr, /home/</tt>, etc)
+
+<item>S: Here you are
+
+<item>DC: Runs intended application
+
+</enum>
+
+Network boot ROM contains code to do 1 and 3.
+
+<sect>Server setup<label id="Server">
+
+<p>
+
+<sect1>Bootpd setup
+
+<p>
+
+<itemize>
+
+<item>Install bootpd
+
+<item>Edit <tt>/etc/bootptab</tt>, typical line
+
+</itemize>
+
+<verb>
+xterm.ken.net.au:tc=.default:ht=ethernet:ha=08002BB7F380:\
+	ip=192.168.26.100:bf=vmlinuz.xterm
+</verb>
+
+<sect1>Tftpd setup
+
+<p>
+
+<itemize>
+
+<item>Install tftpd, make sure it's active in <tt>/etc/inetd.conf</tt>,
+typical line
+
+</itemize>
+
+<verb>
+tftp dgram udp wait root /usr/sbin/tcpd in.tftpd /tftpdir
+</verb>
+
+<sect1>Kernel image
+
+<p>
+
+You must compile a kernel for the DC that includes NFS support and NIC
+driver compiled in (not modules).  Answer yes to <em>Root file system
+on NFS?</em> and <em>BOOTP support?</em>
+
+<p>
+
+After building the kernel, run <tt>mknbi-linux</tt> from the
+Etherboot distribution on it.  Install this <em>tagged image</em> as
+<tt>/tftpdir/</tt><it>&lt;bf attribute in bootptab></it>.
+
+<sect>Net loader<label id="Netloader">
+
+<p>
+
+A small program that runs as a BIOS extension, usually on an EPROM on
+the NIC. It handles the BOOTP query and TFTP loading and then transfers
+control to the loaded image.
+
+<p>
+
+It uses TCP/IP protocols but the loaded image doesn't have to be Linux.
+The loaded image can be anything, even DOG.
+
+<p>
+
+There are two free implementations of TCP/IP net loaders: <htmlurl
+url="http://etherboot.sourceforge.net/" name="Etherboot"> and <htmlurl
+url="http://www.han.de/~gero/netboot.html" name="Netboot">: Etherboot
+uses built-in drivers while Netboot uses Packet drivers.
+
+<p>
+
+They can also be loaded from a floppy for testing and for temporary
+setups.
+
+<sect>RH5 configuration<label id="RH5">
+
+<p>
+
+The DC requests to mount <tt>/tftpboot/</tt><it>&lt;IP address of DC></it>
+(in 2.1 and above: <tt>/tftpboot/</tt><it>&lt;name of DC in bootptab></it>)
+as its <tt>/</tt> by NFS from server. You must export this from the
+server <tt/(rw, no_root_squash)/ because the DC wants to write on it
+(log files, etc).
+
+<p>
+
+The <tt>/</tt> must contain <tt>/sbin, /bin, /lib, /etc, /var, /tmp,
+/root, /dev</tt> and <tt>/proc</tt>.
+
+<p>
+
+<tt>/sbin, /bin, /lib/</tt> can be a copy of an existing RH5 system. They
+can be shared between all DCs. But hard links only. BTW, don't link to
+server originals.
+
+<p>
+
+<tt>/etc, /var</tt> and <tt>/dev</tt> should be
+non-sharable copies. Customise <tt>/etc/sysconfig/network,
+/etc/sysconfig/network-scripts/ifcfg-eth0, /etc/fstab,
+/etc/conf.modules</tt>, and others. Turn off all network services you
+don't need. Remove all stuff you don't need from <tt>/var</tt>, e.g.
+RPM db, lpd files.
+
+<p>
+
+<tt>/root</tt> and <tt>/proc</tt> should just exist. <tt>/tmp</tt>
+should exist and be mode 1777.
+
+<p>
+
+You probably want to create <tt>/usr</tt> and <tt>/home</tt> mount
+points. <tt>/usr</tt> can be mounted ro.
+
+<p>
+
+About 10 MB per DC plus about 15 MB of shared files should be sufficient.
+BTW: if your DCs are quite similar, the kernel image can also be shared.
+
+<p>
+
+Here is an illustrative <htmlurl url="nfsrootinit.txt" name="script">
+to create the first root filesystem. Here is an illustrative <htmlurl
+url="nfsrootdup.txt" name="script"> to duplicate the root filesystem.
+
+<sect>Gotchas and caveats<label id="Gotchas">
+
+<p>
+
+RH5 wants to fsck the root FS. I stopped this with a <tt>/fastboot</tt>.
+But init script wants to delete it, so I did <tt>chattr +i /fastboot</tt>
+
+<p>
+
+<tt>/etc/localtime</tt> is a link to TZ file in <tt>/usr/share/...</tt>
+I made it a copy.
+
+<p>
+
+Turn off <tt>/etc/rc.d/rc6.d/K97network</tt> or it will disable the
+network before root FS is done with.
+
+<p>
+
+X server wants to write into <tt>/usr/X11R6/lib/X11/xkb/compiled</tt>.
+I made this a link to <tt>/etc/X11/kbd/compiled</tt>
+
+<p>
+
+Remember your DC will keep appending to log files so have logrotate or
+something deal with them at regular intervals.
+
+<sect>X-terminal<label id="X-terminal">
+
+<p>
+
+The reason I started this. I had a 486DX2/66 left over from an upgrade
+and I wanted to have a quiet X-terminal while the server makes noise
+somewhere else.
+
+<p>
+
+486 or Pentium best. 16 MB should be the minimum. Put in the best video
+card&nbsp; you can get for it. Normal NIC should do.
+
+<p>
+
+On the server, make sure the DC is matched by a clause in
+<tt>/etc/X11/xdm/Xaccess</tt> and comment out the <tt/:0/ in
+<tt>/etc/X11/xdm/Xservers</tt>.  Then make sure that xdm is run from
+the init scripts.
+
+<p>
+
+On the client, run <tt/X -query/ <it/server/
+
+<p>
+
+You will get the xdm login box and then all your X clients will run on
+the server.
+
+<p>
+
+I have been using this for several weeks now.
+
+<sect>Other applications<label id="Other">
+
+<p>
+
+You could netboot routers, print servers (but should not be spooling
+print server), standalone apps, etc.
+
+</article>

@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Draft Net Boot Image Proposal 0.3: Net Boot Process Description.</TITLE>
+ <LINK HREF="spec-5.html" REL=next>
+ <LINK HREF="spec-3.html" REL=previous>
+ <LINK HREF="spec.html#toc4" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="spec-5.html">Next</A>
+<A HREF="spec-3.html">Previous</A>
+<A HREF="spec.html#toc4">Contents</A>
+<HR>
+<H2><A NAME="s4">4. Net Boot Process Description.</A></H2>
+
+<P>
+<P><B>(gk)</B>The net boot process is started as a result of the PC boot
+process. The net boot program can reside on a rom, e.g. on an adaptor
+card, or in ram as a result of reading off disk.<B>(gk)</B>
+<P>
+<P>
+<P>The boot process may execute in any mode (e.g. 8086, 80386) it desires.
+When it jumps to the start location in the boot image, it must be in
+8086 mode and be capable of going into any mode supported by the
+underlying processor.
+<P>
+<P>
+<P>The image cannot be loaded into address spaces below 10000h, or between
+A0000h through FFFFFh, or between 98000h through 9FFFFh.
+<B>(gk)</B>Only when the image is not going to return to the boot
+process, all the memory is available to it once it has been started, so
+it can relocate parts of itself to these areas.<B>(gk)</B>
+<P>
+<P>
+<P>The boot process must be capable of loading the image into all other
+memory locations. Specifically, where the machine supports this, this means
+memory over 100000h.
+<P>
+<P>
+<P>The net boot process must execute the bootp protocol, followed by
+the tftp protocol, as defined in the relevant rfc's.
+<P>
+<P>
+<P>The file name used in the tftp protocol must be that given by the bootp
+record.
+<P>
+<P>
+<P>If less than 512 bytes are loaded, the net boot process attempts to
+display on the screen any ascii data at the start of the image. The net
+boot process then exits in the normal manner. For a boot prom, this
+will allow normal disk booting. <B>(gk)</B>Reference to DOS
+deleted.<B>(gk)</B>
+<P>
+<P>
+<P>When the first 512 bytes have been loaded, the boot process checks
+for an initial magic number, which is defined later. If this number
+is present, the net process continues loading under the control
+of the image format. The image, which is described later, tells the
+net boot process where to put this record and all subsequent data.
+<P>
+<P>
+<P>If no initial magic number is present the net boot process checks for a
+second magic number at offset 510. If the magic number 510 = 55h, 511 =
+AAh, then the net process continues. If this second magic number is not
+present, then the net boot process terminates the tftp protocol,
+displays an error message and exits in the normal manner.
+<P>
+<P>
+<P>If no initial magic number is present and the second one is, the net boot
+process relocates the 512 bytes to location 7c00h. The net boot process
+continues to load any further image data to 10000h up. This data can overwrite
+the first 512 boot bytes. If the image reaches 98000h, then any further data is
+continued to be loaded above 100000h. When all the data has been loaded, the
+net boot process jumps to location 0:7c00.
+<P>
+<P>
+<P><B>(gk)</B>When the net boot program calls the image, it places 2
+far pointers onto the stack, in standard intel order (e.g.
+segment:offset representation).  The first far pointer which
+immediately follows the return address on the stack, points to the
+loaded boot image header. The second far pointer which is placed above
+the first one, shows to the memory area where the net boot process
+saved the bootp reply.
+<P>
+<P>
+<P>If the boot image is flagged as being returnable to the boot process,
+the boot program has to provide the boot image with interrupt vector
+78h. It's an interface to services provided by the net boot program
+(see below for further description).
+<P>
+<P>
+<P>If the boot image is not flagged as being returnable to the boot
+process, before the boot image is called, the boot program has to set
+the system into a state in which it was before the net boot process has
+started.<B>(gk)</B>
+<P>
+<HR>
+<A HREF="spec-5.html">Next</A>
+<A HREF="spec-3.html">Previous</A>
+<A HREF="spec.html#toc4">Contents</A>
+</BODY>
+</HTML>

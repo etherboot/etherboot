@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot README: Troubleshooting tips</TITLE>
+ <LINK HREF="README-8.html" REL=next>
+ <LINK HREF="README-6.html" REL=previous>
+ <LINK HREF="README.html#toc7" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="README-8.html">Next</A>
+<A HREF="README-6.html">Previous</A>
+<A HREF="README.html#toc7">Contents</A>
+<HR>
+<H2><A NAME="s7">7. Troubleshooting tips</A></H2>
+
+<P>
+<P>
+<UL>
+<LI>Floppy boot doesn't work. Have you copied the ROM image (with
+the floppyloader prepended) to the floppy raw? Is that size of floppy
+bootable by your computer? Are you trying to run a 32 bit Etherboot
+on a 16 bit machine (286, 086/088)? Have you selected too many compile
+time options? The real limit on Etherboot is not the size of the EPROM
+but the fact that it executes in the 32kB region between 0x98000 and
+0xA0000. If the sum of code, stack and bss is greater than 32kB, then
+Etherboot might crash at unexpected places. You could increase the memory
+to 48kB by lowering the RELOCADDR in the Makefile but this is outside the
+specifications. Definitely do not lower RELOCADDR below 0x94000 because
+various pieces of booting information are stored from 0x90000 upwards.
+</LI>
+<LI>Floppy version works but EPROM version doesn't work. There is
+a program called rom-scan (Linux, FreeBSD and DOS versions) in the
+directory contrib/rom-scan which will help detect problems.
+
+<UL>
+<LI>If the EPROM is not detected at all then the contents of
+the EPROM are not visible to the BIOS. Check that you have enabled
+the EPROM with any jumpers or soft configuration settings. Check
+that you do not have any conflicts in the memory address of
+the EPROM and any other hardware.  Perhaps you have to prevent
+it from being mapped out by your BIOS settings. Or perhaps you
+have to shadow it with RAM. Maybe you put the code in the wrong
+half or wrong quarter of the EPROM. Maybe the access time of
+the EPROM is not low enough. You can also use the debug program
+under BIOS to examine the memory area in question.
+</LI>
+<LI>If rom-scan says the EPROM is present but not active,
+then something prevented the BIOS from seeing it as a valid
+extension BIOS. This could be truncation of the EPROM window,
+maybe you have a larger EPROM in a slot meant for a smaller
+one. Maybe there is a checksum error in the EPROM due to
+some bits not properly programmed or the EPROM not being fast
+enough. In one case that we know of, the 3c503 network card,
+the ASIC actually returns 2 bytes of 80 80 in the end locations
+of the EPROM space. This apparently is a kind of signature. The
+makerom program in Etherboot compensates for this, but if the
+pattern is not 80 80, then the code needs to be modified.
+</LI>
+<LI>If rom-scan says the EPROM is present and active, but
+BIOS does not see it, then perhaps the EPROM is located in an
+area that the BIOS does not scan. The range scanned is supposed
+to be 0xC0000 to 0xEF800 in increments of 2kB but I have seen
+some BIOSes that continue the scan into the 0xF0000 page.
+</LI>
+</UL>
+
+
+Note that rom-scan will also detect other extension BIOSes mounted on your
+computer, for example VGA BIOSes and SCSI adapter BIOSes. This is normal.
+</LI>
+<LI>Etherboot does not detect card. Are you using the right ROM
+image? Is the card properly seated in the computer? Can you see the
+card with other software? Are there any address conflicts with other
+hardware? Is the PCI id of the card one that is not known to Etherboot
+yet? In this case and where you think there is a bug in Etherboot,
+please contact the author with all details.
+</LI>
+<LI>Etherboot detects card but hangs computer after detection. Some
+cards are booby traps while they are enabled. The typical offenders
+are NE2000s which will hang the bus if any access is made to the reset
+addresses while interrupts are active. You may need to do a hard reset
+of the computer, i.e. power down and up again before running Etherboot.
+</LI>
+<LI>Etherboot detects card but does nothing after saying Searching for
+server. Check your network hardware. Did you select the right hardware
+interface (AUI, BNC, RJ45)? Is the cabling ok? If you have a Unix computer
+on the network and have root privileges, you could run tcpdump looking
+for broadcast packets on the bootps port. If the requests are getting
+sent out but no replies are getting back, check your bootpd setup. Also
+check if the server has a route to the client.
+</LI>
+<LI>Etherboot obtains IP address but fails to load file. Check the tftp
+server. Is the tagged image file installed? Is the file world readable? Is
+the path to the file allowed by the configuration of tftpd? Is the client
+denied by tcpwrapper rules?  Did you put the right home directory and
+boot filename in bootptab? If you are booting lots of clients, is inetd
+shutting down tftpd for being spawned too often? If so, you need to get
+a dedicated tftpd that runs as an independent daemon.
+</LI>
+<LI>Etherboot loads file via tftp but Linux fails to boot. This is a
+large category. Here are some suggestions:
+
+<UL>
+<LI>You do not have a private copy of the /, /etc, /var,
+... directories
+</LI>
+<LI>Your /dev directory is missing entries for /dev/zero and/or
+/dev/null or is sharing device entries from a server that uses
+different major and minor numbers (i.e. a server that is not
+running Linux).
+</LI>
+<LI>Your /lib directory is missing libraries (most notably libc*
+and/or libm*) or does not have the loader files ld*.so*
+</LI>
+<LI>You neglected to run ldconfig to update /etc/ldconfig.cache
+or you do not have a configuration file for ldconfig.
+</LI>
+<LI>Your /etc/inittab and/or /etc/rc.d/* files have not been
+customized for the clients.
+</LI>
+<LI>Your kernel is missing some crucial compile-time feature
+(such as NFS filesystem support, booting from the net, transname
+(optional), ELF file support, networking support, driver for
+your ethernet card).
+</LI>
+<LI>Missing init executable (in one of the directories
+known by the kernel: /etc, /sbin, ?). Remember /sbin/init must
+be a real file, not a symlink.
+</LI>
+<LI>Missing /etc/inittab
+</LI>
+<LI>Missing /dev/tty?
+</LI>
+<LI>Missing /bin/sh
+</LI>
+<LI>System programs that insist on creating/writing to files
+outside of /var (mount and /etc/mtab* is the canonical
+example)
+</LI>
+</UL>
+
+
+The essence is that you must provide whatever is needed in the NFS root
+filesystem that your kernel needs to boot. This is somewhat distribution
+dependent. In the discussion mentioned above I solved the problem by
+making a copy of an existing root filesystem and modifying a few bits.
+Be aware that some, if not all, distributions contain bugs in their layout
+that hinder diskless mounting so you will have to fix any problems that
+arise. An example was a directory in /usr/X11R6/lib that needed to be
+writable, however /usr was mounted read-only. Another common problem
+is the assumption that /usr is available before NFS mounts are done and
+invoking programs stored there.
+</LI>
+<LI>Etherboot works fine and kernel starts but network interface
+doesn't work. Check your network configuration in the OS.  Etherboot uses
+polled I/O and not interrupt I/O to fetch the images. So the IRQ line
+doesn't get exercised. This manifested itself in one case with a NIC
+that could netboot but network programs run afterwards couldn't receive
+any packets. It seemed to be a combination of a weak NIC IRQ line and
+a fussy motherboard. But the same thing could happen if say the IRQ is
+not set to where the software is expecting it. The image will load fine
+with the wrong IRQ but the software will not run properly. This is more
+of an issue with say DOS packet drivers, where the user has to specify
+the IRQ line than with Linux, which autoprobes.
+</LI>
+</UL>
+<P>
+<P>
+<P>
+<HR>
+<A HREF="README-8.html">Next</A>
+<A HREF="README-6.html">Previous</A>
+<A HREF="README.html#toc7">Contents</A>
+</BODY>
+</HTML>

@@ -1,0 +1,12 @@
++ Document FreeBSD booting process.
+
++ Improve PnP compatible ROM header. Test more.
+
++ Some cards (e.g. 3c509) need a hard reset after being used by OS;
+maybe should do a reset when etherboot starts.
+
++ Code improvement in many places to reduce size. Structure assignment
+instead of many field assignment statements.
+
++ Is back to back PIO a good idea? Maybe should use versions with delay?
+In fact do some drivers require slower IO access to avoid hangs?

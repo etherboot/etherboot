@@ -1,0 +1,320 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>Security
+<author>Markus Gutschke, <tt/gutschk@math.uni-muenster.de/
+<date>1 July 1997
+
+<abstract>
+Here are some security considerations relating to network booting.
+</abstract>
+
+<toc>
+
+<sect>Introduction
+
+<p>
+
+This documentation has been written  and is copyrighted 1997 by
+Markus Gutschke &lt;gutschk@math.uni-muenster.de&gt;.  You  are
+free to  distribute this file as long  as you do  not  change
+its contents.   I appreciate comments and will consider them
+in  future revisions.  If you have any questions, comments, or
+suggestions, please also send carbon copies of your  e-mail message
+to  both  Ken Yap &lt;ken_yap@users.sourceforge.net&gt; and Gero Kuhlmann
+&lt;gero@gkminix.han.de&gt;.  I will  happily include  any  of your
+extensions,  but I would like to  avoid the proliferation of different
+incompatible revisions  of  this document.  If these  conditions are a
+problem to you, then feel free to contact me.
+
+<sect>SCOPE OF THIS TEXT
+
+<p>
+
+Any computer that  is either physically  accessible or can remotely be
+contacted over  a  network is  potentially  threatened by attempts  to
+circumvent its security  measures.  The PC architecture is  especially
+insecure and  using a BOOT-Prom can  help preventing some  of the more
+obvious attacks. On the other hand,  it also enables some attacks that
+are not possible against  machines that boot  from local  mass storage
+devices (floppy,  harddisk, ...).  As  a general rule, you  can assume
+that it is impossible to    protect your system from all   conceivable
+attacks, but you can  try to minimize the  chance of an attack, try to
+minimize  the seriousness  of the damage   caused and try   to help in
+detecting   attacks  at  the  earliest   possible moment.   This  text
+discusses some of the issues involved  and tries to raise awareness of
+security problems; it cannot provide generic solutions to all of these
+problems, but  should  help you in appreciating   the need  for proper
+administration and regular security updates.
+
+<sect>PC ARCHITECTURE
+
+<p>
+
+The PC architecture was never designed with security considerations in
+mind.  Running an operating system such  as DOS or Windows, allows the
+user full  control over the hardware.  There are no effective measures
+for preventing him from modifying  data on local mass storage devices,
+reading confidential  data that is  stored locally,  installing trojan
+horses  and programs  that  intercept user  input, monitoring all data
+packets that are sent on the  local ethernet segment, sending ethernet
+packages with  faked  authorization information,  and  a whole  lot of
+other potentially dangerous actions.
+
+<p>
+
+Modern operating systems  and suitable hardware  extensions make these
+attacks more  difficult, but  as long as   the user can   still launch
+arbitrary programs  that have full hardware access,  there is not much
+protection  that  can be  achieved in this  way.   Therefore, the most
+important security measures  are  those that prevent a  malicious user
+from executing programs from arbitrary external sources.
+
+<p>
+
+The PC  must  be physically  protected, so  that  there is  no  way of
+replacing  the harddrive  (either  for  reading  its contents  or  for
+installing compromised software), installing   a modified system  BIOS
+(if your system  has a Flash  BIOS, then make sure  that it  is always
+write protected and that write protection actually works!), connecting
+it   to  a different  network,  removing   extra hardware  that offers
+security features, or performing some other hardware modification.
+
+<p>
+
+If the PC offers exchangeable mass storage devices (floppy, ZIP drive,
+CD-ROM,  ...), the system must be  configured to never boot from these
+devices.
+
+<p>
+
+This is not as easy as it might  sound.  Most motherboards come with a
+system BIOS which offers  back-doors to their password. So configuring
+the BIOS to never boot from exchangeable devices, will not prevent any
+determined hacker from   modifying  this setting.  These   generically
+accepted passwords might not be  known to your  average users, but you
+can assume that even  a poorly informed  hacker will know about  them.
+Besides, if your  system allows for  reading the contents of  the CMOS
+memory chip (e.g. by starting a suitable DOS program such the debugger
+which  ships with  DOS), then the  password  can be computed from this
+data. While you should  still make sure,  that your BIOS  has password
+protection, this is only to be considered as a mild deterrent.
+
+<p>
+
+A  more useful protection  is  achieved by installing extra  firmware,
+which requires  a password before booting from  a  local device.  This
+firmware  should  be written in a  way  which prevents the system BIOS
+from   disabling   it.  This is    the default  configuration  for the
+"etherboot" BOOT-Prom, but it   might still be circumvented,   if your
+system BIOS  allows   for disabling  certain  memory  areas from being
+scanned for ROMs.   If this is the case,  then complain to your system
+vendor and replace  the machine; it is  unsuitable for being used in a
+publically  accessible   place.     Also, in   a   security  conscious
+environment, there must be no way of  escaping from the control of the
+BOOT-Prom;  this   means,     that  you    must     not enable     the
+"-DEMERGENCYDISKBOOT" option  when compiling the  "etherboot" software
+and you must  never offer an empty image  name in the image menu (c.f.
+README.VendorTags).  If you want to offer booting from a local device,
+then specify the full  device name  and  either enable  the "-DFLOPPY"
+option or  store a boot image  (as  generated by "mknbi-blkdev") under
+this name on the TFTP server.
+
+<p>
+
+It might  be a  good  idea to  install non-functional bootcode  in the
+master  boot record of your harddisk  and install any locally required
+boot code  in   the boot sectors of   the  individual partitions. Both
+"etherboot" and "mknbi-blkdev" know how  to boot from partitions  such
+as  "/dev/hda1" (first primary partion)  or "/dev/hdb5" (first logical
+partion on the second harddrive).
+
+<p>
+
+If you have the choice, then do not offer operating systems which come
+without   effective   password  protection   and  virtualization. This
+basically rules out all of the following: DOS, Windows, Win95, ...
+
+<p>
+
+You  should  be  aware of  the  fact,  that offering  one  "dangerous"
+operating system,  makes all other    operating systems vulnerable  as
+well.  A  noteworthy example is  the availability of tools which allow
+an arbitrary DOS  user  to read and   modify the contents  of a  Linux
+harddisk  partition   (similar  tools  are  supposedly  available  for
+accessing NT partions).
+
+<sect>PASSWORDS PROTECTED BOOT-PROMS
+
+<p>
+
+Password protected BOOT-Proms are  a considerable improvement over the
+standard security measures  offered by the  PC architecture,  but they
+are still vulnerable  to a variety  of attacks. Most of  these attacks
+are related to the weaknesses of the BOOTP and TFTP protocol and these
+issues are discussed in another section of text.
+
+<p>
+
+As the BOOT-Prom cannot store the passwords locally, it has to request
+them from the BOOTP/TFTP server.  The  BOOTP and TFTP protocols do not
+allow for any elaborate  challenge/response authorization scheme. Thus
+the BOOT-Prom  requests the password from  the server and subsequently
+compares it   with the password   as  input by  the user.   As packets
+transmitted on the ethernet can  easily be monitored, the server sends
+a MD5 message  digest (as invented  by Ron  Rivest/"RSA Data Security,
+Inc.")  of the actual password.  The  BOOT-Prom computes the MD5 value
+for the user   input and compares  these two values.  It is  generally
+believed that there is no way of  computing a valid  plain text from a
+known   MD5 message digest,   other    than comparing it against   all
+conceivable  input texts.   Thus, this  approach  is still  vulnerable
+against  dictionary attacks. You should   aim for using long passwords
+(although,  anything beyond 20  characters is unlikely to considerably
+improve the security of  the  password) which are   not listed in  any
+dictionary.   Make  sure that  these passwords  are memorized  and not
+available in un-encrypted form. Replace the passwords regularly and do
+not offer  more menu  entries in the   BOOTP data than are  absolutely
+neccessary.
+
+<sect>BOOTING DOS
+
+<p>
+
+If you  have to offer DOS  or a related operating  system, then do not
+fool yourself into believing that you can install security software in
+one of its configuration files. All  of these mechanisms can easily be
+avoided. In many cases,  even average users can figure  out how to  do
+this.
+
+<sect>BOOTING LINUX
+
+<p>
+
+There are a variety  of ways that   allow for booting Linux in  single
+user mode.  The  most  common  techniques involve passing   a suitable
+option  on  the kernel command line  (i.e.   "single") or crashing the
+filesystem by  power cycling the machine; this  in turn will result in
+fsck being invoked at the next system start, which will sometimes drop
+you into single user mode.
+
+<p>
+
+Some Linux distributions   do  not require  a password  when  entering
+single user  mode.  While  this makes system   administration somewhat
+easier, it  is a considerable security problem.  Make  sure, that your
+system does not suffer from it.
+
+<p>
+
+For other security problems with running insecure programs under Linux
+or  using poorly configured    distributions,   refer to the    Usenet
+newsgroups, security mailing lists  and  choose a distribution   whose
+manufacturer frequently releases security fixes.   It is a fallacy  to
+assume   that the unavailability of patches   implies the security and
+correctness  of  a  software  application;   as a  rule  of  thumb,  a
+manufacturer who releases more patches than  a different one, probably
+cares more about  the security of  your  system than  the latter. This
+also applies to operating systems other than Linux!
+
+<sect>ETHERNET AND ITS PROTOCOLS
+
+<p>
+
+The ethernet is extremly  vulnerable to attacks from malicious  users.
+Anybody who can gain direct access to an  ethernet segment, can easily
+monitor all traffic  and inject forged  data.  This is very dangerous,
+because many protocols transfer  data either  un-encoded or in  easily
+decipherable form.   Also,   authorization  is  often  based   on  the
+assumption that the return address or a session id can be trusted, but
+this is no longer true if users gain unlimited access to the ethernet;
+it does not    really matter if  this  access  is achieved  by  having
+physical control over part of the  network or by running a compromised
+or inherently insecure  operating  system.  There are  various attacks
+from  machines  that  are not  directly  connected   to your  ethernet
+segment, but the majority  of them can be  prevented by installing and
+maintaining a properly configured firewall.  For more information, you
+should regularly monitor security related newsgroups and mailinglists.
+
+<sect>BOOTP/TFTP
+
+<p>
+
+BOOTP  and TFTP offer almost   no security whatsoever. They  basically
+provide their information  to anybody who asks and  solely rely on the
+assumption that  your  network is configured to   not  make the server
+world-accessable. If you install  BOOTP gateways, then this assumption
+is  seriously violated. Also, TFTP server  are usually accessible from
+just  about everywhere.  You  can try  to dimish  the  impact  of this
+problem by blocking  BOOTP and  TFTP packes  from leaving or  entering
+your network segment,  but this  will never   be  a completely  secure
+solution.
+
+<p>
+
+Thus you should always assume  that all of the  files that your  BOOTP
+and TFTP server offer  are world readable. They  must not  contain any
+sensitive data.    Also, the TFTP daemon  must   be configured to only
+allow access to selected files.   Running it in a chroot'd environment
+might be a very good idea.
+
+<p>
+
+The BOOTP protocol is  vulnerable against somebody else  impersonating
+as  a  BOOTP server. While   security aware operating systems, prevent
+non-priviledged  users  from starting their   own BOOTP servers, other
+operating systems do not allow this. This means, if  any of your users
+can launch an arbitrary program  under an insecure operating system on
+an arbitrary  machine connected  to your  ethernet segment,  then they
+have full control over the BOOTP boot process.
+
+<sect>NFS
+
+<p>
+
+While NFS  is  very convenient  for  installing diskless  machines, it
+provides  almost no  security.  Data  is transmitted  unencrypted  and
+authorization is solely based on the identity of IP addresses. Anybody
+who can forge ethernet packets, has full  access over any data that is
+available via  NFS.  While there  are protocol  extension that try  to
+address these shortcomings, I  am not aware  of any solution for Linux
+based   machines. This means, you   have to  assume  that all exported
+filesystems are freely read-  and  writeable. Bear  this in  mind when
+deciding which data you intend to export.
+
+<sect>TELNET/RLOGIN
+
+<p>
+
+Telnet and rlogin do not  usually  come with any effective  protection
+other than  simple password  schemes. Data  and  even the  password is
+transmitted as plain text. There are  commonly available programs that
+constantly  monitor     the   network for   packets   that    contains
+passwords. Fortunately, the security of these  protocols can be vastly
+improved  by  replacing   them   with   the Secure  Shell    protocoll
+(http://www.cs.hut.fi/ssh). Preferably,  all telnet and rlogin servers
+and clients should be removed from all machines.
+
+<sect>THE X WINDOW SYSTEM
+
+<p>
+
+X provides some security when run over a network, but  the scope of it
+is limited and exploits can easily be  devised. At the very least, you
+should make sure that  the xauth  protocol  is used as opposed  to the
+vastly  inferior xhost  protocol.  A better   solution is  provided by
+routing all X connections through  a  secure shell session. This  does
+not only provide  more  reliable authentication, but it  also encrypts
+all data.
+
+<sect>CONCLUSION
+
+<p>
+
+While  this text cannot  do more than  barely scratch  the surface, it
+should help you in locating some of the more vulnerable sub-systems of
+your networks and your  computers.  It does  not aim for completeness,
+but if you think that there is a topic which should be mentioned or if
+you want to update an entry, then please to contact me.
+
+</article>

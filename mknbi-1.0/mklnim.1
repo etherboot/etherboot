@@ -1,0 +1,45 @@
+.TH MKLNIM 1 "25 April 2000"
+.SH NAME
+mklnim \- make Linux Netinstall Image
+.SH SYNOPSIS
+.B mklnim
+outputfile
+[\fBpath-to-cdrom\fR]
+.SH DESCRIPTION
+.I mklnim
+is a shell script that takes a SuSE, TurboLinux or a RedHat CDROM, or
+equivalent disk directory, and creates a network bootable image (NBI)
+that can be used with Etherboot (http://etherboot.sourceforge.net/)
+or Netboot (http://www.han.de/~gero/netboot.html).
+This NBI, when booted via the network, will make the target computer
+behave just as if a CDROM boot (TurboLinux), or a floppy boot (RedHat
+and SuSE) had been selected.  A conventional install can be done from
+this point onwards.
+.LP
+There are several occasions when this technique is useful: 1. It
+can be used to quickly boot a target computer when the floppy
+loading is very slow. 2. In the case of TurboLinux, it loads
+the CDROM initial ramdisk which does not require any further
+floppy loading. In the case of RedHat, it only loads the floppy
+initial ramdisk which does not contain the material in the
+supplementary floppy, and may require more floppy insertion.
+3. It can start the install from a floppy of any size, not just
+1.4 MB, or even from a floppyless machine, if one has a boot
+ROM (providing no further floppy access is required).
+4. It could be used as part of an automatic installation process.
+.LP
+Naturally, all this assumes that the infrastructure for diskless
+booting (bootp and tftp servers) has been set up.
+.SH BUGS
+If supplementary floppies are required, this script doesn't include
+that material in the network boot image. Please feel welcome to fix
+this problem.
+.SH "SEE ALSO"
+Etherboot tutorial at http://etherboot.sourceforge.net/
+.SH COPYRIGHT
+.I mklnim
+is under the GNU Public License
+.SH AUTHOR
+Ken Yap (ken_yap@users.sourceforge.net)
+.SH DATE
+Version 0.4 April 2000

@@ -1,0 +1,49 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Security: BOOTP/TFTP</TITLE>
+ <LINK HREF="security-9.html" REL=next>
+ <LINK HREF="security-7.html" REL=previous>
+ <LINK HREF="security.html#toc8" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="security-9.html">Next</A>
+<A HREF="security-7.html">Previous</A>
+<A HREF="security.html#toc8">Contents</A>
+<HR>
+<H2><A NAME="s8">8. BOOTP/TFTP</A></H2>
+
+<P>
+<P>BOOTP  and TFTP offer almost   no security whatsoever. They  basically
+provide their information  to anybody who asks and  solely rely on the
+assumption that  your  network is configured to   not  make the server
+world-accessable. If you install  BOOTP gateways, then this assumption
+is  seriously violated. Also, TFTP server  are usually accessible from
+just  about everywhere.  You  can try  to dimish  the  impact  of this
+problem by blocking  BOOTP and  TFTP packes  from leaving or  entering
+your network segment,  but this  will never   be  a completely  secure
+solution.
+<P>
+<P>
+<P>Thus you should always assume  that all of the  files that your  BOOTP
+and TFTP server offer  are world readable. They  must not  contain any
+sensitive data.    Also, the TFTP daemon  must   be configured to only
+allow access to selected files.   Running it in a chroot'd environment
+might be a very good idea.
+<P>
+<P>
+<P>The BOOTP protocol is  vulnerable against somebody else  impersonating
+as  a  BOOTP server. While   security aware operating systems, prevent
+non-priviledged  users  from starting their   own BOOTP servers, other
+operating systems do not allow this. This means, if  any of your users
+can launch an arbitrary program  under an insecure operating system on
+an arbitrary  machine connected  to your  ethernet segment,  then they
+have full control over the BOOTP boot process.
+<P>
+<HR>
+<A HREF="security-9.html">Next</A>
+<A HREF="security-7.html">Previous</A>
+<A HREF="security.html#toc8">Contents</A>
+</BODY>
+</HTML>

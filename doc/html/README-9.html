@@ -1,0 +1,255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot README: Writing an Etherboot Driver</TITLE>
+ <LINK HREF="README-10.html" REL=next>
+ <LINK HREF="README-8.html" REL=previous>
+ <LINK HREF="README.html#toc9" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="README-10.html">Next</A>
+<A HREF="README-8.html">Previous</A>
+<A HREF="README.html#toc9">Contents</A>
+<HR>
+<H2><A NAME="driver"></A> <A NAME="s9">9. Writing an Etherboot Driver</A></H2>
+
+<P>
+<P>So Etherboot does not have a driver for your network adapter and you
+want to write one. You should have a good grasp of C, especially with
+respect to bit operations. You should also understand hardware interfacing
+concepts, such as the fact that the x86 architecture has a separate I/O
+space and that peripherals are commanded with out instructions and
+their status read with in instructions.  A microprocessor course such
+as those taught in engineering or computer science curricula would have
+given you the fundamentals. (Note to educators and students in computer
+engineering: An Etherboot driver should be feasible as a term project
+for a final year undergraduate student. I estimate about 40 hours of
+work is required. I am willing to be a source of technical advice.)
+<P>
+<P>
+<P>Next you need a development machine. This can be your normal Linux
+machine. You need another test machine, networked to the development
+machine. This should be a machine you will not feel upset rebooting very
+often. So the reset button should be in working condition. :-) It should
+have a floppy drive on it but does not need a hard disk, and in fact a
+hard disk will slow down rebooting. Alternatively, it should have a
+another network adapter which can netboot; see discussion further down.
+Needless to say, you need a unit of the adapter you are trying to write
+a driver for. You should gather all the documentation you can find for
+the hardware, from the manufacturer and other sources.
+<P>
+<P>
+<P>There are several types of network adapter architecture. The simplest
+to understand is probably programmed I/O. This where the controller
+reads incoming packets into memory that resides on the adapter and the
+driver uses in instructions to extract the packet data, word by word, or
+sometimes byte by byte. Similarly, packets are readied for transmission by
+writing the data into the adapter's memory using out instructions. This
+architecture is used for example on the NE2000 and 3C509. The disadvantage
+of this architecture is the load on the CPU imposed by the I/O. However
+this is of no import to Etherboot (who cares how loaded the CPU is
+during booting), but will be to Linux. Next in the sophistication scale
+are shared memory adapters such as the Western Digital or SMC series,
+of which the WD8013 is a good example. Here the adapter's memory is also
+accessible in the memory space of the main CPU.  Transferring data between
+the driver and the adapter is done with memory copy instructions. Load
+on the CPU is light. Adapters in this category are some of the best
+performers for the ISA bus.  Finally there are bus mastering cards such
+as the Lance series for the ISA bus and practically all good PCI adapters
+(but not the NE2000 PCI). Here the data is transferred between the main
+memory and the adapter controller using Direct Memory Access.
+<P>
+<P>
+<P>Examine the file skel.c, in the src directory, which is a template for
+a driver. You may also want to examine a working driver. You will see
+that an Etherboot driver requires 5 functions to be provided:
+<P>
+<UL>
+<LI>A probe routine, that determines if the network adapter is present
+on the machine. This is passed a pointer to a nic struct, a list of
+candidate addresses to probe, and possibly a pointer to a pci struct.
+This routine should initialise the network adapter if present.  If a
+network adapter of the type the driver can handle is found, it should
+save the I/O address at which it was found for use by the other
+routines. In the case of ISA adapters, it may be passed a list of
+addresses to try, or if no list is passed in, it may use an internal
+list of candidate addresses. In the case of PCI adapters, the address
+has already been found by the PCI support routines. Then it should
+determine the Ethernet (MAC) address of the adapter and save it in
+nic->node_addr. It should then call the reset routine to initialise the
+adapter.  Finally it should fill in the function pointers for the other
+routines, and return the nic pointer. If it fails to find an adapter,
+it should return 0.
+
+<P>
+<P>Initialising the adapter means programming the registers so that the
+chip is ready to send and receive packets. This includes enabling the
+appropriate hardware interface (10B2, 10BT) in the case of adapters with
+more than one interface, and setting the right speed (10Mb, 100Mb) if
+the hardware does not autosense and set it.  It also includes setting up
+any memory buffers needed by the hardware, along with any necessary
+pointers.
+<P>
+<P>
+<P>Note that you should program the receiver registers to allow broadcast
+Ethernet packets to be received.  This is needed because other IP hosts
+will do an ARP request on the diskless computer when it boots.
+<P>
+</LI>
+<LI>A reset routine, that resets the adapter to a known state.
+This is passed a pointer to a nic struct.  This can be called from
+the probe routine.
+</LI>
+<LI>A disable routine, which puts the adapter into a disabled state.
+This is passed a pointer to a nic struct.  This is needed to leave
+the adapter in a suitable state for use by the operating system which
+will be run after Etherboot. Some adapters, if left in an active state,
+cannot be found by the operating system.
+</LI>
+<LI>A transmit routine, to send an Ethernet packet. This is passed a
+pointer to a nic struct, the 6 byte Ethernet address of the destination,
+a packet type (IP, ARP, etc), the size of the data payload in bytes, and
+a pointer to the data payload. Remember the packet type and length fields
+are in x86 byte order (little-endian) and the adapter's byte order may be
+the reverse (big-endian). Note that the routine knows nothing about IP
+(or any other type) packets, the data payload is assumed to be a filled
+in packet, ready to transmit.
+</LI>
+<LI>A poll routine, to check if a packet has been received and ready
+for processing. This is passed a pointer to a nic struct. If a packet
+is available, it should copy the packet from the adapter into the data
+area pointed to by nic->packet, and set nic->packetlen to the length of
+the data, and return 1, otherwise 0.
+
+<P>
+<P>A few Ethernet controller chips will receive packets from itself, as
+detected by having a source address of itself. You can throw these out
+immediately on reception and not bother the upper layer with them.
+<P>
+</LI>
+</UL>
+<P>Only the probe routine needs to be public, all the other routines should
+be static and private to the driver module. Similarly all global data
+in the driver should be static and private.
+<P>
+<P>
+<P>A prototype for the probe routine should be added to the file config.c,
+conditional on INCLUDE_NAMEOFNIC.  NAMEOFNIC is derived from the name
+of the driver source file for your adapter by uppercasing alphabets and
+converting hyphen to underscore. If the file is pop-sicle.c, then the
+symbol is INCLUDE_POP_SICLE. Also conditional on INCLUDE_NAMEOFNIC should
+be a struct entry containing the name of the driver and a pointer to the
+probe routine. The third element of the structure should be pci_probeaddrs
+in the case of PCI adapters, otherwise 0.
+<P>
+<P>
+<P>If the NIC is a PCI adapter, then you also need to put an entry
+in the pci_nic_list array with the name, vendor and id fields
+filled in. You can obtain the vendor and device ids from the file
+/usr/include/linux/pci.h. It is also displayed by PCI BIOSes on bootup,
+or you can use the lspci program from the pciutils package to discover
+the ids.  The other fields will be filled in by the pci routines.
+The symbol INCLUDE_NAMEOFNIC should be used to set INCLUDE_PCI.
+<P>
+<P>
+<P>Then add an entry to the file NIC so that the build process will create
+Makefile rules for it in the file Roms. The build process will cause the
+driver object will be pulled in from the driver library. Use the rule for
+bin32/driver.fd0 or the command cat floppyboot.bin bin32/driver.rom >
+/dev/fd0 to write another instance of the driver to the floppy for
+testing. Use lots of printf statements to track where execution has
+reached and to display the status of various variables and registers
+in the code.  You should expect to do this dance with the development
+machine, floppy disk and target machine many many times.
+<P>
+<P>
+<P>There is another method of testing ROM images that does not involve
+walking a floppy disk between the machines and is much nicer. Set up a
+supported NIC with a boot ROM. Put the target NIC on the same machine
+but at a non-conflicting I/O location. That is to say, your test machine
+has two NICs and two connections to the LAN.  Then when you are ready to
+test a boot image, use the utility 
+<A HREF="mknbi.html">mknbi-rom</A>  to create a network bootable image from the ROM
+image, and set up bootpd/DHCPD and tftpd to send this over the when the
+machine netboots.  Using Etherboot to boot another version of itself is
+rather mind-boggling I know.
+<P>
+<P>
+<P>Now set up the various required services, i.e. BOOTP/DHCP, tftp, etc. on
+the development machine. You should go through the setup process with a
+supported adapter card on a test machine so that you know that the network
+services are working and what to expect to see on the test machine.
+<P>
+<P>
+<P>When coding, first get the probe routine working. You will need to refer
+to the programmer's guide to the adapter when you do this.  You can also
+get some information by reading a Linux or FreeBSD driver. You may also
+need to get the reset routine working at this time.
+<P>
+<P>
+<P>Next, get the transmit routine working. To check that packets are going
+out on the wire, you can use tcpdump on the development machine to snoop
+on the Ethernet. The first packet to be sent out by Etherboot will be
+a broadcast query packet, on UDP port 67. Note that you do not need
+interrupts at all.  You should ensure the packet is fully transmitted
+before returning from this routine.  You may also wish to implement a
+timeout to make sure the driver doesn't get stuck inside transmit if it
+fails to complete. A couple of timer routines are available for
+implementing the timeout, see timer.h. You use them like this (in
+pseudo-code):
+<P>
+<HR>
+<PRE>
+        for (load_timer2(TIMEOUT_VALUE);
+                transmitter_busy &amp;&amp; (status = timer2_running()); )
+                ;
+        if (status == 0)
+                transmitter_timed_out;
+</PRE>
+<HR>
+<P>The timeout value should be 1193 per millisecond of wait. The maximum
+value is 65535, which is about 54 milliseconds of timeout. If you just
+need to delay a short time without needing to do other checks during the
+timeout, you can call waiton_timer2(TIMEOUT_VALUE) which will load, then
+poll the timer, and return control on timeout.
+<P>
+<P>
+<P>Next, get the receive routine working. If you already have the transmit
+routine working correctly you should be getting a reply from the
+BOOTP/DHCP server. Again, you do not need interrupts, unlike drivers
+from Linux and other operating systems. This means you just have to
+read the right register on the adapter to see if a packet has arrived.
+Note that you should NOT loop in the receive routine until a packet
+is received. Etherboot needs to do other things so if you loop in the
+poll routine, it will not get a chance to do those tasks. Just return
+0 if there is no packet awaiting and the main line will call the poll
+routine again later.
+<P>
+<P>
+<P>Finally, get the disable routine working. This may simply be a matter
+of turning off something in the adapter.
+<P>
+<P>
+<P>Things that may complicate your coding are constraints imposed by the
+hardware. Some adapters require buffers to be on word or doubleword
+boundaries. See rtl8139.c for an example of this. Some adapters need a
+wait after certain operations.
+<P>
+<P>
+<P>When you get something more or less working, release early. People on the
+mailing lists can help you find problems or improve the code. Besides
+you don't want to get run over by a bus and then the world never gets
+to see your masterpiece, do you? :-)
+<P>
+<P>
+<P>Your opus should be released under GPL, BSD or a similar Open Source
+license, otherwise people will have problems using your code, as most
+of the rest of Etherboot is GPLed.
+<P>
+<HR>
+<A HREF="README-10.html">Next</A>
+<A HREF="README-8.html">Previous</A>
+<A HREF="README.html#toc9">Contents</A>
+</BODY>
+</HTML>
