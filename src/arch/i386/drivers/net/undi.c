@@ -291,8 +291,8 @@ int undi_loader ( void ) {
 
 	if ( ! undi_call_loader () ) return 0;
 
-	undi.pxe = phys_to_virt ( ( undi.pxs->loader.undi_cs << 4 ) +
-				  undi.pxs->loader.pxe_off );
+	undi.pxe = VIRTUAL( undi.pxs->loader.undi_cs,
+			    undi.pxs->loader.pxe_off );
 	printf ( "UNDI driver created a pixie at %hx:%hx...",
 		 undi.pxs->loader.undi_cs, undi.pxs->loader.pxe_off );
 	if ( memcmp ( undi.pxe->Signature, "!PXE", 4 ) != 0 ) {
@@ -415,6 +415,10 @@ int eb_pxenv_undi_get_iface_info ( void ) {
 	return undi_call ( PXENV_UNDI_GET_IFACE_INFO );
 }
 
+int eb_pxenv_undi_isr ( void ) {
+	return undi_call ( PXENV_UNDI_ISR );
+}
+
 int eb_pxenv_stop_undi ( void ) {
 	if ( ! undi_call ( PXENV_STOP_UNDI ) ) return 0;
 	undi.prestarted = 0;
@@ -472,10 +476,70 @@ POLL - Wait for a frame
 ***************************************************************************/
 static int undi_poll(struct nic *nic)
 {
-	/* return true if there's an ethernet packet ready to read */
-	/* nic->packet should contain data on return */
-	/* nic->packetlen should contain length of data */
-	return (0);	/* initially as this is called to flush the input */
+	/* Fun, fun, fun.  UNDI drivers don't use polling; they use
+	 * interrupts.  We therefore cheat and pretend that an
+	 * interrupt has occurred every time undi_poll() is called.
+	 * This isn't too much of a hack; PCI devices share IRQs and
+	 * so the first thing that a proper ISR should do is call
+	 * PXENV_UNDI_ISR to determine whether or not the UNDI NIC
+	 * generated the interrupt; there is no harm done by spurious
+	 * calls to PXENV_UNDI_ISR.  Similarly, we wouldn't be
+	 * handling them any more rapidly than the usual rate of
+	 * undi_poll() being called even if we did implement a full
+	 * ISR.  So it should work.  Ha!
+	 */
+
+	/* Ask the UNDI driver if this is "our" interrupt.  OK, so
+	 * there may not have been a real hardware interrupt, but the
+	 * UNDI driver shouldn't be pedantic enough to care.
+	 */
+	undi.pxs->undi_isr.FuncFlag = PXENV_UNDI_ISR_IN_START;
+	if ( ! eb_pxenv_undi_isr() ) return 0;
+	if ( undi.pxs->undi_isr.FuncFlag == PXENV_UNDI_ISR_OUT_NOT_OURS ) {
+		/* "Not our interrupt" translates to "no packet ready
+		 * to read".
+		 */
+		return 0;
+	}
+
+	/* We might have received a packet, or this might be a
+	 * "transmit completed" interrupt.  Zero nic->packetlen,
+	 * increment whenever we receive a bit of a packet, test
+	 * nic->packetlen when we're done to see whether or not we
+	 * actually received anything.
+	 */
+	nic->packetlen = 0;
+	undi.pxs->undi_isr.FuncFlag = PXENV_UNDI_ISR_IN_PROCESS;
+	if ( ! eb_pxenv_undi_isr() ) return 0;
+	while ( undi.pxs->undi_isr.FuncFlag != PXENV_UNDI_ISR_OUT_DONE ) {
+		switch ( undi.pxs->undi_isr.FuncFlag ) {
+		case PXENV_UNDI_ISR_OUT_TRANSMIT:
+			/* We really don't care about transmission complete
+			 * interrupts.
+			 */
+			break;
+		case PXENV_UNDI_ISR_OUT_BUSY:
+			/* This should never happen.
+			 */
+			printf ( "UNDI ISR thinks it's being re-entered!\n"
+				 "Aborting receive\n" );
+			return 0;
+		case PXENV_UNDI_ISR_OUT_RECEIVE:
+			/* Copy data to receive buffer */
+			memcpy ( nic->packet + nic->packetlen,
+				 VIRTUAL( undi.pxs->undi_isr.Frame.segment,
+					  undi.pxs->undi_isr.Frame.offset ),
+				 undi.pxs->undi_isr.BufferLength );
+			nic->packetlen += undi.pxs->undi_isr.BufferLength;
+			break;
+		default:
+			printf ( "UNDI ISR returned bizzare status code %d\n",
+				 undi.pxs->undi_isr.FuncFlag );
+		}
+		undi.pxs->undi_isr.FuncFlag = PXENV_UNDI_ISR_IN_GET_NEXT;
+		if ( ! eb_pxenv_undi_isr() ) return 0;
+	}
+	return nic->packetlen > 0 ? 1 : 0;
 }
 
 /**************************************************************************

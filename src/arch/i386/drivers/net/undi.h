@@ -74,6 +74,7 @@ typedef union pxenv_structure {
 	t_PXENV_UNDI_SET_STATION_ADDRESS undi_set_station_address;
 	t_PXENV_UNDI_GET_INFORMATION	undi_get_information;
 	t_PXENV_UNDI_GET_IFACE_INFO	undi_get_iface_info;
+	t_PXENV_UNDI_ISR		undi_isr;
 	t_PXENV_STOP_UNDI		stop_undi;
 	t_PXENV_UNLOAD_STACK		unload_stack;
 } pxenv_structure_t;
@@ -203,6 +204,7 @@ typedef struct undi {
  */
 #define SEGMENT(x) ( virt_to_phys ( x ) >> 4 )
 #define OFFSET(x) ( virt_to_phys ( x ) & 0xf )
+#define VIRTUAL(x,y) ( phys_to_virt ( ( ( x ) << 4 ) + ( y ) ) )
 
 /* Constants
  */
