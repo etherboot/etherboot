@@ -2731,3 +2731,6 @@ support:
 
 + Updates to via-rhine based on input from Guard Kuo from Via Networking 
 Technologies, Inc
+
++ Update p910nd (port 9100+n printer daemon) to latest version
+
