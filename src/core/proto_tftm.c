@@ -39,7 +39,12 @@
 #include "etherboot.h"
 #include "nic.h"
 
-#define TFTM_DEBUG
+//#define TFTM_DEBUG
+#ifdef TFTM_DEBUG
+#define debug(x) printf x
+#else
+#define debug(x)
+#endif
 struct tftm_info {
 	in_addr server_ip;
 	in_addr multicast_ip;
@@ -67,9 +72,11 @@ struct tftm_state {
 #define TFTM_MIN_PACKET 1024
 
 
-static int await_tftm(int ival, void *ptr,
-		      unsigned short ptype __unused, struct iphdr *ip,
-		      struct udphdr *udp)
+int opt_get_multicast(struct tftp_t *tr, unsigned short *len,
+		      unsigned long *filesize, struct tftm_info *info);
+
+static int await_tftm(int ival, void *ptr, unsigned short ptype __unused,
+		      struct iphdr *ip, struct udphdr *udp)
 {
 	struct tftm_info *info = ptr;
 
@@ -126,6 +133,7 @@ int proto_tftm(struct tftm_info *info)
 			  TFTM_PORT, len, &tp))
 		return (0);
 
+	/* loop to listen for packets and to receive the file */
 	for (;;) {
 		long timeout;
 #ifdef	CONGESTED
@@ -135,6 +143,8 @@ int proto_tftm(struct tftm_info *info)
 #else
 		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 #endif
+		/* Calls the await_reply function in nic.c which in turn calls
+		   await_tftm (1st parameter) as above */
 		if (!await_reply(await_tftm, iport, info, timeout)) {
 			if (!block && retry++ < MAX_TFTP_RETRIES) {	/* maybe initial request was lost */
 				if (!udp_transmit
@@ -148,16 +158,26 @@ int proto_tftm(struct tftm_info *info)
 #ifdef	MDEBUG
 				printf("<REXMT>\n");
 #endif
-				udp_transmit(arptable[ARP_SERVER].ipaddr.
-					     s_addr, iport,
-					     oport, TFTP_MIN_PACKET, &tp);
-				continue;
+				debug(("Timed out receiving file"));
+				len =
+				    sizeof(tp.ip) + sizeof(tp.udp) +
+				    sizeof(tp.opcode) +
+				    sprintf((char *) tp.u.rrq,
+					    "%s%coctet%cmulticast%c%cblksize%c%d%ctsize%c",
+					    info->name, 0, 0, 0, 0, 0,
+					    TFTM_MIN_PACKET, 0, 0) + 1;
+
+				udp_transmit
+				    (arptable[ARP_SERVER].ipaddr.s_addr,
+				     ++iport, TFTM_PORT, len, &tp);
+					continue;
 			}
 #endif
 			break;	/* timeout */
 		}
 
 		tr = (struct tftp_t *) &nic.packet[ETH_HLEN];
+
 		if (tr->opcode == ntohs(TFTP_ERROR)) {
 			printf("TFTP error %d (%s)\n",
 			       ntohs(tr->u.err.errcode), tr->u.err.errmsg);
@@ -165,84 +185,11 @@ int proto_tftm(struct tftm_info *info)
 		}
 
 		if (tr->opcode == ntohs(TFTP_OACK)) {
-			int i = 0;
-			const char *p = tr->u.oack.data, *e = 0;
+			int i =
+			    opt_get_multicast(tr, &len, &filesize, info);
 
-			len =
-			    ntohs(tr->udp.len) - sizeof(struct udphdr) - 2;
-			if (len > TFTM_MIN_PACKET)
-				goto noak;
-			e = p + len;
-			while (*p != '\0' && p < e) {
-				if (!strcasecmp("tsize", p)) {
-					p += 6;
-					if ((filesize =
-					     strtoul(p, &p, 10)) > 0)
-						i |= 4;
-#ifdef TFTM_DEBUG
-					printf("\n");
-					printf("tsize=%d\n", filesize);
-#endif
-					while (p < e && *p)
-						p++;
-					if (p < e)
-						p++;
-				} else if (!strcasecmp("blksize", p)) {
-					i |= 2;
-					p += 8;
-					state.block_size =
-					    strtoul(p, &p, 10);;
-					if (state.block_size !=
-					    TFTM_MIN_PACKET) {
-						printf
-						    ("TFTM-Server rejected required transfer blocksize %d\n",
-						     TFTM_MIN_PACKET);
-						goto noak;
-					}
-#ifdef TFTM_DEBUG
-					printf("blksize=%d\n",
-					       state.block_size);
-#endif
-					while (p < e && *p)
-						p++;
-					if (p < e)
-						p++;
-				} else if (!strncmp(p, "multicast", 10)) {
-					i |= 1;
-					p += 10;
-#ifdef TFTM_DEBUG
-					printf("multicast options: %s\n",
-					       p);
-#endif
-					p += 1 + inet_aton(p,
-							   &info->
-							   multicast_ip);
-#ifdef TFTM_DEBUG
-					printf("multicast ip = %@\n",
-					       info->multicast_ip);
-#endif
-					info->multicast_port =
-					    strtoul(p, &p, 10);
-					++p;
-#ifdef TFTM_DEBUG
-					printf("multicast port = %d\n",
-					       info->multicast_port);
-#endif
-					state.ismaster =
-					    (*p == '1' ? 1 : 0);
-#ifdef TFTM_DEBUG
-					printf("multicast ismaster = %d\n",
-					       state.ismaster);
-#endif
-					while (p < e && *p)
-						p++;
-					if (p < e)
-						p++;
-				}
-			}
-
-		      noak:
-			if (i != 7 && !state.recvd_oack) {
+			if (i == 0 || (i != 7 && !state.recvd_oack)) {	/* Multicast unsupported */
+				/* Transmit an error message to the server to end the transmission */
 				printf
 				    ("TFTM-Server doesn't understand options [blksize tsize multicast]\n");
 				tp.opcode = htons(TFTP_ERROR);
@@ -265,11 +212,15 @@ int proto_tftm(struct tftm_info *info)
 				udp_transmit(arptable[ARP_SERVER].ipaddr.
 					     s_addr, iport,
 					     ntohs(tr->udp.src), len, &tp);
+				block = tp.u.ack.block = 0;	/* this ensures, that */
+				/* the packet does not get */
+				/* processed as data! */
 				return (0);
 			} else {
 				unsigned long bitmap_len;
 				/* */
 				if (!state.recvd_oack) {
+
 					state.total_packets =
 					    1 + (filesize -
 						 (filesize %
@@ -292,7 +243,6 @@ int proto_tftm(struct tftm_info *info)
 						memset(state.bitmap, 0,
 						       bitmap_len);
 					}
-
 					/* If I'm running over multicast join the multicast group */
 					join_group(IGMP_SERVER,
 						   info->multicast_ip.
@@ -301,11 +251,8 @@ int proto_tftm(struct tftm_info *info)
 				state.recvd_oack = 1;
 			}
 
-			if (p > e)
-				goto noak;
-			block = tp.u.ack.block = 0;	/* this ensures, that */
-			/* the packet does not get */
-			/* processed as data! */
+
+
 		} else if (tr->opcode == htons(TFTP_DATA)) {
 			unsigned long data_len;
 			unsigned char *data;
@@ -357,10 +304,6 @@ int proto_tftm(struct tftm_info *info)
 			if (((state.
 			      bitmap[block >> 3] >> (block & 7)) & 1) ==
 			    0) {
-				if (state.received_packets <
-				    (state.total_packets - 1)
-				    && block == state.total_packets)
-					continue;
 				/* Non duplicate packet */
 				state.bitmap[block >> 3] |=
 				    (1 << (block & 7));
@@ -374,7 +317,7 @@ int proto_tftm(struct tftm_info *info)
 			}
 		}
 
-		else {		/* neither TFTP_OACK nor TFTP_DATA */
+		else {		/* neither TFTP_OACK, TFTP_DATA nor TFTP_ERROR */
 			break;
 		}
 
@@ -413,6 +356,15 @@ int proto_tftm(struct tftm_info *info)
 			udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, iport, oport, TFTP_MIN_PACKET, &tp);	/* ack */
 		}
 		if (state.received_packets == state.total_packets) {
+			/* If the client is finished and not the master,
+			 * ack the last packet */
+			if (!state.ismaster) {
+				tp.opcode = htons(TFTP_ACK);
+				/* Ack Last packet to end xfer */
+				tp.u.ack.block = htons(state.total_packets);
+				oport = ntohs(tr->udp.src);
+				udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, iport, oport, TFTP_MIN_PACKET, &tp);	/* ack */
+			}
 			/* We are done get out */
 			forget(state.bitmap);
 			break;
@@ -472,5 +424,68 @@ int url_tftm(const char *name,
 	ret = proto_tftm(&info);
 
 	return ret;
+}
+
+/******************************
+* Parse the multicast options
+*******************************/
+int opt_get_multicast(struct tftp_t *tr, unsigned short *len,
+		      unsigned long *filesize, struct tftm_info *info)
+{
+	const char *p = tr->u.oack.data, *e = 0;
+	int i = 0;
+	*len = ntohs(tr->udp.len) - sizeof(struct udphdr) - 2;
+	if (*len > TFTM_MIN_PACKET)
+		return -1;
+	e = p + *len;
+
+	while (*p != '\0' && p < e) {
+		if (!strcasecmp("tsize", p)) {
+			p += 6;
+			if ((*filesize = strtoul(p, &p, 10)) > 0)
+				i |= 4;
+			debug(("\n"));
+			debug(("tsize=%d\n", *filesize));
+			while (p < e && *p)
+				p++;
+			if (p < e)
+				p++;
+		} else if (!strcasecmp("blksize", p)) {
+			i |= 2;
+			p += 8;
+			state.block_size = strtoul(p, &p, 10);
+			if (state.block_size != TFTM_MIN_PACKET) {
+				printf
+				    ("TFTM-Server rejected required transfer blocksize %d\n",
+				     TFTM_MIN_PACKET);
+				return 0;
+			}
+			debug(("blksize=%d\n", state.block_size));
+			while (p < e && *p)
+				p++;
+			if (p < e)
+				p++;
+		} else if (!strncmp(p, "multicast", 10)) {
+			i |= 1;
+			p += 10;
+			debug(("multicast options: %s\n", p));
+			p += 1 + inet_aton(p, &info->multicast_ip);
+			debug(("multicast ip = %@\n", info->multicast_ip));
+			info->multicast_port = strtoul(p, &p, 10);
+			++p;
+			debug(("multicast port = %d\n",
+			       info->multicast_port));
+			state.ismaster = (*p == '1' ? 1 : 0);
+			debug(("multicast ismaster = %d\n",
+			       state.ismaster));
+			while (p < e && *p)
+				p++;
+			if (p < e)
+				p++;
+		}
+	}
+	if (p > e)
+		return 0;
+	return i;
 }
 #endif				/* DOWNLOAD_PROTO_TFTP */
