@@ -1115,13 +1115,31 @@ PXENV_EXIT_t pxenv_get_cached_info ( t_PXENV_GET_CACHED_INFO
 
 /* PXENV_RESTART_TFTP
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_restart_tftp ( t_PXENV_RESTART_TFTP *restart_tftp ) {
+	PXENV_EXIT_t tftp_exit;
+
 	DBG ( "PXENV_RESTART_TFTP" );
-	/* ENSURE_READY ( restart_tftp ); */
-	restart_tftp->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( restart_tftp );
+
+	/* Words cannot describe the complete mismatch between the PXE
+	 * specification and any possible version of reality...
+	 */
+	restart_tftp->Buffer = PXE_LOAD_ADDRESS; /* Fixed by spec, apparently */
+	restart_tftp->BufferSize = get_free_base_memory() - PXE_LOAD_ADDRESS; /* Near enough */
+	DBG ( "(" );
+	tftp_exit = pxe_api_call ( PXENV_TFTP_READ_FILE, (t_PXENV_ANY*)restart_tftp );
+	DBG ( ")" );
+	if ( tftp_exit != PXENV_EXIT_SUCCESS ) return tftp_exit;
+
+	/* Fire up the new NBP */
+	restart_tftp->Status = xstartpxe();
+
+	/* Not sure what "SUCCESS" actually means, since we can only
+	 * return if the new NBP failed to boot...
+	 */
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_START_BASE
