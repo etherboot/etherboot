@@ -1,4 +1,4 @@
-#if !defined(PCI_H) && defined(CONFIG_PCI)
+#ifndef	PCI_H
 #define PCI_H
 
 /*
