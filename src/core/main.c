@@ -141,6 +141,7 @@ operations[] = {
 static int main_loop(int state);
 static int exit_ok;
 static int exit_status;
+static int initialized;
 
 /**************************************************************************
 MAIN - Kick off routine
@@ -166,6 +167,7 @@ int main(struct Elf_Bhdr *ptr)
 	gateA20_set();
 	print_config();
 	get_memsizes();
+	cleanup();
 
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
@@ -209,12 +211,15 @@ static int main_loop(int state)
 	static int type;
 	static int i;
 
-	if (((state >= 1) && (state <= 2)) && dev &&
-		(dev->how_probe == PROBE_AWAKE)) {
-		if ((dev->how_probe = ops->probe(dev)) == PROBE_FAILED) {
-			state = -1;
+	if (!initialized) {
+		console_init();
+		if (dev) {
+			dev->how_probe = PROBE_AWAKE;
+			dev->how_probe = ops->probe(dev);
+			if (dev->how_probe == PROBE_FAILED) {
+				state = -1;
+			}
 		}
-		
 	}
 	switch(state) {
 	case 0:
@@ -432,6 +437,7 @@ void cleanup(void)
 	eth_disable();
 	disk_disable();
 	console_fini();
+	initialized = 0;
 }
 
 /*
