@@ -22,7 +22,9 @@
 *	
 *    Linux Driver Version 0.20, 20020610
 * 
-*  
+*    This development of this Etherboot driver was funded by:
+*
+*    NXTV: http://www.nxtv.com/
 *    	
 *    REVISION HISTORY:
 *    ================
