@@ -1,14 +1,17 @@
-Etherboot 5.3.10 (Release Date ?)
+Etherboot 5.3.10 aka 5.4RC1 (Release Date 2004-11-26)
 
 To generate ISO images you will to get need syslinux and/or isolinux
 separately. Google for them. If you have a very old BIOS and .liso
 images don't work you may wish to try adding the -s option of syslinux
 as a last resort.
 
-It should be possible to compile Etherboot with gcc >= 3.3.3 now that a
-couple of bugs have been tracked down. Please mail reports of success or
-failure to the etherboot-users list, together with the versions of gcc
-and binutils used.
+It should be possible to compile Etherboot with gcc >= 3.3.3, including
+gcc 3.4.x now that a couple of bugs have been tracked down. Please mail
+reports of success or failure to the etherboot-users list, together with
+the versions of gcc and binutils used.
+
+gcc 2.x is not supported anymore. You need at least gcc 3.0.x to compile
+etherboot.
 
 We know that these things do not work; they are being fixed:
 

@@ -2713,3 +2713,33 @@ images and contributed the first cut at the code for geniso.
 
 + Dag Lem provided a new pci_id for the eepro100 Intel "82801EB/ER 
 (ICH5/ICH5R)"
+
++ Small patch to support 3Com tulip version from Jacek Kalinski
+
++ Yinghai Lu contributed a large patch to add filo, bText and usb 
+support:
+	btext console: In LinuxBIOS, for the VGA, we only can 
+	enable display chipframe buffer and write char to framebuffer 
+	to get output in CRT.
+	
+	FILO: originally it is standalone boot program and 
+	author is TakeshiSone.
+
+	Boot from SATA disk.
+
+	Boot from USB disk (OHCI and UHCI).  USB boot is from Steven 
+	James 's baremetal in LinuxBIOS, moved to FILO and added the 
+	OHCI support to it 
+
++ armnommu arch support by Tobias Lorenz.
+
++ Driver updates/cleanup: rtl8139, sis900, tlan 
+
++ Updates to via-rhine based on input from Guard Kuo from Via Networking 
+Technologies, Inc
+
++ Update p910nd (port 9100+n printer daemon) to latest version
+
++ Fixed some bugs to enable compilation for gcc 3.4.x.
+
+Released as Etherboot 5.3.10 aka 5.4RC1 (development)
