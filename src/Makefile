@@ -31,6 +31,14 @@
 #
 # 3C90X options:
 #	-DINCLUDE_3C90X	- Include 3c90x support
+#
+#	Warning Warning Warning
+#	If you use any of the XCVR options below, please do not complain about
+#	the behaviour with Linux drivers to the kernel developers. You are
+#	on your own if you do this. Please read 3c90x.txt to understand
+#	what they do. If you don't understand them, ask for help on the
+#	Etherboot mailing list.
+#
 #	-DCFG_3C90X_PRESERVE_XCVR - Reset the transceiver type to the value it
 #			  had initially just before the loaded code is started.
 #	-DCFG_3C90X_XCVR - Hardcode the tranceiver type Etherboot uses.
