@@ -143,56 +143,50 @@ start_int:				/* clobber magic id, so that we will */
 	movw	%ax, BOOT_INT_VEC+2
 	movw	SCRATCHVEC, %ax
 	movw	%ax, BOOT_INT_VEC
-#endif	/* DELAYED_INT */
-legacyentry:
-	movw	$MAGIC,%ax
-	jmp	blockmove
-pnpentry:
-	movw	$0,%ax
-blockmove:
-	pushw	%ax			/* indicates whether PnP or legacy */
-/* The following copy is a bit convoluted to save source code, so here a few
- * lines on the why of all this. The standard (non-compressed) loader needs to
- * copy its payload to the RELOC:0 area in any case. The compressed loader
- * offers an option to move the whole ROM contents to RAM (at MOVEROM:0) before
- * excuting it. This is just a speed improvement on systems where the ROM area
- * is not cached. The compressed loader (no matter if it executes from RAM or
- * ROM) decompresses its payload to RELOC:0.
- */
-
-	cld
-
-	/* copy payload to RELOC */
-	movw	$((RELOC - S16SIZE)>>4), %ax
-	movw	$payload-_start, %si	/* offset of code image */
-	movw	%si,%bx
-	shrw	%bx
-	xorw	%cx,%cx
-	movb	%cs:size-_start, %ch
-	subw	%bx,%cx			/* calculate legth of payload */
-
-	movw	%ax,%es
-	xorw	%di,%di			/* di = 0 */
-	rep movsw	%cs:(%si),%es:(%di)
-
-	cli
-
-	lcall	$((RELOC - S16SIZE) >>4), $0
-
-	popw	%ax
-#ifdef	PCI_PNP_HEADER
-	cmpw	$MAGIC, %ax
-	jne	pnpreturn
-#endif
-#ifdef	DELAYED_INT
+	call	start16			/* call start16.S */
 	int	$BOOT_INT		/* Try original vector */
-#else
-	lret
-#endif
-pnpreturn:
-	int	$0x18			/* As per BIOS Boot Spec, next dev */
+#endif	/* DELAYED_INT */
 
-/* Force 4 byte alignment */
-	.balign 4, 0
+
+
+	
+legacyentry:
+	call	start16			/* call start16.S */
+	lret				/* Hope that stack is ok.... */
+
+
+	
+	
+#ifdef PCI_PNP_HEADER
+pnpentry:
+	call	start16			/* call start16.S */
+	int	$0x18			/* As per BIOS Boot Spec, next dev */
+#endif /* PCI_PNP_HEADER */
+
+
+	
+	/*
+	 * Call start16.  We fake the return address so that the
+	 * return goes straight back to whoever called us, since our
+	 * stack may have been destroyed by the time we regain
+	 * control.
+	 */
+start16:
+	/* Convert return offset to return segment:offset */
+	pop	%ax
+	push	%cs
+	push	%ax
+	/* Calculate segment:offset address of payload and do an lret,
+	 * since there's no "calculated ljmp" instruction
+	 */
+	push	%cs
+	pop	%ax
+	add	$((payload-_start)/16), %ax
+	push	%ax
+	pushw	$0
+	lret				/* Jump to start16.S */
+	
+/* Force 16 byte alignment */
+	.balign 16, 0
 payload: 
-/* the (compressed) code will be attached here */
+/* start16 will be attached here */
