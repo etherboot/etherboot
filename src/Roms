@@ -329,7 +329,7 @@ INCLUDE_3c515 = -DINCLUDE_3C515
 
 MDROM_ALL_DEPS += bin32/3c515.o
 
-bin32/3c515.o:	3c515.c $(MAKEDEPS) 3c515_isapnp.h cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
+bin32/3c515.o:	3c515.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-string.h nic.h osdep.h stdint.h timer.h
 	$(CC32) $(CFLAGS32) $(3C515FLAGS) -o $@ -c $<
 
 INCLUDE_3c529 = -DINCLUDE_3C529

@@ -1,24 +1,35 @@
-/* $Id$ */
-/*
-    Copyright (C) 2001  P.J.H.Fox (fox@roestock.demon.co.uk)
+/**************************************************************************
+*
+*    isapnp.h -- Etherboot isapnp support for the 3Com 3c515
+*    Written 2002-2003 by Timothy Legge <tlegge@rogers.com>
+*
+*    This program is free software; you can redistribute it and/or modify
+*    it under the terms of the GNU General Public License as published by
+*    the Free Software Foundation; either version 2 of the License, or
+*    (at your option) any later version.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program; if not, write to the Free Software
+*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*
+*    Portions of this code:
+*				Copyright (C) 2001  P.J.H.Fox (fox@roestock.demon.co.uk)
+*
+*
+*
+*    REVISION HISTORY:
+*    ================
+*        Version 0.1 April 26, 2002 	TJL
+*		 Version 0.2 01/08/2003			TJL Renamed from 3c515_isapnp.h
+*
+***************************************************************************/
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-    As modified by Timothy Legge (tlegge@rogers.com) April 26, 2002
-*/
-extern int read_port;
+/*extern int read_port;*/
 /*#define DEBUG*/
 #define ADDRESS_ADDR 0x0279
 #define WRITEDATA_ADDR 0x0a79

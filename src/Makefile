@@ -152,6 +152,7 @@ SK_G16FLAGS=	-DINCLUDE_SK_G16
 SIS900FLAGS=   	-DINCLUDE_SIS900
 NATSEMIFLAGS=  	-DINCLUDE_NATSEMI
 SMC9000FLAGS=   -DINCLUDE_SMC9000
+SUNDANCEFLAGS=	-DINCLUDE_SUNDANCE
 TIARAFLAGS=	-DINCLUDE_TIARA
 DEPCAFLAGS=	-DINCLUDE_DEPCA	# -DDEPCA_MODEL=DEPCA -DDEPCA_RAM_BASE=0xd0000
 TULIPFLAGS=	-DINCLUDE_TULIP
@@ -162,7 +163,7 @@ W89C840FLAGS=	-DINCLUDE_W89C840
 
 SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.c
 SRCS+=	main.c pci.c osloader.c nfs.c misc.c ansiesc.c bootmenu.c config.c
-SRCS+=	md5.c floppy.c
+SRCS+=	md5.c floppy.c isapnp.c
 
 # ROM loaders: LZ version (prefix Z), PCI header version (prefix P)
 RLOADER=	bin/rloader.bin
@@ -180,7 +181,7 @@ ELF_START32=	bin32/start32.o bin32/linuxbios.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/misc.o
 BOBJS32+=	bin32/ansiesc.o bin32/bootmenu.o bin32/md5.o bin32/floppy.o
-BOBJS32+=	bin32/serial.o bin32/timer.o
+BOBJS32+=	bin32/serial.o bin32/timer.o bin32/isapnp.o
 BLIB32=		bin32/bootlib.a
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf
@@ -270,6 +271,10 @@ bin32/md5.o:		md5.c etherboot.h osdep.h
 bin32/floppy.o:		floppy.c etherboot.h osdep.h
 
 bin32/timer.o:		timer.c timer.h etherboot.h osdep.h
+
+# ISAPNP Support Code
+
+bin32/isapnp.o:		isapnp.c isapnp.h
 
 # PCI support code (common to all PCI drivers)
 
