@@ -33,7 +33,7 @@
 *    	
 *    $Revision$
 *    $Author$
-*    $Date 2003/11/26 $
+*    $Date$
 * 
 *    REVISION HISTORY:
 *    ================
@@ -265,25 +265,22 @@ struct RxDesc {
 };
 
 /* Define the TX Descriptor */
-//static struct TxDesc tx_ring[NUM_TX_DESC]
- //   __attribute__ ((aligned(256)));
+//static struct TxDesc tx_ring[NUM_TX_DESC];
+//	_attribute__ ((aligned(256)));
 
-/* Create a static buffer of size PKT_BUF_SZ for each
+/* Create a static buffer of size RX_BUF_SZ for each
 TX Descriptor.  All descriptors point to a
 part of this buffer */
 static unsigned char txb[NUM_TX_DESC * RX_BUF_SIZE];
-  //  __attribute__ ((aligned(256)));
-
 
 /* Define the RX Descriptor */
 //static struct RxDesc rx_ring[NUM_RX_DESC]
   //  __attribute__ ((aligned(256)));
 
-/* Create a static buffer of size PKT_BUF_SZ for each
+/* Create a static buffer of size RX_BUF_SZ for each
 RX Descriptor   All descriptors point to a
 part of this buffer */
-//static unsigned char rxb[NUM_RX_DESC * RX_BUF_SIZE]
-  //  __attribute__ ((aligned(256)));
+static unsigned char rxb[NUM_RX_DESC * RX_BUF_SIZE];
 
 struct rtl8169_private {
 	void *mmio_addr;	/* memory map physical address */
@@ -349,29 +346,13 @@ int mdio_read(int RegAddr)
 static int rtl8169_init_board(struct pci_device *pdev)
 {
 	int i, pm_cap;
-//      unsigned long mmio_start, mmio_end, mmio_flags, mmio_len;
 	unsigned long rtreg_base, rtreg_len;
 	u32 tmp;
 
-
-	// enable device (incl. PCI PM wakeup and hotplug setup)
-/*	rc = pci_enable_device(pdev);
-	if (rc)
-		goto err_out;
-*/
 	rtreg_base = pci_bar_start(pdev, PCI_BASE_ADDRESS_1);
-//      mmio_end = pci_resource_end(pdev, 1);
-//      mmio_flags = pci_resource_flags(pdev, 1);
 	rtreg_len = pci_bar_size(pdev, PCI_BASE_ADDRESS_1);
 
-	// make sure PCI base addr 1 is MMIO
-/*	if (!(mmio_flags & IORESOURCE_MEM)) {
-		printk(KERN_ERR PFX
-		       "region #1 not an MMIO resource, aborting\n");
-		rc = -ENODEV;
-		goto err_out_disable;
-		}
-*/// check for weird/broken PCI region reporting
+	// check for weird/broken PCI region reporting
 	if (rtreg_len < RTL_MIN_IO_SIZE) {
 		printf("Invalid PCI region size(s), aborting\n");
 	}
@@ -497,8 +478,6 @@ static void r8169_transmit(struct nic *nic, const char *d,	/* Destination */
 	if (currticks() >= to) {
 		printf("TX Time Out");
 	}
-
-
 }
 
 static void rtl8169_set_rx_mode(struct nic *nic __unused)
@@ -567,10 +546,6 @@ static void rtl8169_hw_start(struct nic *nic)
 
 	/* no early-rx interrupts */
 	RTL_W16(MultiIntr, RTL_R16(MultiIntr) & 0xF000);
-
-	/* Enable all known interrupts by setting the interrupt mask. */
-//      RTL_W16(IntrMask, rtl8169_intr_mask);
-
 }
 
 static void rtl8169_init_ring(struct nic *nic __unused)
@@ -594,8 +569,7 @@ static void rtl8169_init_ring(struct nic *nic __unused)
 		else
 			tpc->RxDescArray[i].status = OWNbit + RX_BUF_SIZE;
 
-		tpc->RxBufferRing[i] =
-		    &(tpc->RxBufferRings[i * RX_BUF_SIZE]);
+		tpc->RxBufferRing[i] = &rxb[i * RX_BUF_SIZE];
 		tpc->RxDescArray[i].buf_addr =
 		    virt_to_bus(tpc->RxBufferRing[i]);
 	}
@@ -610,7 +584,7 @@ static void r8169_reset(struct nic *nic)
 	u8 diff;
 	u32 TxPhyAddr, RxPhyAddr;
 
-	tpc->TxDescArrays =
+	tpc->TxDescArrays = 
 	    allot(NUM_TX_DESC * sizeof(struct TxDesc) + 256);
 	if (tpc->TxDescArrays == 0)
 		printf("Allot Error");
@@ -633,9 +607,9 @@ static void r8169_reset(struct nic *nic)
 		return;
 	}
 
-	tpc->RxBufferRings = allot(RX_BUF_SIZE * NUM_RX_DESC);
-	if (tpc->RxBufferRings == 0)
-		printf("Unable to allocate RxBuffer Ring\n");
+//	tpc->RxBufferRings = allot(RX_BUF_SIZE * NUM_RX_DESC);
+//	if (tpc->RxBufferRings == 0)
+//		printf("Unable to allocate RxBuffer Ring\n");
 
 	rtl8169_init_ring(nic);
 	rtl8169_hw_start(nic);
@@ -674,7 +648,6 @@ static void r8169_disable(struct dev *dev __unused)
 	tpc->RxDescArrays = NULL;
 	tpc->TxDescArray = NULL;
 	tpc->RxDescArray = NULL;
-	forget(tpc->RxBufferRings);
 	for (i = 0; i < NUM_RX_DESC; i++) {
 		tpc->RxBufferRing[i] = NULL;
 	}
@@ -720,7 +693,7 @@ static int r8169_probe(struct dev *dev, struct pci_device *pci)
 	printf("%s: Identified chip type is '%s'.\n", pci->name,
 	       rtl_chip_info[tpc->chipset].name);
 	/* Print out some hardware info */
-	printf("%s%s: %! at ioaddr %hX\n", pci-name, nic->node_addr, ioaddr);
+	printf("%s%s: %! at ioaddr %hX\n", pci->name, nic->node_addr, ioaddr);
 
 	// if TBI is not endbled
 	if (!(RTL_R8(PHYstatus) & TBI_Enable)) {
