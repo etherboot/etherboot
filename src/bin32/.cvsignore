@@ -8,6 +8,7 @@
 *.lzlilo
 *.lzdsk
 *.img
+*.lzimg
 *.huf
 *.a
 *.o
