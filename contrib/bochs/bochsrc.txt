@@ -66,7 +66,8 @@
 # directory, named BIOS-bochs-latest. 
 #=======================================================================
 #romimage: bios/BIOS-bochs-970717a
-romimage: file=bios/BIOS-bochs-latest, address=0xf0000
+#romimage: file=bios/BIOS-bochs-latest, address=0xf0000
+romimage: file=$BXSHARE/BIOS-bochs-latest, address=0xf0000
 #romimage: file=bios/BIOS-bochs-2-processors, address=0xf0000
 #romimage: file=bios/BIOS-bochs-4-processors, address=0xf0000
 #romimage: file=bios/rombios.bin, address=0xf0000
@@ -100,13 +101,15 @@ megs: 32
 #optromimage2: file=optionalrom.bin, address=0xd1000
 #optromimage3: file=optionalrom.bin, address=0xd2000
 #optromimage4: file=optionalrom.bin, address=0xd3000
+optromimage1: file=../../src/bin/ne.zrom, address=0xd0000
 
 #=======================================================================
 # VGAROMIMAGE
 # You now need to load a VGA ROM BIOS into C0000.
 #=======================================================================
 #vgaromimage: bios/VGABIOS-lgpl-latest
-vgaromimage: bios/VGABIOS-elpin-2.40
+#vgaromimage: bios/VGABIOS-elpin-2.40
+vgaromimage: $BXSHARE/VGABIOS-elpin-2.40
 
 #=======================================================================
 # FLOPPYA:
@@ -206,7 +209,7 @@ ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x368, irq=9
 #   ata3-master: type=disk, path=483M.sample, cylinders=1024, heads=15, spt=63
 #   ata3-slave:  type=cdrom, path=iso.sample, status=inserted
 #=======================================================================
-ata0-master: type=disk, path="30M.sample", cylinders=615, heads=6, spt=17
+#ata0-master: type=disk, path="30M.sample", cylinders=615, heads=6, spt=17
 #ata0-slave: type=cdrom, path=D:, status=inserted
 #ata0-slave: type=cdrom, path=/dev/cdrom, status=inserted
 #ata0-slave: type=cdrom, path="drive", status=inserted
@@ -285,7 +288,7 @@ ata0-master: type=disk, path="30M.sample", cylinders=615, heads=6, spt=17
 #   boot: a
 #=======================================================================
 #boot: floppy
-boot: disk
+#boot: disk
 
 #=======================================================================
 # FLOPPY_BOOTSIG_CHECK: disabled=[0|1]
@@ -589,7 +592,8 @@ screenmode: name="sample"
 # ne2k: ioaddr=0x280, irq=9, mac=b0:c4:20:00:00:00, ethmod=linux, ethdev=eth0
 # ne2k: ioaddr=0x280, irq=9, mac=b0:c4:20:00:00:01, ethmod=win32, ethdev=MYCARD
 # ne2k: ioaddr=0x280, irq=9, mac=fe:fd:00:00:00:01, ethmod=tap, ethdev=tap0
-# ne2k: ioaddr=0x280, irq=9, mac=fe:fd:00:00:00:01, ethmod=tuntap, ethdev=tun0, script=./tunconfig
+ne2k: ioaddr=0x280, irq=9, mac=fe:fd:00:00:00:01, ethmod=tuntap, ethdev=tun0, script=./ifup.tun
+# ne2k: ioaddr=0x280, irq=9, mac=fe:fd:00:00:00:01, ethmod=tuntap, ethdev=tun0
 
 #=======================================================================
 # KEYBOARD_MAPPING:
@@ -624,7 +628,7 @@ keyboard_mapping: enabled=0, map=
 # Example:
 #   user_shortcut: keys=ctrlaltdel
 #=======================================================================
-#user_shortcut: keys=ctrlaltdel
+user_shortcut: keys=ctrlaltdel
 
 #=======================================================================
 # other stuff
