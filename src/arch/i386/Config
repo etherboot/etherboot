@@ -107,7 +107,7 @@ else
 CFLAGS+=	-falign-jumps=1 -falign-loops=1 -falign-functions=1
 endif
 
-LDFLAGS+=	-N -Ttext $(RELOCADDR)
+LDFLAGS+=	-N
 
 ifeq "$(shell uname -s)" "FreeBSD"
 CFLAGS+=	-DIMAGE_FREEBSD -DELF_IMAGE -DAOUT_IMAGE

@@ -111,6 +111,10 @@ $(BIN)/pciprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 # Linker command for prepending ROM loaders
 LDPREFIX = $(LD) --accept-unknown-input-arch -T arch/i386/core/prefix.lds --oformat binary
 
+# Prefix objects
+PREFIXOBJS = $(BIN)/init.o
+ZPREFIXOBJS = $(BIN)/init.o $(BIN)/unnrv2b.o
+
 # 16 to 32bit transition
 $(BIN)/start16.o:	arch/i386/core/start16.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@
@@ -201,22 +205,24 @@ $(BIN)/%.zbin:	$(BIN)/%.zimg $(BIN)/%.zsym $(BIN)/start16.o \
 $(BIN)/%.bin:	$(BIN)/%.o
 	$(LD) -Ttext 0x10000 $(LDBINARY) -o $@ $<
 
-# general rule for .huf (compressed binary code), may be overridden
-$(BIN)/%.huf:	$(BIN)/%.img $(BIN)/lzhuf $(MAKEDEPS)
-	$(BIN)/lzhuf e $< $@
 
-$(BIN)/%.hufo: $(BIN)/%.huf arch/i386/prefix/huf.lds $(MAKEDEPS)
-	$(LD) -T arch/i386/prefix/huf.lds -b binary $< -o $@
 
-$(BIN)/%.lzimg: $(BIN)/%.hufo $(BIN)/unhuf.o arch/i386/prefix/unhuf.lds $(MAKEDEPS)
-	$(LD) -T arch/i386/prefix/unhuf.lds $(BIN)/unhuf.o $< -o $@
+$(BIN)/%.zrom.prtmp: $(PCIPREFIX) $(ZPREFIXOBJS) $(BIN)/%.rt2.zo $(BIN)/%.rt.o $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T arch/i386/core/etherboot.lds -o $@ \
+		$(PCIPREFIX) $(ZPREFIXOBJS) $(BIN)/$*.rt2.zo $(BIN)/$*.rt.o
+
+$(BIN)/%.prf: $(BIN)/%.prtmp $(MAKEDEPS)
+	$(OBJCOPY) -j .prefix $< $@
+
+$(BIN)/%.prf.bin: $(BIN)/%.prf $(MAKEDEPS)
+	$(OBJCOPY) -O binary $< $@
 
 # general rule for .z (compressed binary code), may be overridden
 # rule for .z is in top level Makefile
 # Give the directory name, e.g. use $(BIN)/rtl8139.com as the target.
 
-$(BIN)/%.zo:	$(BIN)/%.z arch/i386/prefix/huf.lds $(MAKEDEPS)
-	$(LD) -T arch/i386/prefix/huf.lds -b binary $< -o $@
+$(BIN)/%.zo:	$(BIN)/%.zbin arch/i386/core/prefixdata.lds $(MAKEDEPS)
+	$(LD) -T arch/i386/core/prefixdata.lds -b binary $< -o $@
 
 $(BIN)/%.ztmp:	$(BIN)/%.zo $(BIN)/unnrv2b.o \
 		arch/i386/prefix/unhuf.lds $(MAKEDEPS)

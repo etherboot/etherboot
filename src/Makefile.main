@@ -271,23 +271,31 @@ $(BIN)/etherboot.o: $(DOBJS)
 $(BIN)/etherboot-pci.o: $(PCIOBJS)
 	$(LD) -r $(PCIOBJS) -o $@
 
-# general ruls for generating .img files
-$(BIN)/%.tmp: $(BIN)/%.o $(START) $(BIN)/config.o arch/$(ARCH)/core/etherboot.lds $(LIBS) $(STDDEPS) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T arch/$(ARCH)/core/etherboot.lds -o $@ $(START) $(BIN)/config.o $< $(LIBS)
+# general rules for generating runtime (rt) files
+$(BIN)/%.rt.o:  $(BIN)/%.o $(START) $(BIN)/config.o $(LIBS) $(STDDEPS) $(MAKEDEPS)
+	$(LD) -r $(START) $(BIN)/config.o $< $(LIBS) -o $@
+
+$(BIN)/%.rt: $(BIN)/%.rt.o arch/$(ARCH)/core/etherboot.lds $(MAKEDEPS)
+	$(LD) $(LDFLAGS) --section-start .prefix=$(RELOCADDR) -Ttext $(RELOCADDR) -T arch/$(ARCH)/core/etherboot.lds \
+		-o $@ $<
 	@$(SIZE) $@ | $(CHECKSIZE)
 
-$(BIN)/%.img: $(BIN)/%.tmp $(MAKEDEPS)
+$(BIN)/%.rt.bin: $(BIN)/%.rt $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
-# Rules for generating symbol files (for use in conjunction with .img and .zimg files)
-$(BIN)/%.allsym: $(BIN)/%.tmp $(MAKEDEPS)
+$(BIN)/%.rt1.bin: $(BIN)/%.rt $(MAKEDEPS)
+	$(OBJCOPY) -O binary -j .text.nocompress $< $@
+
+$(BIN)/%.rt2.bin: $(BIN)/%.rt $(MAKEDEPS)
+	$(OBJCOPY) -O binary -R .text.nocompress $< $@
+
+# Rules for generating symbol files
+
+$(BIN)/%.sym: $(BIN)/%.rt $(MAKEDEPS)
 	$(OBJCOPY) -x -O symbolsrec $< $@
 
-$(BIN)/%.sym: $(BIN)/%.allsym $(MAKEDEPS)
-	$(OBJCOPY) -O symbolsrec -j '*ABS*' $< $@
-
 # general rule for .z (compressed binary code), may be overridden
-$(BIN)/%.z:	$(BIN)/%.img $(BIN)/nrv2b $(MAKEDEPS)
+$(BIN)/%.zbin: $(BIN)/%.bin $(BIN)/nrv2b $(MAKEDEPS)
 	$(BIN)/nrv2b e $< $@
 
 # Housekeeping
