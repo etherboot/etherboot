@@ -3,6 +3,7 @@
 	
 	.text
 	.arch i386
+	.section ".prefix", "ax", @progbits
 
 #undef CODE16
 #if defined(PCBIOS) || defined(TAGGED_IMAGE)
@@ -92,25 +93,27 @@ rmode:
 	pushw	%ax			/* Padding */
 	pushw	%bp
 	movw	%sp, %bp
-	cmpw	$0, 4(%bp)		/* Conventional entry point used? */
+	cmpw	$0, 6(%bp)		/* Conventional entry point used? */
 	jne	1f
 	/* Entered via conventional entry point: set up stack */
-	pushl	%eax
-	movw	10(%bp), %ax
-	movw	%ax, 6(%bp)		/* Move return address down */
-	movl	$(EB_OPCODE_MAIN|EB_USE_INTERNAL_STACK|EB_SKIP_OPCODE), 8(%bp)
-	popl	%eax
+	pushw	%ax
+	movw	6(%bp), %ax
+	movw	%ax, 2(%bp)		/* Move return address down */
+	movl	$(EB_OPCODE_MAIN|EB_USE_INTERNAL_STACK|EB_SKIP_OPCODE), 4(%bp)
+	popw	%ax
 	popw	%bp
 	jmp	2f
 1:	/* Entered via callback entry point: do nothing */
 	popw	%bp
 	popw	%ax
 2:
-
-	/* Run decompressor if necessary.  Decompressor is 32-bit
-	 * code, so we must switch to pmode first.
-	 */
+	/* Preserve registers */
 	pushl	%eax
+	
+	/* Run decompressor if necessary.  Decompressor is 32-bit
+	 * code, so we must switch to pmode first.  Save and restore
+	 * GDT over transition to pmode.
+	 */
 	movl	$compressed, %eax
 	testl	%eax, %eax
 	jz	1f
@@ -118,16 +121,37 @@ rmode:
 	pushw	%es
 	pushw	%fs
 	pushw	%gs
+	subw	$8, %sp
+	pushw	%bp
+	movw	%sp, %bp
+	sgdt	2(%bp)
+	pushw	%ss			/* Store params for _prot_to_real */
+	pushw	%cs
 	call	_real_to_prot
 	.code32
 	call	decompress
 	call	_prot_to_real
 	.code16
+	popw	%ax			/* skip */
+	popw	%ax			/* skip */
+	lgdt	2(%bp)
+	popw	%bp
+	addw	$8, %sp
 	popw	%gs
 	popw	%fs
 	popw	%es
 	popw	%ds
-1:	popl	%eax
+1:
+
+	/* Set rm_etherboot_location */
+	xorl	%eax, %eax
+	movw	%cs, %ax
+	shll	$4, %eax
+	addl	$_prefix_size, %eax
+	movl	%eax, %cs:rm_etherboot_location
+
+	/* Restore registers */
+	popl	%eax
 
 	/* Make real-mode in_call to Etherboot */
 	jmp	_rm_in_call
@@ -166,7 +190,8 @@ rmode:
 
 #define PRELOC_ALWAYS_COPY ( PRELOC_OFFSET_COPY_E )
 	
-	.code16	
+	.code16
+	.globl	prelocate
 prelocate:
 	/* Pad to allow for expansion of return address */
 	pushw	%ax
