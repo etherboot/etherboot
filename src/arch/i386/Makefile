@@ -198,7 +198,7 @@ $(BIN)/%.rom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(
 		$(ROMENTRY) $(PREFIXOBJS) $< $(ROMEXIT)
 
 $(BIN)/%.zrom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(ZPREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS) $(BIN)/%.rom.rt2.zbin
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.rom.rt2.zbin` -o $@ \
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`wc -c < $(BIN)/$*.rom.rt2.zbin`" -o $@ \
 		$(ROMENTRY) $(ZPREFIXOBJS) $< $(ROMEXIT)
 
 $(BIN)/%.rom: $(BIN)/%.rom.prf.bin $(BIN)/%.rom.rt.bin
@@ -241,15 +241,18 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zraw $(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/pr
 	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)
 	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
 
-# rules to generate a DOS loadable .com executable
-SUFFIXES +=	com
-$(BIN)/%.com.rt: $(BIN)/%.rt.o $(COMEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(COMEXIT)
-
-$(BIN)/%.com.prf: $(BIN)/%.rt.o $(COMENTRY) $(COMEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(COMENTRY) $(PREFIXOBJS) $< $(COMEXIT)
-
 $(BIN)/%.com: $(BIN)/%.com.prf.bin $(BIN)/%.com.rt.bin
+	cat $^ > $@
+
+# rules to generate a DOS loadable .exe executable
+SUFFIXES +=	exe
+$(BIN)/%.exe.rt: $(BIN)/%.rt.o $(EXEEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(EXEEXIT)
+
+$(BIN)/%.exe.prf: $(BIN)/%.rt.o $(EXEENTRY) $(EXEEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(EXEENTRY) $(PREFIXOBJS) $< $(EXEEXIT)
+
+$(BIN)/%.exe: $(BIN)/%.exe.prf.bin $(BIN)/%.exe.rt.bin
 	cat $^ > $@
 
 # rules to make a LILO loadable image
@@ -262,7 +265,7 @@ $(BIN)/%.lilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(PREFIXOBJS) $(LDSCRI
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LILOENTRY) $(PREFIXOBJS) $< $(LILOEXIT)
 
 $(BIN)/%.zlilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(ZPREFIXOBJS) $(BIN)/%.lilo.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.lilo.rt2.zbin` -o $@ \
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`wc -c < $(BIN)/$*.lilo.rt2.zbin`" -o $@ \
 		$(LILOENTRY) $(ZPREFIXOBJS) $< $(LILOEXIT)
 
 $(BIN)/%.lilo: $(BIN)/%.lilo.prf.bin $(BIN)/%.lilo.rt.bin
@@ -281,7 +284,7 @@ $(BIN)/%.pxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(PREFIXOBJS) $(LDSCRIPT)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(PXEENTRY) $(PREFIXOBJS) $< $(PXEEXIT)
 
 $(BIN)/%.zpxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(ZPREFIXOBJS) $(BIN)/%.pxe.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.pxe.rt2.zbin` -o $@ \
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`wc -c < $(BIN)/$*.pxe.rt2.zbin`" -o $@ \
 		$(PXEENTRY) $(ZPREFIXOBJS) $< $(PXEEXIT)
 
 $(BIN)/%.pxe: $(BIN)/%.pxe.prf.bin $(BIN)/%.pxe.rt.bin
@@ -300,7 +303,7 @@ $(BIN)/%.dsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(PREFIXOBJS) $(LDSCRIPT)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(DSKENTRY) $(PREFIXOBJS) $< $(DSKEXIT)
 
 $(BIN)/%.zdsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(ZPREFIXOBJS) $(BIN)/%.dsk.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.dsk.rt2.zbin` -o $@ \
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`wc -c < $(BIN)/$*.dsk.rt2.zbin`" -o $@ \
 		$(DSKENTRY) $(ZPREFIXOBJS) $< $(DSKEXIT)
 
 $(BIN)/%.dsk: $(BIN)/%.dsk.prf.bin $(BIN)/%.dsk.rt.bin
@@ -326,7 +329,7 @@ $(BIN)/%.raw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(PREFIXOBJS) $(LDSCRIP
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(PREFIXOBJS) $< $(NULLEXIT)
 
 $(BIN)/%.zraw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.raw.rt2.zbin` -o $@ \
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym "_zfile_size=`wc -c < $(BIN)/$*.raw.rt2.zbin`" -o $@ \
 		$(NULLENTRY) $(ZPREFIXOBJS) $< $(NULLEXIT)
 
 $(BIN)/%.raw: $(BIN)/%.raw.prf.bin $(BIN)/%.raw.rt.bin
