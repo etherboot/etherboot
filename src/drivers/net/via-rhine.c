@@ -18,7 +18,7 @@
 
 */
 
-static const char *version = "rhine.c v1.0.1 2003-02-06\n";
+static const char *version = "rhine.c v1.0.2 2004-10-29\n";
 
 /* A few user-configurable values. */
 
@@ -690,7 +690,18 @@ static void rhine_reset (struct nic *nic);
 static int rhine_poll (struct nic *nic, int retreive);
 static void rhine_transmit (struct nic *nic, const char *d, unsigned int t,
 			    unsigned int s, const char *p);
+static void reload_eeprom(int ioaddr);
 
+
+static void reload_eeprom(int ioaddr)
+{
+	int i;
+	outb(0x20, byEECSR);
+	/* Typically 2 cycles to reload. */
+	for (i = 0; i < 150; i++)
+		if (! (inb(byEECSR) & 0x20))
+			break;
+}
 /* Initialize the Rx and Tx rings, along with various 'dev' bits. */
 static void
 rhine_init_ring (struct nic *nic)
@@ -781,7 +792,8 @@ ReadMII (int byMIIIndex, int ioaddr)
     byMIItemp = inb (byMIICR);
     byMIItemp = byMIItemp & 0x40;
 
-    while (byMIItemp != 0)
+    load_timer2(2*TICKS_PER_MS);
+    while (byMIItemp != 0 && timer2_running())
     {
 	byMIItemp = inb (byMIICR);
 	byMIItemp = byMIItemp & 0x40;
@@ -821,7 +833,8 @@ WriteMII (char byMIISetByte, char byMIISetBit, char byMIIOP, int ioaddr)
     byMIItemp = inb (byMIICR);
     byMIItemp = byMIItemp & 0x40;
 
-    while (byMIItemp != 0)
+    load_timer2(2*TICKS_PER_MS);
+    while (byMIItemp != 0 && timer2_running())
     {
 	byMIItemp = inb (byMIICR);
 	byMIItemp = byMIItemp & 0x40;
@@ -850,7 +863,8 @@ WriteMII (char byMIISetByte, char byMIISetBit, char byMIIOP, int ioaddr)
     byMIItemp = inb (byMIICR);
     byMIItemp = byMIItemp & 0x20;
 
-    while (byMIItemp != 0)
+    load_timer2(2*TICKS_PER_MS);
+    while (byMIItemp != 0 && timer2_running())
     {
 	byMIItemp = inb (byMIICR);
 	byMIItemp = byMIItemp & 0x20;
@@ -1050,6 +1064,9 @@ rhine_probe1 (struct nic *nic, struct pci_device *pci, int ioaddr, int chip_id, 
     /* back off algorithm ,disable the right-most 4-bit off CFGD*/
     outb(inb(byCFGD) & (~(CFGD_RANDOM | CFGD_CFDX | CFGD_CEREN | CFGD_CETEN)), byCFGD);
 
+    /* reload eeprom */
+    reload_eeprom(ioaddr);
+
     /* Perhaps this should be read from the EEPROM? */
     for (i = 0; i < ETH_ALEN; i++)
 	nic->node_addr[i] = inb (byPAR0 + i);
@@ -1110,8 +1127,9 @@ rhine_probe1 (struct nic *nic, struct pci_device *pci, int ioaddr, int chip_id, 
     }
 
 
-    /* set MII 10 FULL ON */
-    WriteMII (17, 1, 1, ioaddr);
+    /* set MII 10 FULL ON, only apply in vt3043 */
+    if(chip_id == 0x3043)
+        WriteMII (0x17, 1, 1, ioaddr);
 
     /* turn on MII link change */
     MIICRbak = inb (byMIICR);
@@ -1173,10 +1191,10 @@ rhine_reset (struct nic *nic)
     int rx_bufs_tmp, rx_bufs_tmp1;
     int tx_bufs_tmp, tx_bufs_tmp1;
 
-    static char buf1[RX_RING_SIZE * PKT_BUF_SZ + 32];
+    static char buf1[TX_RING_SIZE * PKT_BUF_SZ + 32];
     static char buf2[RX_RING_SIZE * PKT_BUF_SZ + 32];
     static char desc1[TX_RING_SIZE * sizeof (struct rhine_tx_desc) + 32];
-    static char desc2[TX_RING_SIZE * sizeof (struct rhine_tx_desc) + 32];
+    static char desc2[RX_RING_SIZE * sizeof (struct rhine_rx_desc) + 32];
 
     /* printf ("rhine_reset\n"); */
     /* Soft reset the chip. */
@@ -1236,12 +1254,9 @@ rhine_reset (struct nic *nic)
     /* Setup Multicast */	
     set_rx_mode(nic);
 
-    /* close IMR */
-    outw (0x0000, byIMR0);
-
-    /* set TCR RCR threshold */
-    outb (0x06, byBCR0);
-    outb (0x00, byBCR1);
+    /* set TCR RCR threshold to store and forward*/
+    outb (0x3e, byBCR0);
+    outb (0x38, byBCR1);
     outb (0x2c, byRCR);
     outb (0x60, byTCR);
     /* Set Fulldupex */
@@ -1257,8 +1272,8 @@ rhine_reset (struct nic *nic)
     CRbak = CRbak & 0xFFFB;	/* not CR_STOP */
     outw ((CRbak | CR_STRT | CR_TXON | CR_RXON | CR_DPOLL), byCR0);
 
-    /*set IMR to work */
-    outw (IMRShadow, byIMR0);
+    /* disable all known interrupt */
+    outw (0, byIMR0);
 }
 /* Beware of PCI posted writes */
 #define IOSYNC  do { readb(nic->ioaddr + StationAddr); } while (0)
@@ -1326,6 +1341,9 @@ rhine_transmit (struct nic *nic,
     int ioaddr = tp->ioaddr;
     int entry;
     unsigned char CR1bak;
+    unsigned char CR0bak;
+    unsigned int nstype;
+
 
     /*printf ("rhine_transmit\n"); */
     /* setup ethernet header */
@@ -1336,12 +1354,14 @@ rhine_transmit (struct nic *nic,
 
     memcpy (tp->tx_buffs[entry], d, ETH_ALEN);	/* dst */
     memcpy (tp->tx_buffs[entry] + ETH_ALEN, nic->node_addr, ETH_ALEN);	/* src */
-    *((char *) tp->tx_buffs[entry] + 12) = t >> 8;	/* type */
-    *((char *) tp->tx_buffs[entry] + 13) = t;
+    
+    nstype=htons(t);
+    memcpy(tp->tx_buffs[entry] + 2 * ETH_ALEN, (char*)&nstype, 2);
+
     memcpy (tp->tx_buffs[entry] + ETH_HLEN, p, s);
     s += ETH_HLEN;
     while (s < ETH_ZLEN)
-	*((char *) tp->tx_buffs[entry] + ETH_HLEN + (s++)) = 0;
+	*((char *) tp->tx_buffs[entry] + (s++)) = 0;
 
     tp->tx_ring[entry].tx_ctrl.bits.tx_buf_size = s;
 
@@ -1361,9 +1381,24 @@ rhine_transmit (struct nic *nic,
     /*printf("td4=[%X]",inl(dwCurrentTDSE3)); */
 
     outb (CR1bak, byCR1);
-    /* Wait until transmit is finished */
-    while (tp->tx_ring[entry].tx_status.bits.own_bit != 0)
-	;
+    do
+    {
+        load_timer2(10*TICKS_PER_MS);
+        /* Wait until transmit is finished or timeout*/
+        while((tp->tx_ring[entry].tx_status.bits.own_bit !=0) && timer2_running())
+        ;
+
+        if(tp->tx_ring[entry].tx_status.bits.terr == 0)
+            break;
+
+        if(tp->tx_ring[entry].tx_status.bits.abt == 1)
+        {
+            // turn on TX
+            CR0bak = inb(byCR0);
+            CR0bak = CR0bak|CR_TXON;
+            outb(CR0bak,byCR0);
+        }
+    }while(0);
     tp->cur_tx++;
 
     /*outw(IMRShadow,byIMR0); */
