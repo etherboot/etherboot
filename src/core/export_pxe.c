@@ -61,8 +61,14 @@ int pxe_in_call ( va_list params, in_call_data_t *in_call_data ) {
 
 }
 
-int pxe_api_call ( int opcode, void *structure __unused ) {
-	printf ( "PXE API call %hx\n", opcode );
+int pxe_api_call ( int opcode, void *structure ) {
+	int i;
+
+	printf ( "PXE API call %hx\nParameters: ", opcode );
+	for ( i = 0; i < 16; i++ ) {
+		printf ( "%hhx ", ((char*)structure)[i] );
+	}
+	putchar ( '\n' );
 	return 7;
 }
 
