@@ -1,6 +1,8 @@
 ARCH_FORMAT=	armnommu
 
-BUILD_ROMS=	$(ROMS)
+ROMLIMIT=	20480
+CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
+	{ $(RM) $@; echo "ERROR: code size exceeds limit!"; exit 1; }; exit 0; }
 
 START=	$(BIN)/start.o
 
@@ -20,7 +22,7 @@ ROMS= $(BIN)/p2001_eth.rom
 IMGS= $(BIN)/p2001_eth.img
 
 
-allfiles:	$(BUILD_ROMS)
+allfiles:	$(ROMS)
 
 BOBJS+=		$(BIN)/arm_timer.o
 BOBJS+=		$(BIN)/serial.o
