@@ -127,6 +127,8 @@ static struct pci_device	pci_nic_list[] = {
 		"AMD Lance/HomePNA", 0, 0, 0, 0},
 #endif
 #ifdef	INCLUDE_RTL8139
+	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8129,
+		"Realtek 8129", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8139,
 		"Realtek 8139", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_DLINK,		PCI_DEVICE_ID_DFE530TXP,

@@ -139,6 +139,8 @@ davicom9102	davicom		0x1282,0x9102
 davicom9009	davicom		0x1282,0x9009
 # Old base driver for Tulip, not much use now
 otulip		otulip		0x1011,0x0002
+# Realtek 8129
+rtl8129		rtl8139		0x10ec,0x8129
 # Realtek 8139
 rtl8139		rtl8139		0x10ec,0x8139
 # SMC1211 (uses Realtek 8139 but with different IDs)

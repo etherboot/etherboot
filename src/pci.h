@@ -102,6 +102,7 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_ADMTEK_0985       0x0985
 #define PCI_VENDOR_ID_REALTEK           0x10ec
 #define PCI_DEVICE_ID_REALTEK_8029      0x8029
+#define PCI_DEVICE_ID_REALTEK_8129      0x8129
 #define PCI_DEVICE_ID_REALTEK_8139      0x8139
 #define PCI_VENDOR_ID_WINBOND2          0x1050
 #define PCI_DEVICE_ID_WINBOND2_89C940   0x0940

@@ -112,6 +112,7 @@ BINS32	+= bin32/otulip.rom bin32/otulip.lzrom
 BINS32	+= bin32/pcnetfastiii.rom bin32/pcnetfastiii.lzrom
 BINS32	+= bin32/rl100tx.rom bin32/rl100tx.lzrom
 BINS32	+= bin32/rtl8029.rom bin32/rtl8029.lzrom
+BINS32	+= bin32/rtl8129.rom bin32/rtl8129.lzrom
 BINS32	+= bin32/rtl8139.rom bin32/rtl8139.lzrom
 BINS32	+= bin32/sis7016.rom bin32/sis7016.lzrom
 BINS32	+= bin32/sis900.rom bin32/sis900.lzrom
@@ -1919,6 +1920,26 @@ bin32/rtl8029.lzpxe:	bin32/ns8390.huf $(PXEZLOADER)
 
 bin32/rtl8029.ebi:	bin32/ns8390.elf
 	cp bin32/ns8390.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/rtl8129.rom:	bin32/rtl8139.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129.lzrom:	bin32/rtl8139.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129.pxe:	bin32/rtl8139.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129.lzpxe:	bin32/rtl8139.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x10ec,0x8129 -i$(IDENT32) $@
+
+bin32/rtl8129.ebi:	bin32/rtl8139.elf
+	cp bin32/rtl8139.elf $@
 	$(STRIP) -R .comment -R .note $@
 
 bin32/rtl8139.rom:	bin32/rtl8139.img $(PRLOADER)
