@@ -827,17 +827,22 @@ typedef struct {
 #define PXENV_UNDI_LOADER		0x104d	/* 'load' */
 
 typedef struct undi_loader {
-	PXENV_STATUS_t	Status;
-	uint16_t	ax;
-	uint16_t	bx;
-	uint16_t	dx;
-	uint16_t	di;
-	uint16_t	es;
+	union {
+		struct {
+			PXENV_STATUS_t	Status;
+			uint16_t	ax;
+			uint16_t	bx;
+			uint16_t	dx;
+			uint16_t	di;
+			uint16_t	es;
+		};
+		t_PXENV_START_UNDI start_undi;
+	};
 	uint16_t	undi_ds;
 	uint16_t	undi_cs;
 	SEGOFF16_t	pxe_ptr;
 	SEGOFF16_t	pxenv_ptr;
-} undi_loader_t;
+} PACKED undi_loader_t;
 
 /* Union used for PXE API calls; we don't know the type of the
  * structure until we interpret the opcode.  Also, Status is available
