@@ -35,7 +35,15 @@ static int vsprintf(char *buf, const char *fmt, va_list args)
 			buf ? *s++ = *fmt : putchar(*fmt);
 			continue;
 		}
-		if (*++fmt == 's') {
+		/* skip width specs */
+		fmt++;
+		while (*fmt >= '0' && *fmt <= '9')
+			fmt++;
+		if (*fmt == '.')
+			fmt++;
+		while (*fmt >= '0' && *fmt <= '9')
+			fmt++;
+		if (*fmt == 's') {
 			for(p = va_arg(args, char *); *p != '\0'; p++) 
 				buf ? *s++ = *p : putchar(*p);
 		}
