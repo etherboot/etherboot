@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /*
         Driver for the National Semiconductor DP83810 Ethernet controller.
         

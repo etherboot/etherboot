@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /**************************************************************************
 Etherboot -  BOOTP/TFTP Bootstrap Program
 i82586 NIC driver for Etherboot

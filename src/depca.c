@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /* Etherboot: depca.h merged, comments from Linux driver retained */
 /*  depca.c: A DIGITAL DEPCA  & EtherWORKS ethernet driver for linux.
 

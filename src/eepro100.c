@@ -212,26 +212,26 @@ static struct speedo_stats {
 
 /* A speedo3 TX buffer descriptor with two buffers... */
 static struct TxFD {
-  volatile s16 status;
-  s16 command;
-  u32 link;          /* void * */
-  u32 tx_desc_addr;  /* (almost) Always points to the tx_buf_addr element. */
-  s32 count;         /* # of TBD (=2), Tx start thresh., etc. */
-                     /* This constitutes two "TBD" entries: hdr and data */
-  u32 tx_buf_addr0;  /* void *, header of frame to be transmitted.  */
-  s32 tx_buf_size0;  /* Length of Tx hdr. */
-  u32 tx_buf_addr1;  /* void *, data to be transmitted.  */
-  s32 tx_buf_size1;  /* Length of Tx data. */
+	volatile s16 status;
+	s16 command;
+	u32 link;          /* void * */
+	u32 tx_desc_addr;  /* (almost) Always points to the tx_buf_addr element. */
+	s32 count;         /* # of TBD (=2), Tx start thresh., etc. */
+	/* This constitutes two "TBD" entries: hdr and data */
+	u32 tx_buf_addr0;  /* void *, header of frame to be transmitted.  */
+	s32 tx_buf_size0;  /* Length of Tx hdr. */
+	u32 tx_buf_addr1;  /* void *, data to be transmitted.  */
+	s32 tx_buf_size1;  /* Length of Tx data. */
 } txfd;
 
 struct RxFD {               /* Receive frame descriptor. */
-  volatile s16 status;
-  s16 command;
-  u32 link;                 /* struct RxFD * */
-  u32 rx_buf_addr;          /* void * */
-  u16 count;
-  u16 size;
-  char packet[1518];
+	volatile s16 status;
+	s16 command;
+	u32 link;                 /* struct RxFD * */
+	u32 rx_buf_addr;          /* void * */
+	u16 count;
+	u16 size;
+	char packet[1518];
 };
 
 #ifdef	USE_LOWMEM_BUFFER
@@ -276,19 +276,19 @@ static struct ConfCmd {
 
 static int mdio_write(int phy_id, int location, int value)
 {
-  int val, boguscnt = 64*4;         /* <64 usec. to complete, typ 27 ticks */
+	int val, boguscnt = 64*4;         /* <64 usec. to complete, typ 27 ticks */
 
-  outl(0x04000000 | (location<<16) | (phy_id<<21) | value,
-       ioaddr + SCBCtrlMDI);
-  do {
-    udelay(16);
-
-    val = inl(ioaddr + SCBCtrlMDI);
-    if (--boguscnt < 0) {
-      printf(" mdio_write() timed out with val = %X.\n", val);
-    }
-  } while (! (val & 0x10000000));
-  return val & 0xffff;
+	outl(0x04000000 | (location<<16) | (phy_id<<21) | value,
+	     ioaddr + SCBCtrlMDI);
+	do {
+		udelay(16);
+		
+		val = inl(ioaddr + SCBCtrlMDI);
+		if (--boguscnt < 0) {
+			printf(" mdio_write() timed out with val = %X.\n", val);
+		}
+	} while (! (val & 0x10000000));
+	return val & 0xffff;
 }
 
 /* Support function: mdio_read
@@ -298,17 +298,17 @@ static int mdio_write(int phy_id, int location, int value)
  */
 static int mdio_read(int phy_id, int location)
 {
-  int val, boguscnt = 64*4;               /* <64 usec. to complete, typ 27 ticks */
-  outl(0x08000000 | (location<<16) | (phy_id<<21), ioaddr + SCBCtrlMDI);
-  do {
-    udelay(16);
-
-    val = inl(ioaddr + SCBCtrlMDI);
-    if (--boguscnt < 0) {
-      printf( " mdio_read() timed out with val = %X.\n", val);
-    }
-  } while (! (val & 0x10000000));
-  return val & 0xffff;
+	int val, boguscnt = 64*4;               /* <64 usec. to complete, typ 27 ticks */
+	outl(0x08000000 | (location<<16) | (phy_id<<21), ioaddr + SCBCtrlMDI);
+	do {
+		udelay(16);
+		
+		val = inl(ioaddr + SCBCtrlMDI);
+		if (--boguscnt < 0) {
+			printf( " mdio_read() timed out with val = %X.\n", val);
+		}
+	} while (! (val & 0x10000000));
+	return val & 0xffff;
 }
 
 /* The fixes for the code were kindly provided by Dragan Stancevic
@@ -340,13 +340,15 @@ static int do_eeprom_cmd(int cmd, int cmd_len)
 	return retval;
 }
 
+#if 0
 static inline void whereami (const char *str)
 {
-#if	0
   printf ("%s\n", str);
   sleep (2);
-#endif
 }
+#else
+#define whereami(s)
+#endif
 
 /* function: eepro100_reset
  * resets the card. This is used to allow Etherboot to probe the card again
@@ -358,7 +360,7 @@ static inline void whereami (const char *str)
 
 static void eepro100_reset(struct nic *nic)
 {
-  outl(0, ioaddr + SCBPort);
+	outl(0, ioaddr + SCBPort);
 }
 
 /* function: eepro100_transmit
@@ -373,58 +375,58 @@ static void eepro100_reset(struct nic *nic)
 
 static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, unsigned int s, const char *p)
 {
-  struct eth_hdr {
-    unsigned char dst_addr[ETH_ALEN];
-    unsigned char src_addr[ETH_ALEN];
-    unsigned short type;
-  } hdr;
-  unsigned short status;
-  int to;
-  int s1, s2;
-
-  status = inw(ioaddr + SCBStatus);
-  /* Acknowledge all of the current interrupt sources ASAP. */
-  outw(status & 0xfc00, ioaddr + SCBStatus);
-
+	struct eth_hdr {
+		unsigned char dst_addr[ETH_ALEN];
+		unsigned char src_addr[ETH_ALEN];
+		unsigned short type;
+	} hdr;
+	unsigned short status;
+	int to;
+	int s1, s2;
+	
+	status = inw(ioaddr + SCBStatus);
+	/* Acknowledge all of the current interrupt sources ASAP. */
+	outw(status & 0xfc00, ioaddr + SCBStatus);
+	
 #ifdef	DEBUG
-  printf ("transmitting type %hX packet (%d bytes). status = %hX, cmd=%hX\n",
-	  t, s, status, inw (ioaddr + SCBCmd));
+	printf ("transmitting type %hX packet (%d bytes). status = %hX, cmd=%hX\n",
+		t, s, status, inw (ioaddr + SCBCmd));
 #endif
-
-  memcpy (&hdr.dst_addr, d, ETH_ALEN);
-  memcpy (&hdr.src_addr, nic->node_addr, ETH_ALEN);
-
-  hdr.type = htons (t);
-
-  txfd.status = 0;
-  txfd.command = CmdSuspend | CmdTx | CmdTxFlex;
-  txfd.link   = virt_to_bus (&txfd);
-  txfd.count   = 0x02208000;
-  txfd.tx_desc_addr = (u32)&txfd.tx_buf_addr0;
-
-  txfd.tx_buf_addr0 = virt_to_bus (&hdr);
-  txfd.tx_buf_size0 = sizeof (hdr);
-
-  txfd.tx_buf_addr1 = virt_to_bus (p);
-  txfd.tx_buf_size1 = s;
-
+	
+	memcpy (&hdr.dst_addr, d, ETH_ALEN);
+	memcpy (&hdr.src_addr, nic->node_addr, ETH_ALEN);
+	
+	hdr.type = htons (t);
+	
+	txfd.status = 0;
+	txfd.command = CmdSuspend | CmdTx | CmdTxFlex;
+	txfd.link   = virt_to_bus (&txfd);
+	txfd.count   = 0x02208000;
+	txfd.tx_desc_addr = (u32)&txfd.tx_buf_addr0;
+	
+	txfd.tx_buf_addr0 = virt_to_bus (&hdr);
+	txfd.tx_buf_size0 = sizeof (hdr);
+	
+	txfd.tx_buf_addr1 = virt_to_bus (p);
+	txfd.tx_buf_size1 = s;
+	
 #ifdef	DEBUG
-  printf ("txfd: \n");
-  hd (&txfd, sizeof (txfd));
+	printf ("txfd: \n");
+	hd (&txfd, sizeof (txfd));
 #endif
-
-  outl(virt_to_bus(&txfd), ioaddr + SCBPointer);
-  outw(INT_MASK | CU_START, ioaddr + SCBCmd);
-  wait_for_cmd_done(ioaddr + SCBCmd);
-
-  s1 = inw (ioaddr + SCBStatus);
-  load_timer2(10*TICKS_PER_MS);		/* timeout 10 ms for transmit */
-  while (!txfd.status && timer2_running())
-    /* Wait */;
-  s2 = inw (ioaddr + SCBStatus);
-
+	
+	outl(virt_to_bus(&txfd), ioaddr + SCBPointer);
+	outw(INT_MASK | CU_START, ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
+	
+	s1 = inw (ioaddr + SCBStatus);
+	load_timer2(10*TICKS_PER_MS);		/* timeout 10 ms for transmit */
+	while (!txfd.status && timer2_running())
+		/* Wait */;
+	s2 = inw (ioaddr + SCBStatus);
+	
 #ifdef	DEBUG
-  printf ("s1 = %hX, s2 = %hX.\n", s1, s2);
+	printf ("s1 = %hX, s2 = %hX.\n", s1, s2);
 #endif
 }
 
@@ -442,25 +444,25 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 
 static int eepro100_poll(struct nic *nic)
 {
-  if (!ACCESS(rxfd)status)
-    return 0;
+	if (!ACCESS(rxfd)status)
+		return 0;
 
-  /* Ok. We got a packet. Now restart the reciever.... */
-  ACCESS(rxfd)status = 0;
-  ACCESS(rxfd)command = 0xc000;
-  outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
-  outw(INT_MASK | RX_START, ioaddr + SCBCmd);
-  wait_for_cmd_done(ioaddr + SCBCmd);
+	/* Ok. We got a packet. Now restart the reciever.... */
+	ACCESS(rxfd)status = 0;
+	ACCESS(rxfd)command = 0xc000;
+	outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
+	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
 
 #ifdef	DEBUG
-  printf ("Got a packet: Len = %d.\n", ACCESS(rxfd)count & 0x3fff);
+	printf ("Got a packet: Len = %d.\n", ACCESS(rxfd)count & 0x3fff);
 #endif
-  nic->packetlen =  ACCESS(rxfd)count & 0x3fff;
-  memcpy (nic->packet, ACCESS(rxfd)packet, nic->packetlen);
+	nic->packetlen =  ACCESS(rxfd)count & 0x3fff;
+	memcpy (nic->packet, ACCESS(rxfd)packet, nic->packetlen);
 #ifdef	DEBUG
-  hd (nic->packet, 0x30);
+	hd (nic->packet, 0x30);
 #endif
-  return 1;
+	return 1;
 }
 
 static void eepro100_disable(struct nic *nic)
@@ -485,7 +487,7 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 	int read_cmd, ee_size;
 	unsigned short value;
 	int options;
-	int promisc;
+	int rx_mode;
 
 	/* we cache only the first few words of the EEPROM data
 	   be careful not to access beyond this array */
@@ -513,123 +515,129 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 		sum += value;
 	}
 
-  for (i=0;i<ETH_ALEN;i++) {
-	nic->node_addr[i] =  (eeprom[i/2] >> (8*(i&1))) & 0xff;
-  }
-  printf ("Ethernet addr: %!\n", nic->node_addr);
-
-  if (sum != 0xBABA)
-	printf("eepro100: Invalid EEPROM checksum %#hX, "
-	       "check settings before activating this device!\n", sum);
-  outl(0, ioaddr + SCBPort);
-  udelay (10000);
-
-  whereami ("Got eeprom.");
-
-  outl(virt_to_bus(&lstats), ioaddr + SCBPointer);
-  outw(INT_MASK | CU_STATSADDR, ioaddr + SCBCmd);
-  wait_for_cmd_done(ioaddr + SCBCmd);
-
-  whereami ("set stats addr.");
-  /* INIT RX stuff. */
-
-  /* Base = 0 */
-  outl(0, ioaddr + SCBPointer);
-  outw(INT_MASK | RX_ADDR_LOAD, ioaddr + SCBCmd);
-  wait_for_cmd_done(ioaddr + SCBCmd);
-
-  whereami ("set rx base addr.");
-
-  ACCESS(rxfd)status  = 0x0001;
-  ACCESS(rxfd)command = 0x0000;
-  ACCESS(rxfd)link    = virt_to_bus(&(ACCESS(rxfd)status));
-  ACCESS(rxfd)rx_buf_addr = (int) &nic->packet;
-  ACCESS(rxfd)count   = 0;
-  ACCESS(rxfd)size    = 1528;
-
-  outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
-  outw(INT_MASK | RX_START, ioaddr + SCBCmd);
-  wait_for_cmd_done(ioaddr + SCBCmd);
-
-  whereami ("started RX process.");
-
-  /* Start the reciever.... */
-  ACCESS(rxfd)status = 0;
-  ACCESS(rxfd)command = 0xc000;
-  outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
-  outw(INT_MASK | RX_START, ioaddr + SCBCmd);
-
-  /* INIT TX stuff. */
-
-  /* Base = 0 */
-  outl(0, ioaddr + SCBPointer);
-  outw(INT_MASK | CU_CMD_BASE, ioaddr + SCBCmd);
-  wait_for_cmd_done(ioaddr + SCBCmd);
-
-  whereami ("set TX base addr.");
-
-  txfd.command      = (CmdIASetup);
-  txfd.status       = 0x0000;
-  txfd.link         = virt_to_bus (&confcmd);
-
-  {
-	char *t = (char *)&txfd.tx_desc_addr;
-
-	for (i=0;i<ETH_ALEN;i++)
-		t[i] = nic->node_addr[i];
-  }
+	for (i=0;i<ETH_ALEN;i++) {
+		nic->node_addr[i] =  (eeprom[i/2] >> (8*(i&1))) & 0xff;
+	}
+	printf ("Ethernet addr: %!\n", nic->node_addr);
+	
+	if (sum != 0xBABA)
+		printf("eepro100: Invalid EEPROM checksum %#hX, "
+		       "check settings before activating this device!\n", sum);
+	outl(0, ioaddr + SCBPort);
+	udelay (10000);
+	
+	whereami ("Got eeprom.");
+	
+	outl(virt_to_bus(&lstats), ioaddr + SCBPointer);
+	outw(INT_MASK | CU_STATSADDR, ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
+	
+	whereami ("set stats addr.");
+	/* INIT RX stuff. */
+	
+	/* Base = 0 */
+	outl(0, ioaddr + SCBPointer);
+	outw(INT_MASK | RX_ADDR_LOAD, ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
+	
+	whereami ("set rx base addr.");
+	
+	ACCESS(rxfd)status  = 0x0001;
+	ACCESS(rxfd)command = 0x0000;
+	ACCESS(rxfd)link    = virt_to_bus(&(ACCESS(rxfd)status));
+	ACCESS(rxfd)rx_buf_addr = (int) &nic->packet;
+	ACCESS(rxfd)count   = 0;
+	ACCESS(rxfd)size    = 1528;
+	
+	outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
+	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
+	
+	whereami ("started RX process.");
+	
+	/* Start the reciever.... */
+	ACCESS(rxfd)status = 0;
+	ACCESS(rxfd)command = 0xc000;
+	outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
+	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
+	
+	/* INIT TX stuff. */
+	
+	/* Base = 0 */
+	outl(0, ioaddr + SCBPointer);
+	outw(INT_MASK | CU_CMD_BASE, ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
+	
+	whereami ("set TX base addr.");
+	
+	txfd.command      = (CmdIASetup);
+	txfd.status       = 0x0000;
+	txfd.link         = virt_to_bus (&confcmd);
+	
+	{
+		char *t = (char *)&txfd.tx_desc_addr;
+		
+		for (i=0;i<ETH_ALEN;i++)
+			t[i] = nic->node_addr[i];
+	}
 
 #ifdef	DEBUG
-  printf ("Setup_eaddr:\n");
-  hd (&txfd, 0x20);
+	printf ("Setup_eaddr:\n");
+	hd (&txfd, 0x20);
 #endif
-  /*      options = 0x40; */ /* 10mbps half duplex... */
-  options = 0x00;            /* Autosense */
+	/*      options = 0x40; */ /* 10mbps half duplex... */
+	options = 0x00;            /* Autosense */
 
-  promisc = 0;
+#ifdef PROMISC
+	rx_mode = 3;
+#elif ALLMULTI
+	rx_mode = 1;
+#else
+	rx_mode = 0;
+#endif
+	
+	if (   ((eeprom[6]>>8) & 0x3f) == DP83840
+	       || ((eeprom[6]>>8) & 0x3f) == DP83840A) {
+		int mdi_reg23 = mdio_read(eeprom[6] & 0x1f, 23) | 0x0422;
+		if (congenb)
+			mdi_reg23 |= 0x0100;
+		printf("  DP83840 specific setup, setting register 23 to %hX.\n",
+		       mdi_reg23);
+		mdio_write(eeprom[6] & 0x1f, 23, mdi_reg23);
+	}
+	whereami ("Done DP8340 special setup.");
+	if (options != 0) {
+		mdio_write(eeprom[6] & 0x1f, 0,
+			   ((options & 0x20) ? 0x2000 : 0) |    /* 100mbps? */
+			   ((options & 0x10) ? 0x0100 : 0)); /* Full duplex? */
+		whereami ("set mdio_register.");
+	}
 
-  if (   ((eeprom[6]>>8) & 0x3f) == DP83840
-	  || ((eeprom[6]>>8) & 0x3f) == DP83840A) {
-	int mdi_reg23 = mdio_read(eeprom[6] & 0x1f, 23) | 0x0422;
-	if (congenb)
-	  mdi_reg23 |= 0x0100;
-	printf("  DP83840 specific setup, setting register 23 to %hX.\n",
-	       mdi_reg23);
-	mdio_write(eeprom[6] & 0x1f, 23, mdi_reg23);
-  }
-  whereami ("Done DP8340 special setup.");
-  if (options != 0) {
-	mdio_write(eeprom[6] & 0x1f, 0,
-		   ((options & 0x20) ? 0x2000 : 0) |    /* 100mbps? */
-		   ((options & 0x10) ? 0x0100 : 0)); /* Full duplex? */
-	whereami ("set mdio_register.");
-  }
+	confcmd.command  = CmdSuspend | CmdConfigure;
+	confcmd.status   = 0x0000;
+	confcmd.link     = virt_to_bus (&txfd);
+	confcmd.data[1]  = (txfifo << 4) | rxfifo;
+	confcmd.data[4]  = rxdmacount;
+	confcmd.data[5]  = txdmacount + 0x80;
+	confcmd.data[15] = (rx_mode & 2) ? 0x49: 0x48;
+	confcmd.data[19] = (options & 0x10) ? 0xC0 : 0x80;
+	confcmd.data[21] = (rx_mode & 1) ? 0x0D: 0x05;
 
-  confcmd.command  = CmdSuspend | CmdConfigure;
-  confcmd.status   = 0x0000;
-  confcmd.link     = virt_to_bus (&txfd);
-  confcmd.data[1]  = (txfifo << 4) | rxfifo;
-  confcmd.data[4]  = rxdmacount;
-  confcmd.data[5]  = txdmacount + 0x80;
-  confcmd.data[15] = promisc ? 0x49: 0x48;
-  confcmd.data[19] = (options & 0x10) ? 0xC0 : 0x80;
-  confcmd.data[21] = promisc ? 0x0D: 0x05;
-
-  outl(virt_to_bus(&txfd), ioaddr + SCBPointer);
-  outw(INT_MASK | CU_START, ioaddr + SCBCmd);
-  wait_for_cmd_done(ioaddr + SCBCmd);
-
-  whereami ("started TX thingy (config, iasetup).");
-
-  load_timer2(10*TICKS_PER_MS);
-  while (!txfd.status && timer2_running())
-	/* Wait */;
-
-  nic->reset = eepro100_reset;
-  nic->poll = eepro100_poll;
-  nic->transmit = eepro100_transmit;
-  nic->disable = eepro100_disable;
-  return nic;
+	outl(virt_to_bus(&txfd), ioaddr + SCBPointer);
+	outw(INT_MASK | CU_START, ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
+	
+	whereami ("started TX thingy (config, iasetup).");
+	
+	load_timer2(10*TICKS_PER_MS);
+	while (!txfd.status && timer2_running())
+		/* Wait */;
+	
+	nic->reset = eepro100_reset;
+	nic->poll = eepro100_poll;
+	nic->transmit = eepro100_transmit;
+	nic->disable = eepro100_disable;
+	return nic;
 }
 
 /*********************************************************************/
@@ -639,16 +647,16 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 /* Hexdump a number of bytes from memory... */
 void hd (void *where, int n)
 {
-  int i;
-
-  while (n > 0) {
-    printf ("%X ", where);
-    for (i=0;i < ( (n>16)?16:n);i++)
-      printf (" %hhX", ((char *)where)[i]);
-    printf ("\n");
-    n -= 16;
-    where += 16;
-  }
+	int i;
+	
+	while (n > 0) {
+		printf ("%X ", where);
+		for (i=0;i < ( (n>16)?16:n);i++)
+			printf (" %hhX", ((char *)where)[i]);
+		printf ("\n");
+		n -= 16;
+		where += 16;
+	}
 }
 #endif
 

@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /* cs89x0.c: A Crystal Semiconductor CS89[02]0 driver for etherboot. */
 /*
   Permission is granted to distribute the enclosed cs89x0.[ch] driver

@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
  /*------------------------------------------------------------------------
  * smc9000.c
  * This is a Etherboot driver for SMC's 9000 series of Ethernet cards.

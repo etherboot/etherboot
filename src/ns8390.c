@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /**************************************************************************
 ETHERBOOT -  BOOTP/TFTP Bootstrap Program
 

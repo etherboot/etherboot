@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /*  
     DAVICOM DM9009/DM9102/DM9102A Etherboot Driver	V1.00
 
