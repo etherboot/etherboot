@@ -595,9 +595,6 @@ irq_triggered:	.word	0
 FAKE_IRQ - fake a hardware IRQ
 **************************************************************************/
 	.globl	fake_irq
-irq_bases:
-	.byte 0x08
-	.byte 0x70
 fake_irq:
 	pushl	%ebp
 	movl	%esp,%ebp
@@ -605,14 +602,11 @@ fake_irq:
 	pushl	%edi
 	pushl	%ebx
 
-	xorl	%ecx,%ecx	/* Convert IRQ number to INT number: */
-	movb	8(%ebp),%cl
-	movl	%ecx,%ebx
-	shrl	$3,%ebx		/* High bit of IRQ number */
-	movb	irq_bases(%ebx),%dl /* used as index into irq_bases table */
-	andb	$0x07,%cl	/* then add low three bits of IRQ number */
-	orb	%dl,%cl		/* to IRQ base and store this */
-	movb	%cl,fake_irq_int_instruction+1 /* in the int instruction */
+	movb	8(%ebp),%cl	/* Convert IRQ number to INT number: */
+	subb	$0x08,%cl	/* Invert bit 3, set bits 4-7 iff irq < 8*/
+	xorb	$0x70,%cl	/* Invert bits 4-6 */
+	andb	$0x7f,%cl	/* Clear bit 7 */
+	movb	%cl,fake_irq_int_instruction+1 /* Store in int instruction */
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
