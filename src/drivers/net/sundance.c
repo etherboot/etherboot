@@ -297,6 +297,9 @@ static struct sundance_private *sdc;
 
 /* Station Address location within the EEPROM */
 #define EEPROM_SA_OFFSET	0x10
+#define DEFAULT_INTR (IntrRxDMADone | IntrPCIErr | \
+                        IntrDrvRqst | IntrTxDone | StatsMax | \
+                        LinkChange)
 
 static int eeprom_read(long ioaddr, int location);
 static int mdio_read(struct nic *nic, int phy_id, unsigned int location);
@@ -435,19 +438,44 @@ static void sundance_reset(struct nic *nic)
 }
 
 /**************************************************************************
+IRQ - Wait for a frame
+***************************************************************************/
+void sundance_irq ( struct nic *nic, irq_action_t action ) {
+        unsigned int intr_status;
+
+	switch ( action ) {
+	case DISABLE :
+	case ENABLE :
+		intr_status = inw(nic->ioaddr + IntrStatus);
+		intr_status = intr_status & ~DEFAULT_INTR;
+		if ( action == ENABLE ) intr_status = intr_status | DEFAULT_INTR;
+		outw(intr_status, nic->ioaddr + IntrStatus);
+		break;
+        case FORCE :
+		outw(0x0200, BASE + ASICCtrl);
+		break;
+        }
+}
+/**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int sundance_poll(struct nic *nic)
+static int sundance_poll(struct nic *nic, int retreive)
 {
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
 	/* nic->packetlen should contain length of data */
 	int entry = sdc->cur_rx % RX_RING_SIZE;
 	u32 frame_status = le32_to_cpu(rx_ring[entry].status);
+	int intr_status;
 	int pkt_len = 0;
 
 	if (!(frame_status & DescOwn))
 		return 0;
+
+	if(!retreive)
+		return 1;
+
+	intr_status = inw(nic->ioaddr + IntrStatus);
 
 	pkt_len = frame_status & 0x1fff;
 
@@ -461,6 +489,8 @@ static int sundance_poll(struct nic *nic)
 			nic->packetlen = pkt_len;
 			memcpy(nic->packet, rxb +
 			       (sdc->cur_rx * PKT_BUF_SZ), nic->packetlen);
+			outw(DEFAULT_INTR & ~(IntrRxDone|IntrRxDMADone), nic->ioaddr + IntrStatus);
+
 		}
 	}
 	rx_ring[entry].length = cpu_to_le32(PKT_BUF_SZ | LastFrag);
@@ -703,6 +733,9 @@ static int sundance_probe(struct dev *dev, struct pci_device *pci)
 	dev->disable = sundance_disable;
 	nic->poll = sundance_poll;
 	nic->transmit = sundance_transmit;
+	nic->irqno = pci->irq;
+	nic->irq = sundance_irq;
+	nic->ioaddr = BASE;
 
 	return 1;
 }
