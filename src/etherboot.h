@@ -486,6 +486,7 @@ struct rpc_t {
 #define MOUNT_UMOUNTALL	4
 
 #define NFS_LOOKUP	4
+#define	NFS_READLINK	5
 #define NFS_READ	6
 
 #define NFS_FHSIZE	32
@@ -493,6 +494,8 @@ struct rpc_t {
 #define NFSERR_PERM	1
 #define NFSERR_NOENT	2
 #define NFSERR_ACCES	13
+#define	NFSERR_ISDIR	21
+#define	NFSERR_INVAL	22
 
 /* Block size used for NFS read accesses.  A RPC reply packet (including  all
  * headers) must fit within a single Ethernet frame to avoid fragmentation.
