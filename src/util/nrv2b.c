@@ -1294,11 +1294,11 @@ void Encode(void)  /* compression */
 #endif
 
 #ifdef	LONG_REPORT
-	Fprintf((stderr, "input size    %ld bytes\n", in_len));
-	Fprintf((stderr, "output size   %ld bytes\n", out_len));
-	Fprintf((stderr, "input/output  %.3f\n", (double)in_len / out_len));
+	Fprintf((stdout, "input size    %ld bytes\n", in_len));
+	Fprintf((stdout, "output size   %ld bytes\n", out_len));
+	Fprintf((stdout, "input/output  %.3f\n", (double)in_len / out_len));
 #else
-	Fprintf((stderr, "input/output = %ld/%ld = %.3f\n", in_len, out_len,
+	Fprintf((stdout, "input/output = %ld/%ld = %.3f\n", in_len, out_len,
 		(double)in_len / out_len));
 #endif
 	
