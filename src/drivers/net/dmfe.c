@@ -44,7 +44,7 @@
 #include "pci.h"
 #include "timer.h"
 
-#define EDEBUG 1
+/* #define EDEBUG 1 */
 #ifdef EDEBUG
 #define dprintf(x) printf x
 #else
@@ -153,41 +153,14 @@ struct rx_desc {
 struct dmfe_private {
 	u32 chip_id;		/* Chip vendor/Device ID */
 	u32 chip_revision;	/* Chip revision */
-//      struct DEVICE *next_dev;        /* next device */
-//      struct pci_dev *pdev;           /* PCI device */
-//      spinlock_t lock;
-
 	u32 cr0_data;
-	u32 cr5_data;
+//	u32 cr5_data;
 	u32 cr6_data;
 	u32 cr7_data;
 	u32 cr15_data;
 
-	/* pointer for memory physical address */
-//      dma_addr_t buf_pool_dma_ptr;    /* Tx buffer pool memory */
-//      dma_addr_t buf_pool_dma_start;  /* Tx buffer pool align dword */
-//      dma_addr_t desc_pool_dma_ptr;   /* descriptor pool memory */
-//      dma_addr_t first_tx_desc_dma;
-//      dma_addr_t first_rx_desc_dma;
-
-	/* descriptor pointer */
-	unsigned char *buf_pool_ptr;	/* Tx buffer pool memory */
-	unsigned char *buf_pool_start;	/* Tx buffer pool align dword */
-	unsigned char *desc_pool_ptr;	/* descriptor pool memory */
-//      struct tx_desc *first_tx_desc;
-//      struct tx_desc *tx_insert_ptr;
-//      struct tx_desc *tx_remove_ptr;
-//      struct rx_desc *first_rx_desc;
-//      struct rx_desc *rx_insert_ptr;
-//      struct rx_desc *rx_ready_ptr;   /* packet come pointer */
-	unsigned long tx_packet_cnt;	/* transmitted packet count */
-	unsigned long tx_queue_cnt;	/* wait to send packet count */
-	unsigned long rx_avail_cnt;	/* available rx descriptor count */
-	unsigned long interval_rx_cnt;	/* rx packet count a callback time */
-
 	u16 HPNA_command;	/* For HPNA register 16 */
 	u16 HPNA_timer;		/* For HPNA remote device check */
-	u16 dbug_cnt;
 	u16 NIC_capability;	/* NIC media capability */
 	u16 PHY_reg4;		/* Saved Phyxcer register 4 value */
 
@@ -196,26 +169,10 @@ struct dmfe_private {
 	u8 media_mode;		/* user specify media mode */
 	u8 op_mode;		/* real work media mode */
 	u8 phy_addr;
-	u8 link_failed;		/* Ever link failed */
-	u8 wait_reset;		/* Hardware failed, need to reset */
 	u8 dm910x_chk_mode;	/* Operating mode check */
-//	u8 first_in_callback;	/* Flag to record state */
-
-	/* Driver defined statistic counter */
-	unsigned long tx_fifo_underrun;
-	unsigned long tx_loss_carrier;
-	unsigned long tx_no_carrier;
-	unsigned long tx_late_collision;
-	unsigned long tx_excessive_collision;
-	unsigned long tx_jabber_timeout;
-	unsigned long reset_count;
-	unsigned long reset_cr8;
-	unsigned long reset_fatal;
-	unsigned long reset_TXtimeout;
 
 	/* NIC SROM data */
 	unsigned char srom[128];
-
 	/* Etherboot Only */
 	u8 cur_tx;
 	u8 cur_rx;
@@ -244,8 +201,6 @@ static u32 dmfe_cr6_user_set;
 
 /* For module input parameter */
 static int debug;
-//static u32 cr6set;
-//static unsigned char mode = 8;
 static u8 chkmode = 1;
 static u8 HPNA_mode;		/* Default: Low Power/High Speed */
 static u8 HPNA_rx_cmd;		/* Default: Disable Rx remote command */
@@ -279,8 +234,6 @@ __attribute__ ((aligned(32)));
 /* NIC specific static variables go here */
 long int BASE;
 
-
-
 static u16 read_srom_word(long ioaddr, int offset);
 static void dmfe_init_dm910x(struct nic *nic);
 static void dmfe_descriptor_init(struct nic *, unsigned long ioaddr);
@@ -304,13 +257,7 @@ static void dmfe_reset(struct nic *nic)
 {
 	/* system variable init */
 	db->cr6_data = CR6_DEFAULT | dmfe_cr6_user_set;
-	db->tx_packet_cnt = 0;
-	db->tx_queue_cnt = 0;
-	db->rx_avail_cnt = 0;
-	db->link_failed = 1;
-	db->wait_reset = 0;
 
-//	db->first_in_callback = 0;
 	db->NIC_capability = 0xf;	/* All capability */
 	db->PHY_reg4 = 0x1e0;
 
@@ -374,7 +321,6 @@ static void dmfe_init_dm910x(struct nic *nic)
 	/* Initiliaze Transmit/Receive decriptor and CR3/4 */
 	dmfe_descriptor_init(nic, ioaddr);
 
-
 	/* tx descriptor start pointer */
 	outl(virt_to_le32desc(&txd[0]), ioaddr + DCR4);	/* TX DESC address */
 
@@ -400,8 +346,9 @@ static void dmfe_init_dm910x(struct nic *nic)
 	db->cr6_data |= CR6_RXSC | CR6_TXSC | 0x40000;
 	update_cr6(db->cr6_data, ioaddr);
 }
-
+#ifdef EDEBUG
 void hex_dump(const char *data, const unsigned int len);
+#endif
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
@@ -419,7 +366,7 @@ static int dmfe_poll(struct nic *nic, int retrieve)
 
 	if ((rdes0 & 0x300) != 0x300) {
 		/* A packet without First/Last flag */
-		printf("strange\n");
+		printf("strange Packet\n");
 		rxd[entry].rdes0 = cpu_to_le32(0x80000000);
 		return 0;
 	} else {
@@ -460,11 +407,12 @@ static void dmfe_irq(struct nic *nic __unused, irq_action_t action __unused)
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
-static void dmfe_transmit(struct nic *nic, const char *dest,	/* Destination */
-			  unsigned int type,	/* Type */
-			  unsigned int size,	/* size */
-			  const char *packet)
-{				/* Packet */
+static void dmfe_transmit(struct nic *nic, 
+	const char *dest,	/* Destination */
+	unsigned int type,	/* Type */
+	unsigned int size,	/* size */
+	const char *packet)	/* Packet */
+{	
 	u16 nstype;
 	u8 *ptxb;
 
@@ -523,7 +471,7 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
 		return 0;
 
 	BASE = pci->ioaddr;
-	printf(" dmfe.c: Found %s Vendor=0x%hX Device=0x%hX\n",
+	printf("dmfe.c: Found %s Vendor=0x%hX Device=0x%hX\n",
 	       pci->name, pci->vendor, pci->dev_id);
 
 	/* Read Chip revision */
