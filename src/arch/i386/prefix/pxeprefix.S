@@ -6,10 +6,11 @@
 #define ROM_SEGMENT	0x1fa
 #define ROM_LENGTH	0x1fc
 
-#define PXENV_STOP_BASE		0x76
-#define PXENV_UNLOAD_STACK	0x70
+#define PXENV_UNDI_CLEANUP	0x02
 #define PXENV_UNDI_SHUTDOWN	0x05
 #define	PXENV_STOP_UNDI		0x15
+#define PXENV_UNLOAD_STACK	0x70
+#define PXENV_STOP_BASE		0x76
 
 	.text
 	.code16
@@ -123,13 +124,11 @@ print_structure_information:
  *****************************************************************************
  */
 unload_pxe:
-	mov	$PXENV_STOP_BASE, %bx
-	call	pxe_call
 	mov	$PXENV_UNLOAD_STACK, %bx
 	call	pxe_call
-	mov	$PXENV_UNDI_SHUTDOWN, %bx
-	call	pxe_call
 	mov	$PXENV_STOP_UNDI, %bx
+	call	pxe_call
+	mov	$PXENV_UNDI_CLEANUP, %bx
 	call	pxe_call
 	/* On exit, zero flag is set iff all calls were successful */
 		
