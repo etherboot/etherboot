@@ -3435,7 +3435,7 @@ static void init_descriptor (void)
 POLL - Wait for a frame
 ***************************************************************************/
 static int
-e1000_poll (struct nic *nic)
+e1000_poll (struct nic *nic, int retrieve)
 {
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
@@ -3445,6 +3445,9 @@ e1000_poll (struct nic *nic)
 	rd = rx_base + rx_last;
 	if (!rd->status & E1000_RXD_STAT_DD)
 		return 0;
+
+	if ( ! retrieve ) return 1;
+
 	//      printf("recv: packet %! -> %! len=%d \n", packet+6, packet,rd->Length);
 	memcpy (nic->packet, packet, rd->length);
 	nic->packetlen = rd->length;
@@ -3522,6 +3525,21 @@ static void e1000_disable (struct dev *dev __unused)
 	iounmap(hw.hw_addr);
 }
 
+/**************************************************************************
+IRQ - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void e1000_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
 #define IORESOURCE_IO	0x00000100     /* Resource type */
 #define BAR_0		0
 #define BAR_1		1
@@ -3567,7 +3585,11 @@ static int e1000_probe(struct dev *dev, struct pci_device *p)
 			break;
                 }        
 	}
+
 	adjust_pci_device(p);
+
+	nic->ioaddr   = p->ioaddr & ~3;
+	nic->irqno    = 0;
 
 	/* From Matt Hortman <mbhortman@acpthinclient.com> */
 	/* MAC and Phy settings */
@@ -3612,6 +3634,8 @@ static int e1000_probe(struct dev *dev, struct pci_device *p)
 	dev->disable  = e1000_disable;
 	nic->poll     = e1000_poll;
 	nic->transmit = e1000_transmit;
+	nic->irq      = e1000_irq;
+
 	return 1;
 }
 
