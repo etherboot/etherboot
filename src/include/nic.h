@@ -26,7 +26,7 @@ struct nic
 	int		(*poll)P((struct nic *, int retrieve));
 	void		(*transmit)P((struct nic *, const char *d,
 				unsigned int t, unsigned int s, const char *p));
-	int		(*irq)P((struct nic *, irq_action_t));
+	void		(*irq)P((struct nic *, irq_action_t));
 	int		flags;	/* driver specific flags */
 	struct rom_info	*rom_info;	/* -> rom_info from main */
 	unsigned char	*node_addr;
@@ -43,7 +43,7 @@ extern int  eth_probe(struct dev *dev);
 extern int  eth_poll(int retrieve);
 extern void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p);
 extern void eth_disable(void);
-extern int  eth_irq(irq_action_t action);
+extern void eth_irq(irq_action_t action);
 extern int eth_load_configuration(struct dev *dev);
 extern int eth_load(struct dev *dev);;
 #endif	/* NIC_H */

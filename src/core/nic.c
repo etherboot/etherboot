@@ -167,7 +167,7 @@ struct nic	nic =
 	(void (*)(struct nic *, const char *,
 		unsigned int, unsigned int,
 		const char *))dummy,		/* transmit */
-	(int (*)(struct nic *,
+	(void (*)(struct nic *,
 		 irq_action_t))dummy,		/* irq */
 	0,					/* flags */
 	&rom,					/* rom_info */
@@ -214,9 +214,9 @@ void eth_disable(void)
 	disable(&nic.dev);
 }
 
-int eth_irq (irq_action_t action)
+void eth_irq (irq_action_t action)
 {
-	return (*nic.irq)(&nic,action);
+	(*nic.irq)(&nic,action);
 }
 
 /*

@@ -167,7 +167,7 @@ static void pnic_disable(struct dev *dev)
 /**************************************************************************
 IRQ - Handle card interrupt status
 ***************************************************************************/
-static int pnic_irq ( struct nic *nic, irq_action_t action )
+static void pnic_irq ( struct nic *nic, irq_action_t action )
 {
 	uint8_t enabled;
 
@@ -175,18 +175,14 @@ static int pnic_irq ( struct nic *nic, irq_action_t action )
 	case DISABLE :
 	case ENABLE :
 		enabled = ( action == ENABLE ? 1 : 0 );
-		if ( pnic_command ( nic, PNIC_CMD_MASK_IRQ,
-				    &enabled, sizeof(enabled), NULL, 0, NULL )
-		     != PNIC_STATUS_OK ) return 0;
+		pnic_command ( nic, PNIC_CMD_MASK_IRQ,
+			       &enabled, sizeof(enabled), NULL, 0, NULL );
 		break;
 	case FORCE :
-		if ( pnic_command ( nic, PNIC_CMD_FORCE_IRQ,
-				    NULL, 0, NULL, 0, NULL )
-		     != PNIC_STATUS_OK ) return 0;
+		pnic_command ( nic, PNIC_CMD_FORCE_IRQ,
+			       NULL, 0, NULL, 0, NULL );
 		break;
-	default : return 0;
 	}
-	return 1;
 }
 
 /**************************************************************************
