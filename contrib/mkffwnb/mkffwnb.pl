@@ -29,11 +29,11 @@ use Extendinitrd;
 
 use strict;
 
-use vars qw($testing $verbose $localtime $nonet $format $ffw29
+use vars qw($testing $verbose $localtime $nonet $format $ffw29 $imagefile
 	$floppy $libdir $tftpdir $output $tempdir $tempmount);
 
 sub findversion () {
-	my ($version) = grep(/FloppyFW/, `mtype ${floppy}floppyfw.msg`);
+	my ($version) = grep(/FloppyFW/, `mtype $imagefile ${floppy}floppyfw.msg`);
 	return '' unless defined($version) and $version ne '';
 	chomp($version);
 	$version =~ s/.*FloppyFW (\d+\.\d+\.\d+(\.\d+)?).*/$1/;
@@ -41,7 +41,7 @@ sub findversion () {
 }
 
 sub getappendargs () {
-	my ($append) = join(' ', grep(/^\s*(append\s|console=)/, `mtype ${floppy}syslinux.cfg`));
+	my ($append) = join(' ', grep(/^\s*(append\s|console=)/, `mtype $imagefile ${floppy}syslinux.cfg`));
 	chomp ($append);
 	my @args = split(/\s+/, $append);
 	my @result = ();
@@ -54,8 +54,11 @@ sub getappendargs () {
 
 # Copy whole floppy to the current directory
 # m preserves timestamps, n overwrites without warning and / means recursive
-sub mcopy () {
-	my $status = system('mcopy', '-mn/', "${floppy}*", '.');
+sub mcopy ($) {
+	my ($tempdir) = @_;
+
+	print "mcopy $imagefile -mn/ ${floppy}* $tempdir\n";
+	my $status = system("mcopy -mn/ $imagefile ${floppy}* $tempdir");
 	return ($status / 256);
 }
 
@@ -130,15 +133,20 @@ sub bunzip2untar ($$) {
 $testing = $< != 0;
 $verbose = 1;
 $format = '';
+$imagefile = '';
 GetOptions('output=s' => \$output,
 	'nonet!' => \$nonet,
 	'localtime=s' => \$localtime,
 	'format=s' => \$format,
-	'ffw29!' => \$ffw29);
+	'ffw29!' => \$ffw29,
+	'i=s' => \$imagefile);
 if (defined($output) and $output !~ m(^/)) {
 	my $d = `pwd`;
 	chomp($d);
 	$output = "$d/$output";
+}
+if ($imagefile) {
+	$imagefile = "-i $imagefile";
 }
 $libdir = '/usr/local/lib/mkffwnb';
 $tftpdir = '/usr/local/var/tftpboot';
@@ -160,9 +168,9 @@ $libdir .= '/' . $version;
 $tempdir = $nonet ? '/tmp/mkffwnb' : "/tmp/mkffwnb$$";
 $tempmount = 'tmpmount';
 mkdir($tempdir, 0755);
-chdir($tempdir);
 print "Copying files off floppy, please be patient...\n";
-&mcopy() == 0 or die "Mcopy failed, diskette problem?\n";
+&mcopy($tempdir) == 0 or die "Mcopy failed, diskette problem?\n";
+chdir($tempdir);
 &gunzip('initrd.gz') == 0 or die "Gunzip of initrd.gz failed\n";
 if ($ffw29) {
 	extendinitrd("initrd", 5760);
