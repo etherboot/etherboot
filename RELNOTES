@@ -4,9 +4,15 @@ Here are some things you should be aware of:
 
 ---
 
-As of Etherboot 5.3.8 there is no longer a default target for make.
-You must specify an argument to make. Help text is now provided to
-indicate possible make targets.
+As of Etherboot 5.3.8:
+
+There is no longer a default target for make.  You must specify an
+argument to make. Help text is now provided to indicate possible make
+targets.
+
+binutils-2.14 is no longer needed in order to compile images. The
+symbolsrec feature is not used, so older binutils (ld) should work.
+
 
 ---
 
