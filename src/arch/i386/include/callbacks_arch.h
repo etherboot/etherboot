@@ -275,6 +275,46 @@ typedef struct {
 } i386_in_call_data_t;
 #define in_call_data_t i386_in_call_data_t
 
+/* Function prototypes
+ */
+extern int install_rm_callback_interface ( void *address, size_t available );
+
+/* Functions and code blocks in callbacks_asm.S
+ */
+extern void rm_callback_interface;
+extern uint16_t rm_callback_interface_size;
+extern uint32_t rm_etherboot_location;
+extern void _rm_in_call ( void );
+extern void _rm_in_call_far ( void );
+
+extern void _real_to_prot ( void );
+extern void _real_to_prot_end ( void );
+
+extern void _prot_to_real ( void );
+extern void _prot_to_real_end ( void );
+
+extern void pxe_callback_interface;
+extern uint16_t pxe_callback_interface_size;
+extern void _pxe_in_call_far ( void );
+extern void _pxenv_in_call_far ( void );
+
+/* Macros to help with defining inline real-mode trampoline fragments.
+ */
+#define _append_end(x) x ## _end
+#define BEGIN_RM_FRAGMENT(name) \
+	void name ( void ); \
+	__asm__ ( ".section \".text16\"" ); \
+	__asm__ ( ".code16" ); \
+	__asm__ ( #name ":" );
+#define END_RM_FRAGMENT(name) \
+	void _append_end(name) ( void ); \
+	__asm__ ( #name "_end:" ); \
+	__asm__ ( ".code32" ); \
+	__asm__ ( ".previous" );
+
 #endif /* ASSEMBLY */
+
+#define RM_IN_CALL	(0)
+#define RM_IN_CALL_FAR	(2)
 
 #endif /* CALLBACKS_ARCH_H */
