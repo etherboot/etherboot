@@ -574,5 +574,60 @@ __undi_call:
 	popl	%esi
 	popl	%ebp
 	ret
-	
+
+/**************************************************************************
+IRQ_HANDLER - simple IRQ handler that just increments a counter
+**************************************************************************/
+	.globl	irq_handler
+	.globl	irq_triggered	
+	.code16
+irq_handler:
+	pushw	%bx
+	call	1f		/* Position-independent access to */
+1:	popw	%bx		/* irq_triggered.		  */
+	incw	%cs:(irq_triggered-1b)(%bx)
+	popw	%bx
+	iret
+irq_triggered:	.word	0
+	.code32
+
+/**************************************************************************
+FAKE_IRQ - fake a hardware IRQ
+**************************************************************************/
+	.globl	fake_irq
+irq_bases:
+	.byte 0x08
+	.byte 0x70
+fake_irq:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%esi
+	pushl	%edi
+	pushl	%ebx
+
+	xorl	%ecx,%ecx	/* Convert IRQ number to INT number: */
+	movb	8(%ebp),%cl
+	movl	%ecx,%ebx
+	shrl	$3,%ebx		/* High bit of IRQ number */
+	movb	irq_bases(%ebx),%dl /* used as index into irq_bases table */
+	andb	$0x07,%cl	/* then add low three bits of IRQ number */
+	orb	%dl,%cl		/* to IRQ base and store this */
+	movb	%cl,fake_irq_int_instruction+1 /* in the int instruction */
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
+fake_irq_int_instruction:
+	int	$0x00		/* Int no. gets replaced */
+	ret
+20:	.code32
+	.previous
+	popl	%ebx
+	popl	%edi
+	popl	%esi
+	popl	%ebp
+	ret
+		
 #endif /* PCBIOS */
