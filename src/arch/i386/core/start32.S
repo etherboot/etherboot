@@ -78,17 +78,9 @@ _start:
 	cmpl	$0, 4(%esp)
 	orl	$EB_CALL_FROM_REAL_MODE, 0(%esp)
 #endif
-	call	_in_call
-	addl	$4, %esp			/* skip opcode */
+	/* Fall through to _in_call */
+	pushl	$0
 	
-	/* Addresses have reverted to physical by this point.  Note
-	 * that if we entered via start16, we will never reach this
-	 * point; an exit interceptor is used to return to the prefix.
-	 */	
-
-	/* Return to caller.  Exit code is exit code from main(). */
-	ret
-
 /**************************************************************************
 _IN_CALL - make a call in to Etherboot.
 **************************************************************************/
@@ -222,10 +214,14 @@ _in_call_far:
 	je	2f
 1:	/* far return */
 	lret
-2:	/* near return */
+2:	/* near return (or fall-through from _start) */
 	addl	$4, %esp
+	cmpl	$0, 0(%esp)
+	je	3f
 	ret
-
+3:	/* fall-through from _start */
+	addl	$4, %esp		/* Skip opcode */
+	ret				/* Exit */
 	
 #if defined(RELOCATE)
 /**************************************************************************
