@@ -315,12 +315,12 @@ int eth_load_configuration(struct dev *dev __unused)
 	int server_found;
 	/* Find a server to get BOOTP reply from */
 #ifdef	RARP_NOT_BOOTP
-	printf("Searching for server (RARP)...\n");
+	printf("Searching for server (RARP)...");
 #else
 #ifndef	NO_DHCP_SUPPORT
-	printf("Searching for server (DHCP)...\n");
+	printf("Searching for server (DHCP)...");
 #else
-	printf("Searching for server (BOOTP)...\n");
+	printf("Searching for server (BOOTP)...");
 #endif
 #endif
 
@@ -343,12 +343,12 @@ LOAD - Try to get booted
 int eth_load(struct dev *dev __unused)
 {
 	const char	*kernel;
-	printf("Me: %@", arptable[ARP_CLIENT].ipaddr.s_addr );
+	printf("\nMe: %@", arptable[ARP_CLIENT].ipaddr.s_addr );
 #ifndef NO_DHCP_SUPPORT
 	printf(", DHCP: %@", dhcp_server );
 #ifdef PXE_EXPORT       
 	if (arptable[ARP_PROXYDHCP].ipaddr.s_addr)
-		printf(", ProxyDHCP: %@",
+		printf(" (& %@)",
 		       arptable[ARP_PROXYDHCP].ipaddr.s_addr);
 #endif /* PXE_EXPORT */
 #endif /* ! NO_DHCP_SUPPORT */
@@ -1014,7 +1014,7 @@ static int bootp(void)
 				memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
 				memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, proxydhcprequest, sizeof proxydhcprequest);
 				for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
-					printf ( "\nSending ProxyDHCP request to %@...\n", arptable[ARP_PROXYDHCP].ipaddr.s_addr);
+					printf ( "\nSending ProxyDHCP request to %@...", arptable[ARP_PROXYDHCP].ipaddr.s_addr);
 					udp_transmit(arptable[ARP_PROXYDHCP].ipaddr.s_addr, BOOTP_CLIENT, PROXYDHCP_SERVER,
 						     sizeof(struct bootpip_t), &ip);
 					timeout = rfc2131_sleep_interval(TIMEOUT, reqretry++);
