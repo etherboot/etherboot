@@ -11,12 +11,20 @@
  *
  * - Converted to gas assembly, and refitted to work with etherboot.
  *   Eric Biederman 20 Aug 2002
+ *
+ * - Structure modified to be a subroutine call rather than an
+ *   executable prefix.
+ *   Michael Brown 30 Mar 2004
  */
 
 
 	.text
-	.globl	_start
-_start:
+	.arch i386
+	.section ".prefix", "ax", @progbits
+	.code32
+	
+	.globl decompress
+decompress:
 	/* Save the initial register values */
 	pushal
 
@@ -29,8 +37,9 @@ _start:
 
 	/* Setup to run the decompressor */
 	cld
-	leal	_payload+4(%ebp), %esi	/* The linker script defines payload */
-	leal	uncompressed(%ebp), %edi
+	/* "compressed" and "decompress_to" defined by linker script */
+	leal	compressed+4(%ebp), %esi
+	leal	decompress_to(%ebp), %edi
 	movl	$-1, %ebp	/* last_m_off = -1 */
 	jmp	dcl1_n2b
 
@@ -110,10 +119,4 @@ decompr_got_mlen_n2b:
 decompr_end_n2b:
 	/* Restore the initial register values */
 	popal
-	jmp	uncompressed
-
-.bss
-	.balign 16
-	/* uncompressed data will be written here */
-	.globl uncompressed
-uncompressed:
+	ret
