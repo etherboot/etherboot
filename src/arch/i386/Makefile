@@ -8,12 +8,14 @@ BUILD_PXES=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.zpxe, $(IMGS))
 BUILD_COMS=	$(patsubst %.img, %.com, $(IMGS))
 BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMGS))
 
-START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o $(BIN)/linuxbios.o
+START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o \
+	$(BIN)/basemem.o $(BIN)/linuxbios.o
 
 SRCS+=	arch/i386/prefix/floppyload.S
 SRCS+=	arch/i386/prefix/unhuf.S
 SRCS+=	arch/i386/prefix/unnrv2b.S
 SRCS+=	arch/i386/firmware/pcbios/memsizes.c
+SRCS+=	arch/i386/firmware/pcbios/basemem.c
 SRCS+=	arch/i386/firmware/pcbios/pcbios.S
 SRCS+=	arch/i386/prefix/liloprefix.S
 SRCS+=	arch/i386/prefix/elfprefix.S
