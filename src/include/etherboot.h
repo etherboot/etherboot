@@ -636,6 +636,11 @@ extern int int15 P((int));
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */
 
+/* basemem.c */
+extern uint32_t get_free_base_memory ( void );
+extern void * allot_base_memory ( size_t );
+extern void forget_base_memory ( void*, size_t );
+
 #define PACKED __attribute__((packed))
 
 struct e820entry {
