@@ -203,4 +203,23 @@ void forget_decompressor_base_memory ( void ) {
 	}
 }
 
+/* Free base memory used by the runtime image.  Called after
+ * relocation by arch_relocated_from().
+ */
+void forget_runtime_base_memory ( uint32_t old_addr ) {
+	/* text_start_kb is old _text rounded down to a physical KB boundary */
+	uint32_t old_text_start_kb = old_addr & ~0x3ff;
+
+	if ( ( image_basemem >= FREE_BASE_MEMORY ) &&
+	     ( image_basemem == old_text_start_kb ) ) {
+		/* Length of basemem segment is length of text plus
+		 * remainder between KB boundary and start of text.
+		 */
+		forget_base_memory ( phys_to_virt ( image_basemem ),
+				     ( old_addr & 0x3ff ) + ( _end - _text ) );
+		/* Update image_basemem to show no longer in use */
+		image_basemem = 0;
+	}
+}
+
 #endif /* PCBIOS */

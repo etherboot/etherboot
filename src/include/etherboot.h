@@ -285,6 +285,7 @@ extern void * allot_base_memory ( size_t );
 extern void forget_base_memory ( void*, size_t );
 extern void free_unused_base_memory ( void );
 extern void forget_decompressor_base_memory ( void );
+extern void forget_runtime_base_memory ( uint32_t old_addr );
 
 #define PACKED __attribute__((packed))
 

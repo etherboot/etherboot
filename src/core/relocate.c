@@ -85,12 +85,14 @@ void relocate(void)
 		}
 	}
 	if (addr != virt_to_phys(_text)) {
+		unsigned long old_addr = virt_to_phys(_text);
 		printf("Relocating _text from: [%lx,%lx) to [%lx,%lx)\n",
-			virt_to_phys(_text), virt_to_phys(_end),
+			old_addr, virt_to_phys(_end),
 			addr, eaddr);
 		arch_relocate_to(addr);
 		cleanup();
 		relocate_to(addr);
+		arch_relocated_from(old_addr);
 	}
 }
 
