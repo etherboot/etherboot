@@ -28,6 +28,7 @@
 *    ================
 *
 *    v1.0	02-16-2004	timlegge	Initial port of Linux driver
+*    v1.1	02-19-2004	timlegge	More rohbust transmit and poll
 *    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
@@ -84,7 +85,7 @@ static int lnksts = 0;		/* CFG_LNKSTS bit polarity */
 #define RX_BUF_SIZE	1500	/* 8192 */
 
 /* Must not exceed ~65000. */
-#define NR_RX_DESC	4
+#define NR_RX_DESC	64
 #define NR_TX_DESC	1
 
 		   /* not tunable *//* Extra 6 bytes for 64 bit alignment (divisable by 8) */
@@ -579,7 +580,6 @@ static void ns83820_reset(struct nic *nic)
 	ns->tx_idx = 0;
 	ns->tx_done_idx = 0;
 	writel(0, ns->base + TXDP_HI);
-
 	return;
 }
 static void ns83820_getmac(struct nic *nic __unused, u8 * mac)
@@ -648,6 +648,23 @@ static void ns83820_run_bist(struct nic *nic __unused, const char *name,
 	dprintf(("done %s in %d loops\n", name, loops));
 }
 
+/*************************************
+Check Link
+*************************************/
+static void ns83820_check_intr(struct nic *nic) {
+	int i;
+	u32 isr = readl(ns->base + ISR);
+	if(ISR_PHY & isr)
+		phy_intr(nic);
+	if(( ISR_RXIDLE | ISR_RXDESC | ISR_RXERR) & isr)
+		kick_rx();
+	for (i = 0; i < NR_RX_DESC; i++) {
+		if (rx_ring[i].cmdsts == CMDSTS_OWN) {
+//			rx_ring[i].link = virt_to_le32desc(&rx_ring[i + 1]);
+			rx_ring[i].cmdsts = cpu_to_le32(REAL_RX_BUF_SIZE);
+		}
+	}
+}
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
@@ -658,6 +675,9 @@ static int ns83820_poll(struct nic *nic)
 	/* nic->packetlen should contain length of data */
 	u32 cmdsts;
 	int entry = ns->cur_rx;
+
+	ns83820_check_intr(nic);
+
 	cmdsts = le32_to_cpu(rx_ring[entry].cmdsts);
 
 	if ((CMDSTS_OWN & (cmdsts)) && (cmdsts != CMDSTS_OWN)) {
@@ -667,8 +687,9 @@ static int ns83820_poll(struct nic *nic)
 			memcpy(nic->packet,
 			       rxb + (entry * REAL_RX_BUF_SIZE),
 			       nic->packetlen);
+//			rx_ring[entry].link = 0;
 			rx_ring[entry].cmdsts =
-			    cpu_to_le32(REAL_RX_BUF_SIZE);
+			    cpu_to_le32(CMDSTS_OWN);
 
 			ns->cur_rx = ++ns->cur_rx % NR_RX_DESC;
 
@@ -700,7 +721,9 @@ static void ns83820_transmit(struct nic *nic, const char *d,	/* Destination */
 	u16 nstype;
 	u32 cmdsts, extsts;
 	int cur_tx = 0;
-
+	u32 isr = readl(ns->base + ISR);
+	if (ISR_TXIDLE & isr)
+		kick_tx(nic);
 	/* point to the current txb incase multiple tx_rings are used */
 	memcpy(txb, d, ETH_ALEN);
 	memcpy(txb + ETH_ALEN, nic->node_addr, ETH_ALEN);
