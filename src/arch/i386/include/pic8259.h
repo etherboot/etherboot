@@ -12,6 +12,7 @@
 
 #define IRQ_PIC_CUTOFF (8)
 
+#if 0
 /* 8259 register locations */
 #define PIC1_ICW1 (0x20)
 #define PIC1_OCW2 (0x20)
@@ -54,6 +55,7 @@
 #define ICR_REG(x) ( (x) < IRQ_PIC_CUTOFF ? PIC1_ICR : PIC2_ICR )
 #define ICR_VALUE(x) ( (x) % IRQ_PIC_CUTOFF )
 #define CHAINED_IRQ 2
+#endif
 
 /* Utility macros to convert IRQ numbers to INT numbers and INT vectors  */
 #define IRQ_INT(x) ( (x)<IRQ_PIC_CUTOFF ? (x)+0x08 : (x)-IRQ_PIC_CUTOFF+0x70 )

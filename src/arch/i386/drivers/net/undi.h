@@ -93,12 +93,14 @@ typedef struct undi_rom_id {
 
 /* Nontrivial IRQ handler structure */
 typedef struct {
+	segoff_t		chain_to;
+	uint8_t			irq_chain, pad1, pad2, pad3;
 	segoff_t		entry;
 	uint16_t		count_all;
 	uint16_t		count_ours;
 	t_PXENV_UNDI_ISR	undi_isr;
 	char			code[0];
-} undi_irq_handler_t;
+} PACKED undi_irq_handler_t ;
 
 /* Storage buffers that we need in base memory.  We collect these into
  * a single structure to make allocation simpler.
@@ -165,7 +167,6 @@ typedef struct undi {
 	uint8_t opened;		/* pxenv_undi_open() has been called */
 	/* Parameters that we need to store for future reference
 	 */
-	struct pci_device	pci;
 	irq_t			irq;
 } undi_t;
 

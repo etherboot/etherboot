@@ -20,20 +20,23 @@ static uint16_t trivial_irq_previous_trigger_count = 0;
 
 /* The actual trivial IRQ handler
  *
- * Note: we depend on the C compiler not realising that we're putting
- * variables in the ".text16" section and therefore not forcing them
- * back to the ".data" section.  I don't see any reason to expect this
- * behaviour to change.
- *
  * These must *not* be the first variables to appear in this file; the
  * first variable to appear gets the ".data" directive.
  */
 RM_FRAGMENT(_trivial_irq_handler,
-	"pushw %bx\n\t"
-	"call  1f\n1:\tpopw %bx\n\t"   /* PIC access to variables */
-	"incw  %cs:(_trivial_irq_trigger_count-1b)(%bx)\n\t" 
-	"popw  %bx\n\t" 
-	"iret\n\t" 
+	"1:\n\t"
+	"pushw %ds\n\t"
+	"pushw %ax\n\t"
+	"movw %cs, %ax\n\t"
+	"movw %ax, %ds\n\t"
+	"incw %ds:(_trivial_irq_trigger_count-1b)\n\t"
+	"popw %ax\n\t"
+	"popw %ds\n\t"
+	"cmpb $0, %cs:(_trivial_irq_chain-1b)\n\t"
+	"jz 2f\n\t"
+	"ljmp %cs:(_trivial_irq_chain_to-1b)\n\t"
+	"2:\n\t"
+	"iret\n\t"
 	"\n\t"
 	".globl _trivial_irq_trigger_count\n\t"
 	"_trivial_irq_trigger_count: .short 0\n\t"
@@ -69,7 +72,7 @@ int install_irq_handler ( irq_t irq, segoff_t *handler,
 			  uint8_t *previously_enabled,
 			  segoff_t *previous_handler ) {
 	segoff_t *irq_vector = IRQ_VECTOR ( irq );
-	*previously_enabled = irq_enabled ( irq );
+	*previously_enabled = 1;
 
 	if ( irq > IRQ_MAX ) {
 		DBG ( "Invalid IRQ number %d\n" );
@@ -78,16 +81,14 @@ int install_irq_handler ( irq_t irq, segoff_t *handler,
 
 	previous_handler->segment = irq_vector->segment;
 	previous_handler->offset = irq_vector->offset;
-	if ( *previously_enabled ) disable_irq ( irq );
+	irq_vector->segment = handler->segment;
+	irq_vector->offset = handler->offset;
 	DBG ( "Installing handler at %hx:%hx for IRQ %d (vector 0000:%hx),"
 	      " leaving %s\n",
 	      handler->segment, handler->offset, irq, virt_to_phys(irq_vector),
 	      ( *previously_enabled ? "enabled" : "disabled" ) );
 	DBG ( "...(previous handler at %hx:%hx)\n",
 	      previous_handler->segment, previous_handler->offset );
-	irq_vector->segment = handler->segment;
-	irq_vector->offset = handler->offset;
-	if ( *previously_enabled ) enable_irq ( irq );
 	return 1;
 }
 
@@ -98,8 +99,8 @@ int install_irq_handler ( irq_t irq, segoff_t *handler,
  */
 
 int remove_irq_handler ( irq_t irq, segoff_t *handler,
-			 uint8_t *previously_enabled,
-			 segoff_t *previous_handler ) {
+	uint8_t *previously_enabled, segoff_t *previous_handler )
+{
 	segoff_t *irq_vector = IRQ_VECTOR ( irq );
 
 	if ( irq > IRQ_MAX ) {
@@ -112,11 +113,13 @@ int remove_irq_handler ( irq_t irq, segoff_t *handler,
 		return 0;
 	}
 
-	DBG ( "Removing handler for IRQ %d\n", irq );
-	disable_irq ( irq );
+	DBG ( "Removing handler for IRQ %d %hx:%hx -> %hx:%hx\n", 
+		irq, 
+		irq_vector->segment, irq_vector->offset, 
+		previous_handler->segment, previous_handler->offset );
 	irq_vector->segment = previous_handler->segment;
 	irq_vector->offset = previous_handler->offset;
-	if ( *previously_enabled ) enable_irq ( irq );
+
 	return 1;
 }
 
@@ -135,35 +138,52 @@ int install_trivial_irq_handler ( irq_t irq ) {
 		DBG ( "Trivial IRQ handler not in base memory\n" );
 		return 0;
 	}
+	if ( OFFSET(trivial_irq_handler) != 0 ) {
+		DBG ( "Tivial IRQ handler has non zero offset\n");
+		return 0;
+	}
 
 	DBG ( "Installing trivial IRQ handler on IRQ %d\n", irq );
 	if ( ! install_irq_handler ( irq, &trivial_irq_handler_segoff,
 				     trivial_irq_chain,
 				     trivial_irq_chain_to ) )
+	{
 		return 0;
+	}
 	trivial_irq_installed_on = irq;
 
-	DBG ( "Testing trivial IRQ handler\n" );
-	disable_irq ( irq );
 	*trivial_irq_trigger_count = 0;
 	trivial_irq_previous_trigger_count = 0;
-	fake_irq ( irq );
+
+#if defined(DEBUG_IRQ) && (DEBUG_IRQ > 0)
+	DBG ( "Testing trivial IRQ handler for irq: %d\n", irq );
+	if (irq == 0) {
+		/* If it is the timer interrupt we don't have to trigger anything
+		 * we can just wait for it to occur,
+		 */
+		unsigned long start_ticks, ticks;
+		start_ticks = ticks = currticks();
+		do {
+			ticks = currticks();
+		} while(ticks == start_ticks);
+	} else {
+		fake_irq ( irq );
+	}
 	if ( ! trivial_irq_triggered ( irq ) ) {
 		DBG ( "Installation of trivial IRQ handler failed\n" );
 		remove_trivial_irq_handler ( irq );
 		return 0;
 	}
-	/* Send EOI just in case there was a leftover interrupt */
-	send_specific_eoi ( irq );
+#endif
 	DBG ( "Trivial IRQ handler installed successfully\n" );
-	enable_irq ( irq );
 	return 1;
 }
 
 /* Remove the trivial IRQ handler.
  */
 
-int remove_trivial_irq_handler ( irq_t irq ) {
+int remove_trivial_irq_handler ( irq_t irq )
+{
 	segoff_t trivial_irq_handler_segoff = SEGOFF(trivial_irq_handler);
 
 	if ( trivial_irq_installed_on == IRQ_NONE ) return 1;
@@ -177,11 +197,8 @@ int remove_trivial_irq_handler ( irq_t irq ) {
 	if ( ! remove_irq_handler ( irq, &trivial_irq_handler_segoff,
 				    trivial_irq_chain,
 				    trivial_irq_chain_to ) )
+	{
 		return 0;
-
-	if ( trivial_irq_triggered ( trivial_irq_installed_on ) ) {
-		DBG ( "Sending EOI for unwanted trivial IRQ\n" );
-		send_specific_eoi ( trivial_irq_installed_on );
 	}
 
 	trivial_irq_installed_on = IRQ_NONE;
@@ -193,10 +210,10 @@ int remove_trivial_irq_handler ( irq_t irq ) {
  * call will return success only once per trigger.
  */
 
-int trivial_irq_triggered ( irq_t irq ) {
-	uint16_t trivial_irq_this_trigger_count = *trivial_irq_trigger_count;
-	int triggered = ( trivial_irq_this_trigger_count -
-			  trivial_irq_previous_trigger_count );
+int trivial_irq_triggered ( irq_t irq ) 
+{
+	uint16_t count = *trivial_irq_trigger_count;
+	int triggered = count - trivial_irq_previous_trigger_count;
 	
 	/* irq is not used at present, but we have it in the API for
 	 * future-proofing; in case we want the facility to have
@@ -206,7 +223,7 @@ int trivial_irq_triggered ( irq_t irq ) {
 	 */
 	if ( irq == IRQ_NONE ) {};
 	
-	trivial_irq_previous_trigger_count = trivial_irq_this_trigger_count;
+	trivial_irq_previous_trigger_count = count;
 	return triggered ? 1 : 0;
 }
 
@@ -218,11 +235,12 @@ int trivial_irq_triggered ( irq_t irq ) {
  * original location.
  */
 
-int copy_trivial_irq_handler ( void *target, size_t target_size ) {
+int copy_trivial_irq_handler ( void *target, size_t target_size )
+{
 	irq_t currently_installed_on = trivial_irq_installed_on;
 	uint32_t offset = ( target == NULL ? 0 :
-			    target - (void*)_trivial_irq_handler );
-
+		((char *)target - (char *)_trivial_irq_handler) );
+	
 	if (( target != NULL ) && ( target_size < TRIVIAL_IRQ_HANDLER_SIZE )) {
 		DBG ( "Insufficient space to copy trivial IRQ handler\n" );
 		return 0;
@@ -260,29 +278,6 @@ int copy_trivial_irq_handler ( void *target, size_t target_size ) {
 	return 1;
 }
 
-/* Send non-specific EOI(s).  This seems to be inherently unsafe.
- */
-
-void send_nonspecific_eoi ( irq_t irq ) {
-	DBG ( "Sending non-specific EOI for IRQ %d\n", irq );
-	if ( irq >= IRQ_PIC_CUTOFF ) {
-		outb ( ICR_EOI_NON_SPECIFIC, PIC2_ICR );
-	}		
-	outb ( ICR_EOI_NON_SPECIFIC, PIC1_ICR );
-}
-
-/* Send specific EOI(s).
- */
-
-void send_specific_eoi ( irq_t irq ) {
-	DBG ( "Sending specific EOI for IRQ %d\n", irq );
-	outb ( ICR_EOI_SPECIFIC | ICR_VALUE(irq), ICR_REG(irq) );
-	if ( irq >= IRQ_PIC_CUTOFF ) {
-		outb ( ICR_EOI_SPECIFIC | ICR_VALUE(CHAINED_IRQ),
-		       ICR_REG(CHAINED_IRQ) );
-	}
-}
-
 /* Fake an IRQ
  */
 
@@ -316,7 +311,7 @@ void fake_irq ( irq_t irq ) {
 /* Dump current 8259 status: enabled IRQs and handler addresses.
  */
 
-#ifdef DEBUG_IRQ
+#if defined(DEBUG_IRQ) && 0
 void dump_irq_status ( void ) {
 	int irq = 0;
 	

@@ -34,28 +34,42 @@ $Id$
 #include "hidemem.h"
 
 /* NIC specific static variables go here */
-static undi_t undi = { NULL, NULL, NULL, NULL, NULL, NULL,
-		       NULL, NULL, 0, NULL, 0, NULL,
-		       0, 0, 0, 0,
-		       { 0, 0, 0, NULL, 0, 0, 0, 0, 0, 0, 0, NULL },
-		       IRQ_NONE };
+static undi_t undi = { 
+	.pnp_bios         = NULL, 
+	.rom              = NULL, 
+	.undi_rom_id      = NULL, 
+	.pxe              = NULL, 
+	.pxs              = NULL, 
+	.xmit_data        = NULL,
+	.base_mem_data    = NULL, 
+	.driver_code      = NULL, 
+	.driver_code_size = 0, 
+	.driver_data      = NULL, 
+	.driver_data_size = 0, 
+	.xmit_buffer      = NULL,
+	.prestarted       = 0, 
+	.started          = 0, 
+	.initialized      = 0, 
+	.opened           = 0,
+	.irq              = IRQ_NONE 
+};
 
 /* Function prototypes */
-int allocate_base_mem_data ( void );
-int free_base_mem_data ( void );
-int eb_pxenv_undi_shutdown ( void );
-int eb_pxenv_stop_undi ( void );
-int undi_unload_base_code ( void );
-int undi_full_shutdown ( void );
+static int allocate_base_mem_data ( void );
+static int free_base_mem_data ( void );
+static int eb_pxenv_undi_shutdown ( void );
+static int eb_pxenv_stop_undi ( void );
+static int undi_unload_base_code ( void );
+static int undi_full_shutdown ( void );
 
 /* Trivial/nontrivial IRQ handler selection */
-#ifdef UNDI_NONTRIVIAL_IRQ
-void nontrivial_irq_handler ( void );
-void nontrivial_irq_handler_end ( void );
-int install_nontrivial_irq_handler ( irq_t irq );
-int remove_nontrivial_irq_handler ( irq_t irq );
-int nontrivial_irq_triggered ( irq_t irq );
-int copy_nontrivial_irq_handler ( void *target, size_t target_size );
+#if defined(UNDI_NONTRIVIAL_IRQ)
+static void nontrivial_irq_handler ( void );
+static void nontrivial_irq_handler_end ( void );
+static int install_nontrivial_irq_handler ( irq_t irq );
+static int remove_nontrivial_irq_handler ( irq_t irq );
+static int nontrivial_irq_triggered ( irq_t irq );
+static int copy_nontrivial_irq_handler ( void *target, size_t target_size );
 #define NONTRIVIAL_IRQ_HANDLER_SIZE FRAGMENT_SIZE(nontrivial_irq_handler)
 #define install_undi_irq_handler(irq) install_nontrivial_irq_handler(irq)
 #define remove_undi_irq_handler(irq) remove_nontrivial_irq_handler(irq)
@@ -81,7 +95,7 @@ int copy_nontrivial_irq_handler ( void *target, size_t target_size );
 /* Checksum a block.
  */
 
-uint8_t checksum ( void *block, size_t size ) {
+static uint8_t checksum ( void *block, size_t size ) {
 	uint8_t sum = 0;
 	uint16_t i = 0;
 	for ( i = 0; i < size; i++ ) {
@@ -93,7 +107,8 @@ uint8_t checksum ( void *block, size_t size ) {
 /* Print the status of a !PXE structure
  */
 
-void pxe_dump ( void ) {
+static void pxe_dump ( void )
+{
 	printf ( "API %hx:%hx St %hx:%hx UD %hx:%hx UC %hx:%hx "
 		 "BD %hx:%hx BC %hx:%hx\n",
 		 undi.pxe->EntryPointSP.segment, undi.pxe->EntryPointSP.offset,
@@ -107,7 +122,7 @@ void pxe_dump ( void ) {
 /* Allocate/free space for structures that must reside in base memory
  */
 
-int allocate_base_mem_data ( void ) {
+static int allocate_base_mem_data ( void ) {
 	/* Allocate space in base memory.
 	 * Initialise pointers to base memory structures.
 	 */
@@ -128,7 +143,7 @@ int allocate_base_mem_data ( void ) {
 	return 1;
 }
 
-int free_base_mem_data ( void ) {
+static int free_base_mem_data ( void ) {
 	if ( undi.base_mem_data != NULL ) {
 		forget_base_memory ( undi.base_mem_data,
 				     sizeof(undi_base_mem_data_t) +
@@ -142,7 +157,7 @@ int free_base_mem_data ( void ) {
 	return 1;
 }
 
-void assemble_firing_squad ( firing_squad_lineup_t *lineup,
+static void assemble_firing_squad ( firing_squad_lineup_t *lineup,
 			     void *start, size_t size,
 			     firing_squad_shoot_t shoot ) {
 	int target;
@@ -159,7 +174,7 @@ void assemble_firing_squad ( firing_squad_lineup_t *lineup,
 	}
 }
 
-void shoot_targets ( firing_squad_lineup_t *lineup ) {
+static void shoot_targets ( firing_squad_lineup_t *lineup ) {
 	int shoot_this_target = 0;
 	int shoot_last_target = 0;
 	int start_target = 0;
@@ -201,7 +216,7 @@ void shoot_targets ( firing_squad_lineup_t *lineup ) {
 /* Locate the $PnP structure indicating a PnP BIOS.
  */
 
-int hunt_pnp_bios ( void ) {
+static int hunt_pnp_bios ( void ) {
 	uint32_t off = 0x10000;
 
 	printf ( "Hunting for PnP BIOS..." );
@@ -226,7 +241,7 @@ int hunt_pnp_bios ( void ) {
 /* Locate the !PXE structure indicating a loaded UNDI driver.
  */
 
-int hunt_pixie ( void ) {
+static int hunt_pixie ( void ) {
 	static uint32_t ptr = 0;
 	pxe_t *pxe = NULL;
 
@@ -271,7 +286,8 @@ int hunt_pixie ( void ) {
 /* Locate PCI PnP ROMs.
  */
 
-int hunt_rom ( void ) {
+static int hunt_rom ( struct pci_device *pci ) 
+{
 	static uint32_t ptr = 0;
 
 	printf ( "Hunting for ROMs..." );
@@ -296,11 +312,11 @@ int hunt_rom ( void ) {
 			}
 			printf ( "PCI:%hx:%hx...", pcir_header->vendor_id,
 				 pcir_header->device_id );
-			if ( ( pcir_header->vendor_id != undi.pci.vendor ) ||
-			     ( pcir_header->device_id != undi.pci.dev_id ) ) {
+			if ( ( pcir_header->vendor_id != pci->vendor ) ||
+			     ( pcir_header->device_id != pci->dev_id ) ) {
 				printf ( "not me (%hx:%hx)\n...",
-					 undi.pci.vendor,
-					 undi.pci.dev_id );
+					pci->vendor,
+					pci->dev_id );
 				continue;
 			}
 			if ( undi.rom->pnp_off == 0 ) {
@@ -334,8 +350,9 @@ int hunt_rom ( void ) {
 /* Locate ROMs containing UNDI drivers.
  */
 
-int hunt_undi_rom ( void ) {
-	while ( hunt_rom() ) {
+static int hunt_undi_rom ( struct pci_device *pci ) 
+{
+	while ( hunt_rom(pci) ) {
 		if ( undi.rom->undi_rom_id_off == 0 ) {
 			printf ( "Not a PXE ROM\n" );
 			continue;
@@ -369,7 +386,7 @@ int hunt_undi_rom ( void ) {
  * real-mode stack.
  */
 
-PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
+static PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
 			  uint16_t routine_off, uint16_t st0,
 			  uint16_t st1, uint16_t st2 ) {
 	PXENV_EXIT_t ret = PXENV_EXIT_FAILURE;
@@ -416,7 +433,7 @@ PXENV_EXIT_t _undi_call ( uint16_t routine_seg,
  * pxenv_structure on the real-mode stack.
  */
 
-int undi_call_loader ( void ) {
+static int undi_call_loader ( void ) {
 	PXENV_EXIT_t pxenv_exit = PXENV_EXIT_FAILURE;
 	
 	/* Hide Etherboot around the loader, so that the PXE stack
@@ -448,7 +465,7 @@ int undi_call_loader ( void ) {
  * codes, undi_call_silent() will not.
  */
 
-int undi_call_silent ( uint16_t opcode ) {
+static int undi_call_silent ( uint16_t opcode ) {
 	PXENV_EXIT_t pxenv_exit = PXENV_EXIT_FAILURE;
 
 	pxenv_exit = _undi_call ( undi.pxe->EntryPointSP.segment,
@@ -460,7 +477,7 @@ int undi_call_silent ( uint16_t opcode ) {
 	return pxenv_exit == PXENV_EXIT_SUCCESS ? 1 : 0;
 }
 
-int undi_call ( uint16_t opcode ) {
+static int undi_call ( uint16_t opcode ) {
 	if ( undi_call_silent ( opcode ) ) return 1;
 	printf ( "UNDI API call %#hx failed with status %#hx\n",
 		 opcode, undi.pxs->Status );
@@ -482,24 +499,26 @@ int undi_call ( uint16_t opcode ) {
  * is not intended for mainstream use.
  */
 
-uint16_t nontrivial_irq_previous_trigger_count = 0;
-uint8_t nontrivial_irq_chain = 0;
-segoff_t nontrivial_irq_chain_to = { 0, 0 };
 
-int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused ) {
+uint16_t nontrivial_irq_previous_trigger_count = 0;
+
+static int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused )
+{
 	RM_FRAGMENT(nontrivial_irq_handler,
 	/* Will be installed on a paragraph boundary, so access variables
 	 * using %cs:(xxx-irqstart)
 	 */
-		"\n\t"
 		"irqstart:\n\t"
+		"\n\t"
 	/* Fields here must match those in undi_irq_handler_t */
+		"chain_to:\t.word 0,0\n\t"
+		"irq_chain:\t.byte 0,0,0,0\n\t"
 		"entry:\t.word 0,0\n\t"
 		"count_all:\t.word 0\n\t"
 		"count_ours:\t.word 0\n\t"
-		"undi_isr:\n\t" 
-		"undi_isr_Status:\t.word 0\n\t" 
-		"undi_isr_FuncFlag:\t.word 0\n\t" 
+		"undi_isr:\n\t"
+		"undi_isr_Status:\t.word 0\n\t"
+		"undi_isr_FuncFlag:\t.word 0\n\t"
 		"undi_isr_others:\t.word 0,0,0,0,0,0\n\t"
 		"handler:\n\t"
 	/* Assume that PXE stack will corrupt everything */
@@ -508,35 +527,49 @@ int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused ) {
 		"push %es\n\t"
 		"push %fs\n\t"
 		"push %gs\n\t"
+	/* Set DS == CS */	
+		"pushw %cs\n\t"
+		"popw %ds\n\t"
 	/* Set up parameters for call */
-		"movw $" RM_STR(PXENV_UNDI_ISR_IN_START) ", %cs:(undi_isr_FuncFlag-irqstart)\n\t"
+		"movw $" RM_STR(PXENV_UNDI_ISR_IN_START) ", %ds:(undi_isr_FuncFlag-irqstart)\n\t"
 		"pushw %cs\n\t"
 		"popw %es\n\t"
 		"movw $(undi_isr-irqstart), %di\n\t"
-		"movw $" RM_STR(PXE_UNDI_ISR) ", %bx\n\t"
+		"movw $" RM_STR(PXENV_UNDI_ISR) ", %bx\n\t"
 		"pushw %es\n\t"    /* Registers for PXENV+, stack for !PXE */
 		"pushw %di\n\t"
 		"pushw %bx\n\t"
 	/* Make PXE API call */
-		"lcall *%cs:(entry-irqstart)\n\t"
+		"lcall *%ds:(entry-irqstart)\n\t"
 		"addw $6, %sp\n\t"
+	/* Set DS == CS */	
+		"pushw %cs\n\t"
+		"popw %ds\n\t"
 	/* Check return status to see if it's one of our interrupts */
-		"cmpw $" RM_STR(PXE_ENV_STATUS_SUCCESS) ", %cs:(undi_isr_Status-irqstart)\n\t"
+		"cmpw $" RM_STR(PXENV_STATUS_SUCCESS) ", %cs:(undi_isr_Status-irqstart)\n\t"
 		"jne 1f\n\t"
-		"cmpw $" RM_STR(PXENV_UNDI_ISR_OUT_OURS), ", %cs:(undi_isr_FuncFlag-irqstart)\n\t"
+		"cmpw $" RM_STR(PXENV_UNDI_ISR_OUT_OURS) ", %cs:(undi_isr_FuncFlag-irqstart)\n\t"
 		"jne 1f\n\t"
 	/* Increment count_ours if so */
-		"incw %cs:(count_ours-irqstart)\n\t"
+		"incw %ds:(count_ours-irqstart)\n\t"
 		"1:\n\t"
 	/* Increment count_all anyway */
-		"incw %cs:(count_all-irqstart)\n\t"
+		"incw %ds:(count_all-irqstart)\n\t"
 	/* Restore registers and return */
 		"popw %gs\n\t"
 		"popw %fs\n\t"
 		"popw %es\n\t"
 		"popw %ds\n\t"
 		"popal\n\t"
+		"\n\t"
+	/* Chain to acknowledge the interrupt */
+		"cmpb $0, %cs:(irq_chain-irqstart)\n\t"
+		"jz 2f\n\t"
+		"ljmp %cs:(chain_to-irqstart)\n\t"
+		"2:\n\t"
+		"\n\t"
 		"iret\n\t"
+		"\n\t"
 	);
 
 	/* Copy handler */
@@ -545,51 +578,81 @@ int copy_nontrivial_irq_handler ( void *target, size_t target_size __unused ) {
 	return 1;
 }
 
-int install_nontrivial_irq_handler ( irq_t irq ) {
+static int install_nontrivial_irq_handler ( irq_t irq )
+{
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
 	segoff_t isr_segoff;
 
 	printf ( "WARNING: using non-trivial IRQ handler [EXPERIMENTAL]\n" );
+
+	if (OFFSET(handler) != 0) {
+		DBG("handler not paragraph aligned\n");
+		return 0;
+	}
 	
-	disable_irq ( irq );
 	handler->count_all = 0;
 	handler->count_ours = 0;
 	handler->entry = undi.pxe->EntryPointSP;
 	nontrivial_irq_previous_trigger_count = 0;
 	isr_segoff.segment = SEGMENT(handler);
 	isr_segoff.offset = (void*)&handler->code - (void*)handler;
-	install_irq_handler ( irq, &isr_segoff, &nontrivial_irq_chain,
-			      &nontrivial_irq_chain_to );
-	enable_irq ( irq );
+	install_irq_handler( irq, &isr_segoff, 
+		&handler->irq_chain, &handler->chain_to);
+#if defined(TRACE_UNDI) && (TRACE_UNDI > 0)
+	DBG ( "Testing nontrivial IRQ handler for irq: %d\n", irq );
+
+	if (irq == 0) {
+		/* If it is the timer interrupt we don't have to trigger anything
+		 * we can just wait for it to occur,
+		 */
+		unsigned long start_ticks, ticks;
+		start_ticks = ticks = currticks();
+		do {
+			printf("^");
+			ticks = currticks();
+		} while(ticks == start_ticks);
+	} else {
+		fake_irq ( irq );
+	}
+	if ( handler->count_all == 0 ) {
+		DBG ( "Installation of non-trivial IRQ handler failed\n" );
+		remove_nontrivial_irq_handler ( irq );
+		return 0;
+	}
+#endif
+	DBG ( "Non-Trivial IRQ handler installed successfully\n" );
+
 	return 1;
 }
 
-int remove_nontrivial_irq_handler ( irq_t irq ) {
+static int remove_nontrivial_irq_handler ( irq_t irq )
+{
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
 	segoff_t isr_segoff;
 
 	isr_segoff.segment = SEGMENT(handler);
-	isr_segoff.offset = (void*)&handler->code - (void*)handler;
-	remove_irq_handler ( irq, &isr_segoff, &nontrivial_irq_chain,
-			     &nontrivial_irq_chain_to );
+	isr_segoff.offset = (char*)&handler->code - (char*)handler;
+	remove_irq_handler( irq, &isr_segoff, 
+		&handler->irq_chain, &handler->chain_to);
 	return 1;
 }
 
-int nontrivial_irq_triggered ( irq_t irq __unused ) {
+static int nontrivial_irq_triggered ( irq_t irq __unused )
+{
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
-	uint16_t nontrivial_irq_this_trigger_count = handler->count_ours;
-	int triggered = ( nontrivial_irq_this_trigger_count -
-			  nontrivial_irq_previous_trigger_count );
+	uint16_t count = handler->count_ours;
+	int triggered = count -  nontrivial_irq_previous_trigger_count;
 
-	nontrivial_irq_previous_trigger_count =
-		nontrivial_irq_this_trigger_count;
+	nontrivial_irq_previous_trigger_count = count;
+
 	return triggered ? 1 : 0;
 }
 
-void nontrivial_irq_debug ( irq_t irq ) {
+static void nontrivial_irq_debug ( irq_t irq )
+{
 	undi_irq_handler_t *handler = 
 		&undi.base_mem_data->nontrivial_irq_handler;
 
@@ -605,11 +668,12 @@ void nontrivial_irq_debug ( irq_t irq ) {
 /* Install the UNDI driver from a located UNDI ROM.
  */
 
-int undi_loader ( void ) {
+static int undi_loader(struct pci_device *pci) 
+{
 	pxe_t *pxe = NULL;
 
 	/* AX contains PCI bus:devfn (PCI specification) */
-	undi.pxs->loader.ax = ( undi.pci.bus << 8 ) | undi.pci.devfn;
+	undi.pxs->loader.ax = ( pci->bus << 8 ) | pci->devfn;
 	/* BX and DX set to 0xffff for non-ISAPnP devices
 	 * (BIOS boot specification)
 	 */
@@ -673,11 +737,13 @@ int undi_loader ( void ) {
 /* Start the UNDI driver.
  */
 
-int eb_pxenv_start_undi ( void ) {
+static int eb_pxenv_start_undi( struct pci_device *pci ) 
+{
 	int success = 0;
 
 	/* AX contains PCI bus:devfn (PCI specification) */
-	undi.pxs->start_undi.ax = ( undi.pci.bus << 8 ) | undi.pci.devfn;
+	undi.pxs->start_undi.ax = ( pci->bus << 8 ) | pci->devfn;
+
 	/* BX and DX set to 0xffff for non-ISAPnP devices
 	 * (BIOS boot specification)
 	 */
@@ -706,7 +772,7 @@ int eb_pxenv_start_undi ( void ) {
 	return success;
 }
 
-int eb_pxenv_undi_startup ( void )	{
+static int eb_pxenv_undi_startup ( void )	{
 	int success = 0;
 
 	DBG ( "PXENV_UNDI_STARTUP => (void)\n" );
@@ -716,7 +782,7 @@ int eb_pxenv_undi_startup ( void )	{
 	return success;
 }
 
-int eb_pxenv_undi_cleanup ( void ) {
+static int eb_pxenv_undi_cleanup ( void ) {
 	int success = 0;
 
 	DBG ( "PXENV_UNDI_CLEANUP => (void)\n" );
@@ -725,7 +791,7 @@ int eb_pxenv_undi_cleanup ( void ) {
 	return success;
 }
 
-int eb_pxenv_undi_initialize ( void ) {
+static int eb_pxenv_undi_initialize ( void ) {
 	int success = 0;
 
 	undi.pxs->undi_initialize.ProtocolIni = 0;
@@ -738,7 +804,7 @@ int eb_pxenv_undi_initialize ( void ) {
 	return success;
 }
 
-int eb_pxenv_undi_shutdown ( void ) {
+static int eb_pxenv_undi_shutdown ( void ) {
 	int success = 0;
 
 	DBG ( "PXENV_UNDI_SHUTDOWN => (void)\n" );
@@ -751,7 +817,7 @@ int eb_pxenv_undi_shutdown ( void ) {
 	return success;
 }
 
-int eb_pxenv_undi_open ( void ) {
+static int eb_pxenv_undi_open ( void ) {
 	int success = 0;
 
 	undi.pxs->undi_open.OpenFlag = 0;
@@ -769,7 +835,7 @@ int eb_pxenv_undi_open ( void ) {
 	return success;	
 }
 
-int eb_pxenv_undi_close ( void ) {
+static int eb_pxenv_undi_close ( void ) {
 	int success = 0;
 
 	DBG ( "PXENV_UNDI_CLOSE => (void)\n" );
@@ -779,7 +845,7 @@ int eb_pxenv_undi_close ( void ) {
 	return success;
 }
 
-int eb_pxenv_undi_transmit_packet ( void ) {
+static int eb_pxenv_undi_transmit_packet ( void ) {
 	int success = 0;
 	static const uint8_t broadcast[] = { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF };
 
@@ -827,7 +893,7 @@ int eb_pxenv_undi_transmit_packet ( void ) {
 	return success;
 }
 
-int eb_pxenv_undi_set_station_address ( void ) {
+static int eb_pxenv_undi_set_station_address ( void ) {
 	/* This will spuriously fail on some cards.  Ignore failures.
 	 * We only ever use it to set the MAC address to the card's
 	 * permanent value anyway, so it's a useless call (although we
@@ -842,7 +908,7 @@ int eb_pxenv_undi_set_station_address ( void ) {
 	return 1;
 }
 
-int eb_pxenv_undi_get_information ( void ) {
+static int eb_pxenv_undi_get_information ( void ) {
 	int success = 0;
 	memset ( undi.pxs, 0, sizeof ( undi.pxs ) );
 	DBG ( "PXENV_UNDI_GET_INFORMATION => (void)\n" );
@@ -866,7 +932,7 @@ int eb_pxenv_undi_get_information ( void ) {
 	return success;
 }
 
-int eb_pxenv_undi_get_iface_info ( void ) {
+static int eb_pxenv_undi_get_iface_info ( void ) {
 	int success = 0;
 
 	DBG ( "PXENV_UNDI_GET_IFACE_INFO => (void)\n" );
@@ -880,7 +946,7 @@ int eb_pxenv_undi_get_iface_info ( void ) {
 	return success;
 }
 
-int eb_pxenv_undi_isr ( void ) {
+static int eb_pxenv_undi_isr ( void ) {
 	int success = 0;
 
 	DBG ( "PXENV_UNDI_ISR => FuncFlag=%hx\n",
@@ -900,7 +966,7 @@ int eb_pxenv_undi_isr ( void ) {
 	return success;
 }
 
-int eb_pxenv_stop_undi ( void ) {
+static int eb_pxenv_stop_undi ( void ) {
 	int success = 0;
 
 	DBG ( "PXENV_STOP_UNDI => (void)\n" );
@@ -910,7 +976,7 @@ int eb_pxenv_stop_undi ( void ) {
 	return success;
 }
 
-int eb_pxenv_unload_stack ( void ) {
+static int eb_pxenv_unload_stack ( void ) {
 	int success = 0;
 
 	memset ( undi.pxs, 0, sizeof ( undi.pxs ) );
@@ -928,7 +994,7 @@ int eb_pxenv_unload_stack ( void ) {
 	return success;
 }
 
-int eb_pxenv_stop_base ( void ) {
+static int eb_pxenv_stop_base ( void ) {
 	int success = 0;
 
 	DBG ( "PXENV_STOP_BASE => (void)\n" );
@@ -939,7 +1005,7 @@ int eb_pxenv_stop_base ( void ) {
 
 /* Unload UNDI base code (if any present) and free memory.
  */
-int undi_unload_base_code ( void ) {
+static int undi_unload_base_code ( void ) {
 	void *bc_code = VIRTUAL( undi.pxe->BC_Code.Seg_Addr, 0 );
 	size_t bc_code_size = undi.pxe->BC_Code.Seg_Size;
 	void *bc_data = VIRTUAL( undi.pxe->BC_Data.Seg_Addr, 0 );
@@ -1014,8 +1080,7 @@ int undi_unload_base_code ( void ) {
  * This calls all the various UNDI initialization routines in sequence.
  */
 
-int undi_full_startup ( void ) {
-	if ( ! eb_pxenv_start_undi() ) return 0;
+static int undi_full_startup ( void ) {
 	if ( ! eb_pxenv_undi_startup() ) return 0;
 	if ( ! eb_pxenv_undi_initialize() ) return 0;
 	if ( ! eb_pxenv_undi_get_information() ) return 0;
@@ -1040,23 +1105,13 @@ int undi_full_startup ( void ) {
  * also frees any memory that it can.
  */
 
-int undi_full_shutdown ( void ) {
+static int undi_full_shutdown ( void ) {
 	if ( undi.pxe != NULL ) {
-		/* In case we didn't allocate the driver's memory in the first
-		 * place, try to grab the code and data segments and sizes
-		 * from the !PXE structure.
+		/* If we didn't allocate the driver's memory  don't
+		 * attempt to free it here.  Ugly things can
+		 * happen like stomping on the e820 interrupt
+		 * service routine.
 		 */
-		if ( undi.driver_code == NULL ) {
-			undi.driver_code = VIRTUAL(undi.pxe->UNDICode.Seg_Addr,
-						   0 );
-			undi.driver_code_size = undi.pxe->UNDICode.Seg_Size;
-		}
-		if ( undi.driver_data == NULL ) {
-			undi.driver_data = VIRTUAL(undi.pxe->UNDIData.Seg_Addr,
-						   0 );
-			undi.driver_data_size = undi.pxe->UNDIData.Seg_Size;
-		}
-		
 		/* Ignore errors and continue in the hope of shutting
 		 * down anyway
 		 */
@@ -1162,23 +1217,9 @@ static int undi_poll(struct nic *nic, int retrieve)
 		/* "Not our interrupt" translates to "no packet ready
 		 * to read".
 		 */
-		/* FIXME: Technically, we shouldn't be the one sending
-		 * EOI.  However, since our IRQ handlers don't yet
-		 * support chaining, nothing else gets the chance to.
-		 * One nice side-effect of doing this is that it means
-		 * we can cheat and claim the timer interrupt as our
-		 * NIC interrupt; it will be inefficient but will
-		 * work.
-		 */
-		send_specific_eoi ( undi.irq );
 		return 0;
 	}
 #endif
-
-	/* At this stage, the device should have cleared its interrupt
-	 * line so we can send EOI to the 8259.
-	 */
-	send_specific_eoi ( undi.irq );
 
 	/* We might have received a packet, or this might be a
 	 * "transmit completed" interrupt.  Zero nic->packetlen,
@@ -1279,7 +1320,8 @@ PROBE - Look for an adapter, this routine's visible to the outside
  * to install their drivers.
  */
 
-int hunt_pixies_and_undi_roms ( void ) {
+static int hunt_pixies_and_undi_roms(struct pci_device *pci)
+{
 	static uint8_t hunt_type = HUNT_FOR_PIXIES;
 	
 	if ( hunt_type == HUNT_FOR_PIXIES ) {
@@ -1288,8 +1330,8 @@ int hunt_pixies_and_undi_roms ( void ) {
 		}
 	}
 	hunt_type = HUNT_FOR_UNDI_ROMS;
-	while ( hunt_undi_rom() ) {
-		if ( undi_loader() ) {
+	while (pci && hunt_undi_rom(pci) ) {
+		if ( undi_loader(pci) && eb_pxenv_start_undi(pci) ) {
 			return 1;
 		}
 		undi_full_shutdown(); /* Free any allocated memory */
@@ -1307,11 +1349,6 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 
 	/* Zero out global undi structure */
 	memset ( &undi, 0, sizeof(undi) );
-
-	/* Store PCI parameters; we will need them to initialize the UNDI
-	 * driver later.
-	 */
-	memcpy ( &undi.pci, pci, sizeof(undi.pci) );
 
 	/* Find the BIOS' $PnP structure */
 	if ( ! hunt_pnp_bios() ) {
@@ -1331,7 +1368,7 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 	if ( ! allocate_base_mem_data() ) return 0;
 
 	/* Search thoroughly for UNDI drivers */
-	for ( ; hunt_pixies_and_undi_roms(); undi_full_shutdown() ) {
+	for ( ; hunt_pixies_and_undi_roms(pci); undi_full_shutdown() ) {
 		/* Try to initialise UNDI driver */
 		printf ( "Initializing UNDI driver.  Please wait...\n" );
 		if ( ! undi_full_startup() ) {
@@ -1366,6 +1403,12 @@ static int undi_probe(struct dev *dev, struct pci_device *pci)
 	return 0;
 }
 
+static int undi_isa_probe(struct dev *dev, unsigned short *probe_addrs __unused)
+{
+	return undi_probe(dev, NULL);
+}
+
+
 /* UNDI driver states that it is suitable for any PCI NIC (i.e. any
  * PCI device of class PCI_CLASS_NETWORK_ETHERNET).  If there are any
  * obscure UNDI NICs that have the incorrect PCI class, add them to
@@ -1382,6 +1425,13 @@ static struct pci_driver undi_driver __pci_driver = {
 	.ids      = undi_nics,
  	.id_count = sizeof(undi_nics)/sizeof(undi_nics[0]),
 	.class    = PCI_CLASS_NETWORK_ETHERNET,
+};
+
+static struct isa_driver undi_isa_driver __isa_driver = {
+	.type     = NIC_DRIVER,
+	.name     = "UNDI",
+	.probe    = undi_isa_probe,
+	.ioaddrs  = 0,
 };
 
 #endif /* PCBIOS */
