@@ -142,7 +142,7 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 #endif
 			
 			/* Start reading at the curaddr and make that the shdr */
-			shdr = (Elf32_Shdr *)phys_to_virt(estate.curaddr);
+			shdr = (Elf32_Shdr *)estate.curaddr;
 			
 			/* Start to read... */
 			return 1;
@@ -214,7 +214,7 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 					estate.toread, estate.curaddr);
 #endif
 				/* Save where we are loading this... */
-				symtab_load = phys_to_virt(estate.curaddr);
+				symtab_load = estate.curaddr;
 				
 				*((long *)phys_to_virt(estate.curaddr)) = estate.toread;
 				estate.curaddr += sizeof(long);
@@ -242,7 +242,7 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 					estate.toread, estate.curaddr);
 #endif
 				/* Save where we are loading this... */
-				symstr_load = phys_to_virt(estate.curaddr);
+				symstr_load = estate.curaddr;
 				
 				*((long *)phys_to_virt(estate.curaddr)) = estate.toread;
 				estate.curaddr += sizeof(long);
