@@ -23,8 +23,7 @@
  */	
 _start:
 	jmp	$FLOPPY_SEGMENT, $code_start-_start
-10:	.ascii	"PXE->EB "
-20:
+10:	.asciz	"PXE->EB "
 code_start:
 	pusha				/* Preserve all registers */
 	push	%ds
@@ -35,7 +34,6 @@ code_start:
 	push	%cs			/* Set up data segment */
 	pop	%ds
 	movw	$10b-_start, %si	/* Print welcome message */
-	movw	$20b-10b, %cx
 	call	print_message
 
 #ifndef PXELOADER_KEEP_ALL
@@ -66,13 +64,10 @@ detected_pxenv: /* es:bx points to PXENV+ structure */
 	push	%es:0x22(%bx)		/* UNDI data size */
 	les	%es:0x0a(%bx), %di	/* Entry point to %es:%di */
 	movw	$10f-_start, %si
-	movw	$20f-10f, %cx
 	jmp	pxe_setup_done
-10:	.ascii	"PXENV+ "
-20:
+10:	.asciz	"PXENV+ "
 
-10:	.ascii	"!PXE "
-20:
+10:	.asciz	"!PXE "
 detected_pxe:	/* es:di points to !PXE structure */
 	push	%es
 	push	%di
@@ -82,7 +77,6 @@ detected_pxe:	/* es:di points to !PXE structure */
 	push	%es:0x2e(%di)		/* UNDI data size */
 	les	%es:0x10(%di), %di	/* Entry point to %es:%di */
 	movw	$10b-_start, %si
-	movw	$20b-10b, %cx
 
 pxe_setup_done:
 	mov	%es, pxe_entry_segment - _start
@@ -189,14 +183,12 @@ finished:
 	movw	$10f-_start, %si
 	jz	1f
 finished_with_error:
-	movw	$11f-_start, %si
-1:	movw	$20f-10f,%cx
+	movw	$20f-_start, %si
+1:
 	call	print_message
 	jmp	99f
-10:	.ascii " ok \r\n"
-20:	
-11:	.ascii " err\r\n" /* Must be same length as "OK" string */
-21:	
+10:	.asciz " ok\n"
+20:	.asciz " err\n"
 99:
 
 /*****************************************************************************
@@ -222,8 +214,8 @@ run_etherboot:
 	pushw	$0
 	lret				/* "lcall payload" */
 return:	
-	mov	%cs,%ax			/* Restore SS (since prefix may have been relocated */
-	mov	%ax,%ss			/* and we put our stack inside the prefix)	    */
+	mov	%cs,%ax			/* Restore SS (prefix may have been */
+	mov	%ax,%ss			/* relocated, stack is in prefix)   */
 	push	%cs			/* Restore DS */
 	pop	%ds
 	pop	%di			/* PXE stack pointer to ES:DI */
@@ -237,21 +229,17 @@ exit_via_pxe:				/* Stack OK, return to PXE */
 	mov	%di, %sp
 	pop	%ax			/* Discard PXE_STACK_MAGIC marker */
 	movw	$10f-_start, %si
-	movw	$20f-10f, %cx
 	call	print_message
 	pop	%ds			/* Restore PXE's DS */
 	popa				/* Restore PXE's other registers */
 	lret				/* Return control to PXE ROM */
-10:	.ascii	"EB->PXE\r\n"
-20:	
+10:	.asciz	"EB->PXE\n"
 #endif /* PXELOADER_KEEP_ALL */
 exit_via_int18:				/* Stack damaged, do int 18 */
 	movw	$10f-_start, %si
-	movw	$20f-10f, %cx
 	call	print_message
 	int	$0x18
-10:	.ascii	"EB->BIOS\r\n"
-20:	
+10:	.asciz	"EB->BIOS\n"
 
 /*****************************************************************************
  * Subroutine: print character in %al (with LF -> LF,CR translation)
@@ -260,18 +248,24 @@ exit_via_int18:				/* Stack damaged, do int 18 */
 print_character:
 	movw	$0x0007, %bx		/* page 0, attribute 7 (normal) */
 	movb	$0x0e, %ah		/* write char, tty mode */
+	cmpb	$0x0a, %al		/* '\n'? */
+	jne	1f
 	int	$0x10
+	movb	$0x0d, %al
+1:	int	$0x10
 	ret
 	
 /*****************************************************************************
- * Subroutine: print a message starting at %si for length %cx
+ * Subroutine: print a zero-terminated message starting at %si
  *****************************************************************************
  */	
 print_message:
-10: 	lodsb
+1: 	lodsb
+	testb	%al, %al
+	je	2f
 	call	print_character
-	loop	10b
-	ret
+	jmp	1b
+2:	ret
 
 /*****************************************************************************
  * Subroutine: print hex word in %ax
