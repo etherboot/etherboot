@@ -93,7 +93,7 @@ const char *media[] = {
 	"100baseTx-FD", "100baseT4", 0
 };
 
-/* This much match tulip_tbl[]!  Note 21142 == 21143. */
+/* This much match tlan_pci_tbl[]!  */
 enum tlan_nics {
 	NETEL10 = 0, NETEL100 = 1, NETFLEX3I = 2, THUNDER = 3, NETFLEX3B =
 	    4, NETEL100PI = 5,
@@ -195,13 +195,10 @@ int chip_idx;
 	 *
 	 ****************************************************************/
 struct tlan_private {
-/*	struct net_device       *nextDevice;*/
-/*	void			*dmaStorage;*/
 	unsigned short vendor_id;	/* PCI Vendor code */
 	unsigned short dev_id;	/* PCI Device code */
 	const char *nic_name;
 	u8 *padBuffer;
-/*	TLanList                *rxList;  */
 	u8 *rxBuffer;
 	struct TLanList *rx_head_desc;
 	u32 rxHead;
@@ -221,8 +218,6 @@ struct tlan_private {
 	u32 phyOnline;
 	u32 timerSetAt;
 	u32 timerType;
-/*	struct timer_list	timer; */
-/*	struct net_device_stats	stats; */
 	u32 adapterRev;
 	u32 aui;
 	u32 debug;
@@ -233,10 +228,8 @@ struct tlan_private {
 	u8 tlanRev;
 	u8 tlanFullDuplex;
 	char devName[8];
-/*	spinlock_t		lock; */
 	u8 link;
 	u8 is_eisa;
-/*	struct tq_struct	tlan_tqueue; */
 	u8 neg_be_verbose;
 } TLanPrivateInfo;
 
@@ -246,19 +239,19 @@ u32 BASE;
 
 
 
-	/***************************************************************
-	 *	TLan_ResetLists
-	 *
-	 *	Returns:
-	 *		Nothing
-	 *	Parms:
-	 *		dev	The device structure with the list
-	 *			stuctures to be reset.
-	 *
-	 *	This routine sets the variables associated with managing
-	 *	the TLAN lists to their initial values.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_ResetLists
+*
+*	Returns:
+*		Nothing
+*	Parms:
+*		dev	The device structure with the list
+*			stuctures to be reset.
+*
+*	This routine sets the variables associated with managing
+*	the TLAN lists to their initial values.
+*
+**************************************************************/
 
 void TLan_ResetLists(struct nic *nic __unused)
 {
@@ -277,30 +270,7 @@ void TLan_ResetLists(struct nic *nic __unused)
 		list->buffer[2].address = 0;
 		list->buffer[9].address = 0;
 		list->forward = 0;
-		/*
-		   tx_ring[i].forward = 0;
-		   tx_ring[i].frameSize = 0;
-		   tx_ring[i].cStat = TLAN_CSTAT_UNUSED;
-
-		   tx_ring[i].buffer[0].address = virt_to_bus(&txb[0]);
-		   tx_ring[i].buffer[2].count = 0x80000000;
-		   tx_ring[i].buffer[2].address = 0;
-		   tx_ring[i].buffer[9].address = 0;
-		 */
 	}
-/*        outl(virt_to_le32desc(&tx_ring[0]), BASE + TLAN_CH_PARM );
-	outl( TLAN_HC_GO, BASE + TLAN_HOST_CMD );
-*/
-
-	/* This descriptor is never used */
-/*
- * tx_ring[1].cStat = TLAN_CSTAT_UNUSED;
-	tx_ring[1].buffer[0].address = virt_to_bus(&txb[1]);
-	tx_ring[1].buffer[2].count = 0;
-	tx_ring[1].buffer[2].address = 0;
-	tx_ring[1].buffer[9].address = 0;
-	tx_ring[1].forward = 0;
-*/
 
 	priv->cur_rx = 0;
 	priv->rx_buf_sz = (TLAN_MAX_FRAME_SIZE);
@@ -323,24 +293,24 @@ void TLan_ResetLists(struct nic *nic __unused)
 	rx_ring[i - 1].forward = virt_to_le32desc(&rx_ring[0]);
 	priv->dirty_rx = (unsigned int) (i - TLAN_NUM_RX_LISTS);
 
-}				/* TLan_ResetLists */
+} /* TLan_ResetLists */
 
-	/***************************************************************
-	 *	TLan_Reset
-	 *
-	 *	Returns:
-	 *		0
-	 *	Parms:
-	 *		dev	Pointer to device structure of adapter
-	 *			to be reset.
-	 *
-	 *	This function resets the adapter and it's physical
-	 *	device.  See Chap. 3, pp. 9-10 of the "ThunderLAN
-	 *	Programmer's Guide" for details.  The routine tries to
-	 *	implement what is detailed there, though adjustments
-	 *	have been made.
-	 *
-	 **************************************************************/
+/***************************************************************
+*	TLan_Reset
+*
+*	Returns:
+*		0
+*	Parms:
+*		dev	Pointer to device structure of adapter
+*			to be reset.
+*
+*	This function resets the adapter and it's physical
+*	device.  See Chap. 3, pp. 9-10 of the "ThunderLAN
+*	Programmer's Guide" for details.  The routine tries to
+*	implement what is detailed there, though adjustments
+*	have been made.
+*
+**************************************************************/
 
 void TLan_ResetAdapter(struct nic *nic __unused)
 {
@@ -418,12 +388,8 @@ void TLan_ResetAdapter(struct nic *nic __unused)
 	} else {
 		TLan_PhyPowerDown(nic);
 	}
-/*	data = inl(BASE + TLAN_HOST_CMD);
-	data |= TLAN_HC_INT_OFF;
-	outl(data, BASE + TLAN_HOST_CMD);
-*/
 
-}				/* TLan_ResetAdapter */
+}	/* TLan_ResetAdapter */
 
 void TLan_FinishReset(struct nic *nic)
 {
@@ -537,7 +503,7 @@ void TLan_FinishReset(struct nic *nic)
 
 	}
 
-}				/* TLan_FinishReset */
+}	/* TLan_FinishReset */
 
 /**************************************************************************
 POLL - Wait for a frame
@@ -553,7 +519,7 @@ static int tlan_poll(struct nic *nic)
 	int eoc = 0;
 	int entry = priv->cur_rx % TLAN_NUM_RX_LISTS;
 	u16 tmpCStat = le32_to_cpu(rx_ring[entry].cStat);
-
+	
 	u16 host_int = inw(BASE + TLAN_HOST_INT);
 	outw(host_int, BASE + TLAN_HOST_INT);
 
@@ -567,15 +533,19 @@ static int tlan_poll(struct nic *nic)
 	framesize = rx_ring[entry].frameSize;
 
 	nic->packetlen = framesize;
-/*     printf(".%d.", framesize); */
 
+#ifdef EBDEBUG
+     printf(".%d.", framesize); 
+#endif
+     
 	memcpy(nic->packet, rxb +
 	       (priv->cur_rx * TLAN_MAX_FRAME_SIZE), nic->packetlen);
 
 	rx_ring[entry].cStat = 0;
-/*    rx_ring[entry].forward = 0; */
-/*    hex_dump(nic->packet, nic->packetlen);**/
-/*  printf("%d", entry);  */
+#ifdef EBDEBUG
+	hex_dump(nic->packet, nic->packetlen);
+	printf("%d", entry);  
+#endif
 
 	entry = (entry + 1) % TLAN_NUM_RX_LISTS;
 	priv->cur_rx = entry;
@@ -587,17 +557,14 @@ static int tlan_poll(struct nic *nic)
 			outl(host_cmd, BASE + TLAN_HOST_CMD);
 		}
 	} else {
-		/*      outl( TLAN_HC_GO | TLAN_HC_RT, BASE + TLAN_HOST_CMD ); */
 		host_cmd = TLAN_HC_ACK | ack | (0x000C0000);
 		outl(host_cmd, BASE + TLAN_HOST_CMD);
-/*	printf("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM)); */
+#ifdef EBDEBUG
+		printf("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM)); 
 		host_int = inw(BASE + TLAN_HOST_INT);
-/*	printf("PI-2: 0x%hX\n", host_int); */
+		printf("PI-2: 0x%hX\n", host_int); 
+#endif
 	}
-/*
-	rx_ring[entry].frameSize = TLAN_MAX_FRAME_SIZE;
-	rx_ring[entry].cStat = TLAN_CSTAT_READY;
-	*/
 	refill_rx(nic);
 	return (1);		/* initially as this is called to flush the input */
 }
@@ -1779,27 +1746,19 @@ void TLan_PhyMonitor(struct net_device *dev)
 
 
 static struct pci_id tlan_nics[] = {
-	PCI_ROM(0x0e11, 0xae34, "NETEL10",
-		"Compaq Netelligent 10 T PCI UTP"),
-	PCI_ROM(0x0e11, 0xae32, "NETEL100",
-		"Compaq Netelligent 10/100 TX PCI UTP"),
-	PCI_ROM(0x0e11, 0xae35, "NETFLEX3I",
-		"Compaq Integrated NetFlex-3/P"),
+	PCI_ROM(0x0e11, 0xae34, "NETEL10", "Compaq Netelligent 10 T PCI UTP"),
+	PCI_ROM(0x0e11, 0xae32, "NETEL100","Compaq Netelligent 10/100 TX PCI UTP"),
+	PCI_ROM(0x0e11, 0xae35, "NETFLEX3I", "Compaq Integrated NetFlex-3/P"),
 	PCI_ROM(0x0e11, 0xf130, "THUNDER", "Compaq NetFlex-3/P"),
 	PCI_ROM(0x0e11, 0xf150, "NETFLEX3B", "Compaq NetFlex-3/P"),
-	PCI_ROM(0x0e11, 0xae43, "NETEL100PI",
-		"Compaq Netelligent Integrated 10/100 TX UTP"),
-	PCI_ROM(0x0e11, 0xae40, "NETEL100D",
-		"Compaq Netelligent Dual 10/100 TX PCI UTP"),
-	PCI_ROM(0x0e11, 0xb011, "NETEL100I",
-		"Compaq Netelligent 10/100 TX Embedded UTP"),
+	PCI_ROM(0x0e11, 0xae43, "NETEL100PI", "Compaq Netelligent Integrated 10/100 TX UTP"),
+	PCI_ROM(0x0e11, 0xae40, "NETEL100D", "Compaq Netelligent Dual 10/100 TX PCI UTP"),
+	PCI_ROM(0x0e11, 0xb011, "NETEL100I", "Compaq Netelligent 10/100 TX Embedded UTP"),
 	PCI_ROM(0x108d, 0x0013, "OC2183", "Olicom OC-2183/2185"),
 	PCI_ROM(0x108d, 0x0012, "OC2325", "Olicom OC-2325"),
 	PCI_ROM(0x108d, 0x0014, "OC2326", "Olicom OC-2326"),
-	PCI_ROM(0x0e11, 0xb030, "NETELLIGENT_10_100_WS_5100",
-		"Compaq Netelligent 10/100 TX UTP"),
-	PCI_ROM(0x0e11, 0xb012, "NETELLIGENT_10_T2",
-		"Compaq Netelligent 10 T/2 PCI UTP/Coax"),
+	PCI_ROM(0x0e11, 0xb030, "NETELLIGENT_10_100_WS_5100", "Compaq Netelligent 10/100 TX UTP"),
+	PCI_ROM(0x0e11, 0xb012, "NETELLIGENT_10_T2", "Compaq Netelligent 10 T/2 PCI UTP/Coax"),
 };
 
 static struct pci_driver tlan_driver __pci_driver = {
