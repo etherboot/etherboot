@@ -285,7 +285,7 @@ static unsigned eeprom_reg = EEPROM_REG_PRO;
 
 static unsigned int	rx_start, tx_start;
 static int		tx_last;
-static unsigned		tx_end;
+static unsigned	int	tx_end;
 static int		eepro = 0;
 static unsigned short	ioaddr = 0;
 static unsigned int	mem_start, mem_end = RCV_DEFAULT_RAM / 1024;
@@ -325,13 +325,13 @@ static void eepro_reset(struct nic *nic)
 	eepro_sw2bank0(ioaddr);	/* Switch back to bank 0 */
 	eepro_clear_int(ioaddr);
 	/* Initialise RCV */
-	rx_start = bus_to_virt(RCV_LOWER_LIMIT << 8);
+	rx_start = (unsigned int)bus_to_virt(RCV_LOWER_LIMIT << 8);
 	outw(RCV_LOWER_LIMIT << 8, ioaddr + RCV_BAR);
 	outw(((RCV_UPPER_LIMIT << 8) | 0xFE), ioaddr + RCV_STOP);
 	/* Intialise XMT */
 	outw((XMT_LOWER_LIMIT << 8), ioaddr + xmt_bar);
 	eepro_sel_reset(ioaddr);
-	tx_start = tx_end = bus_to_virt(XMT_LOWER_LIMIT << 8);
+	tx_start = tx_end = (unsigned int)bus_to_virt(XMT_LOWER_LIMIT << 8);
 	tx_last = 0;
 	eepro_en_rx(ioaddr);
 }
@@ -339,9 +339,9 @@ static void eepro_reset(struct nic *nic)
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int eepro_poll(struct nic *nic)
+static int eepro_poll(struct nic *nic, int retrieve)
 {
-	unsigned int	rcv_car = virt_to_bus(rx_start);
+	unsigned int	rcv_car = virt_to_bus((void *)rx_start);
 	unsigned int	rcv_event, rcv_status, rcv_next_frame, rcv_size;
 
 	/* return true if there's an ethernet packet ready to read */
@@ -356,6 +356,12 @@ static int eepro_poll(struct nic *nic)
 	rcv_event = inw(ioaddr + IO_PORT);
 	if (rcv_event != RCV_DONE)
 		return (0);
+
+	/* FIXME: I'm guessing this might not work with this card, since
+	   it looks like once a rcv_event is started it must be completed.
+	   maybe there's another way. */
+	if ( ! retrieve ) return 1;
+
 	rcv_status = inw(ioaddr + IO_PORT);
 	rcv_next_frame = inw(ioaddr + IO_PORT);
 	rcv_size = inw(ioaddr + IO_PORT);
@@ -379,8 +385,8 @@ static int eepro_poll(struct nic *nic)
 }
 #endif
 	nic->packetlen = rcv_size;
-	rcv_car = virt_to_bus(rx_start) + RCV_HEADER + rcv_size;
-	rx_start = bus_to_virt(rcv_next_frame << 8);
+	rcv_car  = virt_to_bus((void *) (rx_start + RCV_HEADER + rcv_size));
+	rx_start = (unsigned int)bus_to_virt(rcv_next_frame << 8);
 	if (rcv_car == 0)
 		rcv_car = ((RCV_UPPER_LIMIT << 8) | 0xff);
 	outw(rcv_car - 1, ioaddr + RCV_STOP);
@@ -455,10 +461,25 @@ static void eepro_disable(struct dev *dev __unused)
 	eepro_sw2bank0(ioaddr);	/* Switch to bank 0 */
 	/* Flush the Tx and disable Rx */
 	outb(STOP_RCV_CMD, ioaddr);
-	tx_start = tx_end = bus_to_virt(XMT_LOWER_LIMIT << 8);
+	tx_start = tx_end = (unsigned int) (bus_to_virt(XMT_LOWER_LIMIT << 8));
 	tx_last = 0;
 	/* Reset the 82595 */
 	eepro_full_reset(ioaddr);
+}
+
+/**************************************************************************
+DISABLE - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void eepro_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
 }
 
 static int read_eeprom(int location)
@@ -580,11 +601,16 @@ static int eepro_probe(struct dev *dev, unsigned short *probe_addrs)
 	}
 	if (*p == 0)
 		return (0);
+
+	nic->irqno  = 0;
+	nic->ioaddr = *p;
+
 	eepro_reset(nic);
 	/* point to NIC specific routines */
 	dev->disable  = eepro_disable;
 	nic->poll     = eepro_poll;
 	nic->transmit = eepro_transmit;
+	nic->irq      = eepro_irq;
 	/* Based on PnP ISA map */
 	dev->devid.vendor_id = htons(GENERIC_ISAPNP_VENDOR);
 	dev->devid.device_id = htons(0x828a);
