@@ -228,8 +228,18 @@ int unhook_pxe_stack ( void ) {
 	if ( pxe_stack->state <= CAN_UNLOAD ) return 1;
 
 	/* Restore original INT15 and INT1A handlers */
-	unhide_etherboot();
 	*INT1A_VECTOR = *pxe_intercepted_int1a;
+	if ( !unhide_etherboot() ) {
+		/* Cannot unhook INT15.  We're up the creek without
+		 * even a suitable log out of which to fashion a
+		 * paddle.  There are some very badly behaved NBPs
+		 * that will ignore plaintive pleas such as
+		 * PXENV_KEEP_UNDI and just zero out our code anyway.
+		 * This means they end up vapourising an active INT15
+		 * handler, which is generally not a good thing to do.
+		 */
+		return 0;
+	}
 
 	/* Mark stack as inactive */
 	pxe_stack->state = CAN_UNLOAD;

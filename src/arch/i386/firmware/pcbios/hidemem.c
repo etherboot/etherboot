@@ -60,8 +60,28 @@ int unhide_etherboot ( void ) {
 	/* Restore original INT15 handler
 	 */
 	if ( VIRTUAL(INT15_VECTOR->segment,INT15_VECTOR->offset) != mangler ) {
-		printf ( "FATAL: corrupt INT15\n" );
-		/* Not a lot else we can do... */
+		/* Oh dear... */
+
+#ifdef WORK_AROUND_BPBATCH_BUG
+		/* BpBatch intercepts INT15, so can't unhook it, and
+		 * then proceeds to ignore our PXENV_KEEP_UNDI return
+		 * status, which means that it ends up zeroing out the
+		 * INT15 handler routine.
+		 *
+		 * This rather ugly hack involves poking into
+		 * BpBatch's code and changing it's stored value for
+		 * the "next handler" in the INT15 chain.
+		 */
+		segoff_t *bp_chain = VIRTUAL ( 0x0060, 0x8254 );
+
+		if ( ( bp_chain->segment == SEGMENT(mangler) ) &&
+		     ( bp_chain->offset == 0 ) ) {
+			printf ( "\nBPBATCH bug workaround enabled\n" );
+			*bp_chain = *intercepted_int15;
+		}
+#endif /* WORK_AROUND_BPBATCH_BUG */
+
+		return 0;
 	}
 	*INT15_VECTOR = *intercepted_int15;
 

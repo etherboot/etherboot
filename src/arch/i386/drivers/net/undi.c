@@ -429,7 +429,10 @@ int undi_call_loader ( void ) {
 				  OFFSET( undi.pxs ),
 				  SEGMENT( undi.pxs ),
 				  0 /* Unused for UNDI loader API */ );
-	unhide_etherboot();
+	if ( !unhide_etherboot() ) {
+		printf ( "FATAL: corrupt INT15\n" );
+		return 0;
+	}
 
 	/* Return 1 for success, to be consistent with other routines */
 	if ( pxenv_exit == PXENV_EXIT_SUCCESS ) return 1;
