@@ -19,12 +19,17 @@
     *                                                                     *
     * REVISION HISTORY                                                    *
     * 1.0 2005-03-17 rkolar   Initial coding                              *
+    * 1.1 2005-03-24 rkolar   We really need to send CC_BYE to the server *
+    *                         at end of transfer, because next stage boot *
+    *                         loader is unable to contact FSP server      *
+    *                         until session timeouts.                     *
+    * 1.2 2005-03-26 rkolar   We need to query filesize in advance,       *
+    *                         because NBI loader do not reads file until  *
+    *                         eof is reached.
     * REMARKS                                                             *
-    * we currently do not sends CC_BYE to the server. This will cause     *
-    *   delays if you are rebooting machine in intervals bellow 60 secs,  *
-    *   which is quite unlikely.                                          *
-    * there is no support for selecting port number of fsp server         *
-    * this implementation has filename limit 255 chars                    *
+    * there is no support for selecting port number of fsp server, maybe  *
+    *   we should parse fsp:// URLs in boot image filename.               *
+    * this implementation has filename limit 255 chars.                   *
     \*********************************************************************/
 
 #ifdef DOWNLOAD_PROTO_FSP
@@ -37,6 +42,7 @@
 #define CC_GET_FILE	0x42
 #define CC_BYE		0x4A
 #define CC_ERR		0x40
+#define CC_STAT		0x4D
 
 /* etherboot limits */
 #define FSP_MAXFILENAME 255
@@ -93,6 +99,7 @@ static int await_fsp(int ival, void *ptr, unsigned short ptype __unused,
 static int proto_fsp(struct fsp_info *info)
 {
     uint32_t filepos;
+    uint32_t filelength=0;
     int i,retry;
     uint16_t reqlen;
     struct fsp_reply *reply;
@@ -100,7 +107,6 @@ static int proto_fsp(struct fsp_info *info)
     
     /* prepare FSP request packet */
     filepos=0;
-    request.fsp.cmd=CC_GET_FILE;
     i=strlen(info->filename);
     if(i>FSP_MAXFILENAME)
     {
@@ -119,7 +125,11 @@ static int proto_fsp(struct fsp_info *info)
     for(;;) {
 	int  sum;
 	long timeout;
-	
+
+        /* query filelength if not known */
+	if(filelength == 0)
+	    request.fsp.cmd=CC_STAT;
+		
 	/* prepare request packet */
 	request.fsp.pos=htonl(filepos);
 	request.fsp.seq=random();
@@ -170,25 +180,48 @@ static int proto_fsp(struct fsp_info *info)
 	    printf("\n");
 	    return 0;
 	}
-	if(reply->fsp.cmd != CC_GET_FILE)
-	    continue;
-        if(ntohl(reply->fsp.pos) != filepos)
-	    continue;
-	/* got a valid packed */
-	request.fsp.key = reply->fsp.key;
-	retry=0;
-	i=ntohs(reply->fsp.len);
-	if(i)
-	    {
-		if(!info->fnc(reply->data,block++,i,0))
-		    return 0;
-	    }
-	else
+	if(reply->fsp.cmd == CC_BYE && filelength == 1)
 	{
-	    info->fnc(NULL,block,0,1);
+	    info->fnc(request.data,block,1,1);
 	    return 1;
 	}
-	filepos += i;
+	if(reply->fsp.cmd == CC_STAT)
+	{
+	    if(reply->data[8] == 0)
+	    {
+		/* file not found, etc. */
+		filelength=0xffffffff;
+	    } else
+	    {
+		filelength= ntohl(*((uint32_t *)&reply->data[4]));
+	    }
+	    request.fsp.cmd = CC_GET_FILE;
+	    request.fsp.key = reply->fsp.key;
+	    retry=0;
+	    continue;
+	}
+
+	if(reply->fsp.cmd == CC_GET_FILE)
+	{
+	    if(ntohl(reply->fsp.pos) != filepos)
+		continue;
+	    request.fsp.key = reply->fsp.key;
+	    retry=0;
+	    i=ntohs(reply->fsp.len);
+	    if(i == 1)
+	    {
+		request.fsp.cmd=CC_BYE;
+		request.data[0]=reply->data[0];
+		continue;
+	    }
+	    /* let last byte alone */
+            if(i >= filelength)
+		i = filelength - 1;
+	    if(!info->fnc(reply->data,block++,i,0))
+		return 0;
+	    filepos += i;
+	    filelength -= i;
+	}
     }
 
     return 0;
