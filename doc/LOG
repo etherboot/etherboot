@@ -19,3 +19,21 @@ Released as Etherboot-doc 5.0.3
 + Small updates to match etherboot-5.0.4.
 
 Released as Etherboot-doc 5.0.4
+
++ Reworked some sections in userman to emphasise user space
+autoconfiguration and mounting of root filesystem as an alternative to
+kernel autoconfiguration and mounting of root filesystem.
+
+Released as Etherboot-doc 5.0.5
+
++ Added explanation why Fast A20 Gate option should not be selected.
+
+Released as Etherboot-doc 5.0.6
+
++ Document that Etherboot ignores useless DHCP offers now.
+
+Released as Etherboot-doc 5.0.7
+
++ Fix up broken links and minor updates.
+
+Released as Etherboot-doc 5.0.11

@@ -1,7 +1,8 @@
-VERSION=	5.0.2
+VERSION=	5.0.11
 
 DOCFILES+=	16 COPYING COPYING_compressor userman devman atnetboot compressor
 DOCFILES+=	diskless freebsd old-README security spec sshterminal vendortags
+DOCFILES+=	lilo+etherboot
 HTMLDOC=	$(patsubst %,html/%.html,$(DOCFILES))
 TEXTDOC=	$(patsubst %,text/%.txt,$(DOCFILES))
 DVIDOC=		$(patsubst %,dvi/%.dvi,$(DOCFILES))
