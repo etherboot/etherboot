@@ -142,7 +142,7 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 #endif
 			
 			/* Start reading at the curaddr and make that the shdr */
-			shdr = (Elf32_Shdr *)estate.curaddr;
+			shdr = (Elf32_Shdr *)phys_to_virt(estate.curaddr);
 			
 			/* Start to read... */
 			return 1;
@@ -288,7 +288,7 @@ static void elf_freebsd_boot(unsigned long entry)
 		/* Assumes size of long is a power of 2... */
 		bsdinfo.bi_esymtab = (symstr_load +
 			sizeof(long) +
-			*((long *)symstr_load) +
+			*((long *)phys_to_virt(symstr_load)) +
 			sizeof(long) - 1) & ~(sizeof(long) - 1);
 		
 		/* Where we will build the meta data... */
