@@ -215,7 +215,6 @@ _in_call_far:
 	popfl
 	lret	$4
 	
-#if defined(RELOCATE)
 /**************************************************************************
 RELOCATE_TO - relocate etherboot to the specified address
 **************************************************************************/
@@ -280,8 +279,6 @@ relocate_to:
 	/* return */
 	ret
 
-#endif /* RELOCATE */
-	
 /**************************************************************************
 XSTART32 - Transfer control to the kernel just loaded
 **************************************************************************/

@@ -1,7 +1,5 @@
 #include "etherboot.h"
 
-#if defined(RELOCATE)
-
 /* by Eric Biederman */
 
 /* On some platforms etherboot is compiled as a shared library, and we use
@@ -99,5 +97,3 @@ void relocate(void)
 		arch_relocated_from(old_addr);
 	}
 }
-
-#endif /* RELOCATE */

@@ -240,11 +240,6 @@
 #			which saves power while waiting for user interaction.
 #			Good for compute clusters and VMware emulation.
 #			But may not work for all CPUs.
-#	-DRELOCATE
-#			After starting etherboot relocate to the top
-#			of memory.  This allows loading fairly arbitrary
-#			rom images.  This doesn't work with a couple of
-#			drivers, e.g. lance.
 #	-DBUILD_SERIAL
 #			Include an auto-incrementing build number in
 #			the Etherboot welcome message.  Useful when
@@ -343,10 +338,6 @@ CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
 # CFLAGS+=	-DFREEBSD_PXEEMU
-
-# Relocate etherboot to just below 4GB.
-# A couple of drivers do not work with relocation, notably lance.
-CFLAGS+=	-DRELOCATE
 
 # Include an auto-incrementing build serial number and optional build
 # ID string

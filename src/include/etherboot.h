@@ -275,11 +275,7 @@ extern int sprintf P((char *, const char *, ...));
 extern int inet_aton P((const char *p, in_addr *i));
 #ifdef PCBIOS
 extern void gateA20_set P((void));
-#ifdef	RELOCATE
 #define gateA20_unset()
-#else
-extern void gateA20_unset P((void));
-#endif
 #else
 #define gateA20_set()
 #define gateA20_unset()
@@ -328,12 +324,8 @@ struct meminfo {
 extern struct meminfo meminfo;
 extern void get_memsizes(void);
 extern unsigned long get_boot_order(unsigned long order, unsigned *index);
-#ifdef RELOCATE
 extern void relocate(void);
 extern void relocate_to(unsigned long phys_dest);
-#else
-#define relocate() do {} while(0)
-#endif
 extern void disk_init P((void));
 extern unsigned int pcbios_disk_read P((int drv,int c,int h,int s,char *buf));
 

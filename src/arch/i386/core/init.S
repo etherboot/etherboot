@@ -164,10 +164,8 @@ rmode:
 
 #ifdef CODE16
 
-/* Prelocate code: either to an area at the top of free base memory
- * (if RELOCATE is defined) or so that we end up with virtual
- * addresses identical to physical addresses (if RELOCATE is not
- * defined).  Switch stacks to use the stack within the resulting
+/* Prelocate code: either to an area at the top of free base memory.
+ * Switch stacks to use the stack within the resulting
  * Etherboot image.
  *
  * On entry, %cs:0000 must be the start of the prefix: this is used to
@@ -202,7 +200,6 @@ prelocate:
 	pushw	%ds
 	pushw	%es
 	
-#ifdef RELOCATE
 	/* Claim an area of base memory from the BIOS and put the
 	 * payload there.
 	 */
@@ -214,12 +211,7 @@ prelocate:
 	shrw	$6, %bx			/* Round down to nearest kb */
 	movw	%bx, %es:(0x13)		/* ...and claim memory from BIOS */
 	shlw	$6, %bx
-#else
-	/* Place image so that runtime starts at RELOC:0.
-	 */
-	movw	$_text_pgh, %bx
-	subw	$_prefix_size_pgh, %bx
-#endif
+
 	/* At this point %bx contains the segment address for the
 	 * start of the image (image = prefix + runtime).
 	 */
@@ -286,7 +278,6 @@ prelocate:
 	 */
 	.globl deprelocate
 deprelocate:	
-#ifdef RELOCATE
 	/* Claim an area of base memory from the BIOS and put the
 	 * payload there.
 	 */
@@ -301,7 +292,6 @@ deprelocate:
 	movw	%ax, %es:(0x13)		/* Give memory back to BIOS */
 	popw	%es
 	popw	%ax
-#endif
 	ret
 	
 #endif /* CODE16 */

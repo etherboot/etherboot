@@ -42,16 +42,10 @@
  * 2. Whatever loaded us probably didn't know about our memory usage
  *    beyond the end of the image file.  We should claim this memory
  *    before using it.
- * 3. If we're deliberately not using -DRELOCATE, for debugging
- *    purposes, then we want to move the runtime to RELOC:0.
  *
  * Unless the prefix instructs us otherwise we will move the payload to:
  *
- *    (with -DRELOCATE) An area of memory claimed from the BIOS via 40:13.
- *
- *    (without -DRELOCATE) 0x20000 - length of the decompressor, so
- *    that the runtime ends up executing exactly at 0x20000; the
- *    address it was linked to.
+ *    An area of memory claimed from the BIOS via 40:13.
  *
  * We use the main Etherboot stack (within the image target) as our
  * stack; we don't rely on the prefix passing us a stack usable for
@@ -102,7 +96,6 @@ exec_in_situ:
 	addw	$((payload-_start16)/16), %ax
 	jmp	99f
 exec_moved:
-#ifdef RELOCATE
 	/* Claim an area of base memory from the BIOS and put the
 	 * payload there.  arch_relocated_to() will deal with freeing
 	 * up this memory once we've relocated to high memory.
@@ -115,12 +108,6 @@ exec_moved:
 	shrw	$6, %ax			/* Round down to nearest kb */
 	movw	%ax, %es:(0x13)		/* ...and claim memory from BIOS */
 	shlw	$6, %ax
-#else
-	/* Place image so that runtime starts at RELOC:0.
-	 */
-	movw	$__start_pgh, %ax /* __start_pgh = RELOC */
-	subw	$__decompressor_size_pgh, %ax
-#endif
 99:
 	/* At this point %ax contains the segment address for the
 	 * start of the image (image = optional decompressor + runtime).

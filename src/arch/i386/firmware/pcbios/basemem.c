@@ -235,9 +235,8 @@ void forget_prefix_base_memory ( void ) {
 	/* text_start_kb is _text rounded down to a physical KB boundary */
 	uint32_t runtime_start_kb = virt_to_phys(_text) & ~0x3ff;
 
-	/* If the decompressor is in allocated base memory (which it
-	 * might not be; it could be in non-allocated base memory if
-	 * -DRELOCATE is not used) *and* the Etherboot text is in base
+	/* If the decompressor is in allocated base memory
+	 * *and* the Etherboot text is in base
 	 * memory, then free the decompressor.
 	 */
 	if ( ( image_basemem >= FREE_BASE_MEMORY ) &&
