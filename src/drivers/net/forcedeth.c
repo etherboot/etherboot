@@ -729,6 +729,7 @@ static int forcedeth_reset(struct nic *nic)
 		//netif_carrier_off(dev);
 	}
 
+	udelay(10000);
 
 
 out_drain:
@@ -750,10 +751,10 @@ static int forcedeth_poll(struct nic *nic)
 	int len;
 	int i;
 	u8 *base = (u8 *) BASE;
-u32 events;
+//u32 events;
 	//if (np->cur_rx - np->refill_rx >= RX_RING)
 	//	break;	/* we scanned the whole ring - do not continue */
-
+	
 	i = np->cur_rx % RX_RING;
 	prd = &rx_ring[i];
 //printf("p");
@@ -766,15 +767,16 @@ u32 events;
 
  		nic->packetlen = len;
 		//hex_dump(rxb + (i * RX_NIC_BUFSIZE), len);
-		printf("S%d", len);
+		//printf("S%d", len);
 		/* got a valid packet - forward it to the network core */
 		memcpy(nic->packet, rxb +
 	       (i * RX_NIC_BUFSIZE), nic->packetlen);
 
 		wmb();
-		rx_ring[i].Flags = cpu_to_le16(NV_RX_AVAIL);
-		//printf("%d, ", np->cur_rx);
+		//rx_ring[i].Flags = cpu_to_le16(NV_RX_AVAIL);
+		//printf(" %d ", i);
 		np->cur_rx++;
+		alloc_rx(nic);
 		return 1;
 	}
 
@@ -801,7 +803,7 @@ static void forcedeth_transmit(
 
 	//printf("ST");
 	/* point to the current txb incase multiple tx_rings are used */
-	ptxb = txb + (np->next_tx * RX_NIC_BUFSIZE);
+	ptxb = txb + (nr * RX_NIC_BUFSIZE);
 	//np->tx_skbuff[nr] = ptxb;
 
 	/* copy the packet to ring buffer */
@@ -846,9 +848,11 @@ static void forcedeth_transmit(
 	
 		printf("Got here\n");
 	*/
-	np->next_tx++;
+	//printf(" %d ", nr);
+
 	//stop_tx(nic);
 	tx_ring[nr].Flags = np->tx_flags;
+	np->next_tx++;
 	//printf("FT");
 	
 
