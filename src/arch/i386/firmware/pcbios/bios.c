@@ -9,7 +9,6 @@
 #include "realmode.h"
 #include "segoff.h"
 
-#define ZF ( 1 << 6 )
 #define CF ( 1 << 0 )
 
 /**************************************************************************
@@ -47,72 +46,6 @@ unsigned long currticks (void) {
 	return ( days + *ticks );
 }
 #endif	/* CONFIG_BIOS_CURRTICKS */
-
-/**************************************************************************
-CONSOLE_PUTC - Print a character on console
-**************************************************************************/
-void console_putc ( int character ) {
-	struct {
-		reg16_t ax;
-	} PACKED in_stack;
-
-	BEGIN_RM_FRAGMENT(rm_console_putc);
-	__asm__ ( "sti" );
-	__asm__ ( "popw %ax" );
-	__asm__ ( "movb $0x0e, %ah" );
-	__asm__ ( "movl $1, %ebx" );
-	__asm__ ( "int $0x10" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_console_putc);
-
-	in_stack.ax.l = character;
-	real_call ( rm_console_putc, &in_stack, NULL );
-}
-
-/**************************************************************************
-CONSOLE_GETC - Get a character from console
-**************************************************************************/
-int console_getc ( void ) {
-	BEGIN_RM_FRAGMENT(rm_console_getc);
-	__asm__ ( "sti" );
-	__asm__ ( "xorw %ax, %ax" );
-	__asm__ ( "int $0x16" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_console_getc);
-
-	return real_call ( rm_console_getc, NULL, NULL );
-}
-
-/**************************************************************************
-CONSOLE_ISCHAR - Check for keyboard interrupt
-**************************************************************************/
-int console_ischar ( void ) {
-	BEGIN_RM_FRAGMENT(rm_console_ischar);
-	__asm__ ( "sti" );
-	__asm__ ( "movb $1, %ah" );
-	__asm__ ( "int $0x16" );
-	__asm__ ( "pushfw" );
-	__asm__ ( "popw %ax" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_console_ischar);
-
-	return ( ( real_call ( rm_console_ischar, NULL, NULL ) & ZF ) == 0 );
-}
-
-/**************************************************************************
-GETSHIFT - Get keyboard shift state
-**************************************************************************/
-int getshift ( void ) {
-	BEGIN_RM_FRAGMENT(rm_getshift);
-	__asm__ ( "sti" );
-	__asm__ ( "movb $2, %ah" );
-	__asm__ ( "int $0x16" );
-	__asm__ ( "andw $0x3, %ax" );
-	__asm__ ( "cli" );
-	END_RM_FRAGMENT(rm_getshift);
-
-	return real_call ( rm_getshift, NULL, NULL );
-}
 
 /**************************************************************************
 INT15 - Call Interrupt 0x15
@@ -157,5 +90,58 @@ void cpu_nap ( void ) {
 	real_call ( rm_cpu_nap, NULL, NULL );
 }
 #endif	/* POWERSAVE */
+
+#ifdef	CAN_BOOT_DISK
+/**************************************************************************
+DISK_INIT - Initialize the disk system
+**************************************************************************/
+void disk_init ( void ) {
+	BEGIN_RM_FRAGMENT(rm_disk_init);
+	__asm__ ( "xorw %ax,%ax" );
+	__asm__ ( "movb $0x80,%dl" );
+	__asm__ ( "int $0x13" );
+	END_RM_FRAGMENT(rm_disk_init);
+	
+	real_call ( rm_disk_init, NULL, NULL );
+}
+
+/**************************************************************************
+DISK_READ - Read a sector from disk
+**************************************************************************/
+unsigned int pcbios_disk_read ( int drive, int cylinder, int head, int sector,
+				char *buf ) {
+	struct {
+		reg16_t ax;
+		reg16_t cx;
+		reg16_t dx;
+		segoff16_t buffer;
+	} PACKED in_stack;
+	struct {
+		reg16_t flags;
+	} PACKED out_stack;
+	reg16_t ret_ax;
+
+	BEGIN_RM_FRAGMENT(rm_pcbios_disk_read);
+	__asm__ ( "popw %ax" );
+	__asm__ ( "popw %cx" );
+	__asm__ ( "popw %dx" );
+	__asm__ ( "popw %bx" );
+	__asm__ ( "popw %es" );
+	__asm__ ( "int $0x13" );
+	__asm__ ( "pushfw" );
+	END_RM_FRAGMENT(rm_pcbios_disk_read);
+
+	in_stack.ax.h = 2; /* INT 13,2 - Read disk sector */
+	in_stack.ax.l = 1; /* Read one sector */
+	in_stack.cx.h = cylinder & 0xff;
+	in_stack.cx.l = ( ( cylinder >> 8 ) & 0x3 ) | sector;
+	in_stack.dx.h = head;
+	in_stack.dx.l = drive;
+	in_stack.buffer.segment = SEGMENT ( buf );
+	in_stack.buffer.offset = OFFSET ( buf );
+	ret_ax = real_call ( rm_pcbios_disk_read, &in_stack, &out_stack );
+	return ( out_stack.flags.word & CF ) ? ret_ax.word : 0;
+}
+#endif /* CAN_BOOT_DISK */
 
 #endif /* PCBIOS */
