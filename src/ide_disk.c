@@ -652,7 +652,7 @@ static int init_controller(struct controller *ctrl, int basedrive, unsigned char
 	 *   BSY_SET_DURING_SPINUP to 0.
 	 *
 	 * - The BSY bit floats high when no drives are plugged in.
-	 *   This case will not be deteced except by timing out but
+	 *   This case will not be detected except by timing out but
 	 *   we avoid the problems by only probing devices we are
 	 *   supposed to boot from.  If we don't do the probe we
 	 *   will not experience the problem.
