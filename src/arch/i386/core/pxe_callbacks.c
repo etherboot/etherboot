@@ -7,6 +7,7 @@
 
 #include "etherboot.h"
 #include "callbacks.h"
+#include "realmode.h"
 #include "pxe.h"
 #include "pxe_callbacks.h"
 #include "pxe_export.h"
@@ -150,65 +151,35 @@ void remove_pxe_stack ( void ) {
 	pxe_stack = NULL;
 }
 
-#define XXX_REAL_MODE_SS (0x9000);
-
-extern GDT_STRUCT_t(6) _gdt;
-
 /* xstartpxe(): start up a PXE image
  */
 int xstartpxe ( void ) {
 	int nbp_exit;
-	regs_t registers;
-	seg_regs_t seg_regs;
-	seg_regs_t rm_seg_regs;
 	struct {
+		reg16_t bx;
+		reg16_t es;
 		segoff_t pxe;
-	} PACKED stack_params;
+	} PACKED in_stack;
 	
 	/* Set up registers and stack parameters to pass to PXE NBP */
-	seg_regs.cs = 0x28;
-	seg_regs.ss = 0x30;
-	seg_regs.ds = 0x30;
-	seg_regs.es = 0x30;
-	seg_regs.fs = 0x30;
-	seg_regs.gs = 0x30;
-	rm_seg_regs.cs = XXX_REAL_MODE_SS;
-	rm_seg_regs.ss = XXX_REAL_MODE_SS;
-	rm_seg_regs.ds = PXE_LOAD_SEGMENT;
-	rm_seg_regs.es = SEGMENT(&(pxe_stack->pxenv));
-	rm_seg_regs.fs = PXE_LOAD_SEGMENT;
-	rm_seg_regs.gs = PXE_LOAD_SEGMENT;
-	registers.bx = OFFSET(&(pxe_stack->pxenv));
-	stack_params.pxe.segment = SEGMENT(&(pxe_stack->pxe));
-	stack_params.pxe.offset = OFFSET(&(pxe_stack->pxe));
+	in_stack.es.word = SEGMENT(&(pxe_stack->pxenv));
+	in_stack.bx.word = OFFSET(&(pxe_stack->pxenv));
+	in_stack.pxe.segment = SEGMENT(&(pxe_stack->pxe));
+	in_stack.pxe.offset = OFFSET(&(pxe_stack->pxe));
 
 	/* Real-mode trampoline fragment used to jump to PXE NBP
 	 */
 	BEGIN_RM_FRAGMENT(jump_to_pxe_nbp);
 	#define xstr(x) #x	/* Macro hackery needed to stringify       */
 	#define str(x) xstr(x)	/* the constants PXE_LOAD_{SEGMENT,OFFSET} */
+	__asm__ ( "popw %bx" );
+	__asm__ ( "popw %es" );
 	__asm__ ( "lcall $" str(PXE_LOAD_SEGMENT) ", $" str(PXE_LOAD_OFFSET) );
 	END_RM_FRAGMENT(jump_to_pxe_nbp);
 
 	/* Call to PXE image */
 	gateA20_unset();
-	/*		nbp_exit = ext_call
-		( EC_TRAMPOLINE_CALL,
-		  EP_REGISTERS ( &registers ),
-		  EP_STACK ( &rm_seg_regs ),
-		  EP_STACK ( &stack_params ),
-		  EP_RELOC_STACK ( ( 0x9000 << 4 ) + 0x1000 ),
-		  EP_TRAMPOLINE(_prot_to_real, _prot_to_real_end),
-		  EP_TRAMPOLINE(jump_to_pxe_nbp, jump_to_pxe_nbp_end),
-		  EP_TRAMPOLINE(_real_to_prot, _real_to_prot_end)
-		  ); */
-	
-	nbp_exit = real_call ( &rm_seg_regs,
-			       EP_REGISTERS ( &registers ),
-			       EP_STACK ( &stack_params ),
-			       EP_TRAMPOLINE ( jump_to_pxe_nbp,
-					       jump_to_pxe_nbp_end ) );
-	
+	nbp_exit = real_call ( jump_to_pxe_nbp, &in_stack, NULL );
 	gateA20_set();
 
 	return nbp_exit;
