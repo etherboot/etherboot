@@ -2778,3 +2778,12 @@ piss off everybody equally by deleting the rule. Use the multiple driver
 rule (driver1--driver2--...) and select your own subset of drivers.
 
 Released as Etherboot 5.3.12 aka 5.4RC3 (development)
+
++ Changes to Makefile.main and Config to collect FILO objects in
+filolib.a.  This allows FILO to be excluded from compilation and linking
+with one Makefile define.
+
++ Reverse site DHCP option changes, should apply for official
+assignment.
+
++ RIS filename patch which seems to work for many people.
