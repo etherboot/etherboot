@@ -160,8 +160,10 @@ start32:
 	.globl	exit
 exit:
 	/* We relocate to our original address before returning */
+#if defined(RELOCATE)
 	pushl	$RELOC
 	call	relocate_to
+#endif
 	
 	/* We reset esp to the location just before entering main
 	 * instead of relying on the return from main because exit
