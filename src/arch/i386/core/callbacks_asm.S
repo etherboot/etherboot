@@ -664,13 +664,10 @@ _in_call_far:
 	/* Call to C code */
 	call	in_call
 
-	/* Preserve general-purpose registers and flags to return to
-	 * callee.  Overwrite the structures already on the stack to
-	 * save space (and to ease calculations).
+	/* Set %eax (return code from C) in registers structure on
+	 * stack, so that we return it to the caller.
 	 */
-	addl	$( 4 + ( NUM_PUSHA_REGS * 4 ) ), %esp
-	pushal
-	pushfl
+	movl	%eax, (IC_OFFSET_REGISTERS + 28)(%esp)
 
 	/* Calculate physical continuation address */
 	movl	virt_offset, %ebp
