@@ -232,6 +232,8 @@
 #			Include support for devices using the pci bus.
 #	-DCONFIG_ISA
 #			Include support for devices using isa bus.
+#	-DCONFIG_PCMCIA
+#			Include support for PCMCIA in general *development*
 # @/OptionDescription@
 
 # These default settings compile Etherboot with a small number of options.
@@ -240,6 +242,7 @@
 
 # Select which busses etherboot should support
 CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
+#CFLAGS+=	 -DCONFIG_PCMCIA
 
 # For prompting and default on timeout
 CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
@@ -301,7 +304,7 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 
 # Relocate etherboot to just below 4GB.
 # A couple of drivers do not work with relocation, notably lance.
-CFLAGS+=	-DRELOCATE
+#CFLAGS+=	-DRELOCATE
 
 # you should normally not need to change these
 HOST_CC=	gcc
