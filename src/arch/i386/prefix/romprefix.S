@@ -243,6 +243,10 @@ prefix_exit_end:
 	
 	
 #ifdef 	PXE_EXPORT
+
+#include "callbacks.h"
+#define PXENV_UNDI_LOADER		0x104d
+
 	.section ".prefix"
 	/* Placeholder UNDI loader routine: just print out a message
 	 * and return failure.
@@ -250,18 +254,25 @@ prefix_exit_end:
 loadermsg:	.ascii "Dummy UNDI loader called\r\n"
 loadermsg_end:	
 UNDILoader:
-	pushw	%cs
-	popw	%ds
-	movw	$loadermsg - _prefix, %si
-	movw	$loadermsg_end - loadermsg, %cx
-	movw	$0x0007, %bx
-	movb	$0x0e, %ah
-prloop:	
-	lodsb
-	int	$0x10
-	loop	prloop
-	/* Return failure */
-	movw	$1, %ax
-	lret
+	/* Shuffle stack into looking like a normal PXE API call */
+	pushw	%ax			/* padding */
+	pushw	%bp
+	movw	%sp, %bp
+	movw	$PXENV_UNDI_LOADER, %ax	/* PXE 'opcode' */
+	xchgw	%ax, 6(%bp)
+	xchgw	%ax, 4(%bp)
+	xchgw	%ax, 2(%bp)
+	popw	%bp
+	/* Unpack Etherboot into temporarily claimed base memory */
+	pushw	$-1			/* Do not switch stacks */
+	call	prelocate
+	addw	$2, %sp			/* discard */
+	/* Make PXE API call to Etherboot */
+	pushl	$0x201			/* PXE API version */
+	pushl	$EB_OPCODE_PXE		/* This is a PXE API call */
+	call	_entry
+	addw	$8, %sp		/* discard */
+	call	deprelocate
+	lret	$2			/* Skip our PXE 'opcode' */
 #endif	/* PXE_EXPORT */
 		
