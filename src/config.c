@@ -114,6 +114,8 @@ static struct pci_id eepro100_nics[] = {
 		"Intel EtherExpressPro100 82562EM" },
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1038,
 		"Intel(R) PRO/100 VM Network Connection" },
+	{ PCI_VENDOR_ID_INTEL,		0x1039,
+		"Intel PRO100 VE 82562ET" },
 };
 #endif
 #ifdef INCLUDE_E1000

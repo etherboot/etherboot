@@ -361,7 +361,7 @@ static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 	unsigned int devfn, l, bus, buses;
 	unsigned char hdr_type = 0;
 	unsigned short vendor, device;
-	unsigned int membase, ioaddr, romaddr;
+	unsigned int addr0, addr1, romaddr;
 	int i, reg;
 	unsigned int pci_ioaddr = 0;
 
@@ -422,23 +422,23 @@ static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 				romaddr >>= 10;
 				dev->romaddr = romaddr;
 				
-				/* Get the ``membase'' */
+				/* Get addr1 */
 				pcibios_read_config_dword(bus, devfn,
-					PCI_BASE_ADDRESS_1, &membase);
-				dev->membase = membase;
+					PCI_BASE_ADDRESS_1, &addr1);
+				dev->addr1 = addr1;
 				
-				/* Get the ``ioaddr'' */
+				/* Get the addr0 */
 				for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
-					pcibios_read_config_dword(bus, devfn, reg, &ioaddr);
-					if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0 || (ioaddr & PCI_BASE_ADDRESS_SPACE_IO) == 0)
+					pcibios_read_config_dword(bus, devfn, reg, &addr0);
+					if ((addr0 & PCI_BASE_ADDRESS_IO_MASK) == 0 || (addr0 & PCI_BASE_ADDRESS_SPACE_IO) == 0)
 						continue;
 
 
 					/* Strip the I/O address out of the returned value */
-					ioaddr &= PCI_BASE_ADDRESS_IO_MASK;
+					addr0 &= PCI_BASE_ADDRESS_IO_MASK;
 
 					/* Take the first one or the one that matches in boot ROM address */
-					dev->ioaddr = ioaddr;
+					dev->ioaddr = addr0;
 				}
 				printf("Found %s ROM address %#hx\n",
 					dev->name, romaddr);

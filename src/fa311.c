@@ -136,7 +136,7 @@ struct FA311_DEV* dev = &fa311_dev;
     memset(dev, 0, sizeof(*dev));
     dev->vendor = pci->vendor;
     dev->device = pci->dev_id;
-    dev->ioaddr = pci->membase;
+    dev->ioaddr = pci->addr1;
 
     /* Work around the dropped serial bit. */
     prev_eedata = eeprom_read(dev->ioaddr, 6);

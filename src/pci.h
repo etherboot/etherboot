@@ -196,9 +196,9 @@ struct pci_id {
 struct pci_device {
 	unsigned short	vendor, dev_id;
 	const char	*name;
-	/* membase and ioaddr are silly and depricated */
-	unsigned int	membase;
+	/* ioaddr is silly and deprecated */
 	unsigned int	ioaddr;
+	unsigned int	addr1;
 	unsigned char	devfn;
 	unsigned char	bus;
 	struct pci_id *	probe_id;
