@@ -25,13 +25,34 @@
 #define pxe_pxenv_location	INSTALLED(_pxe_pxenv_location)
 #define INT1A_VECTOR ( (segoff_t*) ( phys_to_virt( 4 * 0x1a ) ) )
 
-/* Overall PXE stack size
+/* The overall size of the PXE stack is ( sizeof(pxe_stack_t) +
+ * pxe_callback_interface_size + rm_callback_interface_size ).
+ * Unfortunately, this isn't a compile-time constant, since
+ * {pxe,rm}_callback_interface_size depend on the length of the
+ * assembly code in these interfaces.
+ *
+ * We used to have a function pxe_stack_size() which returned this
+ * value.  However, it actually needs to be a link-time constant, so
+ * that it can appear in the UNDIROMID structure in romprefix.S.  We
+ * therefore export the three component sizes as absolute linker
+ * symbols, get the linker to add them together and generate a new
+ * absolute symbol _pxe_stack_size.  We then import this value into a
+ * C variable pxe_stack_size, for access from C code.
  */
-static inline int pxe_stack_size ( void ) {
-	return sizeof(pxe_stack_t)
-		+ pxe_callback_interface_size
-		+ rm_callback_interface_size;
+
+/* gcc won't let us use extended asm outside a function (compiler
+ * bug), ao we have to put these asm statements inside a dummy
+ * function.
+ */
+void work_around_gcc_bug ( void ) {
+	/* Export sizeof(pxe_stack_t) as absolute linker symbol */
+	__asm__ ( ".globl _pxe_stack_t_size" );
+	__asm__ ( ".equ _pxe_stack_t_size, %c0"
+		  : : "i" (sizeof(pxe_stack_t)) );
 }
+/* Import _pxe_stack_size absolute linker symbol into C variable */
+extern int pxe_stack_size;
+__asm__ ( "pxe_stack_size: .long _pxe_stack_size" );
 
 /* Utility routine: byte checksum
  */
@@ -67,7 +88,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	/* Allocate base memory if requested to do so
 	 */
 	if ( base == NULL ) {
-		base = allot_base_memory ( pxe_stack_size() );
+		base = allot_base_memory ( pxe_stack_size );
 		if ( base == NULL ) return NULL;
 	}
 
@@ -229,7 +250,7 @@ int unhook_pxe_stack ( void ) {
 void remove_pxe_stack ( void ) {
 	/* Ensure stack is deactivated, then free up the memory */
 	if ( ensure_pxe_state ( CAN_UNLOAD ) ) {
-		forget_base_memory ( pxe_stack, pxe_stack_size() );
+		forget_base_memory ( pxe_stack, pxe_stack_size );
 		pxe_stack = NULL;
 	} else {
 		printf ( "Cannot remove PXE stack!\n" );
@@ -334,5 +355,11 @@ void test_exclude ( void ) {
 	_test_exclude ( 0x8000, 0x1000, 0x8000, 0x1000 ); /* exact overlap */
 }
 #endif /* TEST_EXCLUDE_ALGORITHM */
+
+#else /* EXPORT_PXE */
+
+/* Define symbols used by the linker scripts, to prevent link errors */
+__asm__ ( ".globl _pxe_stack_t_size" );
+__asm__ ( ".equ _pxe_stack_t_size, 0" );
 
 #endif /* EXPORT_PXE */

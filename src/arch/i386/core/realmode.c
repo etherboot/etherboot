@@ -67,13 +67,13 @@ uint32_t prepare_real_call ( real_call_params_t *p,
 		memcpy ( s, p->in_stack, p->in_stack_len );
 		s += p->in_stack_len;
 	}
-	memcpy ( s, _prot_to_real_prefix, _prot_to_real_prefix_size );
-	s += _prot_to_real_prefix_size;
+	memcpy ( s, _prot_to_real_prefix, prot_to_real_prefix_size );
+	s += prot_to_real_prefix_size;
 	p2r_params = (prot_to_real_params_t*) ( s - sizeof(*p2r_params) );
 	memcpy ( s, p->fragment, p->fragment_len );
 	s += p->fragment_len;
-	memcpy ( s, _real_to_prot_suffix, _real_to_prot_suffix_size );
-	s += _real_to_prot_suffix_size;
+	memcpy ( s, _real_to_prot_suffix, real_to_prot_suffix_size );
+	s += real_to_prot_suffix_size;
 	r2p_params = (real_to_prot_params_t*) ( s - sizeof(*r2p_params) );
 
 	/* Set parameters within compiled stack */
@@ -99,8 +99,8 @@ uint16_t _real_call ( void *fragment, int fragment_len,
 	/* This code is basically equivalent to
 	 *
 	 *	uint32_t trampoline;
-	 *	char local_stack[ in_stack_len + _prot_to_real_prefix_size +
-	 *			  fragment_len + _real_to_prot_suffix_size ];
+	 *	char local_stack[ in_stack_len + prot_to_real_prefix_size +
+	 *			  fragment_len + real_to_prot_suffix_size ];
 	 *	trampoline = prepare_real_call ( &fragment, local_stack );
 	 *	__asm__ ( "call _virt_to_phys\n\t"
 	 *		  "call %%eax\n\t"
@@ -126,8 +126,8 @@ uint16_t _real_call ( void *fragment, int fragment_len,
 		  "popl  %%ebp\n\t"
 		  : "=a" ( retval )
 		  : "0" ( &fragment )
-		  , "c" ( ( ( in_stack_len + _prot_to_real_prefix_size +
-			      fragment_len + _real_to_prot_suffix_size )
+		  , "c" ( ( ( in_stack_len + prot_to_real_prefix_size +
+			      fragment_len + real_to_prot_suffix_size )
 			    + 0x3 ) & ~0x3 ) );
 	return retval;
 }

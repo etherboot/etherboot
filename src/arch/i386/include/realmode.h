@@ -82,11 +82,11 @@ extern void _rm_in_call_far ( void );
 
 extern void _prot_to_real_prefix ( void );
 extern void _prot_to_real_prefix_end ( void );
-extern uint16_t _prot_to_real_prefix_size;
+extern uint16_t prot_to_real_prefix_size;
 
 extern void _real_to_prot_suffix ( void );
 extern void _real_to_prot_suffix_end ( void );
-extern uint16_t _real_to_prot_suffix_size;
+extern uint16_t real_to_prot_suffix_size;
 
 /* PXE assembler bits */
 extern void pxe_callback_interface;

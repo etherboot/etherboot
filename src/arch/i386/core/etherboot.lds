@@ -64,4 +64,12 @@ SECTIONS {
 		*(.comment)
 		*(.note)
 	}
+
+	/* PXE-specific symbol calculations.  The results of these are
+	 * needed in romprefix.S, which is why they must be calculated
+	 * here.
+	 */
+	_pxe_stack_size = _pxe_stack_t_size
+		+ _pxe_callback_interface_size
+		+ _rm_callback_interface_size;
 }

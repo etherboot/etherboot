@@ -361,9 +361,11 @@ p2r_r2p_params:	.long 0
 	.globl	_prot_to_real_prefix_end
 _prot_to_real_prefix_end:
 	
-	.globl _prot_to_real_prefix_size
-_prot_to_real_prefix_size:	
-	.word	 _prot_to_real_prefix_end - _prot_to_real_prefix
+	.globl	_prot_to_real_prefix_size
+	.equ	_prot_to_real_prefix_size, _prot_to_real_prefix_end - _prot_to_real_prefix
+	.globl	prot_to_real_prefix_size
+prot_to_real_prefix_size:	
+	.word	_prot_to_real_prefix_size
 	
 /****************************************************************************
  * _real_to_prot_suffix
@@ -519,17 +521,21 @@ r2p_out_stack_len:	.long 0
 	.globl	_real_to_prot_suffix_end
 _real_to_prot_suffix_end:
 
-	.globl _real_to_prot_suffix_size
-_real_to_prot_suffix_size:
-	.word	_real_to_prot_suffix_end - _real_to_prot_suffix
+	.globl	_real_to_prot_suffix_size
+	.equ	_real_to_prot_suffix_size, _real_to_prot_suffix_end - _real_to_prot_suffix
+	.globl	real_to_prot_suffix_size
+real_to_prot_suffix_size:
+	.word	_real_to_prot_suffix_size
 
 	
 		
 rm_callback_interface_end:
 
+	.globl	_rm_callback_interface_size
+	.equ	_rm_callback_interface_size, rm_callback_interface_end - rm_callback_interface
 	.globl	rm_callback_interface_size
 rm_callback_interface_size:
-	.word	rm_callback_interface_end - rm_callback_interface
+	.word	_rm_callback_interface_size
 
 /****************************************************************************
  * END OF REAL-MODE CALLBACK INTERFACE
@@ -871,10 +877,24 @@ pxe_attach_rm:
 
 pxe_callback_interface_end:
 
+	.globl	_pxe_callback_interface_size
+	.equ	_pxe_callback_interface_size, pxe_callback_interface_end - pxe_callback_interface
 	.globl	pxe_callback_interface_size
 pxe_callback_interface_size:
-	.word	pxe_callback_interface_end - pxe_callback_interface
+	.word	_pxe_callback_interface_size
+
+#else	/* PXE_EXPORT */
 	
-#endif /* PXE_EXPORT */
+/* Define symbols used by the linker scripts, to prevent link errors */
+	.globl	_pxe_callback_interface_size
+	.equ	_pxe_callback_interface_size, 0	
 	
-#endif /* CODE16 */
+#endif	/* PXE_EXPORT */
+
+#else	/* CODE16 */
+
+/* Define symbols used by the linker scripts, to prevent link errors */
+	.globl	_rm_callback_interface_size
+	.equ	_rm_callback_interface_size, 0	
+		
+#endif	/* CODE16 */
