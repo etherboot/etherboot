@@ -169,6 +169,9 @@ family		drivers/net/skel
 family		arch/ia64/drivers/net/undi_nii
 undi_nii	-
 
+family		arch/i386/drivers/net/undi
+undi		0x0000,0x0000	UNDI driver support
+
 # 3c59x cards (Vortex) and 3c900 cards
 # If your 3c900 NIC detects but fails to work, e.g. no link light, with
 # the 3c90x driver, try using the 3c595 driver. I have one report that the
