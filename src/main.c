@@ -13,6 +13,7 @@ Literature dealing with the network protocols:
 	TFTP - RFC1350, RFC2347 (options), RFC2348 (blocksize), RFC2349 (tsize)
 	RPC - RFC1831, RFC1832 (XDR), RFC1833 (rpcbind/portmapper)
 	NFS - RFC1094, RFC1813 (v3, useful for clarifications, not implemented)
+	IGMP - RFC1112
 
 **************************************************************************/
 
@@ -23,6 +24,9 @@ Literature dealing with the network protocols:
 
 jmpbuf			restart_etherboot;
 struct arptable_t	arptable[MAX_ARP];
+#if MULTICAST_LEVEL2
+struct igmptable_t	igmptable[MAX_IGMP];
+#endif
 /* Currently no other module uses rom, but it is available */
 struct rom_info		rom;
 static unsigned long	netmask;
@@ -146,47 +150,9 @@ static int bootp(void);
 static int rarp(void);
 static void load_configuration(void);
 static void load(void);
-static int handleblock(unsigned char *data, int block, int len, int eof);
-static unsigned short ipchksum(unsigned short *ip, int len);
 static unsigned short udpchksum(struct iphdr *packet);
 #ifdef FREEBSD_PXEEMU
-static int pxeemu_entry(struct v86 *v86_p, int *v86_call_flag,
-			int pxeemu_func_nr, vm_offset_t pxeemu_func_arg);
-
-static pxenv_t pxenv = {
-        {'P','X','E','N','V','+'},      /* Signature    */
-        0x0100,                         /* Version      */
-        sizeof(pxenv_t),                /* Length       */
-        0,                              /* Checksum     */
-        {0, 0},                         /* RMEntry      */
-        (uint32_t)pxeemu_entry,		/* PMOffset     */
-        0,                              /* PMSelector   */
-        0,                              /* StackSeg     */
-        0,                              /* StackSize    */
-        0,                              /* BC_CodeSeg   */
-        0,                              /* BC_CodeSize  */
-        0,                              /* BC_DataSeg   */
-        0,                              /* BC_DataSize  */
-        0,                              /* UNDIDataSeg  */
-        0,                              /* UNDIDataSize */
-        0,                              /* UNDICodeSeg  */
-        0,                              /* UNDICodeSize */
-        {0, 0}                          /* !PXEPtr      */
-};
-
-static jmpbuf		pxeemu_v86call_jbuf;
-static jmpbuf		pxeemu_entry_jbuf;
 extern char		pxeemu_nbp_active;
-static char		pxeemu_boot_flag;
-
-#define PXEEMU_EXIT_ADJ		2
-#define PXENV_EXIT_SUCCESS	(0x0000 + PXEEMU_EXIT_ADJ)
-#define PXENV_EXIT_FAILURE	(0x0001 + PXEEMU_EXIT_ADJ)
-#define PXEEMU_EXIT_V86INT	(0x0002 + PXEEMU_EXIT_ADJ)
-
-#define PXENV_STATUS_SUCCESS	(PXENV_EXIT_SUCCESS - PXEEMU_EXIT_ADJ)
-#define PXENV_STATUS_FAILURE	(PXENV_EXIT_FAILURE - PXEEMU_EXIT_ADJ)
-
 #endif	/* FREEBSD_PXEBOOT */
 
 static inline void ask_boot(void)
@@ -269,6 +235,9 @@ int main(void)
 	*/
 	while(1) {
 		i = setjmp(restart_etherboot);
+#ifdef MULTICAST_LEVEL2
+		memset(&igmptable, 0, sizeof(igmptable));
+#endif
 		if (i == 0) {
 			/* We just called setjmp ... */
 			ask_boot();
@@ -314,11 +283,9 @@ int main(void)
 /**************************************************************************
 LOADKERNEL - Try to load kernel image
 **************************************************************************/
-#ifndef	CAN_BOOT_DISK
-#define loadkernel(s) download((s), handleblock)
-#else
 static int loadkernel(const char *fname)
 {
+#ifdef	CAN_BOOT_DISK
 	if (!memcmp(fname,"/dev/",5) && fname[6] == 'd') {
 		int dev, part = 0;
 		if (fname[5] == 'f') {
@@ -338,10 +305,24 @@ static int loadkernel(const char *fname)
 			goto nodisk;
 		return(bootdisk(dev,part));
 	}
-nodisk:
-	return download(fname, handleblock);
-}
 #endif
+#ifdef DOWNLOAD_PROTO_SLAM
+	if (memcmp(fname, "x-slam://", 9) == 0) {
+		fname += 9;
+		return url_slam(fname, download_kernel);
+	}
+#endif
+#if 0
+	 if (memcmp(fname, "floppy", 6) == 0) 
+	 {
+		extern int floppy_load(int floppy, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)) ;
+		return floppy_load(0, download_kernel);
+	}
+
+#endif
+nodisk:
+	return download(fname, load_block);
+}
 
 /*
  * Find out what our boot parameters are
@@ -427,38 +408,51 @@ static inline unsigned long default_netmask(void)
 }
 
 /**************************************************************************
-UDP_TRANSMIT - Send a UDP datagram
+IP_TRANSMIT - Send an IP datagram
 **************************************************************************/
-int udp_transmit(unsigned long destip, unsigned int srcsock,
-	unsigned int destsock, int len, const void *buf)
+static int await_arp(int ival, void *ptr,
+	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
 {
+	struct	arprequest *arpreply;
+	if (ptype != ARP)
+		return 0;
+	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
+		return 0;
+	arpreply = (struct arprequest *)&nic.packet[ETH_HLEN];
+
+	if (arpreply->opcode != htons(ARP_REPLY)) 
+		return 0;
+	if (memcmp(arpreply->sipaddr, ptr, sizeof(in_addr)) != 0)
+		return 0;
+	memcpy(arptable[ival].node, arpreply->shwaddr, ETH_ALEN);
+	return 1;
+}
+
+int ip_transmit(int len, const void *buf)
+{
+	unsigned long destip;
 	struct iphdr *ip;
-	struct udphdr *udp;
 	struct arprequest arpreq;
 	int arpentry, i;
 	int retry;
 
 	ip = (struct iphdr *)buf;
-	udp = (struct udphdr *)((char *)buf + sizeof(struct iphdr));
-	ip->verhdrlen = 0x45;
-	ip->service = 0;
-	ip->len = htons(len);
-	ip->ident = 0;
-	ip->frags = 0;
-	ip->ttl = 60;
-	ip->protocol = IP_UDP;
-	ip->chksum = 0;
-	ip->src.s_addr = arptable[ARP_CLIENT].ipaddr.s_addr;
-	ip->dest.s_addr = destip;
-	ip->chksum = ipchksum((unsigned short *)buf, sizeof(struct iphdr));
-	udp->src = htons(srcsock);
-	udp->dest = htons(destsock);
-	udp->len = htons(len - sizeof(struct iphdr));
-	udp->chksum = 0;
-	if ((udp->chksum = htons(udpchksum(ip))) == 0)
-		udp->chksum = 0xffff;
+	destip = ip->dest.s_addr;
 	if (destip == IP_BROADCAST) {
 		eth_transmit(broadcast, IP, len, buf);
+#ifdef MULTICAST_LEVEL1 
+	} else if ((destip & htonl(MULTICAST_MASK)) == htonl(MULTICAST_NETWORK)) {
+		unsigned char multicast[6];
+		unsigned long hdestip;
+		hdestip = ntohl(destip);
+		multicast[0] = 0x01;
+		multicast[1] = 0x00;
+		multicast[2] = 0x5e;
+		multicast[3] = (hdestip >> 16) & 0x7;
+		multicast[4] = (hdestip >> 8) & 0xff;
+		multicast[5] = hdestip & 0xff;
+		eth_transmit(multicast, IP, len, buf);
+#endif
 	} else {
 		if (((destip & netmask) !=
 			(arptable[ARP_CLIENT].ipaddr.s_addr & netmask)) &&
@@ -488,7 +482,7 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 				eth_transmit(broadcast, ARP, sizeof(arpreq),
 					&arpreq);
 				timeout = rfc2131_sleep_interval(TIMEOUT, retry);
-				if (await_reply(AWAIT_ARP, arpentry,
+				if (await_reply(await_arp, arpentry,
 					arpreq.tipaddr, timeout)) goto xmit;
 			}
 			return(0);
@@ -496,129 +490,93 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 xmit:
 		eth_transmit(arptable[arpentry].node, IP, len, buf);
 	}
-	return(1);
+	return 1;
+}
+
+void build_ip_hdr(unsigned long destip, int ttl, int protocol, 
+	int len, const void *buf)
+{
+	struct iphdr *ip;
+	ip = (struct iphdr *)buf;
+	ip->verhdrlen = 0x45;
+	ip->service = 0;
+	ip->len = htons(len);
+	ip->ident = 0;
+	ip->frags = 0;
+	ip->ttl = ttl;
+	ip->protocol = protocol;
+	ip->chksum = 0;
+	ip->src.s_addr = arptable[ARP_CLIENT].ipaddr.s_addr;
+	ip->dest.s_addr = destip;
+	ip->chksum = ipchksum((unsigned short *)buf, sizeof(struct iphdr));
+}
+
+void build_udp_hdr(unsigned long destip, 
+	unsigned int srcsock, unsigned int destsock, int ttl,
+	int len, const void *buf)
+{
+	struct iphdr *ip;
+	struct udphdr *udp;
+	ip = (struct iphdr *)buf;
+	build_ip_hdr(destip, ttl, IP_UDP, len, buf);
+	udp = (struct udphdr *)((char *)buf + sizeof(struct iphdr));
+	udp->src = htons(srcsock);
+	udp->dest = htons(destsock);
+	udp->len = htons(len - sizeof(struct iphdr));
+	udp->chksum = 0;
+	if ((udp->chksum = htons(udpchksum(ip))) == 0)
+		udp->chksum = 0xffff;
+}
+
+
+/**************************************************************************
+UDP_TRANSMIT - Send an UDP datagram
+**************************************************************************/
+int udp_transmit(unsigned long destip, unsigned int srcsock,
+	unsigned int destsock, int len, const void *buf)
+{
+	build_udp_hdr(destip, srcsock, destsock, 60, len, buf);
+	return ip_transmit(len, buf);
 }
 
 /**************************************************************************
-DOWNLOADKERNEL - Try to load file
+QDRAIN - clear the nic's receive queue
 **************************************************************************/
-static int handleblock(unsigned char *data, int block, int len, int eof)
+static int await_qdrain(int ival, void *ptr,
+	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
 {
-#ifdef	FREEBSD_PXEEMU
-	static char *pxeemu_nbp_addr = (char *) 0x7C00;
-#endif
-#ifdef	SIZEINDICATOR
-	static int rlen = 0;
+	return 0;
+}
 
-	if (!(block % 4) || eof) {
-		int size;
-		size = ((block-1) * rlen + len) / 1024;
-
-		putchar('\b');
-		putchar('\b');
-		putchar('\b');
-		putchar('\b');
-
-		putchar('0' + (size/1000)%10);
-		putchar('0' + (size/100)%10);
-		putchar('0' + (size/10)%10);
-		putchar('0' + (size/1)%10);
-	}
-#endif
-	if (block == 1)
-	{
-#ifdef FREEBSD_PXEEMU
-		pxeemu_boot_flag = 0;
-#endif
-#ifdef	SIZEINDICATOR
-		rlen=len;
-#endif
-		if (!eof && (
-#ifdef	TAGGED_IMAGE
-		    *((unsigned long *)data) == 0x1B031336L ||
-#endif
-#ifdef	ELF_IMAGE
-		    *((unsigned long *)data) == 0x464C457FL ||
-#endif
-#ifdef	AOUT_IMAGE
-		    *((unsigned short *)data) == 0x010BL ||
-#endif
-#ifdef	FREEBSD_PXEEMU
-		    (*((unsigned long *)(data + 2)) == 0x42455850 &&
-		     (pxeemu_boot_flag = 1)) ||
-#endif
-		    0))
-		{
-			;
-		}
-#if	0	/* is this a vestige of non-tagged images? */
-		else if (eof)
-		{
-			memcpy(config_buffer, data, len);
-			config_buffer[len] = 0;
-			return (1); /* done */
-		}
-#endif
-		else
-		{
-			printf("error: not a valid image\n");
-			return(0); /* error */
-		}
-	}
-	if (len != 0) {
-#ifdef	FREEBSD_PXEEMU
-		if(pxeemu_boot_flag == 0) {
-#endif
-		if (!os_download(block, data, len))
-			return(0); /* error */
-#ifdef	FREEBSD_PXEEMU
-		} else {
-			memcpy(pxeemu_nbp_addr, data, len);
-			pxeemu_nbp_addr += len;
-		}
-#endif
-	}
-	if (eof) {
-#ifdef FREEBSD_PXEEMU
-		if(pxeemu_boot_flag == 0) {
-#endif
-		os_download(block+1, data, 0); /* does not return */
-		return(0); /* error */
-#ifdef FREEBSD_PXEEMU
-		} else {
-			uint8_t val, *ptr, counter;
-
-			ptr = (uint8_t*) &pxenv;
-			val = 0;
-			for(counter = 0; counter < pxenv.Length; ++counter, 
-								 ++ptr)
-			val += *ptr;
-			pxenv.Checksum = 0xff - val + 1;
-			printf("\n");
-
-
-   __asm__ __volatile__	(
-			 "movb $1, pxeemu_nbp_active\n"
-			 "call _prot_to_real\n"
-			 ".code16\n"
-			 "movw %0, %%ax\n"                    
-			 "movw %%ax, %%es\n"
-			 "movl %1, %%ebx\n"
-			 "ljmp $0x0,$0x7c00\n"
-			 ".code32\n"
-			 : : "i" (RELOC >> 4), 
-			     "g" (((vm_offset_t)&pxenv) - RELOC));
-		}
-#endif
-	}
-	return(-1); /* there is more data */
+void rx_qdrain(void)
+{
+	/* Clear out the Rx queue first.  It contains nothing of interest,
+	 * except possibly ARP requests from the DHCP/TFTP server.  We use
+	 * polling throughout Etherboot, so some time may have passed since we
+	 * last polled the receive queue, which may now be filled with
+	 * broadcast packets.  This will cause the reply to the packets we are
+	 * about to send to be lost immediately.  Not very clever.  */
+	await_reply(await_qdrain, 0, NULL, 0);
 }
 
 #ifdef	DOWNLOAD_PROTO_TFTP
 /**************************************************************************
 TFTP - Download extended BOOTP data, or kernel image
 **************************************************************************/
-int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
+static int await_tftp(int ival, void *ptr,
+	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+{
+	if (!udp) {
+		return 0;
+	}
+	if (arptable[ARP_CLIENT].ipaddr.s_addr != ip->dest.s_addr)
+		return 0;
+	if (ntohs(udp->dest) != ival)
+		return 0;
+	return 1;
+}
+
+int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int))
 {
 	int             retry = 0;
 	static unsigned short iport = 2000;
@@ -630,13 +588,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 	int		rc;
 	int		packetsize = TFTP_DEFAULTSIZE_PACKET;
 
-	/* Clear out the Rx queue first.  It contains nothing of interest,
-	 * except possibly ARP requests from the DHCP/TFTP server.  We use
-	 * polling throughout Etherboot, so some time may have passed since we
-	 * last polled the receive queue, which may now be filled with
-	 * broadcast packets.  This will cause the reply to the packets we are
-	 * about to send to be lost immediately.  Not very clever.  */
-	await_reply(AWAIT_QDRAIN, 0, NULL, 0);
+	rx_qdrain();
 
 	tp.opcode = htons(TFTP_RRQ);
 	/* Warning: the following assumes the layout of bootp_t.
@@ -655,7 +607,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 #else
 		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 #endif
-		if (!await_reply(AWAIT_TFTP, iport, NULL, timeout))
+		if (!await_reply(await_tftp, iport, NULL, timeout))
 		{
 			if (!block && retry++ < MAX_TFTP_RETRIES)
 			{	/* maybe initial request was lost */
@@ -688,7 +640,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 		}
 
 		if (tr->opcode == ntohs(TFTP_OACK)) {
-			char *p = tr->u.oack.data, *e;
+			const char *p = tr->u.oack.data, *e;
 
 			if (prevblock)		/* shouldn't happen */
 				continue;	/* ignore it */
@@ -771,6 +723,29 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 /**************************************************************************
 RARP - Get my IP address and load information
 **************************************************************************/
+static int await_rarp(int ival, void *ptr,
+	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+{
+	struct arprequest *arpreply;
+	if (ptype != RARP)
+		return;
+	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
+		return 0;
+	arpreply = (struct arprequest *)&nic.pakcet[ETH_HLEN];
+	if (arpreply->opcode != htons(RARP_REPLY))
+		return 0;
+	if (memcmp(arpreply->thwaddr, 
+	if ((arpreply->opcode == htons(RARP_REPLY)) &&
+		(memcmp(arpreply->thwaddr, ptr, ETH_ALEN) == 0)) {
+		memcpy(arptable[ARP_SERVER].node, arpreply->shwaddr, ETH_ALEN);
+		memcpy(&arptable[ARP_SERVER].ipaddr, arpreply->sipaddr, sizeof(in_addr));
+		memcpy(&arptable[ARP_CLIENT].ipaddr, arpreply->tipaddr, sizeof(in_addr));
+		return 1;
+	}
+	}
+	return 0;
+}
+
 static int rarp(void)
 {
 	int retry;
@@ -795,7 +770,7 @@ static int rarp(void)
 		eth_transmit(broadcast, RARP, sizeof(rarpreq), &rarpreq);
 
 		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
-		if (await_reply(AWAIT_RARP, 0, rarpreq.shwaddr, timeout))
+		if (await_reply(await_rarp, 0, rarpreq.shwaddr, timeout))
 			break;
 	}
 
@@ -812,6 +787,60 @@ static int rarp(void)
 /**************************************************************************
 BOOTP - Get my IP address and load information
 **************************************************************************/
+static int await_bootp(int ival, void *ptr,
+	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+{
+	struct	bootp_t *bootpreply;
+	if (!udp) {
+		return 0;
+	}
+	bootpreply = (struct bootp_t *)&nic.packet[ETH_HLEN + 
+		sizeof(struct iphdr) + sizeof(struct udphdr)];
+	if (nic.packetlen < ETH_HLEN + sizeof(struct iphdr) + 
+		sizeof(struct udphdr) + 
+#ifdef NO_DHCP_SUPPORT
+		sizeof(struct bootp_t)
+#else
+		sizeof(struct bootp_t) - DHCP_OPT_LEN
+#endif	/* NO_DHCP_SUPPORT */
+		) {
+		return 0;
+	}
+	if (udp->dest != htons(BOOTP_CLIENT))
+		return 0;
+	if (bootpreply->bp_op != BOOTP_REPLY)
+		return 0;
+	if (bootpreply->bp_xid != xid)
+		return 0;
+	if ((memcmp(broadcast, bootpreply->bp_hwaddr, ETH_ALEN) != 0) &&
+		(memcmp(arptable[ARP_CLIENT].node, bootpreply->bp_hwaddr, ETH_ALEN) != 0)) {
+		return 0;
+	}
+	arptable[ARP_CLIENT].ipaddr.s_addr = bootpreply->bp_yiaddr.s_addr;
+#ifndef	NO_DHCP_SUPPORT
+	dhcp_addr.s_addr = bootpreply->bp_yiaddr.s_addr;
+#endif	/* NO_DHCP_SUPPORT */
+	netmask = default_netmask();
+	arptable[ARP_SERVER].ipaddr.s_addr = bootpreply->bp_siaddr.s_addr;
+	memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);  /* Kill arp */
+	arptable[ARP_GATEWAY].ipaddr.s_addr = bootpreply->bp_giaddr.s_addr;
+	memset(arptable[ARP_GATEWAY].node, 0, ETH_ALEN);  /* Kill arp */
+	/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
+	memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
+	decode_rfc1533(BOOTP_DATA_ADDR->bootp_reply.bp_vend, 0,
+#ifdef	NO_DHCP_SUPPORT
+		BOOTP_VENDOR_LEN + MAX_BOOTP_EXTLEN, 
+#else
+		DHCP_OPT_LEN + MAX_BOOTP_EXTLEN, 
+#endif	/* NO_DHCP_SUPPORT */
+		1);
+#ifdef	REQUIRE_VCI_ETHERBOOT
+	if (!vci_etherboot)
+		return (0);
+#endif
+	return(1);
+}
+
 static int bootp(void)
 {
 	int retry;
@@ -843,23 +872,16 @@ static int bootp(void)
 		long timeout;
 		unsigned char etherboot_encap_len;
 
-		/* Clear out the Rx queue first.  It contains nothing of
-		 * interest, except possibly ARP requests from the DHCP/TFTP
-		 * server.  We use polling throughout Etherboot, so some time
-		 * may have passed since we last polled the receive queue,
-		 * which may now be filled with broadcast packets.  This will
-		 * cause the reply to the packets we are about to send to be
-		 * lost immediately.  Not very clever.  */
-		await_reply(AWAIT_QDRAIN, 0, NULL, 0);
+		rx_qdrain();
 
 		udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 			sizeof(struct bootpip_t), &ip);
 		timeout = rfc2131_sleep_interval(TIMEOUT, retry++);
 #ifdef	NO_DHCP_SUPPORT
-		if (await_reply(AWAIT_BOOTP, 0, NULL, timeout))
+		if (await_reply(await_bootp, 0, NULL, timeout))
 			return(1);
 #else
-		if (await_reply(AWAIT_BOOTP, 0, NULL, timeout)) {
+		if (await_reply(await_bootp, 0, NULL, timeout)) {
 			/* If not a DHCPOFFER then must be just a BOOTP reply,
 			   be backward compatible with BOOTP then */
 			if (dhcp_reply != DHCPOFFER)
@@ -881,7 +903,7 @@ static int bootp(void)
 					sizeof(struct bootpip_t), &ip);
 				dhcp_reply=0;
 				timeout = rfc2131_sleep_interval(TIMEOUT, reqretry++);
-				if (await_reply(AWAIT_BOOTP, 0, NULL, timeout))
+				if (await_reply(await_bootp, 0, NULL, timeout))
 					if (dhcp_reply == DHCPACK)
 						return(1);
 			}
@@ -902,7 +924,7 @@ UDPCHKSUM - Checksum UDP Packet (one of the rare cases when assembly is
                   error("checksum error");
           TX  packet->udp.chksum=0;
               if (0==(packet->udp.chksum=udpchksum(packet)))
-                  packet->upd.chksum=0xffff;
+                  packet->udp.chksum=0xffff;
 **************************************************************************/
 static inline void dosum(unsigned short *start, unsigned int len, unsigned short *sum)
 {
@@ -946,176 +968,48 @@ static unsigned short udpchksum(struct iphdr *packet)
 
 /**************************************************************************
 AWAIT_REPLY - Wait until we get a response for our request
-**************************************************************************/
-int await_reply(int type, int ival, void *ptr, int timeout)
+************f**************************************************************/
+int await_reply(int (*reply)(int ival, void *ptr, 
+		unsigned short ptype, struct iphdr *ip, struct udphdr *udp), 
+	int ival, void *ptr, int timeout)
 {
-	unsigned long time;
+	unsigned long time, now;
 	struct	iphdr *ip;
 	struct	udphdr *udp;
-	struct	arprequest *arpreply;
-	struct	bootp_t *bootpreply;
-	struct	rpc_t *rpc;
 	unsigned short ptype;
+	int i;
+	int result;
 
-	unsigned int protohdrlen = ETH_HLEN + sizeof(struct iphdr) +
-				sizeof(struct udphdr);
 	time = timeout + currticks();
 	/* The timeout check is done below.  The timeout is only checked if
 	 * there is no packet in the Rx queue.  This assumes that eth_poll()
 	 * needs a negligible amount of time.  */
 	for (;;) {
-		if (eth_poll()) {	/* We have something! */
-					/* Check for ARP - No IP hdr */
-			if (nic.packetlen >= ETH_HLEN) {
-				ptype = ((unsigned short) nic.packet[12]) << 8
-					| ((unsigned short) nic.packet[13]);
-			} else continue; /* what else could we do with it? */
-			if ((nic.packetlen >= ETH_HLEN +
-				sizeof(struct arprequest)) &&
-			   (ptype == ARP) ) {
-				unsigned long tmp;
-
-				arpreply = (struct arprequest *)
-					&nic.packet[ETH_HLEN];
-				if ((arpreply->opcode == htons(ARP_REPLY)) &&
-				    /* Check for AWAIT_ARP before compare */
-				    (type == AWAIT_ARP) &&
-				    !memcmp(arpreply->sipaddr, ptr, 
-					   sizeof(in_addr))) {
-					memcpy(arptable[ival].node, arpreply->shwaddr, ETH_ALEN);
-					return(1);
-				}
-				memcpy(&tmp, arpreply->tipaddr, sizeof(in_addr));
-				if ((arpreply->opcode == htons(ARP_REQUEST)) &&
-					(tmp == arptable[ARP_CLIENT].ipaddr.s_addr)) {
-					arpreply->opcode = htons(ARP_REPLY);
-					memcpy(arpreply->tipaddr, arpreply->sipaddr, sizeof(in_addr));
-					memcpy(arpreply->thwaddr, arpreply->shwaddr, ETH_ALEN);
-					memcpy(arpreply->sipaddr, &arptable[ARP_CLIENT].ipaddr, sizeof(in_addr));
-					memcpy(arpreply->shwaddr, arptable[ARP_CLIENT].node, ETH_ALEN);
-					eth_transmit(arpreply->thwaddr, ARP,
-						sizeof(struct  arprequest),
-						arpreply);
+#ifdef MULTICAST_LEVEL2
+		now = currticks();
+		for(i = 0; i < MAX_IGMP; i++) {
+			if (igmptable[i].time && (now >= igmptable[i].time)) {
+				struct igmp igmp;
+				build_ip_hdr(igmptable[i].group.s_addr, 
+					1, IP_IGMP, sizeof(igmp), &igmp);
+				igmp.type_ver = IGMP_REPORT;
+				igmp.dummy = 0;
+				igmp.chksum = 0;
+				igmp.group.s_addr = igmptable[i].group.s_addr;
+				igmp.chksum = ipchksum((unsigned short *)&igmp.type_ver, 8);
+				ip_transmit(sizeof(igmp), &igmp);
 #ifdef	MDEBUG
-					memcpy(&tmp, arpreply->tipaddr, sizeof(in_addr));
-					printf("Sent ARP reply to: %@\n",tmp);
-#endif	/* MDEBUG */
-				}
-				continue;
+				printf("Sent IGMP report to: %@\n", igmp.group.s_addr);
+#endif			       
+				/* Don't send another igmp report until asked */
+				igmptable[i].time = 0;
 			}
-
-			if (type == AWAIT_QDRAIN) {
-				continue;
-			}
-
-					/* Check for RARP - No IP hdr */
-			if ((type == AWAIT_RARP) &&
-			   (nic.packetlen >= ETH_HLEN +
-				sizeof(struct arprequest)) &&
-			   (ptype == RARP)) {
-				arpreply = (struct arprequest *)
-					&nic.packet[ETH_HLEN];
-				if ((arpreply->opcode == htons(RARP_REPLY)) &&
-				   !memcmp(arpreply->thwaddr, ptr, ETH_ALEN)) {
-					memcpy(arptable[ARP_SERVER].node, arpreply->shwaddr, ETH_ALEN);
-					memcpy(& arptable[ARP_SERVER].ipaddr, arpreply->sipaddr, sizeof(in_addr));
-					memcpy(& arptable[ARP_CLIENT].ipaddr, arpreply->tipaddr, sizeof(in_addr));
-					return(1);
-				}
-				continue;
-			}
-
-					/* Anything else has IP header */
-			if ((nic.packetlen < protohdrlen) ||
-			   (ptype != IP) ) continue;
-			ip = (struct iphdr *)&nic.packet[ETH_HLEN];
-			if ((ip->verhdrlen != 0x45) ||
-				ipchksum((unsigned short *)ip, sizeof(struct iphdr)) ||
-				(ip->protocol != IP_UDP)) continue;
-/*
-	- Till Straumann <Till.Straumann@TU-Berlin.de>
-	  added udp checksum (safer on a wireless link)
-	  added fragmentation check: I had a corrupted image
-	  in memory due to fragmented TFTP packets - took me
-	  3 days to find the cause for this :-(
-*/
-			/* If More Fragments bit and Fragment Offset field
-			   are non-zero then packet is fragmented */
-			if (ip->frags & htons(0x3FFF)) {
-				printf("ALERT: got a fragmented packet - reconfigure your server\n");
-				continue;
-			}
-			udp = (struct udphdr *)&nic.packet[ETH_HLEN +
-				sizeof(struct iphdr)];
-			if (udp->chksum && udpchksum(ip)) {
-				printf("UDP checksum error\n");
-				continue;
-			}
-
-					/* BOOTP ? */
-			bootpreply = (struct bootp_t *)&nic.packet[ETH_HLEN + sizeof(struct iphdr) + sizeof(struct udphdr)];
-			if ((type == AWAIT_BOOTP) &&
-			   (nic.packetlen >= (ETH_HLEN + sizeof(struct iphdr) + sizeof(struct udphdr) +
-#ifdef	NO_DHCP_SUPPORT
-			     sizeof(struct bootp_t))) &&
-#else
-			     sizeof(struct bootp_t))-DHCP_OPT_LEN) &&
-#endif	/* NO_DHCP_SUPPORT */
-			   (udp->dest == htons(BOOTP_CLIENT)) &&
-			   (bootpreply->bp_op == BOOTP_REPLY) &&
-			   (bootpreply->bp_xid == xid) &&
-			   (memcmp(broadcast, bootpreply->bp_hwaddr, ETH_ALEN) ==0 ||
-			    memcmp(arptable[ARP_CLIENT].node, bootpreply->bp_hwaddr, ETH_ALEN) == 0)) {
-				arptable[ARP_CLIENT].ipaddr.s_addr =
-					bootpreply->bp_yiaddr.s_addr;
-#ifndef	NO_DHCP_SUPPORT
-				dhcp_addr.s_addr = bootpreply->bp_yiaddr.s_addr;
-#endif	/* NO_DHCP_SUPPORT */
-				netmask = default_netmask();
-				arptable[ARP_SERVER].ipaddr.s_addr =
-					bootpreply->bp_siaddr.s_addr;
-				memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);  /* Kill arp */
-				arptable[ARP_GATEWAY].ipaddr.s_addr =
-					bootpreply->bp_giaddr.s_addr;
-				memset(arptable[ARP_GATEWAY].node, 0, ETH_ALEN);  /* Kill arp */
-				/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
-				memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
-				decode_rfc1533(BOOTP_DATA_ADDR->bootp_reply.bp_vend,
-#ifdef	NO_DHCP_SUPPORT
-				       0, BOOTP_VENDOR_LEN + MAX_BOOTP_EXTLEN, 1);
-#else
-				       0, DHCP_OPT_LEN + MAX_BOOTP_EXTLEN, 1);
-#endif	/* NO_DHCP_SUPPORT */
-#ifdef	REQUIRE_VCI_ETHERBOOT
-				if (!vci_etherboot)
-					return (0);
+		}
 #endif
-				return(1);
-			}
-
-#ifdef	DOWNLOAD_PROTO_TFTP
-					/* TFTP ? */
-			if ((type == AWAIT_TFTP) &&
-				(ntohs(udp->dest) == ival)) return(1);
-#endif	/* DOWNLOAD_PROTO_TFTP */
-
-#ifdef	DOWNLOAD_PROTO_NFS
-					/* RPC ? */
-			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
-			if ((type == AWAIT_RPC) &&
-			    (ntohs(udp->dest) == ival) &&
-			    (*(unsigned long *)ptr == ntohl(rpc->u.reply.id)) &&
-			    (ntohl(rpc->u.reply.type) == MSG_REPLY)) {
-				return (1);
-			}
-#endif	/* DOWNLOAD_PROTO_NFS */
-
-#ifdef	FREEBSD_PXEEMU
-			/* Address & Port check logic done by calee */
-			if(type == AWAIT_UDP)
-				return(1);
-#endif
-		} else {
+		result = eth_poll();
+		if (result == 0) {
+			/* We don't have anything */
+		
 			/* Check for abort key only if the Rx queue is empty -
 			 * as long as we have something to process, don't
 			 * assume that something failed.  It is unlikely that
@@ -1130,7 +1024,110 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 			if ((timeout == 0) || (currticks() > time)) {
 				break;
 			}
+			continue;
 		}
+		
+		/* We have something! */
+
+		/* Find the Ethernet packet type */
+		if (nic.packetlen >= ETH_HLEN) {
+			ptype = ((unsigned short) nic.packet[12]) << 8
+				| ((unsigned short) nic.packet[13]);
+		} else continue; /* what else could we do with it? */
+		/* Verify an IP header */
+		ip = 0;
+		if ((ptype == IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
+			ip = (struct iphdr *)&nic.packet[ETH_HLEN];
+			if (ip->verhdrlen != 0x45)
+				continue;
+			if (ipchksum((unsigned short *)ip, sizeof(struct iphdr)) != 0)
+				continue;
+			if (ip->frags & htons(0x3FFF)) {
+				static int warned_fragmentation = 0;
+				if (!warned_fragmentation) {
+					printf("ALERT: got a fragmented packet - reconfigure your server\n");
+					warned_fragmentation = 1;
+				}
+				continue;
+			}
+		}
+		udp = 0;
+		if (ip && (ip->protocol == IP_UDP) && 
+			(nic.packetlen >= 
+				ETH_HLEN + sizeof(struct iphdr) + sizeof(struct udphdr))) {
+			udp = (struct udphdr *)&nic.packet[ETH_HLEN + sizeof(struct iphdr)];
+			if (udp->chksum && udpchksum(ip)) {
+				printf("UDP checksum error\n");
+				continue;
+			}
+		}
+		result = reply(ival, ptr, ptype, ip, udp);
+		if (result > 0) {
+			return result;
+		}
+		
+		/* If it isn't a packet the upper layer wants see if there is a default
+		 * action.  This allows us reply to arp and igmp queryies.
+		 */
+		if ((ptype == ARP) &&
+			(nic.packetlen >= ETH_HLEN + sizeof(struct arprequest))) {
+			struct	arprequest *arpreply;
+			unsigned long tmp;
+		
+			arpreply = (struct arprequest *)&nic.packet[ETH_HLEN];
+			memcpy(&tmp, arpreply->tipaddr, sizeof(in_addr));
+			if ((arpreply->opcode == htons(ARP_REQUEST)) &&
+				(tmp == arptable[ARP_CLIENT].ipaddr.s_addr)) {
+				arpreply->opcode = htons(ARP_REPLY);
+				memcpy(arpreply->tipaddr, arpreply->sipaddr, sizeof(in_addr));
+				memcpy(arpreply->thwaddr, arpreply->shwaddr, ETH_ALEN);
+				memcpy(arpreply->sipaddr, &arptable[ARP_CLIENT].ipaddr, sizeof(in_addr));
+				memcpy(arpreply->shwaddr, arptable[ARP_CLIENT].node, ETH_ALEN);
+				eth_transmit(arpreply->thwaddr, ARP,
+					sizeof(struct  arprequest),
+					arpreply);
+#ifdef	MDEBUG
+				memcpy(&tmp, arpreply->tipaddr, sizeof(in_addr));
+				printf("Sent ARP reply to: %@\n",tmp);
+#endif	/* MDEBUG */
+			}
+		}
+#ifdef MULTICAST_LEVEL2
+		if (ip && (ip->protocol == IP_IGMP) && 
+			nic.packetlen >= ETH_HLEN + sizeof(struct igmp)) {
+			struct igmp * igmp;
+			igmp = (struct igmp *)&nic.packet[ETH_HLEN];
+			if (ipchksum((unsigned short *)&igmp->type_ver, 8) != 0)
+				continue;
+			if ((igmp->type_ver == IGMP_QUERY) && 
+				(ip->dest.s_addr == htonl(GROUP_ALL_HOSTS))) {
+#ifdef	MDEBUG
+				printf("Received IGMP query for: %@\n", igmp->group.s_addr);
+#endif			       
+				for(i = 0; i < MAX_IGMP; i++) {
+					if ((igmptable[i].group.s_addr == igmp->group.s_addr) &&
+						igmptable[i].time == 0) {
+						igmptable[i].time = currticks() + 
+							rfc1112_sleep_interval(IGMP_INTERVAL,0);
+						break;
+					}
+				}
+			}
+			if ((igmp->type_ver == IGMP_REPORT) && 
+				(ip->dest.s_addr == igmp->group.s_addr)) {
+#ifdef	MDEBUG
+				printf("Received IGMP report for: %@\n", igmp->group.s_addr);
+#endif			       
+				for(i = 0; i < MAX_IGMP; i++) {
+					if ((igmptable[i].group.s_addr == igmp->group.s_addr) &&
+						igmptable[i].time != 0) {
+						igmptable[i].time = 0;
+					}
+				}
+			}
+		}
+			
+#endif /* MULTICAST_LEVEL2 */
 	}
 	return(0);
 }
@@ -1159,7 +1156,7 @@ static int find_vci_etherboot(unsigned char *p)
 /**************************************************************************
 DECODE_RFC1533 - Decodes RFC1533 header
 **************************************************************************/
-int decode_rfc1533(unsigned char *p, int block, int len, int eof)
+int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int eof)
 {
 	static unsigned char *extdata = NULL, *extend = NULL;
 	unsigned char        *extpath = NULL;
@@ -1169,7 +1166,11 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 #ifdef	REQUIRE_VCI_ETHERBOOT
 	vci_etherboot = 0;
 #endif
-	if (block == 0) {
+	if (eof == -1) {
+		/* Encapsulated option block */
+		endp = p + len;
+	}
+	else if (block == 0) {
 #ifdef	IMAGE_MENU
 		memset(imagelist, 0, sizeof(imagelist));
 		menudefault = useimagemenu = 0;
@@ -1200,9 +1201,6 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 		if (memcmp(p, rfc1533_cookie, 4))
 			return(0); /* no RFC 1533 header found */
 		p += 4;
-		endp = p + len;
-	} else if (block == -1) {
-		/* Encapsulated option block */
 		endp = p + len;
 	} else {
 		if (block == 1) {
@@ -1269,7 +1267,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			vendorext_isvalid++;
 		else if (NON_ENCAP_OPT c == RFC1533_VENDOR_ETHERBOOT_ENCAP) {
 			in_encapsulated_options = 1;
-			decode_rfc1533(p+2, -1, TAG_LEN(p), 1);
+			decode_rfc1533(p+2, 0, TAG_LEN(p), -1);
 			in_encapsulated_options = 0;
 		}
 #ifdef	IMAGE_FREEBSD
@@ -1323,33 +1321,31 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 /**************************************************************************
 IPCHKSUM - Checksum IP Header
 **************************************************************************/
-static unsigned short ipchksum(unsigned short *ip, int len)
+unsigned short ipchksum(unsigned short *ip, int len)
 {
 	unsigned long sum = 0;
-	len >>= 1;
-	while (len--) {
+	while (len > 1) {
+		len -= 2;
 		sum += *(ip++);
+		if (sum > 0xFFFF)
+			sum -= 0xFFFF;
+	}
+	if (len) {
+		unsigned char *ptr = (void *)ip;
+		sum += *ptr;
 		if (sum > 0xFFFF)
 			sum -= 0xFFFF;
 	}
 	return((~sum) & 0x0000FFFF);
 }
 
-#define TWO_SECOND_DIVISOR (2147483647l/TICKS_PER_SEC)
-
 /**************************************************************************
-RFC2131_SLEEP_INTERVAL - sleep for expotentially longer times
+RANDOM - compute a random number between 0 and 2147483647L or 2147483562?
 **************************************************************************/
-long rfc2131_sleep_interval(int base, int exp)
+long random(void)
 {
 	static long seed = 0;
 	long q;
-	unsigned long tmo;
-
-#ifdef BACKOFF_LIMIT
-	if (exp > BACKOFF_LIMIT)
-		exp = BACKOFF_LIMIT;
-#endif
 	if (!seed) /* Initialize linear congruential generator */
 		seed = currticks() + *(long *)&arptable[ARP_CLIENT].node
 		       + ((short *)arptable[ARP_CLIENT].node)[2];
@@ -1357,9 +1353,42 @@ long rfc2131_sleep_interval(int base, int exp)
 	   "Applied Cryptography" */
 	q = seed/53668;
 	if ((seed = 40014*(seed-53668*q) - 12211*q) < 0) seed += 2147483563L;
-	tmo = (base << exp) + (TICKS_PER_SEC - (seed /TWO_SECOND_DIVISOR));
+	return seed;
+}
+
+/* FIXME double check TWO_SECOND_DIVISOR */
+#define TWO_SECOND_DIVISOR (RAND_MAX/TICKS_PER_SEC)
+/**************************************************************************
+RFC2131_SLEEP_INTERVAL - sleep for expotentially longer times (base << exp) +- 1 sec)
+**************************************************************************/
+long rfc2131_sleep_interval(int base, int exp)
+{
+	unsigned long tmo;
+
+#ifdef BACKOFF_LIMIT
+	if (exp > BACKOFF_LIMIT)
+		exp = BACKOFF_LIMIT;
+#endif
+	tmo = (base << exp) + (TICKS_PER_SEC - (random()/TWO_SECOND_DIVISOR));
 	return tmo;
 }
+
+#ifdef MULTICAST_LEVEL2
+/**************************************************************************
+RFC1112_SLEEP_INTERVAL - sleep for expotentially longer times, up to (base << exp)
+**************************************************************************/
+long rfc1112_sleep_interval(int base, int exp)
+{
+	unsigned long divisor, tmo;
+#ifdef BACKOFF_LIMIT
+	if (exp > BACKOFF_LIMIT)
+		exp = BACKOFF_LIMIT;
+#endif
+	divisor = RAND_MAX/(base << exp);
+	tmo = random()/divisor;
+	return tmo;
+}
+#endif /* MULTICAST_LEVEL_2 */
 
 /**************************************************************************
 CLEANUP - shut down networking and console so that the OS may be called 
@@ -1375,177 +1404,6 @@ void cleanup(void)
 	ansi_reset();
 #endif
 }
-
-#ifdef FREEBSD_PXEEMU
-#define	V86INT()	do {	*pxeemu_v86_flag = 1;			\
-				if(setjmp(pxeemu_v86call_jbuf) == 0)	\
-					longjmp(pxeemu_entry_jbuf,	\
-						PXEEMU_EXIT_V86INT);	\
-				*pxeemu_v86_flag = 0;			\
-			} while(0);
-
-static struct v86	*v86_p;
-static int		*pxeemu_v86_flag;
-static int		pxeemu_func_nr;
-static vm_offset_t	pxeemu_func_arg;
-static int		retval;
-
-static int pxeemu_entry(struct v86 *x_v86_p, int *x_pxeemu_v86_flag,
-			int x_pxeemu_func_nr, vm_offset_t x_pxeemu_func_arg)
-{
-	v86_p = x_v86_p;
-	pxeemu_v86_flag = x_pxeemu_v86_flag;
-	pxeemu_func_nr = x_pxeemu_func_nr;
-	pxeemu_func_arg = x_pxeemu_func_arg;
-
-	if(*pxeemu_v86_flag == 1)
-		longjmp(pxeemu_v86call_jbuf, 1);
-	else {
-		if( (retval = setjmp(pxeemu_entry_jbuf)) != 0)
-			goto pxeemu_exit;
-
-		/* Switch Stacks */
-		__asm__("xorl %%eax, %%eax\n"
-			"movw initsp, %%ax\n"
-			"addl %0, %%eax\n"
-			"movl %%eax, %%esp\n"
-			: : "i" (RELOC));
-	}
-
-	switch(pxeemu_func_nr)
-	{
-	    case PXENV_GET_CACHED_INFO:
-	    {
- 		t_PXENV_GET_CACHED_INFO *s =
-				(t_PXENV_GET_CACHED_INFO*) pxeemu_func_arg;
-		char *buf;
-		
-		if(s->PacketType != PXENV_PACKET_TYPE_BINL_REPLY
-		   || s->Buffer.segment != 0 || s->Buffer.offset != 0) {
-			s->Status = PXENV_STATUS_FAILURE;
-			retval = PXENV_EXIT_FAILURE;
-			break;
-		}
-
-		s->Buffer.segment = (RELOC >> 4);
-		s->Buffer.offset = (((vm_offset_t)&bootp_data) - RELOC);
-		s->BufferSize = sizeof(struct bootpd_t);
-		s->BufferLimit = sizeof(struct bootpd_t);
-		s->Status = PXENV_STATUS_SUCCESS;
-		retval = PXENV_EXIT_SUCCESS;
-		break;
-	    }
-	    case PXENV_UDP_OPEN:
-	    {
-		t_PXENV_UDP_OPEN *s = (t_PXENV_UDP_OPEN*) pxeemu_func_arg;
-		arptable[ARP_CLIENT].ipaddr.s_addr = s->src_ip;
-		s->status = PXENV_STATUS_SUCCESS;
-		retval = PXENV_EXIT_SUCCESS;		
-		break;
-	    }
-	    case PXENV_UDP_WRITE:
-	    {
-		t_PXENV_UDP_WRITE *s = (t_PXENV_UDP_WRITE*) pxeemu_func_arg;
-		void *ptr = (void*)(s->buffer.segment << 4)+s->buffer.offset;
-		struct udppacket_t packet;
-		int sz;
-		
-		sz = min(s->buffer_size, UDP_MAX_PAYLOAD);
-		memcpy(packet.payload, ptr, sz);
-		sz += sizeof(struct iphdr) + sizeof(struct udphdr);
-
-		if(s->src_port == 0)
-			s->src_port = 2069;	/* XXX #define ??? */
-
-		if(udp_transmit(s->ip,
-				htons(s->src_port), htons(s->dst_port), 
-				sz, &packet) == 0) 
-		{
-    		    s->status = PXENV_STATUS_FAILURE;
-		    retval = PXENV_EXIT_FAILURE;
-		} else {
-		    s->status = PXENV_STATUS_SUCCESS;
-		    retval = PXENV_EXIT_SUCCESS;
-		}
-		break;
-	    }
-	    case PXENV_UDP_READ:
-	    {
-		t_PXENV_UDP_READ *s = (t_PXENV_UDP_READ*) pxeemu_func_arg;
-redo_pxenv_udp_read:
-		if(await_reply(AWAIT_UDP,
-			       arptable[ARP_CLIENT].ipaddr.s_addr, 
-			       0, 0) == 0) 
-		{
-			s->status = PXENV_STATUS_FAILURE;
-			retval = PXENV_EXIT_FAILURE;
-		} else {
-			struct udppacket_t *packet = (struct udppacket_t*)&nic.packet[ETH_HLEN];
-			void *ptr = (void*)(s->buffer.segment << 4);
-			ptr += s->buffer.offset;
-
-				if(((s->dest_ip != 0) &&
-				    (s->dest_ip != packet->ip.dest.s_addr)) ||
-				   ((s->d_port != 0) &&
-				    (s->d_port != packet->udp.dest)))
-					goto redo_pxenv_udp_read;
-
-			s->src_ip = packet->ip.src.s_addr;
-			s->s_port = packet->udp.src;
-			s->buffer_size = min(nic.packetlen 
-						- sizeof(struct udppacket_t)
-						+ UDP_MAX_PAYLOAD,
-					     s->buffer_size);
-			memcpy(ptr, packet->payload, s->buffer_size);
-			s->status = PXENV_STATUS_SUCCESS;
-			retval = PXENV_EXIT_SUCCESS;
-		}
-		break;
-	    }
-	    case PXENV_UDP_CLOSE:
-	    {
-		t_PXENV_UDP_CLOSE *s = (t_PXENV_UDP_CLOSE*) pxeemu_func_arg;
-		s->status = PXENV_STATUS_SUCCESS;
-		retval = PXENV_EXIT_SUCCESS;		
-		break;
-	    }
-	    case PXENV_UNLOAD_STACK:
-	    {
-		t_PXENV_UNLOAD_STACK *s = (t_PXENV_UNLOAD_STACK*) pxeemu_func_arg;
-		s->Status = PXENV_STATUS_SUCCESS;
-		retval = PXENV_EXIT_SUCCESS;		
-		break;
-	    }
-	    case PXENV_UNDI_SHUTDOWN:
-	    {
-		t_PXENV_UNDI_SHUTDOWN *s = (t_PXENV_UNDI_SHUTDOWN*) pxeemu_func_arg;
-		eth_reset();
-		s->Status = PXENV_STATUS_SUCCESS;
-		retval = PXENV_EXIT_SUCCESS;		
-		break;
-	    }
-	    default:
-		printf("Un-implemented PXE API function %d\n", pxeemu_func_nr);
-		retval = PXENV_EXIT_FAILURE;
-		break;
-	}
-
-	longjmp(pxeemu_entry_jbuf, retval);
-pxeemu_exit:
-	
-	return retval - PXEEMU_EXIT_ADJ;
-}
-
-void pxeemu_console_putc(uint32_t c)
-{
-	v86_p->ctl = 0;
-	v86_p->addr = 0x10;
-	v86_p->eax = c;
-	v86_p->ebx = 0x7;
-	V86INT();
-	return;
-}
-#endif
 
 /*
  * Local variables:

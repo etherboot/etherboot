@@ -5,35 +5,6 @@ struct meminfo meminfo;
 
 #undef DEBUG_LINUXBIOS
 
-/* FIXME should I use ipchksum here instead? 
- * It is the same algorithm, and reuse would save a few bytes... 
- */
-static unsigned long compute_checksum(void *addr, unsigned long length)
-{
-	/* Assumes the start is 2 byte aligned.
-	 * This isn't exactly a problem on x86 but...
-	 */
-	unsigned short *ptr = addr;
-	unsigned long len;
-	unsigned long remainder;
-	unsigned long partial;
-	partial = 0;
-	len = length >> 1;
-	remainder = len & 1;
-	while(len--) {
-		partial += *(ptr++);
-		if (partial > 0xFFFF) 
-			partial -= 0xFFFF;
-	}
-	if (remainder) {
-		unsigned char *ptr2 = (void *)ptr;
-		partial += *ptr2;
-		if (partial > 0xFFFF)
-			partial -= 0xFFFF;
-	}
-	return (~partial) & 0xFFFF;
-}
-
 static void set_base_mem_k(struct meminfo *info, unsigned mem_k)
 {
 	if ((mem_k <= 640) && (info->basememsize <= mem_k)) {
@@ -146,20 +117,26 @@ static int find_lb_table(void *start, void *end, struct lb_header **result)
 	/* For now be stupid.... */
 	for(ptr = start; (void *)ptr < end; ptr += 16) {
 		struct lb_header *head = (void *)ptr;
-		if (	(head->signature[0] == 'L') && 
-			(head->signature[1] == 'B') &&
-			(head->signature[2] == 'I') &&
-			(head->signature[3] == 'O') &&
-			(head->header_bytes == sizeof(*head)) &&
-			(compute_checksum(head, sizeof(*head)) == 0) &&
-			(compute_checksum(ptr + sizeof(*head), head->table_bytes) ==
-				head->table_checksum) &&
-			(count_lb_records(ptr + sizeof(*head), head->table_bytes) ==
-				head->table_entries)
-			) {
-			*result = head;
-			return 1;
+		if (	(head->signature[0] != 'L') || 
+			(head->signature[1] != 'B') ||
+			(head->signature[2] != 'I') ||
+			(head->signature[3] != 'O')) {
+			continue;
 		}
+		if (head->header_bytes != sizeof(*head))
+			continue;
+		if (ipchksum((uint16_t *)head, sizeof(*head)) != 0) 
+			continue;
+		if (ipchksum((uint16_t *)(ptr + sizeof(*head)), head->table_bytes) !=
+			head->table_checksum) {
+			continue;
+		}
+		if (count_lb_records(ptr + sizeof(*head), head->table_bytes) !=
+			head->table_entries) {
+			continue;
+		}
+		*result = head;
+		return 1;
 	};
 	return 0;
 }
@@ -186,6 +163,9 @@ void get_memsizes(void)
 		found = find_lb_table((void*)0xf0000, (void*)0x100000, &lb_table);
 	}
 	if (found) {
+#if defined (DEBUG_LINUXBIOS)
+		printf("Found LinuxBIOS table at: %X\n", (unsigned long)lb_table);
+#endif
 		read_linuxbios_values(&meminfo, lb_table);
 	}
 

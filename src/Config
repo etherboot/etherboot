@@ -79,6 +79,9 @@
 #			configuration from the bad old days before the use of
 #			encapsulated Etherboot options.
 #
+#	Nic tuning parameters:
+#	-DALLMULTI
+#			Turns on multicast reception in the NICs.
 #	Boot tuning parameters:
 #
 #	-DCONGESTED
@@ -108,6 +111,9 @@
 #	-DCAN_BOOT_DISK
 #			Can boot from floppy/hd if bootimage matches the
 #			pattern "/dev/[fhs]d*".
+#	-DPC_FLOPPY
+#			Support direct pc flopy controller access.
+#			Instead of going through the BIOS
 #	-DTRY_FLOPPY_FIRST
 #			If > 0, tries that many times to read the boot
 #			sector from a floppy drive before booting from
@@ -129,6 +135,12 @@
 #			Add a.out kernel boot support (generic).
 #	-DELF_IMAGE
 #			Add generic ELF kernel boot support (recommended).
+#	-DWINCE_IMAGE
+#			Add the ability to boot WINCE.... now only sis630 OK!
+#       -DFREEBSD_PXEEMU
+#                       Add the ability to boot PXE images... only FreeBSD supported
+#       -DX86_BOOTSECTOR_IMAGE
+#                       Add the ability to boot 512 byte x86 boot sectors
 #	-DIMAGE_MULTIBOOT
 #			Add Multiboot image support (currently only
 #			for ELF images).
@@ -140,13 +152,18 @@
 #			Pass in FreeBSD kernel environment
 #	-DAOUT_LYNX_KDI
 #			Add Lynx a.out KDI support
-#
+#       -DMULTICAST_LEVEL1
+#			Support for sending multicast packets
+#       -DMULTICAST_LEVEL2
+#			Support for receiving multicast packets
 #	-DDOWNLOAD_PROTO_TFTP
 #			If defined, boots by TFTP (recommended).
 #	-DDOWNLOAD_PROTO_NFS
 #			If defined, boots from a NFS mount and disables
 #			TFTP loading. Default is DOWNLOAD_PROTO_TFTP
 #			if neither is defined.
+#       -DDOWNLOAD_PROTO_SLAM
+#                       If defined, boots via Scalable Local Area Multicast.
 #
 #	Console options:
 #

@@ -52,6 +52,29 @@ static void rpc_printerror(struct rpc_t *rpc)
 }
 
 /**************************************************************************
+AWAIT_RPC - Wait for an rpc packet
+**************************************************************************/
+static int await_rpc(int ival, void *ptr,
+	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+{
+	struct rpc_t *rpc;
+	if (!udp) 
+		return 0;
+	if (arptable[ARP_CLIENT].ipaddr.s_addr != ip->dest.s_addr)
+		return 0;
+	if (ntohs(udp->dest) != ival)
+		return 0;
+	if (nic.packetlen < ETH_HLEN + sizeof(struct iphdr) + sizeof(udphdr) + 8)
+		return 0;
+	rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
+	if (*(unsigned long *)ptr != ntohl(rpc->u.reply.id))
+		return 0;
+	if (MSG_REPLY != ntohl(rpc->u.reply.type)
+		return 0;
+	return 1;
+}
+
+/**************************************************************************
 RPC_LOOKUP - Lookup RPC Port numbers
 **************************************************************************/
 static int rpc_lookup(int addr, int prog, int ver, int sport)
@@ -80,7 +103,7 @@ static int rpc_lookup(int addr, int prog, int ver, int sport)
 		udp_transmit(arptable[addr].ipaddr.s_addr, sport, SUNRPC_PORT,
 			(char *)p - (char *)&buf, &buf);
 		timeout = rfc2131_sleep_interval(TIMEOUT, retries);
-		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
+		if (await_reply(await_rpc, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus) {
@@ -189,7 +212,7 @@ static int nfs_mount(int server, int port, char *path, char *fh, int sport)
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
 			(char *)p - (char *)&buf, &buf);
 		timeout = rfc2131_sleep_interval(TIMEOUT, retries);
-		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
+		if (await_reply(await_rpc, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus || rpc->u.reply.data[0]) {
@@ -243,7 +266,7 @@ void nfs_umountall(int server)
 		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		udp_transmit(arptable[server].ipaddr.s_addr, oport, mount_port,
 			(char *)p - (char *)&buf, &buf);
-		if (await_reply(AWAIT_RPC, oport, &id, timeout)) {
+		if (await_reply(await_rpc, oport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus) {
@@ -287,7 +310,7 @@ static int nfs_lookup(int server, int port, char *fh, char *path, char *nfh,
 		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
 			(char *)p - (char *)&buf, &buf);
-		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
+		if (await_reply(await_rpc, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
 			    rpc->u.reply.astatus || rpc->u.reply.data[0]) {
@@ -349,7 +372,7 @@ static int nfs_read(int server, int port, char *fh, int offset, int len,
 
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
 			(char *)p - (char *)&buf, &buf);
-		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
+		if (await_reply(await_rpc, sport, &id, timeout)) {
 			if (tokens < 256)
 				tokens++;
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
@@ -387,13 +410,7 @@ int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
 	int block, rlen, size, offs, len;
 	struct rpc_t *rpc;
 
-	/* Clear out the Rx queue first.  It contains nothing of interest,
-	 * except possibly ARP requests from the DHCP/TFTP server.  We use
-	 * polling throughout Etherboot, so some time may have passed since we
-	 * last polled the receive queue, which may now be filled with
-	 * broadcast packets.  This will cause the reply to the packets we are
-	 * about to send to be lost immediately.  Not very clever.  */
-	await_reply(AWAIT_QDRAIN, 0, NULL, 0);
+	rx_qdrain();
 
 	sport = oport++;
 	if (oport > START_OPORT+OPORT_SWEEP) {

@@ -74,7 +74,10 @@ static inline unsigned short int __swap16(unsigned short int x)
 #define	swap32(x)	__swap32(x)
 #define	swap16(x)	__swap16(x)
 
-#ifdef	FREEBSD_PXEEMU
+/* We should not depend on any system header files except possibly
+ * compiler supplied std c headers.  Copy headers if you need them.
+ */
+#if defined(FREEBSD_PXEEMU) && 0
 #undef	htonl
 #undef	htons
 #undef	ntohl
@@ -86,6 +89,7 @@ static inline unsigned short int __swap16(unsigned short int x)
 
 #include "linux-asm-string.h"
 #include "linux-asm-io.h"
+#include "stdint.h"
 
 typedef	unsigned long Address;
 
