@@ -640,7 +640,7 @@ user_shortcut: keys=ctrlaltdel
 #=======================================================================
 # other stuff
 #=======================================================================
-# magic_break
+magic_break: enabled=1
 
 #load32bitOSImage: os=nullkernel, path=../kernel.img, iolog=../vga_io.log
 #load32bitOSImage: os=linux, path=../linux.img, iolog=../vga_io.log, initrd=../initrd.img
