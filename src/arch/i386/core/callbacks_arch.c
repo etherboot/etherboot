@@ -8,7 +8,12 @@
 
 #include "etherboot.h"
 #include "callbacks.h"
+#include "segoff.h"
 #include <stdarg.h>
+
+seg_regs_t scratch_rm_seg_regs;
+#define RM_STACK_SIZE (0x1000)
+uint32_t rm_ss = 0;
 
 /*****************************************************************************
  *
@@ -24,17 +29,78 @@
  */
 uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
 			uint32_t opcode ) {
-
+	uint32_t ret;
 	i386_rm_in_call_data_t rm_data;
-	in_call_data_t in_call_data = { &pm_data, &rm_data };
+	i386_exit_intercept_t intercept = { NULL };
+	in_call_data_t in_call_data = { &pm_data, NULL, &intercept };
+
+	/* Ensure we have a real-mode stack */
+	if ( rm_ss == 0 ) {
+		/* FIXME */
+		rm_ss = 0x8000;
+	}
 
 	/* Fill out rm_data if we were called from real mode */
 	if ( opcode & EB_CALL_FROM_REAL_MODE ) {
+		in_call_data.rm = &rm_data;
 		rm_data = va_arg ( ap, typeof(rm_data) );
 	}
 	
 	/* Hand off to main in_call() routine */
-	return in_call ( &in_call_data, opcode, ap );
+	ret = in_call ( &in_call_data, opcode, ap );
+
+	/* For some real-mode call types (e.g. MAIN), we can't be sure
+	 * that the real-mode routine still exists to return to.  We
+	 * therefore provide a method for these calls to intercept the
+	 * exit path.
+	 */
+	if ( intercept.fnc != NULL ) {
+		(*(intercept.fnc))( &in_call_data );
+		/* Will not reach this point */
+	}
+
+	return ret;
+}
+
+/* exit_via_prefix(): an exit interceptor that will copy the stored
+ * real-mode prefix code back down to base memory and jump to it.
+ * This is used as the exit path when we were entered via start16.S
+ */
+void exit_via_prefix ( in_call_data_t *data ) {
+	/* Work out what to do about prefix.  In order of preference:
+	 * 1. Return to original location, if prefix code is intact
+	 * 2. Execute our copy directly, if possible (i.e. if in base memory)
+	 * 3. Copy to the top 512 bytes of free base memory (according
+	 *    to BIOS counter at 40:13) and execute there.
+	 */
+
+	/* Not yet implemented */
+}
+
+uint16_t _real_call ( seg_regs_t *rm_seg_regs, ... ) {
+	uint16_t ret;
+	va_list ap;
+
+	va_start ( ap, rm_seg_regs );
+	ret = v_real_call ( rm_seg_regs, ap );
+	va_end ( ap );
+	return ret;
+}
+
+uint16_t v_real_call ( seg_regs_t *rm_seg_regs, va_list ap ) {
+	/* Use "don't care" segment registers if none specified */
+	if ( rm_seg_regs == NULL )
+		rm_seg_regs = &scratch_rm_seg_regs;
+	
+	/* Set RM stack and code segments to our real-mode stack */
+	rm_seg_regs->ss = rm_seg_regs->cs = rm_ss;
+
+	return ext_call ( EC_TRAMPOLINE_CALL,
+			  EP_STACK ( rm_seg_regs ),
+			  EP_RELOC_STACK ( ( rm_ss << 4 ) + RM_STACK_SIZE ),
+			  EP_TRAMPOLINE ( _prot_to_real, _prot_to_real_end ),
+			  EP_VA_LIST ( ap ),
+			  EP_TRAMPOLINE ( _real_to_prot, _real_to_prot_end ) );
 }
 
 /* install_rm_callback_interface(): install real-mode callback
@@ -123,30 +189,6 @@ int v_arch_ec_check_param ( int type, va_list *ap ) {
 			 seg_regs,
 				 seg_regs->cs, seg_regs->ds, seg_regs->ss,
 			 seg_regs->es, seg_regs->fs, seg_regs->gs );
-	} break;
-	case EXTCALL_GDT: {
-		GDT_STRUCT_t(0) *gdt;
-		gdt_segment_t *gdt_seg;
-		uint32_t eb_cs;
-		gdt = va_arg ( *ap, typeof(gdt) );
-		printf ( " GDT at %x length %hx:\n", gdt,
-			 gdt->descriptor.limit + 1 );
-		if ( gdt->descriptor.address != virt_to_phys(gdt) ) {
-			printf ( "  addr incorrect "
-				 "(is %x, should be %hx)\n",
-				 gdt->descriptor.address,
-				 virt_to_phys(gdt) );
-		}
-		for ( gdt_seg = &(gdt->segments[0]);
-		      ( (void*)gdt_seg - (void*)gdt )
-			      < gdt->descriptor.limit ;
-		      gdt_seg++ ) {
-			print_gdt_segment ( (void*)gdt_seg-(void*)gdt,
-					    gdt_seg );
-		}
-		eb_cs = va_arg ( *ap, typeof(eb_cs) );
-		printf ( "  Etherboot accessible via CS=%hx\n",
-			 eb_cs );
 	} break;
 	default:
 		return 0;
@@ -241,7 +283,6 @@ int test_extcall ( int a, int b, int c, int d, int e ) {
 	   EP_SEG_REGISTERS(&seg_regs),
 	   EP_STACK(&rm_seg_regs),
 	   EP_STACK_PASSTHRU(b, d),
-	   EP_GDT(&gdt, 0x18),
 	   EP_RELOC_STACK((rm_seg << 4 ) + 0x1000),
 	   EP_RET_VARSTACK( &ret_parms, &ret_stack_len ),
 	   EP_TRAMPOLINE(_prot_to_real, _prot_to_real_end ),
@@ -286,7 +327,6 @@ int test_extcall ( int a, int b, int c, int d, int e ) {
 	    virt_to_phys ( _in_call_far ),
 	    EP_REGISTERS(&registers),
 	    EP_SEG_REGISTERS(&seg_regs),
-	    EP_GDT(&gdt, 0x18),
 	    EP_RELOC_STACK(0x9fa00),
 	    EP_STACK(&testing)
 	    );
@@ -316,7 +356,6 @@ int test_extcall ( int a, int b, int c, int d, int e ) {
 	   EP_SEG_REGISTERS(&seg_regs),
 	   EP_STACK(&rm_seg_regs),
 	   EP_STACK_PASSTHRU(b, d),
-	   EP_GDT(&gdt, 0x18),
 	   EP_RELOC_STACK((rm_seg << 4 ) + 0x1000),
 	   EP_RET_STACK( &rm_seg_regs ),
 	   EP_RET_VARSTACK( &ret_parms, &ret_stack_len ),

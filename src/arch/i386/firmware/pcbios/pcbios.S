@@ -37,7 +37,7 @@ currticks:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	ret
@@ -91,7 +91,7 @@ console_putc_switch:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	movl	$1,%ebx
@@ -122,7 +122,7 @@ console_getc:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	
@@ -151,7 +151,7 @@ console_ischar:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	
@@ -207,11 +207,11 @@ int15:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	movl	8(%ebp),%ecx	/* _real_call destroys %eax */
+	movl	8(%ebp),%ecx	/* _old_real_call destroys %eax */
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	movw	%cx,%ax
@@ -220,7 +220,7 @@ int15:
 	jc	int15status
 	movb	$0,%ah
 int15status:
-	movb	%ah,%bl		/* _real_call destroys %eax */
+	movb	%ah,%bl		/* _old_real_call destroys %eax */
 	ret
 20:	.code32
 	.previous
@@ -243,7 +243,7 @@ cpu_nap:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	hlt
@@ -283,7 +283,7 @@ meme820:
 	
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	/* Allocate space on the stack for the maximum # of e820 structures */
@@ -355,7 +355,7 @@ memsize:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	stc					# fix to work around buggy
@@ -406,7 +406,7 @@ basememsize:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	int	$0x12
@@ -432,7 +432,7 @@ disk_init:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	xorw	%ax,%ax
@@ -470,7 +470,7 @@ pcbios_disk_read:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	movw	$0x0201,%ax
@@ -540,7 +540,7 @@ __undi_call:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 	movw	%cx,%es		/* Seg:off addr of undi_call_info_t struct */
@@ -618,7 +618,7 @@ fake_irq:
 
 	pushl	$ 10f
 	pushl	$ 20f - 10f
-	call	_real_call
+	call	_old_real_call
 	.section ".text16"
 10:	.code16
 fake_irq_int_instruction:

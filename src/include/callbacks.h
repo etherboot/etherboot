@@ -33,11 +33,11 @@
 #define EXTCALL_NONE		(0x0000)
 #define EXTCALL_REGISTERS	(0x0001)
 #define EXTCALL_SEG_REGISTERS	(0x0002)
-#define EXTCALL_GDT		(0x0003)
 #define EXTCALL_STACK		(0x0004)
 #define EXTCALL_RET_STACK	(0x0005)
 #define EXTCALL_RELOC_STACK	(0x0006)
 #define EXTCALL_TRAMPOLINE	(0x0007)
+#define EXTCALL_VA_LIST		(0x0008)
 #define EXTCALL_END_LIST	(0xffff)
 
 /* Include arch-specific callbacks bits
@@ -61,13 +61,15 @@
 
 #define EP_TRAMPOLINE(start,end) \
 	EXTCALL_TRAMPOLINE, (void*)(start), ((void*)(end) - (void*)(start))
+#define EC_TRAMPOLINE_CALL ( NULL )
+
+#define EP_VA_LIST(ap) EXTCALL_VA_LIST, (ap), 0
 
 #define EP_TRACE EXTCALL_NONE
 
 /* Function prototypes */
 extern int _ext_call ( void *address, ... );
 extern int _v_ext_call ( void *address, va_list ap );
-extern void extcall_breakpoint ( void );
 #define ext_call(address, ...) \
 	_ext_call( (void*)(address), ##__VA_ARGS__, EXTCALL_END_LIST )
 

@@ -213,8 +213,8 @@ typedef struct {
 	(structure)->descriptor.padding = 0; \
 }
 /* As part of an external_call parameter list */
-#define EP_GDT(structure,our_cs) \
-	EXTCALL_GDT, &((structure)->descriptor), our_cs
+/* #define EP_GDT(structure,our_cs) \
+   EXTCALL_GDT, &((structure)->descriptor), our_cs */
 
 /* Stack alignment used by GCC.  Must be a power of 2.
  */
@@ -261,23 +261,36 @@ typedef struct {
 } PACKED i386_pm_in_call_data_t;
 
 typedef struct {
-	struct {
-		uint32_t offset;
-		uint32_t segment;
-	} ret_addr;
 	seg_regs_t	seg_regs;
+	uint16_t	pad;
+	uint16_t	flags;
+	struct {
+		uint16_t offset;
+		uint16_t segment;
+	} ret_addr;
 	uint32_t orig_opcode;
 } PACKED i386_rm_in_call_data_t;
 
+struct i386_exit_intercept;
 typedef struct {
 	i386_pm_in_call_data_t *pm;
 	i386_rm_in_call_data_t *rm;
+	struct i386_exit_intercept *intercept;
 } i386_in_call_data_t;
 #define in_call_data_t i386_in_call_data_t
+
+typedef struct i386_exit_intercept {
+	void	(*fnc)(in_call_data_t *data);
+} i386_exit_intercept_t;
 
 /* Function prototypes
  */
 extern int install_rm_callback_interface ( void *address, size_t available );
+extern void exit_via_prefix ( in_call_data_t *data );
+#define real_call(rm_seg_regs, ...) \
+	_real_call( (rm_seg_regs), __VA_ARGS__, EXTCALL_END_LIST )
+extern uint16_t _real_call ( seg_regs_t *rm_seg_regs, ... );
+extern uint16_t v_real_call ( seg_regs_t *rm_seg_regs, va_list ap );
 
 /* Functions and code blocks in callbacks_asm.S
  */
@@ -316,5 +329,8 @@ extern void _pxenv_in_call_far ( void );
 
 #define RM_IN_CALL	(0)
 #define RM_IN_CALL_FAR	(2)
+
+/* Bochs breakpoint instruction */
+#define BOCHSBP xchgw %bx,%bx
 
 #endif /* CALLBACKS_ARCH_H */

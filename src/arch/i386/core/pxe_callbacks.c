@@ -176,10 +176,9 @@ int xstartpxe ( void ) {
 	rm_seg_regs.ss = XXX_REAL_MODE_SS;
 	rm_seg_regs.ds = PXE_LOAD_SEGMENT;
 	rm_seg_regs.es = SEGMENT(&(pxe_stack->pxenv));
-	rm_seg_regs.fs = SEGMENT(&(pxe_stack->pxe));
+	rm_seg_regs.fs = PXE_LOAD_SEGMENT;
 	rm_seg_regs.gs = PXE_LOAD_SEGMENT;
 	registers.bx = OFFSET(&(pxe_stack->pxenv));
-	registers.dx = OFFSET(&(pxe_stack->pxe));
 	stack_params.pxe.segment = SEGMENT(&(pxe_stack->pxe));
 	stack_params.pxe.offset = OFFSET(&(pxe_stack->pxe));
 
@@ -188,26 +187,28 @@ int xstartpxe ( void ) {
 	BEGIN_RM_FRAGMENT(jump_to_pxe_nbp);
 	#define xstr(x) #x	/* Macro hackery needed to stringify       */
 	#define str(x) xstr(x)	/* the constants PXE_LOAD_{SEGMENT,OFFSET} */
-	__asm__ ( "pushw %fs" );
-	__asm__ ( "pushw %dx" );
 	__asm__ ( "lcall $" str(PXE_LOAD_SEGMENT) ", $" str(PXE_LOAD_OFFSET) );
-	__asm__ ( "addw $4, %sp" );
 	END_RM_FRAGMENT(jump_to_pxe_nbp);
 
 	/* Call to PXE image */
 	gateA20_unset();
-	nbp_exit = ext_call
-		( 0,
+	/*		nbp_exit = ext_call
+		( EC_TRAMPOLINE_CALL,
 		  EP_REGISTERS ( &registers ),
-		  EP_SEG_REGISTERS ( &seg_regs ),
 		  EP_STACK ( &rm_seg_regs ),
 		  EP_STACK ( &stack_params ),
-		  EP_GDT ( &_gdt, 0x28 ),
 		  EP_RELOC_STACK ( ( 0x9000 << 4 ) + 0x1000 ),
 		  EP_TRAMPOLINE(_prot_to_real, _prot_to_real_end),
 		  EP_TRAMPOLINE(jump_to_pxe_nbp, jump_to_pxe_nbp_end),
 		  EP_TRAMPOLINE(_real_to_prot, _real_to_prot_end)
-		  );
+		  ); */
+	
+	nbp_exit = real_call ( &rm_seg_regs,
+			       EP_REGISTERS ( &registers ),
+			       EP_STACK ( &stack_params ),
+			       EP_TRAMPOLINE ( jump_to_pxe_nbp,
+					       jump_to_pxe_nbp_end ) );
+	
 	gateA20_set();
 
 	return nbp_exit;

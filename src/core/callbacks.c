@@ -25,11 +25,6 @@ int _ext_call ( void *address, ... ) {
 
 #ifdef DEBUG_EXT_CALL
 
-/* Note that printf() itself invokes putc(), which uses external
- * calls, therefore we must ensure that the old version of putc (using
- * _real_call) can be compiled back in to debug _ext_call!
- */
-
 /* v_ext_call(): with debugging enabled, print the function trace if
  * directed to do so, then call to the _v_ext_call() assembly routine.
  * Without debugging enabled, expands to a macro that just calls
@@ -46,6 +41,7 @@ int v_ext_call ( void *address, va_list ap ) {
 		valid = v_ext_call_check ( address, aq );
 		/* Pop first_arg from ap as well */
 		va_arg ( ap, typeof(first_arg) );
+		sleep ( 1 );
 	}
 	va_end ( aq );
 	if ( !valid ) {
@@ -68,8 +64,7 @@ int v_ext_call_check ( void *address, va_list ap ) {
 			return 0;
 		}
 	}
-	printf ( "End of argument list.  Breakpoint at physical %x\n",
-		 virt_to_phys(extcall_breakpoint) );
+	printf ( "End of argument list.\n" );
 	return 1;
 }
 

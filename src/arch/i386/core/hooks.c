@@ -5,6 +5,12 @@
 void arch_main ( in_call_data_t *data, va_list params ) {
 
 #ifdef PCBIOS
+
+	/* If entered via real mode, set up exit interceptor */
+	if ( data->rm != NULL ) {
+		data->intercept->fnc = exit_via_prefix;
+	}
+
 	/* Deallocate base memory used for the decompressor, if applicable
 	 */
 	forget_decompressor_base_memory();
