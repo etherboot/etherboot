@@ -22,7 +22,7 @@ To get bochs running is fairly simple:
     a) Copy ../../src/drivers/net/pnic_api.h, ./pcipnic.h and ./pcipnic.cc
        to the iodev/ directory within your Bochs source checkout.
     b) Apply ./bochs-pcipnic.patch:
-         patch -p 1 -d /path/to/bochs/source/tree < ./bochs-pcipnic.patch
+         patch -d /path/to/bochs/source/tree < ./bochs-pcipnic.patch
 
 3.  Run autoconf to pick up the patches to configure.in:
       cd /path/to/bochs/source/tree
