@@ -2599,6 +2599,8 @@ caused some models to not receive DHCP replies.
 
 Released as Etherboot 5.3.5 (development)
 
++ Timothy Legge ported the Linux Realtek 8169 driver.
+
 + Michael Brown removed irritating A20 status change messages.
 
 + Sis900, w89c840 and tg3 drivers fixed by Timothy Legge. R8169 driver
