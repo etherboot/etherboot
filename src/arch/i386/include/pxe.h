@@ -52,7 +52,9 @@
  * structures passed into PXE
  * Question: does this really work for PXE's expected ABI?
  */
+#ifndef PACKED
 #define	PACKED		__attribute__ ((packed))
+#endif
 
 #define	S_SIZE(s)	s, sizeof(s) - 1
 
@@ -64,8 +66,6 @@
 #define	MAC_STR		"%02x:%02x:%02x:%02x:%02x:%02x"
 #define	MAC_ARGS(mac)					\
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] 
-
-#define	PXENFSROOTPATH	"/pxeroot"
 
 typedef struct {
 	uint16_t		Seg_Addr;
