@@ -337,7 +337,7 @@ print_bcv:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"ROM detected\n"
+1:	.asciz	"ROM detected\r\n"
 
 print_bev:
 	pushw	%si
@@ -345,7 +345,7 @@ print_bev:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"booting\n"
+1:	.asciz	"booting\r\n"
 
 print_notpnp:
 	pushw	%si
@@ -353,7 +353,7 @@ print_notpnp:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	": Non-PnP BIOS detected!\n"
+1:	.asciz	": Non-PnP BIOS detected!\r\n"
 
 print_legacyentry:
 	pushw	%si
@@ -361,7 +361,7 @@ print_legacyentry:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"ROM using legacy boot mechanism\n"
+1:	.asciz	"ROM using legacy boot mechanism\r\n"
 
 print_installed:
 	pushw	%si
@@ -371,9 +371,9 @@ print_installed:
 	ret
 1:	.ascii	"hooked boot via INT"
 #ifdef	BOOT_INT18H
-	.asciz	"18\n"
+	.asciz	"18\r\n"
 #else
-	.asciz	"19\n"
+	.asciz	"19\r\n"
 #endif
 
 print_start_int:
@@ -382,35 +382,31 @@ print_start_int:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"booting via hooked interrupt\n"
+1:	.asciz	"booting via hooked interrupt\r\n"
 
 print_message:
-	pushal
+	pushaw
 	pushw	%ds
 	pushw	%cs
 	popw	%ds
 	pushw	%si
-	movw	$3f-_prefix, %si
-	call	1f
+	movw	$1f-_prefix, %si
+	call	print_string
 	popw	%si
-1:	lodsb
-	testb   %al, %al
-	je      2f
-	call    print_character
-	jmp     1b
-2:	popw	%ds
-	popal
+	call    print_string
+	popw	%ds
+	popaw
 	ret
-3:	.asciz	"Etherboot "
+1:	.asciz	"Etherboot "
 
-print_character:
+print_string:
+1:	lodsb
+	testb	%al,%al
+	je	2f
 	movw    $0x0007, %bx            /* page 0, attribute 7 (normal) */
 	movb    $0x0e, %ah              /* write char, tty mode */
-	cmpb    $0x0a, %al              /* '\n'? */
-	jne     1f
 	int     $0x10
-	movb    $0x0d, %al
-1:	int     $0x10
-	ret
+	jmp	1b
+2:	ret
 	
 #endif
