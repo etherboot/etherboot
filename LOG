@@ -2767,4 +2767,12 @@ driver.
 
 + New dmfe.c driver for Davicom based cards contributed by Timothy Legge
 
++ Added new definitions of site DHCP options in preparation for 5.4.
+
++ Removed etherboot(-pci)?.* rule because there are too many drivers and
+the image will no longer fit in memory. I don't want to choose a subset
+of drivers as everybody will have different preferences. So I'm going to
+piss off everybody equally by deleting the rule. Use the multiple driver
+rule (driver1--driver2--...) and select your own subset of drivers.
+
 Released as Etherboot 5.3.12 aka 5.4RC3 (development)

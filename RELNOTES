@@ -1,8 +1,16 @@
-Etherboot 5.3.12 aka 5.4RC3 (Release Date ?)
+Etherboot 5.3.12 aka 5.4RC3 (Release Date 2005-01-03)
 
-This release is for more testing. Large .z* images like
-etherboot-pci.zdsk should work now. .z?rom images now work; they were
-broken in .11.
+This release is for final testing.  I hope this will be the pentultimate
+release candidate. Unless there are brown paper bag bugs, the next
+release candidate will become 5.4.0 by renumbering.
+
+.z?rom images now work; they were broken in .11.
+
+Removed etherboot(-pci)?.* rule because there are too many drivers and
+the image will no longer fit in memory. I don't want to choose a subset
+of drivers as everybody will have different preferences. So I'm going to
+piss off everybody equally by deleting the rule. Use the multiple driver
+rule (driver1--driver2--...) and select your own subset of drivers.
 
 To generate ISO images you will to get need syslinux and/or isolinux
 separately. Google for them. If you have a very old BIOS and .liso
@@ -17,10 +25,11 @@ the versions of gcc and binutils used.
 gcc 2.x is not supported anymore. You need at least gcc 3.0.x to compile
 etherboot.
 
-We know that these things do not work; they are being fixed:
+We know that these things do not work; they are being worked on:
 
 return from chained programs like menus (might be mknbi problem)
-support for ELF files (not mkelf images)
+return from .com programs
+support for LinuxBIOS ELF files (not mkelf images)
 
 ---
 

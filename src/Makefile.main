@@ -251,11 +251,6 @@ noargs:	$(BIN)/toolcheck
 	@echo
 	@echo 'will generate all possible .zdsk (bootable floppy) images, or'
 	@echo
-	@echo 'To create a "super pci image" containing all PCI etherboot drivers, do:'
-	@echo
-	@echo '    make bin/etherboot-pci.zdsk'
-	@echo 'or'
-	@echo '    make bin/etherboot-pci.liso'
 	@echo '===================================================='
 	@exit 1
 
@@ -353,14 +348,6 @@ $(BIN)/%.o:     $(FILO)/main/%.c $(MAKEDEPS) $(FILO)/config.h filo_version
 
 $(BIN)/%.o:     $(FILO)/usb/%.c $(MAKEDEPS) $(FILO)/config.h
 	$(CC) $(CFLAGS) -imacros $(FILO)/config.h -o $@ -c $<
-
-
-# Rule for the super etherboot image.
-$(BIN)/etherboot.o: $(DOBJS)
-	$(LD) -r $(DOBJS) -o $@
-
-$(BIN)/etherboot-pci.o: $(PCIOBJS)
-	$(LD) -r $(PCIOBJS) -o $@
 
 # General rules for generating runtime (rt) files
 $(BIN)/%.rt.o:  $(BIN)/%.o $(START) $(BIN)/config.o $(LIBS) $(STDDEPS) $(MAKEDEPS)
