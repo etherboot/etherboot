@@ -45,9 +45,12 @@
 #ifndef PXE_H
 #define PXE_H
 
-/* Include architecture-specific PXE data types May define SEGOFF16_t,
- * SEGDESC_t and SEGSEL_t.  These should be #defines to underlying
- * types.
+/* Include architecture-specific PXE data types 
+ *
+ * May define SEGOFF16_t, SEGDESC_t and SEGSEL_t.  These should be
+ * #defines to underlying * types.  May also define
+ * IS_NULL_SEGOFF16(segoff16), SEGOFF16_TO_PTR(segoff16) and
+ * PTR_TO_SEGOFF16(ptr,segoff16)
  */
 #ifndef PXE_TYPES_H
 #include <pxe_types.h>
@@ -57,7 +60,19 @@
  * placeholder structures just to make the code compile.
  */
 #ifndef SEGOFF16_t
-#define SEGOFF16_t void
+#define SEGOFF16_t void*
+#endif
+
+#ifndef IS_NULL_SEGOFF16
+#define IS_NULL_SEGOFF16(segoff16) ( (segoff16) == NULL )
+#endif
+
+#ifndef SEGOFF16_TO_PTR
+#define SEGOFF16_TO_PTR(segoff16) (segoff16)
+#endif
+
+#ifndef PTR_TO_SEGOFF16
+#define PTR_TO_SEGOFF16(ptr,segoff16) (segoff16) = (ptr);
 #endif
 
 #ifndef SEGDESC_t
@@ -139,9 +154,13 @@
 #define	MAC_ARGS(mac)					\
 	mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] 
 
+typedef uint16_t		PXENV_EXIT_t;
 typedef	uint16_t		PXENV_STATUS_t;
 typedef	uint32_t		IP4_t;
 typedef	uint32_t		ADDR32_t;
+/* It seems as though UDP_PORT_t is in network order, although I can't
+ * find anything in the spec to back this up.  (Michael Brown)
+ */
 typedef	uint16_t		UDP_PORT_t;
 
 #define	MAC_ADDR_LEN		16
@@ -233,7 +252,7 @@ typedef struct {
 typedef struct {
 	PXENV_STATUS_t	Status;
 	t_PXENV_UNDI_MCAST_ADDRESS R_Mcast_Buf;
-} PACKED t_PXENV_UNDI_RESET;
+} PACKED t_PXENV_UNDI_RESET_ADAPTER;
 
 #define	PXENV_UNDI_SHUTDOWN		0x0005
 typedef struct {
@@ -293,7 +312,7 @@ typedef struct {
 typedef struct {
 	PXENV_STATUS_t	Status;
 	t_PXENV_UNDI_MCAST_ADDRESS R_Mcast_Buf;
-} PACKED t_PXENV_UNDI_SET_MCAST_ADDR;
+} PACKED t_PXENV_UNDI_SET_MCAST_ADDRESS;
 
 #define	PXENV_UNDI_SET_STATION_ADDRESS	0x000A
 typedef struct {
@@ -356,7 +375,7 @@ typedef struct {
 	PXENV_STATUS_t	Status;
 	IP4_t		InetAddr;		/* IP mulicast address */
 	MAC_ADDR	MediaAddr;		/* MAC multicast address */
-} PACKED t_PXENV_UNDI_GET_MCAST_ADDR;
+} PACKED t_PXENV_UNDI_GET_MCAST_ADDRESS;
 
 #define	PXENV_UNDI_GET_NIC_TYPE		0x0012
 typedef struct {
@@ -485,12 +504,12 @@ typedef struct {
 
 #define	PXENV_UDP_CLOSE			0x0031
 typedef struct {
-	PXENV_STATUS_t	status;
+	PXENV_STATUS_t	Status;
 } PACKED t_PXENV_UDP_CLOSE;
 
 #define	PXENV_UDP_READ			0x0032
 typedef struct {
-	PXENV_STATUS_t	status;
+	PXENV_STATUS_t	Status;
 	IP4_t		src_ip;		/* IP of sender */
 	IP4_t		dest_ip;	/* Only accept packets sent to this IP */
 	UDP_PORT_t	s_port;		/* UDP source port of sender */
@@ -501,7 +520,7 @@ typedef struct {
 
 #define	PXENV_UDP_WRITE			0x0033
 typedef struct {
-	PXENV_STATUS_t	status;
+	PXENV_STATUS_t	Status;
 	IP4_t		ip;		/* dest ip addr */
 	IP4_t		gw;		/* ip gateway */
 	UDP_PORT_t	src_port;	/* source udp port */
@@ -802,6 +821,11 @@ typedef struct {
  *****************************************************************************
  */
 
+/* Union used for PXE API calls; we don't know the type of the
+ * structure until we interpret the opcode.  Also, Status is available
+ * in the same location for any opcode, and it's convenient to have
+ * non-specific access to it.
+ */
 typedef union {
 	PXENV_STATUS_t			Status; /* Make it easy to read status
 						   for any operation */
@@ -809,16 +833,48 @@ typedef union {
 	t_PXENV_UNDI_STARTUP		undi_startup;
 	t_PXENV_UNDI_CLEANUP		undi_cleanup;
 	t_PXENV_UNDI_INITIALIZE		undi_initialize;
+	t_PXENV_UNDI_RESET_ADAPTER	undi_reset_adapter;
 	t_PXENV_UNDI_SHUTDOWN		undi_shutdown;
 	t_PXENV_UNDI_OPEN		undi_open;
 	t_PXENV_UNDI_CLOSE		undi_close;
 	t_PXENV_UNDI_TRANSMIT		undi_transmit;
+	t_PXENV_UNDI_SET_MCAST_ADDRESS	undi_set_mcast_address;
 	t_PXENV_UNDI_SET_STATION_ADDRESS undi_set_station_address;
+	t_PXENV_UNDI_SET_PACKET_FILTER	undi_set_packet_filter;
 	t_PXENV_UNDI_GET_INFORMATION	undi_get_information;
+	t_PXENV_UNDI_GET_STATISTICS	undi_get_statistics;
+	t_PXENV_UNDI_CLEAR_STATISTICS	undi_clear_statistics;
+	t_PXENV_UNDI_INITIATE_DIAGS	undi_initiate_diags;
+	t_PXENV_UNDI_FORCE_INTERRUPT	undi_force_interrupt;
+	t_PXENV_UNDI_GET_MCAST_ADDRESS	undi_get_mcast_address;
+	t_PXENV_UNDI_GET_NIC_TYPE	undi_get_nic_type;
 	t_PXENV_UNDI_GET_IFACE_INFO	undi_get_iface_info;
 	t_PXENV_UNDI_ISR		undi_isr;
 	t_PXENV_STOP_UNDI		stop_undi;
+	t_PXENV_TFTP_OPEN		tftp_open;
+	t_PXENV_TFTP_CLOSE		tftp_close;
+	t_PXENV_TFTP_READ		tftp_read;
+	t_PXENV_TFTP_READ_FILE		tftp_read_file;
+	t_PXENV_TFTP_GET_FSIZE		tftp_get_fsize;
+	t_PXENV_UDP_OPEN		udp_open;
+	t_PXENV_UDP_CLOSE		udp_close;
+	t_PXENV_UDP_READ		udp_read;
+	t_PXENV_UDP_WRITE		udp_write;
 	t_PXENV_UNLOAD_STACK		unload_stack;
+	t_PXENV_GET_CACHED_INFO		get_cached_info;
+	t_PXENV_RESTART_TFTP		restart_tftp;
+	t_PXENV_START_BASE		start_base;
+	t_PXENV_STOP_BASE		stop_base;
 } t_PXENV_ANY;
+
+/* Data structures installed as part of a PXE stack.  Architectures
+ * will have extra information to append to the end of this.
+ */
+typedef struct {
+	pxe_t		pxe	__attribute__ ((aligned(16)));
+	pxenv_t		pxenv	__attribute__ ((aligned(16)));
+	BOOTPLAYER	cached_info;
+	struct {}	arch_data;
+} pxe_stack_t;
 
 #endif /* PXE_H */

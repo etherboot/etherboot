@@ -14,11 +14,6 @@ typedef struct {
 	segoff_t	segoff;
 } PACKED pxe_call_params_t;
 
-typedef struct {
-	pxe_t		pxe	__attribute__ ((aligned(16)));
-	pxenv_t		pxenv	__attribute__ ((aligned(16)));
-} pxe_stack_t;
-
 /*
  * These values are hard-coded into the PXE spec
  */
@@ -29,7 +24,7 @@ typedef struct {
 /* Function prototypes
  */
 pxe_stack_t * install_pxe_stack ( void *base );
-void remove_pxe_stack ( pxe_stack_t *pxe_stack );
-extern int xstartpxe ( pxe_stack_t *pxe_stack );
+void remove_pxe_stack ( void );
+extern int xstartpxe ( void );
 
 #endif /* PXE_CALLBACKS_H */

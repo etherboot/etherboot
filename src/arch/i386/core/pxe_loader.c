@@ -13,6 +13,7 @@
 
 #include "etherboot.h"
 #include "pxe_callbacks.h"
+#include "pxe_export.h"
 #include "pxe.h"
 
 unsigned long pxe_load_offset;
@@ -30,7 +31,6 @@ static inline os_download_t pxe_probe ( unsigned char *data __unused,
 static sector_t pxe_download ( unsigned char *data,
 			       unsigned int len, int eof ) {
 	unsigned long block_address = PXE_LOAD_ADDRESS + pxe_load_offset;
-	pxe_stack_t *pxe_stack = NULL;
 	PXENV_STATUS_t nbp_exit;
 
 	/* Check segment will fit.  We can't do this in probe()
@@ -57,7 +57,7 @@ static sector_t pxe_download ( unsigned char *data,
 	pxe_stack = install_pxe_stack ( NULL );
 
 	/* Invoke the NBP */
-	nbp_exit = xstartpxe ( pxe_stack );
+	nbp_exit = xstartpxe();
 
 	/* NBP has three exit codes:
 	 *   PXENV_STATUS_KEEP_UNDI : keep UNDI and boot next device
@@ -72,8 +72,7 @@ static sector_t pxe_download ( unsigned char *data,
 	if ( nbp_exit != PXENV_STATUS_KEEP_UNDI &&
 	     nbp_exit != PXENV_STATUS_KEEP_ALL ) {
 		/* Tear down PXE stack */
-		remove_pxe_stack ( pxe_stack );
-		pxe_stack = NULL;
+		remove_pxe_stack();
 	}
 
 	/* Boot next device.  Under strict PXE compliance, exit back

@@ -14,6 +14,12 @@
 typedef segoff_t I386_SEGOFF16_t;
 #define SEGOFF16_t I386_SEGOFF16_t
 
+#define IS_NULL_SEGOFF16(x) ( ( (x).segment == 0 ) && ( (x).offset == 0 ) )
+#define SEGOFF16_TO_PTR(x) ( VIRTUAL( (x).segment, (x).offset ) )
+#define PTR_TO_SEGOFF16(ptr,segoff16) \
+	(segoff16).segment = SEGMENT(ptr); \
+	(segoff16).offset  = OFFSET(ptr);
+
 typedef struct {
 	uint16_t		Seg_Addr;
 	uint32_t		Phy_Addr;

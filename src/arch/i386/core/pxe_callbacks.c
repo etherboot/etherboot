@@ -36,7 +36,6 @@ uint8_t byte_checksum ( void *address, size_t size ) {
  * Use base = NULL for auto-allocation of base memory
  */
 pxe_stack_t * install_pxe_stack ( void *base ) {
-	pxe_stack_t *pxe_stack;
 	pxe_t *pxe;
 	pxenv_t *pxenv;
 	void *pxe_callback_code;
@@ -44,6 +43,9 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	void (*pxenv_in_call_far)(void);
 	void *rm_callback_code;
 	void *end;
+
+	/* If already installed, just return */
+	if ( pxe_stack != NULL ) return pxe_stack;
 
 	/* Allocate base memory if requested to do so
 	 */
@@ -59,7 +61,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	/* Calculate addresses for portions of the stack */
 	pxe = &(pxe_stack->pxe);
 	pxenv = &(pxe_stack->pxenv);
-	pxe_callback_code = (void*)pxe_stack + sizeof(*pxe_stack);
+	pxe_callback_code = &(pxe_stack->arch_data);
 	pxe_in_call_far = _pxe_in_call_far +  
 		( pxe_callback_code - &pxe_callback_interface );
 	pxenv_in_call_far = _pxenv_in_call_far +
@@ -143,8 +145,9 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 
 /* remove_pxe_stack(): remove PXE stack installed by install_pxe_stack()
  */
-void remove_pxe_stack ( pxe_stack_t *pxe_stack ) {
+void remove_pxe_stack ( void ) {
 	forget_base_memory ( pxe_stack, pxe_stack_size() );
+	pxe_stack = NULL;
 }
 
 #define XXX_REAL_MODE_SS (0x9000);
@@ -153,7 +156,7 @@ extern GDT_STRUCT_t(6) _gdt;
 
 /* xstartpxe(): start up a PXE image
  */
-int xstartpxe ( pxe_stack_t *pxe_stack ) {
+int xstartpxe ( void ) {
 	int nbp_exit;
 	regs_t registers;
 	seg_regs_t seg_regs;
