@@ -618,20 +618,18 @@ static int await_rarp(int ival, void *ptr,
 {
 	struct arprequest *arpreply;
 	if (ptype != RARP)
-		return;
+		return 0;
 	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
 		return 0;
-	arpreply = (struct arprequest *)&nic.pakcet[ETH_HLEN];
+	arpreply = (struct arprequest *)&nic.packet[ETH_HLEN];
 	if (arpreply->opcode != htons(RARP_REPLY))
 		return 0;
-	if (memcmp(arpreply->thwaddr, 
 	if ((arpreply->opcode == htons(RARP_REPLY)) &&
 		(memcmp(arpreply->thwaddr, ptr, ETH_ALEN) == 0)) {
 		memcpy(arptable[ARP_SERVER].node, arpreply->shwaddr, ETH_ALEN);
 		memcpy(&arptable[ARP_SERVER].ipaddr, arpreply->sipaddr, sizeof(in_addr));
 		memcpy(&arptable[ARP_CLIENT].ipaddr, arpreply->tipaddr, sizeof(in_addr));
 		return 1;
-	}
 	}
 	return 0;
 }
