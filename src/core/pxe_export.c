@@ -913,7 +913,8 @@ int await_pxe_udp ( int ival __unused, void *ptr,
 	
 	/* Check dest_ip */
 	if ( udp_read->dest_ip && ( udp_read->dest_ip != ip->dest.s_addr ) ) {
-		DBG ( " wrong dest IP" );
+		DBG ( " wrong dest IP (got %@, wanted %@)",
+		      ip->dest.s_addr, udp_read->dest_ip );
 		return 0;
 	}
 
@@ -929,11 +930,19 @@ int await_pxe_udp ( int ival __unused, void *ptr,
 	udp_read->src_ip = ip->src.s_addr;
 	udp_read->s_port = udp->src; /* Both in network order */
 	size = ntohs(udp->len) - sizeof(*udp);
+	/* Workaround: NTLDR expects us to fill these in, even though
+	 * PXESPEC clearly defines them as input parameters.
+	 */
+	udp_read->dest_ip = ip->dest.s_addr;
+	udp_read->d_port = udp->dest;
+	DBG ( " %@:%d->%@:%d (%d)",
+	      udp_read->src_ip, ntohs(udp_read->s_port),
+	      udp_read->dest_ip, ntohs(udp_read->d_port), size );
 	if ( udp_read->buffer_size < size ) {
-		/* PXESPEC: are we meant to report any kind of error
-		 * in this case?
-		 */
-		size = udp_read->buffer_size;
+		/* PXESPEC: what error code should we actually return? */
+		DBG ( " buffer too small (%d)", udp_read->buffer_size );
+		udp_read->Status = PXENV_STATUS_OUT_OF_RESOURCES;
+		return 0;
 	}
 	memcpy ( SEGOFF16_TO_PTR ( udp_read->buffer ), &udp->payload, size );
 	udp_read->buffer_size = size;
@@ -946,8 +955,9 @@ PXENV_EXIT_t pxenv_udp_read ( t_PXENV_UDP_READ *udp_read ) {
 	ENSURE_READY ( udp_read );
 
 	/* Use await_reply with a timeout of zero */
+	/* Allow await_reply to change Status if necessary */
+	udp_read->Status = PXENV_STATUS_FAILURE;
 	if ( ! await_reply ( await_pxe_udp, 0, udp_read, 0 ) ) {
-		udp_read->Status = PXENV_STATUS_FAILURE;
 		return PXENV_EXIT_FAILURE;
 	}
 
@@ -972,7 +982,8 @@ PXENV_EXIT_t pxenv_udp_write ( t_PXENV_UDP_WRITE *udp_write ) {
 	src_port = ntohs(udp_write->src_port);
 	if ( src_port == 0 ) src_port = 2069;
 	dst_port = ntohs(udp_write->dst_port);
-	DBG ( " %d->%d (%d)", src_port, dst_port, udp_write->buffer_size );
+	DBG ( " %d->%@:%d (%d)", src_port, udp_write->ip, dst_port,
+	      udp_write->buffer_size );
 	
 	/* FIXME: we ignore the gateway specified, since we're
 	 * confident of being able to do our own routing.  We should
