@@ -47,16 +47,22 @@ Author: Martin Renters
 #define	DEFAULT_KERNELPATH	"/tftpboot/kernel.%@"
 #endif
 
-/* Uncomment this and maybe edit to have a default fallback kernel image.
-   This is used if bootp/dhcp-server doesn't provide the kernel path */
-/*#define DEFAULT_BOOTFILE	"/tftpboot/kernel"*/
-
 #ifdef FREEBSD_PXEEMU
 #undef DEFAULT_BOOTFILE
+#undef DEFAULT_BOOTFILE_STRINGIFIED
 #ifndef PXENFSROOTPATH
 #define PXENFSROOTPATH ""
 #endif
-#define DEFAULT_BOOTFILE	PXENFSROOTPATH "/boot/pxeboot"
+#define DEFAULT_BOOTFILE
+#define DEFAULT_BOOTFILE_STRINGIFIED	PXENFSROOTPATH "/boot/pxeboot"
+#endif
+
+/* Stringify DEFAULT_BOOTFILE here in order to make the Config file more
+ * user-friendly - avoids need for "\"...\"" in Config */
+#if defined(DEFAULT_BOOTFILE) && !defined(DEFAULT_BOOTFILE_STRINGIFIED)
+#define STRINGIFY(x) #x
+#define STRINGIFY_MACRO(x) STRINGIFY(x)
+#define DEFAULT_BOOTFILE_STRINGIFIED STRINGIFY_MACRO(DEFAULT_BOOTFILE)
 #endif
 
 /* Clean up console settings... mainly CONSOLE_CRT and CONSOLE_SERIAL are used
