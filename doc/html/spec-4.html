@@ -26,11 +26,13 @@ When it jumps to the start location in the boot image, it must be in
 underlying processor.
 <P>
 <P>
-<P>The image cannot be loaded into address spaces below 10000h, or between
-A0000h through FFFFFh, or between 98000h through 9FFFFh.
-<B>(gk)</B>Only when the image is not going to return to the boot
-process, all the memory is available to it once it has been started, so
-it can relocate parts of itself to these areas.<B>(gk)</B>
+<P>The image cannot be loaded into address spaces below 10000h<B>(ky: This
+restriction removed in Etherboot)</B>, or between A0000h through
+FFFFFh, or between 98000h<B>(ky: Changed to 94000h in Etherboot 5.x
+onwards)</B> through 9FFFFh.  <B>(gk)</B>Only when the image is not
+going to return to the boot process, all the memory is available to it
+once it has been started, so it can relocate parts of itself to these
+areas.<B>(gk)</B>
 <P>
 <P>
 <P>The boot process must be capable of loading the image into all other
@@ -72,7 +74,8 @@ process relocates the 512 bytes to location 7c00h. The net boot process
 continues to load any further image data to 10000h up. This data can overwrite
 the first 512 boot bytes. If the image reaches 98000h, then any further data is
 continued to be loaded above 100000h. When all the data has been loaded, the
-net boot process jumps to location 0:7c00.
+net boot process jumps to location 0:7c00.<B>(ky)No longer supported in
+Etherboot(ky)</B>
 <P>
 <P>
 <P><B>(gk)</B>When the net boot program calls the image, it places 2

@@ -97,6 +97,18 @@ Boot tuning parameters:
 		MAX_ARP_RETRIES, MAX_BOOTP_RETRIES, MAX_TFTP_RETRIES
 		and MAX_RPC_RETRIES to a larger value.
 
+-DTIMEOUT=n
+		Use with care!! See above.
+		Sets the base of RFC2131 sleep interval to n.
+		This can be used with -DBACKOFF_LIMIT=0 to get a small
+		and constant (predictable) retry interval for embedded
+		devices. This is to achieve short boot delays if both
+		the DHCP Server and the embedded device will be powered
+		on the same time. Otherwise if the DHCP server is ready
+		the client could sleep the next exponentially timeout,
+		e.g. 70 seconds or more. This is not what you want.
+		n should be a multiple of TICKS_PER_SEC (18).
+
 Boot device options:
 
 -DCAN_BOOT_DISK
@@ -130,6 +142,9 @@ Boot image options:
 -DIMAGE_FREEBSD
 		Add FreeBSD image loading support (requires at least
 		-DAOUT_IMAGE and/or -DELF_IMAGE).
+-DIMAGE_NETBSD
+		Add NetBSD/ELF image loading support (requires at least
+		-DELF_IMAGE).
 -DFREEBSD_KERNEL_ENV
 		Pass in FreeBSD kernel environment
 -DAOUT_LYNX_KDI

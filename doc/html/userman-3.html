@@ -69,7 +69,7 @@ top directory.
 <P>
 <P>To build the ROM images you need a recent release of gcc and the
 binutils tools. This package has been compiled with the tools from a
-SuSE 7.1 distribution but it should work with any recent Linux or
+SuSE 8.2 distribution but it should work with any recent Linux or
 FreeBSD distribution. gas 2.9.1 is too old to handle the 16-bit code in
 loader.S. Use gas 2.9.5 at least. Also the "gcc 2.96" used in RedHat 7.0
 (and later versions maybe) generates faulty machine code compiling
@@ -190,6 +190,18 @@ Boot tuning parameters:
                 MAX_ARP_RETRIES, MAX_BOOTP_RETRIES, MAX_TFTP_RETRIES
                 and MAX_RPC_RETRIES to a larger value.
 
+-DTIMEOUT=n
+                Use with care!! See above.
+                Sets the base of RFC2131 sleep interval to n.
+                This can be used with -DBACKOFF_LIMIT=0 to get a small
+                and constant (predictable) retry interval for embedded
+                devices. This is to achieve short boot delays if both
+                the DHCP Server and the embedded device will be powered
+                on the same time. Otherwise if the DHCP server is ready
+                the client could sleep the next exponentially timeout,
+                e.g. 70 seconds or more. This is not what you want.
+                n should be a multiple of TICKS_PER_SEC (18).
+
 Boot device options:
 
 -DCAN_BOOT_DISK
@@ -223,6 +235,9 @@ Boot image options:
 -DIMAGE_FREEBSD
                 Add FreeBSD image loading support (requires at least
                 -DAOUT_IMAGE and/or -DELF_IMAGE).
+-DIMAGE_NETBSD
+                Add NetBSD/ELF image loading support (requires at least
+                -DELF_IMAGE).
 -DFREEBSD_KERNEL_ENV
                 Pass in FreeBSD kernel environment
 -DAOUT_LYNX_KDI
@@ -342,7 +357,7 @@ NICs. Look at the file NIC. Locate the line that has the correct PCI IDs
 for your NIC. This will give you the name of the ROM image you should
 use.  The PCI IDs are usually displayed by the BIOS on booting up. They
 can also be read out from a running Linux system using the 
-<A HREF="http://atrey.karlin.mff.cuni.cz/~mj/pciutils.html">Linux PCI Utilities</A>.  If you do not use the ROM with the correct
+<A HREF="http://atrey.karlin.mff.cuni.cz/~mj/pciutils.shtml">Linux PCI Utilities</A>.  If you do not use the ROM with the correct
 IDs, the floppy version will work, but the ROM will not since the BIOS
 will check for a match.
 <P>

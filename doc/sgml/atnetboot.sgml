@@ -29,7 +29,7 @@ what you could run.
 <p>
 
 The method could be generalised to other OSes that could run on a 286,
-e.g. <url url="http://epocha.pd.mcs.net/Linux8086/" name="ELKS">. See the
+e.g. <url url="http://elks.sourceforge.net/" name="ELKS">. See the
 discussion below for what needs to be done.
 
 <p>
@@ -48,7 +48,7 @@ works.)</it> FreeDOS can also be netbooted and the kernel is loaded from the
 tagged image rather than from the floppy image, which means more space for
 applications or data. All the instructions are in the <url name="mknbi"
 url="mknbi.html"> directory that comes with the Etherboot distribution.  You
-can find a <url url="http://etherboot.sourceforge.net/disklesstelnet.zip"
+can find a <url url="http://www.etherboot.org/disklesstelnet.zip"
 name="zip file"> containing the components of a tagged image that runs telnet
 on the diskless client.
 
@@ -104,7 +104,7 @@ perhaps config.sys) to start everything up. Don't worry about getting
 the configuration file contents right at this point, you can replace
 them at will on the ramdisk floppy.
 
-<item>Get the <url url="http://etherboot.sourceforge.net/"
+<item>Get the <url url="http://www.etherboot.org/"
 name="Etherboot"> distribution, version 4.4 or higher, and make a boot
 PROM for the card of your choice. You may want to enable the <tt/ASK_BOOT/
 option with a short timeout and <tt/ANS_DEFAULT=ANS_NETWORK/.  This will
@@ -114,7 +114,7 @@ PROM. Most compressed 16 bit images in Etherboot are under 8 kB.
 Burn it into a PROM or find someone to do it for you. If you are using
 a larger PROM, make sure you have burnt it in the right portion of the
 PROM, or burn multiple copies in the address space to be sure. See <url
-url="http://etherboot.sourceforge.net/doc/html/userman.html" name="here">
+url="http://www.etherboot.org/doc/html/userman.html" name="here">
 for some things to watch out for.
 
 <item>Set up bootp/DHCP and tftp services on the server if you haven't

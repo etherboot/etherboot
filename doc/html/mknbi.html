@@ -1,410 +1,454 @@
-<HTML>
-<HEAD>
-<TITLE>mknbi - make network bootable image</TITLE>
-<LINK REV="made" HREF="mailto:feedback@suse.de">
-</HEAD>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>mknbi - make network bootable image</title>
+<link rev="made" href="mailto:feedback@suse.de" />
+</head>
 
-<BODY>
+<body style="background-color: white">
 
-<A NAME="__index__"></A>
+<p><a name="__index__"></a></p>
 <!-- INDEX BEGIN -->
 
-<UL>
+<ul>
 
-	<LI><A HREF="#name">NAME</A></LI>
-	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
-	<LI><A HREF="#description">DESCRIPTION</A></LI>
-	<LI><A HREF="#mknbilinux">MKNBI-LINUX</A></LI>
-	<LI><A HREF="#mknbilinux options">MKNBI-LINUX OPTIONS</A></LI>
-	<LI><A HREF="#mknbilinux bootp/dhcp vendor tags">MKNBI-LINUX BOOTP/DHCP VENDOR TAGS</A></LI>
-	<LI><A HREF="#mknbirom">MKNBI-ROM</A></LI>
-	<LI><A HREF="#mknbimenu">MKNBI-MENU</A></LI>
-	<LI><A HREF="#mknbifdos">MKNBI-FDOS</A></LI>
-	<LI><A HREF="#mknbifdos options">MKNBI-FDOS OPTIONS</A></LI>
-	<LI><A HREF="#mknbidos">MKNBI-DOS</A></LI>
-	<LI><A HREF="#mknbidos options">MKNBI-DOS OPTIONS</A></LI>
-	<LI><A HREF="#bugs">BUGS</A></LI>
-	<LI><A HREF="#see also">SEE ALSO</A></LI>
-	<LI><A HREF="#copyright">COPYRIGHT</A></LI>
-	<LI><A HREF="#author">AUTHOR</A></LI>
-	<LI><A HREF="#date">DATE</A></LI>
-</UL>
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#mknbilinux">MKNBI-LINUX</a></li>
+	<li><a href="#mknbilinux_options">MKNBI-LINUX OPTIONS</a></li>
+	<li><a href="#mknbilinux_bootp/dhcp_vendor_tags">MKNBI-LINUX BOOTP/DHCP VENDOR TAGS</a></li>
+	<li><a href="#mknbirom">MKNBI-ROM</a></li>
+	<li><a href="#mknbimenu">MKNBI-MENU</a></li>
+	<li><a href="#mknbinfl">MKNBI-NFL</a></li>
+	<li><a href="#mkelflua">MKELF-LUA</a></li>
+	<li><a href="#mknbifdos">MKNBI-FDOS</a></li>
+	<li><a href="#mknbifdos_options">MKNBI-FDOS OPTIONS</a></li>
+	<li><a href="#mknbidos">MKNBI-DOS</a></li>
+	<li><a href="#mknbidos_options">MKNBI-DOS OPTIONS</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+	<li><a href="#copyright">COPYRIGHT</a></li>
+	<li><a href="#author">AUTHOR</a></li>
+	<li><a href="#date">DATE</a></li>
+</ul>
 <!-- INDEX END -->
 
-<HR>
-<P>
-<H1><A NAME="name">NAME</A></H1>
-<P>mknbi - make network bootable image</P>
-<P>
-<HR>
-<H1><A NAME="synopsis">SYNOPSIS</A></H1>
-<P><STRONG>mknbi</STRONG> --format=<EM>format</EM> --target=<EM>target</EM> [--output=<EM>outputfile</EM>] <EM>target-specific-arguments</EM></P>
-<P><STRONG>mknbi-linux</STRONG> [--output=<EM>outputfile</EM>] <EM>kernelimage</EM> [<EM>ramdisk</EM>]</P>
-<P><STRONG>mkelf-linux</STRONG> [--output=<EM>outputfile</EM>] <EM>kernelimage</EM> [<EM>ramdisk</EM>]</P>
-<P><STRONG>mknbi-rom</STRONG> [--output=<EM>outputfile</EM>] <EM>ROM-image</EM></P>
-<P><STRONG>mknbi-menu</STRONG> [--output=<EM>outputfile</EM>] [<EM>dataimage</EM>]</P>
-<P><STRONG>mkelf-menu</STRONG> [--output=<EM>outputfile</EM>] [<EM>dataimage</EM>]</P>
-<P><STRONG>mknbi-fdos</STRONG> [--output=<EM>outputfile</EM>] <EM>kernel.sys floppyimage</EM></P>
-<P><STRONG>mknbi-dos</STRONG> [--output=<EM>outputfile</EM>] <EM>floppyimage</EM></P>
-<P>
-<HR>
-<H1><A NAME="description">DESCRIPTION</A></H1>
-<P><STRONG>mknbi</STRONG> is a program that makes network bootable images for various
+<hr />
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>mknbi - make network bootable image</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>mknbi</strong> --version</p>
+<p><strong>mknbi</strong> --format=<em>format</em> --target=<em>target</em> [--output=<em>outputfile</em>] <em>target-specific-arguments</em></p>
+<p><strong>mknbi-linux</strong> [--output=<em>outputfile</em>] <em>kernelimage</em> [<em>ramdisk</em>]</p>
+<p><strong>mkelf-linux</strong> [--output=<em>outputfile</em>] <em>kernelimage</em> [<em>ramdisk</em>]</p>
+<p><strong>mknbi-rom</strong> [--output=<em>outputfile</em>] <em>ROM-image</em></p>
+<p><strong>mknbi-menu</strong> [--output=<em>outputfile</em>] [<em>dataimage</em>]</p>
+<p><strong>mkelf-menu</strong> [--output=<em>outputfile</em>] [<em>dataimage</em>]</p>
+<p><strong>mknbi-nfl</strong> [--output=<em>outputfile</em>] [<em>dataimage</em>]</p>
+<p><strong>mkelf-nfl</strong> [--output=<em>outputfile</em>] [<em>dataimage</em>]</p>
+<p><strong>mkelf-lua</strong> [--output=<em>outputfile</em>] <em>luabin</em></p>
+<p><strong>mknbi-fdos</strong> [--output=<em>outputfile</em>] <em>kernel.sys floppyimage</em></p>
+<p><strong>mknbi-dos</strong> [--output=<em>outputfile</em>] <em>floppyimage</em></p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p><strong>mknbi</strong> is a program that makes network bootable images for various
 operating systems suitable for network loading by Etherboot or Netboot,
 which are ROM boot loaders.  If you are looking to boot using PXE, look
 no further, mknbi is not what you want. You probably want something like
-PXELINUX which is part of the SYSLINUX package.</P>
-<P><STRONG>mknbi</STRONG> can be invoked with the <STRONG>--format</STRONG> and <STRONG>--target</STRONG> options or
+PXELINUX which is part of the SYSLINUX package.</p>
+<p><strong>mknbi</strong> --version prints the current version. Use this before reporting
+problems.</p>
+<p><strong>mknbi</strong> can be invoked with the <strong>--format</strong> and <strong>--target</strong> options or
 links can be made to it under format and target specific names. E.g.
-mkelf-linux is the same as mknbi --format=elf --target=linux.</P>
-<P><STRONG>--format</STRONG>=<EM>format</EM> Specify the format of the output. Currently
+mkelf-linux is the same as mknbi --format=elf --target=linux.</p>
+<p><strong>--format</strong>=<em>format</em> Specify the format of the output. Currently
 available are nbi and elf.  ELF format only works with linux and menu.
 Otherwise the invocation is the same as for mknbi. In discussions below,
-the mknbi form is used.</P>
-<P><STRONG>--target</STRONG>=<EM>target</EM> Specify the target binary. Currently available are
-linux, menu, rom, fdos and dos. <STRONG>mknbi</STRONG> is not needed for booting
-FreeBSD.</P>
-<P><STRONG>--output=</STRONG><EM>outputfile</EM> Specify the output file, can be used with
-all variants.  Stdout is the default.</P>
-<P>The package must be installed in the destination location before the
-executables can be run, because it looks for library files.</P>
-<P>Each of the variants will be described separately.</P>
-<P>
-<HR>
-<H1><A NAME="mknbilinux">MKNBI-LINUX</A></H1>
-<P><STRONG>mknbi-linux</STRONG> makes a tagged image from a Linux kernel image, either
-a zImage or a bzImage.</P>
-<P>
-<HR>
-<H1><A NAME="mknbilinux options">MKNBI-LINUX OPTIONS</A></H1>
-<P><STRONG>--param=</STRONG><EM>string</EM> Replace the default parameter string with the
+the mknbi form is used.</p>
+<p><strong>--target</strong>=<em>target</em> Specify the target binary. Currently available are
+linux, menu, rom, fdos and dos. <strong>mknbi</strong> is not needed for booting
+FreeBSD.</p>
+<p><strong>--output=</strong><em>outputfile</em> Specify the output file, can be used with
+all variants.  Stdout is the default.</p>
+<p>The package must be installed in the destination location before the
+executables can be run, because it looks for library files.</p>
+<p>Each of the variants will be described separately.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbilinux">MKNBI-LINUX</a></h1>
+<p><strong>mknbi-linux</strong> makes a tagged image from a Linux kernel image, either
+a zImage or a bzImage.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbilinux_options">MKNBI-LINUX OPTIONS</a></h1>
+<p><strong>--param=</strong><em>string</em> Replace the default parameter string with the
 specified one. This option overrides all the following options so you
-should know what you are doing.</P>
-<P><STRONG>--append</STRONG>=<EM>string</EM> Appends the specified string to the existing
+should know what you are doing.</p>
+<p><strong>--append</strong>=<em>string</em> Appends the specified string to the existing
 parameter string. This option operates after the other parameter options
-have been evaluated.</P>
-<P><STRONG>--rootdir</STRONG>=<EM>rootdir</EM> Define name of directory to mount via NFS from
-the boot server.</P>
-<P>In the absence of this option, the default is to use the directory
-<CODE>/tftpboot/</CODE><EM>%s</EM>, with the <EM>%s</EM> representing the hostname or
+have been evaluated.</p>
+<p><strong>--rootdir</strong>=<em>rootdir</em> Define name of directory to mount via NFS from
+the boot server.</p>
+<p>In the absence of this option, the default is to use the directory
+<code>/tftpboot/</code><em>%s</em>, with the <em>%s</em> representing the hostname or
 IP-address of the booting system, depending on whether the hostname
-attribute is present in the BOOTP/DHCP reply.</P>
-<P>If <CODE>rom</CODE> is given, and if the BOOTP/DHCP server is able to handle the RFC 1497
-extensions, the value of the rootpath option is used as the root directory.</P>
-<P>If the name given to the option starts with <CODE>/dev/</CODE>, the corresponding
-device is used as the root device, and no NFS directory will be mounted.</P>
-<P><STRONG>--rootmode</STRONG>=<CODE>ro|rw</CODE> Defines whether the root device will be mounted
+attribute is present in the BOOTP/DHCP reply.</p>
+<p>If <code>rom</code> is given, and if the BOOTP/DHCP server is able to handle the RFC 1497
+extensions, the value of the rootpath option is used as the root directory.</p>
+<p>If the name given to the option starts with <code>/dev/</code>, the corresponding
+device is used as the root device, and no NFS directory will be mounted.</p>
+<p><strong>--rootmode</strong>=<code>ro|rw</code> Defines whether the root device will be mounted
 read-only or read-write respectively. Without this parameter, the
-default is <CODE>rw</CODE>.</P>
-<P><STRONG>--ip=</STRONG><EM>string</EM> Define client and server IP addresses.
-<STRONG>--ipaddrs=</STRONG><EM>string</EM> is a synonym for the same thing (deprecated, will
-disappear in some future version).</P>
-<P>In the absence of this option no IP addresses are defined, and the
+default is <code>rw</code>.</p>
+<p><strong>--ip=</strong><em>string</em> Define client and server IP addresses.</p>
+<p>In the absence of this option no IP addresses are defined, and the
 kernel will determine the IP addresses by itself, usually by using DHCP,
-BOOTP or RARP.  Note that the kernel's query is <EM>in addition to</EM> the
+BOOTP or RARP.  Note that the kernel's query is <em>in addition to</em> the
 query made by the bootrom, and requires the IP: kernel level
-autoconfiguration (CONFIG_IP_PNP) feature to be included in the kernel.</P>
-<P>Important note: In Linux kernels 2.2.x where x &gt;= 18, and 2.4.x where x
-&gt;= 5, it is <STRONG>necessary</STRONG> to specify one of the enabling options in the
+autoconfiguration (CONFIG_IP_PNP) feature to be included in the kernel.</p>
+<p>Important note: In Linux kernels 2.2.x where x &gt;= 18, and 2.4.x where x
+&gt;= 5, it is <strong>necessary</strong> to specify one of the enabling options in the
 next paragraph to cause the IP autoconfiguration to be activated.
 Unlike in previous kernels, IP autoconfiguration does not happen by
-default.</P>
-<P>If one of the following: <CODE>off, none, on, any, dhcp, bootp, rarp, both</CODE>,
+default. Also note that IP autoconfiguration and NFSroot are likely to
+go away in Linux 2.6 and that userspace IP configuration methods using
+ramdisk and userspace DHCP daemons are preferred now.</p>
+<p>If one of the following: <code>off, none, on, any, dhcp, bootp, rarp, both</code>,
 is given, then the option will be passed unmodified to the kernel and
-cause that autoconfig option to be chosen.</P>
-<P>If <CODE>rom</CODE> is given as the argument to this option, all necessary IP
+cause that autoconfig option to be chosen.</p>
+<p>If <code>rom</code> is given as the argument to this option, all necessary IP
 addresses for NFS root mounting will be inherited from the BOOTP/DHCP
-answer the bootrom got from the server.</P>
-<P>It's also possible to define the addresses during compilation of the boot
+answer the bootrom got from the server.</p>
+<p>It's also possible to define the addresses during compilation of the boot
 image. Then, all addresses must be separated by a colon, and ordered in
-the following way:</P>
-<P><CODE>--ip=</CODE><EM>client:server:gateway:netmask:hostname[:dev[:proto]]</EM></P>
-<P>Using this option <STRONG>mknbi-linux</STRONG> will automatically convert system names
+the following way:</p>
+<p><code>--ip=</code><em>client:server:gateway:netmask:hostname[:dev[:proto]]</em></p>
+<p>Using this option <strong>mknbi-linux</strong> will automatically convert system names
 into decimal IP addresses for the first three entries in this string.
-The <STRONG>hostname</STRONG> entry will be used by the kernel to set the host name of
+The <strong>hostname</strong> entry will be used by the kernel to set the host name of
 the booted Linux diskless client.  When more than one network interface
 is installed in the diskless client, it is possible to specify the name
 of the interface to use for mounting the root directory via NFS by
-giving the optional value <CODE>dev</CODE>.  This entry has to start with the
-string <CODE>eth</CODE> followed by a number from 0 to 9. However, if only one
-interface is installed in the client, this <EM>dev</EM> entry including the
-preceding semicolon can be left out. The <EM>proto</EM> argument is one of the
+giving the optional value <code>dev</code>.  This entry has to start with the
+string <code>eth</code> followed by a number from 0 to 9. However, if only one
+interface is installed in the client, this <em>dev</em> entry including the
+preceding semicolon can be left out. The <em>proto</em> argument is one of the
 IP autoconfiguration enabling options listed above.  (Author: it's not
 clear to me what the IP autoconfiguration does when the parameters are
 already specified.  Perhaps it's to obtain parameters not specified,
-e.g. NIS domain.)</P>
-<P><STRONG>--rdbase=</STRONG><EM>top|asis|0xNNNNNNNN</EM> Set the ramdisk load address.  <CODE>top</CODE>
+e.g. NIS domain.)</p>
+<p><strong>--rdbase=</strong><em>top|asis|0xNNNNNNNN</em> Set the ramdisk load address.  <code>top</code>
 moves the ramdisk to the top of memory before jumping to the kernel.
 This is the default if rdbase is not specified.  This option requires
-that first-linux's kernel sizing work correctly.  <CODE>asis</CODE> loads it at
+that first-linux's kernel sizing work correctly.  <code>asis</code> loads it at
 0x100000 (1MB) if the kernel is loaded low; or leaves it just after the
 kernel in memory, if the kernel is loaded high. For this option to work,
-the kernel must be able to handle ramdisks at these addresses.  I'm told
-2.4 kernels can do this, but I have not been able to confirm it.
-<EM>0xNNNNNNNN</EM> moves the ramdisk to the hex address specified. The onus
+the kernel must be able to handle ramdisks at these addresses.
+<em>0xNNNNNNNN</em> moves the ramdisk to the hex address specified. The onus
 is on the user to specify a suitable address that is acceptable to the
 kernel and doesn't overlap with any other segments. It will have to be
 aligned to a 4k byte boundary so you should ensure that this is so. (The
-last three hex digits must be 0.)</P>
-<P><STRONG>--first16</STRONG> Use old first stage setup program (first-linux.S). By
-default the new first stage setup program (first32.c) is used. The new
-setup program has some advantages, including being able to detect memory
-&gt; 64 MB and in general being more maintainable. --first16 is only valid
-for tagged images, not ELF. It will be ignored if specified with ELF.</P>
-<P><STRONG>--first32pm=</STRONG><EM>[program]</EM> Use a more efficient protected mode call
-protocol for the first stage setup program. This requires Etherboot ROMs
-version 5.0 and above and so is not enabled by default. It can also be
-used to call extensions to the Etherboot code, which paves the way for
-additional useful functionality without enlarging the size of the
-Etherboot footprint. When a <EM>program</EM> is not specified, the default is
-to use the standard first stage setup program suitable for booting a
-Linux kernel. --first32pm is implied by the ELF format and does not have
-to be specified in this case. Note that you still need the = if you
-don't specify a <EM>program</EM> to prevent this option from swallowing up the
-next argument as = and space are equivalent in the Getopt routine
-provided by Perl.</P>
-<P><STRONG>--progreturns</STRONG> This option is used in conjunction with and only valid
-with the --first32pm option to indicate to the Etherboot loader that the
+last three hex digits must be 0.)</p>
+<p><strong>--first32=</strong><em>program</em> Override the default first stage setup
+program.  It can be used to call extensions to the Etherboot code, which
+paves the way for additional useful functionality without enlarging the
+size of the Etherboot footprint.  --first32 is implied by the ELF
+format.</p>
+<p><strong>--progreturns</strong> This option is used in conjunction with and only valid
+with the --first32 option to indicate to the Etherboot loader that the
 called program will return to loader and hence Etherboot should not
 disable the network device as is the case when the program will never
-return to Etherboot.</P>
-<P><STRONG>--relocseg=</STRONG><EM>segaddr</EM> This option is used to specify a relocation of
+return to Etherboot.</p>
+<p><strong>--relocseg=</strong><em>segaddr</em> This option is used to specify a relocation of
 the Linux first, boot, setup, and parameter segments to another 64k
 band.  Currently the only valid values are 0x9000 and 0x8000,
 corresponding to linear addresses of 0x90000 and 0x80000 upwards. The
-default is 0x9000.  You also need to relocate Etherboot to 0x84000 if
-you use the 0x8000 band and your Linux kernel must support relocation
-which implies a 2.4 kernel at least.</P>
-<P><STRONG>mem=</STRONG><EM>memsize</EM> This is not a command line option but a kernel
+default is 0x9000.  Usually you use this option if you have relocated
+Etherboot to 0x84000 to avoid other code in the 0x90000 segment like
+DOC. The Linux kernel must support relocation which implies a 2.4 kernel
+or later. --relocseg only works reliably with ELF or --first32=.</p>
+<p><strong>mem=</strong><em>memsize</em> This is not a command line option but a kernel
 parameter that is intercepted by the first32 stage and used as the top
-of memory, to match Linux's interpretation. <EM>memsize</EM> can be suffixed
-by <CODE>G</CODE> to indicate gibibytes (times 2^30), <CODE>M</CODE> to indicate mebibytes
-(times 2^20) or <CODE>K</CODE> to indicate kibibytes (times 2^10). Note that the
+of memory, to match Linux's interpretation. <em>memsize</em> can be suffixed
+by <code>G</code> to indicate gibibytes (times 2^30), <code>M</code> to indicate mebibytes
+(times 2^20) or <code>K</code> to indicate kibibytes (times 2^10). Note that the
 suffixes are uppercase. This kernel parameter can be specified in
---append= or option-129 of the DHCP/BOOTP record.</P>
-<P>Run the program thus:</P>
-<P><CODE>mknbi-linux</CODE> <EM>kernel-image</EM> [<EM>ramdisk-image</EM>] &gt; <CODE>linux.nb</CODE></P>
-<P>Then move <EM>linux.nb</EM> to where the network booting process expects to
-find it.</P>
-<P>
-<HR>
-<H1><A NAME="mknbilinux bootp/dhcp vendor tags">MKNBI-LINUX BOOTP/DHCP VENDOR TAGS</A></H1>
-<P><STRONG>mknbi-linux</STRONG> includes a startup code at the beginning of the Linux
+--append= or option-129 of the DHCP/BOOTP record.</p>
+<p>Run the program thus:</p>
+<p><code>mknbi-linux</code> <em>kernel-image</em> [<em>ramdisk-image</em>] &gt; <code>linux.nb</code></p>
+<p>Then move <em>linux.nb</em> to where the network booting process expects to
+find it.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbilinux_bootp/dhcp_vendor_tags">MKNBI-LINUX BOOTP/DHCP VENDOR TAGS</a></h1>
+<p><strong>mknbi-linux</strong> includes a startup code at the beginning of the Linux
 kernel which is able to detect certain BOOTP vendor defined tags. These
 can be used to modify the kernel loading process at runtime. To use
 these tags with bootpd, a publicly available BOOTP server daemon, you
-can use the following syntax in the <EM>/etc/bootptab</EM> file:</P>
-<P><CODE>T</CODE><EM>number</EM><CODE>=&quot;</CODE><EM>string</EM><CODE>&quot;</CODE></P>
-<P>For example, to specify a different root NFS device, you can use:</P>
-<P><CODE>T130=&quot;eth1&quot;</CODE></P>
-<P>The following tags are presently supported by <STRONG>mknbi-linux</STRONG>:</P>
-<P><STRONG>129</STRONG> The <EM>string</EM> value given with this tag is appended verbatim to
+can use the following syntax in the <em>/etc/bootptab</em> file:</p>
+<p><code>T</code><em>number</em><code>=&quot;</code><em>string</em><code>&quot;</code></p>
+<p>For example, to specify a different root NFS device, you can use:</p>
+<p><code>T130=&quot;eth1&quot;</code></p>
+<p>The following tags are presently supported by <strong>mknbi-linux</strong>:</p>
+<p><strong>129</strong> The <em>string</em> value given with this tag is appended verbatim to
 the end of the kernel command line.  It can be used to specify arguments
 like I/O addresses or DMA channels required for special hardware
 like SCSI adapters, network cards etc. Please consult the Linux kernel
 documentation about the syntax required by those options. It is the same
-as the <STRONG>--append</STRONG> command line option to <STRONG>mknbi-linux</STRONG>, but works at
-boot time instead of image build time.</P>
-<P><STRONG>130</STRONG> With this tag it is possible to the select the network adapter
+as the <strong>--append</strong> command line option to <strong>mknbi-linux</strong>, but works at
+boot time instead of image build time.</p>
+<p><strong>130</strong> With this tag it is possible to the select the network adapter
 used for mounting root via NFS on a multihomed diskless client. The
-syntax for the <EM>string</EM> value is the same as for the <CODE>dev</CODE> entry used
-with the <STRONG>--ip=</STRONG> option as described above. However note that the
-<STRONG>mknbi-linux</STRONG> runtime setup routine does not check the syntax of the
-string.</P>
-<P>The same tags will work in DHCP with the appropriate syntax for your
-DHCP server configuration file.</P>
-<P>Remember that you need to specify tag 128 in the correct format in order
+syntax for the <em>string</em> value is the same as for the <code>dev</code> entry used
+with the <strong>--ip=</strong> option as described above. However note that the
+<strong>mknbi-linux</strong> runtime setup routine does not check the syntax of the
+string.</p>
+<p>The same tags will work in DHCP with the appropriate syntax for your
+DHCP server configuration file.</p>
+<p>Remember that you need to specify tag 128 in the correct format in order
 for the previous tags to be valid. See the documentation file
-vendortags.</P>
-<P>
-<HR>
-<H1><A NAME="mknbirom">MKNBI-ROM</A></H1>
-<P><STRONG>mknbi-rom</STRONG> makes a tagged image from an Etherboot <CODE>.rom</CODE> or <CODE>.lzrom</CODE>
+vendortags.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbirom">MKNBI-ROM</a></h1>
+<p><strong>mknbi-rom</strong> makes a tagged image from an Etherboot <code>.rom</code> or <code>.lzrom</code>
 boot ROM image.  This allows it to be netbooted using an existing
-ROM. This is useful for developing Etherboot drivers.</P>
-<P>Run mknbi like this:</P>
-<P><CODE>mknbi-rom nic.lzrom</CODE> &gt; <CODE>nic.nb</CODE></P>
-<P>Move <EM>nic.nb</EM> to where the network booting process expects to find it.
-The boot ROM will load this as the <EM>operating system</EM> and execute the
-ROM image.</P>
-<P>
-<HR>
-<H1><A NAME="mknbimenu">MKNBI-MENU</A></H1>
-<P><STRONG>mknbi-menu</STRONG> and <STRONG>mkelf-menu</STRONG> make a tagged or ELF image from an
+ROM. This is useful for developing Etherboot drivers or to load a newer
+version of Etherboot with an older one.</p>
+<p>Run mknbi like this:</p>
+<p><code>mknbi-rom nic.lzrom</code> &gt; <code>nic.nb</code></p>
+<p>Move <em>nic.nb</em> to where the network booting process expects to find it.
+The boot ROM will load this as the <em>operating system</em> and execute the
+ROM image.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbimenu">MKNBI-MENU</a></h1>
+<p><strong>mknbi-menu</strong> and <strong>mkelf-menu</strong> make a tagged or ELF image from an
 auxiliary menu program. Etherboot has the ability to load an auxiliary
 program which can interact with the user, modify the DHCP structure, and
 return a status.  Based on the status, Etherboot can load another
 binary, restart or exit.  This makes it possible to have elaborate user
 interface programs without having to modify Etherboot. The specification
-for auxiliary program is documented in the Etherboot Developer's Manual.</P>
-<P><STRONG>mknbi-menu</STRONG> and <STRONG>mkelf-menu</STRONG> take a binary named <CODE>menu</CODE> from the
-library directory, which is assumed to have an entry point of 0x10000.
-An optional argument is accepted, and this is loaded at 0x20000. This
-can be a data file used by the menu program.</P>
-<P>Currently, the menu binary provided duplicates the builtin menu facility
+for auxiliary program is documented in the Etherboot Developer's Manual.</p>
+<p><strong>mknbi-menu</strong> and <strong>mkelf-menu</strong> take a binary named <code>menu</code> from the
+library directory, which is assumed to have an entry point of 0x60000.
+An optional argument is accepted, and this is loaded at 0x80000. This
+can be a data file used by the menu program.</p>
+<p>Currently, the menu binary provided duplicates the builtin menu facility
 of Etherboot with the exception of a couple of small differences: no
 server or gateway specifications are used and nested TFTP loads don't
 work. You should not have MOTD or IMAGE_MENU defined in your Etherboot
 build to be able to use this external menu binary. The specifications of
 the DHCP tags required is in the vendortags document in the Etherboot
-documentation.</P>
-<P>Typical usage is like this:</P>
-<P><CODE>mkelf-menu</CODE> &gt; <CODE>menu.nb</CODE></P>
-<P>Then put menu.nb in the TFTP boot directory and edit your DHCP tags
-according to the documentation.</P>
-<P>Alternate user interface programs are highly encouraged.</P>
-<P>
-<HR>
-<H1><A NAME="mknbifdos">MKNBI-FDOS</A></H1>
-<P><STRONG>mknbi-fdos</STRONG> makes a tagged image from a FreeDOS kernel file and a
+documentation.</p>
+<p>Typical usage is like this:</p>
+<p><code>mkelf-menu</code> &gt; <code>menu.nb</code></p>
+<p>Then put menu.nb in the TFTP boot directory and edit your DHCP tags
+according to the documentation.</p>
+<p>Alternate user interface programs are highly encouraged.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbinfl">MKNBI-NFL</a></h1>
+<p><strong>mknbi-nfl</strong> and <strong>mkelf-nfl</strong> make a tagged or ELF image from the NFL
+menu program. This menu program takes the names of images from a
+menu-text-file file which just contains lines with the filenames
+(relative to the tftpd root directory) of images to load. The
+user-interface is a light-bar, similar to that used in GRUB.  There is a
+sample menu-text-file in <code>menu-nfl.eg</code>.</p>
+<p>Typical usage is:</p>
+<p><code>mknbi-nfl</code> <code>menu-text-file</code> &gt; <code>nfl.nb</code></p>
+<p>Then put nfl.nb in the TFTP boot directory and specify as the boot
+image. Chaining to other menus works.</p>
+<p>Enhancements to the menu format accepted to specify other features such
+as titles, timeout, colours, and so forth are highly encouraged.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mkelflua">MKELF-LUA</a></h1>
+<p><strong>mkelf-lua</strong> makes an ELF image from a precompiled Lua
+(<code>http://www.tecgraf.puc-rio.br/lua/</code>) program.</p>
+<p>Typical usage is:</p>
+<p><code>mkelf-lua</code> <code>hello.lb</code> &gt; <code>luaprog.nb</code></p>
+<p>where <code>hello.lb</code> was generated from a Lua program by:</p>
+<p><code>luac -o hello.lb hello.lua</code></p>
+<p>The functions available to Lua programs in this environment is described
+in a separate document.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbifdos">MKNBI-FDOS</a></h1>
+<p><strong>mknbi-fdos</strong> makes a tagged image from a FreeDOS kernel file and a
 floppy image.  Note that the kernel image is not read from the floppy
 section of the tagged image, but is a separate section in the tagged
 image. The bootloader has been adjusted to jump to it directly. This
-means the space that would be taken up on the <EM>floppy</EM> by the kernel
-image file can now be used for applications and data.</P>
-<P>Obtain a distribution of FreeDOS with a recent kernel, probably at least
+means the space that would be taken up on the <em>floppy</em> by the kernel
+image file can now be used for applications and data.</p>
+<p>Obtain a distribution of FreeDOS with a recent kernel, probably at least
 2006. It has been tested with 2012 but nothing older. You can get the
-FreeDOS kernel here:</P>
-<P><CODE>http://freedos.sourceforge.net/</CODE></P>
-<P>Follow the instructions to make a bootable floppy. Then get an image
-of the floppy with:</P>
-<P><CODE>dd if=/dev/fd0 of=/tmp/floppyimage</CODE></P>
-<P>Also extract <EM>kernel.sys</EM> from the floppy. You can do this from the
-image using the mtools package, by specifying a file as a <EM>drive</EM>
-with a declaration like this in <EM>~/.mtoolsrc</EM>:</P>
-<P><CODE>drive x: file=&quot;/tmp/floppyimage&quot;</CODE></P>
-<P>Then run:</P>
-<P><CODE>mcopy x:kernel.sys .</CODE></P>
-<P>Then run mknbi by:</P>
-<P><CODE>mknbi-fdos kernel.sys /tmp/floppyimage</CODE> &gt; <CODE>freedos.nb</CODE></P>
-<P>where <EM>kernel.sys</EM> and <EM>/tmp/floppyimage</EM> are the files extracted above.
-Then move <EM>freedos.nb</EM> to where the network booting process expects to
-find it.</P>
-<P>If you have got it to netboot successfully, then you can go back and
-add your files to the floppy image. You can delete <EM>kernel.sys</EM> in
+FreeDOS kernel here:</p>
+<p><code>http://freedos.sourceforge.net/</code></p>
+<p>Follow the instructions to make a bootable floppy. Then get an image
+of the floppy with:</p>
+<p><code>dd if=/dev/fd0 of=/tmp/floppyimage</code></p>
+<p>Also extract <em>kernel.sys</em> from the floppy. You can do this from the
+image using the mtools package, by specifying a file as a <em>drive</em>
+with a declaration like this in <em>~/.mtoolsrc</em>:</p>
+<p><code>drive x: file=&quot;/tmp/floppyimage&quot;</code></p>
+<p>Then run:</p>
+<p><code>mcopy x:kernel.sys .</code></p>
+<p>Then run mknbi by:</p>
+<p><code>mknbi-fdos kernel.sys /tmp/floppyimage</code> &gt; <code>freedos.nb</code></p>
+<p>where <em>kernel.sys</em> and <em>/tmp/floppyimage</em> are the files extracted above.
+Then move <em>freedos.nb</em> to where the network booting process expects to
+find it.</p>
+<p>If you have got it to netboot successfully, then you can go back and
+add your files to the floppy image. You can delete <em>kernel.sys</em> in
 the floppy image to save space, that is not needed. Note that you can
 create a floppy image of any size you desire with the mformat program
-from mtools, you are not restricted to the actual size of the boot floppy.</P>
-<P>
-<HR>
-<H1><A NAME="mknbifdos options">MKNBI-FDOS OPTIONS</A></H1>
-<P><STRONG>--harddisk</STRONG> Make the boot ramdisk the first hard disk, i.e. C:. One
+from mtools, you are not restricted to the actual size of the boot floppy.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbifdos_options">MKNBI-FDOS OPTIONS</a></h1>
+<p><strong>--harddisk</strong> Make the boot ramdisk the first hard disk, i.e. C:. One
 reason you might want to do this is because you want to use the real
 floppy. The limit on ``disk size'' in the boot image is not raised by this
 option so that is not a reason to use this option. This option is
-incompatible with --disableharddisk.</P>
-<P><STRONG>--disableharddisk</STRONG> When the ramdisk is simulating a floppy disk drive,
+incompatible with --disableharddisk.</p>
+<p><strong>--disableharddisk</strong> When the ramdisk is simulating a floppy disk drive,
 this switch will disable hard disk accesses.  This is necessary if the
 client should use a network file system as drive C:, which is only
 possible if there are no hard disks found by DOS. This option is
-incompatible with --harddisk.</P>
-<P><STRONG>--nosquash</STRONG> Do not try to chop unused sectors from the end of the
+incompatible with --harddisk.</p>
+<p><strong>--nosquash</strong> Do not try to chop unused sectors from the end of the
 floppy image. This increases the tagged image size and hence loading
 time if the FAT filesystem on the floppy is mostly empty but you may
 wish to use this option if you have doubts as to whether the squashing
-algorithm is working correctly.</P>
-<P><STRONG>--rdbase=</STRONG><EM>0xNNNNNNNN</EM> Set the ramdisk load address. The default
+algorithm is working correctly.</p>
+<p><strong>--rdbase=</strong><em>0xNNNNNNNN</em> Set the ramdisk load address. The default
 load address for the ramdisk is 0x110000. It can be moved higher
 (lower will not work) if for some reason you need to load other stuff
 at the address it currently occupies. As this is a linear address and
-not a segment address, the last 4 bits are not used and should be 0.</P>
-<P>
-<HR>
-<H1><A NAME="mknbidos">MKNBI-DOS</A></H1>
-<P><STRONG>mknbi-dos</STRONG> makes a tagged image from a floppy image containing a
+not a segment address, the last 4 bits are not used and should be 0.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbidos">MKNBI-DOS</a></h1>
+<p><strong>mknbi-dos</strong> makes a tagged image from a floppy image containing a
 bootable DOS filesystem.  It is not necessary to build the filesystem
 on a physical floppy if you have the mtools package, but you need a
 bootable floppy of any size to start with. First extract the boot block
 from the floppy, this boot block must match the DOS kernel files you
-will copy in the next step:</P>
-<P><CODE>dd if=/dev/fd0 of=bootblock bs=512 count=1</CODE></P>
-<P>Then get the DOS kernel files (this is correct for DR-DOS, the names
-are different in MS-DOS, IO.SYS and MSDOS.SYS):</P>
-<P><CODE>mcopy a:IBMBIO.COM a:IBMDOS.COM a:COMMAND.COM .</CODE></P>
-<P>Next make an entry in <EM>~/.mtoolsrc</EM> to declare a floppy to be mapped
-to a file:</P>
-<P><CODE>drive x: file=&quot;/tmp/floppyimage&quot;</CODE></P>
-<P>Now format a floppy of the desired size, in this example a 2.88 MB floppy,
-at the same time writing the bootblock onto it:</P>
-<P><CODE>mformat -C -t 80 -s 36 -h 2 -B bootblock x:</CODE></P>
-<P>The size of the ``floppy'' is only limited by the limits on the number of
+will copy in the next step:</p>
+<p><code>dd if=/dev/fd0 of=bootblock bs=512 count=1</code></p>
+<p>Then get the DOS kernel files (this is correct for DR-DOS, the names
+are different in MS-DOS, IO.SYS and MSDOS.SYS):</p>
+<p><code>mcopy a:IBMBIO.COM a:IBMDOS.COM a:COMMAND.COM .</code></p>
+<p>Next make an entry in <em>~/.mtoolsrc</em> to declare a floppy to be mapped
+to a file:</p>
+<p><code>drive x: file=&quot;/tmp/floppyimage&quot;</code></p>
+<p>Now format a floppy of the desired size, in this example a 2.88 MB floppy,
+at the same time writing the bootblock onto it:</p>
+<p><code>mformat -C -t 80 -s 36 -h 2 -B bootblock x:</code></p>
+<p>The size of the ``floppy'' is only limited by the limits on the number of
 cylinders, sectors and heads, which are 1023, 63 and 255 respectively,
 and the amount of RAM you are willing to allocate to the ``floppy'' in
 memory. As RAM is precious, choose a size slightly bigger than what is
-needed to hold your ``floppy'' files.</P>
-<P>Finally, copy all your desired files onto the floppy:</P>
-<P><CODE>mcopy IBMBIO.COM x:</CODE></P>
-<P><CODE>mcopy IBMDOS.COM x:</CODE></P>
-<P><CODE>mcopy COMMAND.COM x:</CODE></P>
-<P><CODE>mcopy CONFIG.SYS AUTOEXEC.BAT APP.EXE APP.DAT ... x:</CODE></P>
-<P>For MS-DOS substitute IO.SYS for IBMIO.COM, and MSDOS.SYS for
+needed to hold your ``floppy'' files.</p>
+<p>Finally, copy all your desired files onto the floppy:</p>
+<p><code>mcopy IBMBIO.COM x:</code></p>
+<p><code>mcopy IBMDOS.COM x:</code></p>
+<p><code>mcopy COMMAND.COM x:</code></p>
+<p><code>mcopy CONFIG.SYS AUTOEXEC.BAT APP.EXE APP.DAT ... x:</code></p>
+<p>For MS-DOS substitute IO.SYS for IBMIO.COM, and MSDOS.SYS for
 IBMDOS.COM.  The case of the files must be preserved, it may not work if
 VFAT lower case names are generated in the floppy image.  Pay attention
 to the order of copying as the boot block may expect the first two
 entries on a newly formatted disk to be IO.SYS, MSDOS.SYS.  Possibly too
 COMMAND.COM has to be the third entry so we play safe.  Thanks to Phil
-Davey and Phillip Roa for these tips.</P>
-<P>I have reports that the bootblock of MS-DOS 6.22 sometimes fails to boot
+Davey and Phillip Roa for these tips.</p>
+<p>I have reports that the bootblock of MS-DOS 6.22 sometimes fails to boot
 the ramdisk.  You could try using the boot block from Netboot instead of
 getting the boot block off the floppy. I have provided this boot block
 in the distribution as altboot.bin, and in source form as altboot.S and
 boot.inc. One essential thing is to make IO.SYS the first file on the
-disk, or this bootblock will not work.</P>
-<P>If you happen to have a media of the same size you could test if the
-image is bootable by copying it onto the media, and then booting it:</P>
-<P><CODE>dd if=/tmp/floppyimage of=/dev/fd0</CODE></P>
-<P>Then run mknbi-dos over the image <EM>/tmp/floppyimage</EM> to create a
-tagged image:</P>
-<P><CODE>mknbi-dos /tmp/floppyimage</CODE> &gt; <CODE>dos.nb</CODE></P>
-<P>Move <EM>dos.nb</EM> to where the network booting process expects to find it.</P>
-<P>
-<HR>
-<H1><A NAME="mknbidos options">MKNBI-DOS OPTIONS</A></H1>
-<P><STRONG>--harddisk</STRONG> Make the boot ramdisk the first hard disk, i.e. C:. One
+disk, or this bootblock will not work.</p>
+<p>If you happen to have a media of the same size you could test if the
+image is bootable by copying it onto the media, and then booting it:</p>
+<p><code>dd if=/tmp/floppyimage of=/dev/fd0</code></p>
+<p>Then run mknbi-dos over the image <em>/tmp/floppyimage</em> to create a
+tagged image:</p>
+<p><code>mknbi-dos /tmp/floppyimage</code> &gt; <code>dos.nb</code></p>
+<p>Move <em>dos.nb</em> to where the network booting process expects to find it.</p>
+<p>
+</p>
+<hr />
+<h1><a name="mknbidos_options">MKNBI-DOS OPTIONS</a></h1>
+<p><strong>--harddisk</strong> Make the boot ramdisk the first hard disk, i.e. C:. One
 reason you might want to do this is because you want to use the real
 floppy. The limit on ``disk size'' in the boot image is not raised by this
 option so that is not a reason to use this option. This option is
-incompatible with --disableharddisk.</P>
-<P><STRONG>--disableharddisk</STRONG> When the ramdisk is simulating a floppy disk drive,
+incompatible with --disableharddisk.</p>
+<p><strong>--disableharddisk</strong> When the ramdisk is simulating a floppy disk drive,
 this switch will disable hard disk accesses.  This is necessary if the
 client should use a network file system as drive C:, which is only
 possible if there are no hard disks found by DOS. This option is
-incompatible with --harddisk.</P>
-<P><STRONG>--nosquash</STRONG> Do not try to chop unused sectors from the end of the
+incompatible with --harddisk.</p>
+<p><strong>--nosquash</strong> Do not try to chop unused sectors from the end of the
 floppy image. This increases the tagged image size and hence loading
 time if the FAT filesystem on the floppy is mostly empty but you may
 wish to use this option if you have doubts as to whether the squashing
-algorithm is working correctly.</P>
-<P><STRONG>--rdbase=</STRONG><EM>0xNNNNNNNN</EM> Set the ramdisk load address. The default
+algorithm is working correctly.</p>
+<p><strong>--rdbase=</strong><em>0xNNNNNNNN</em> Set the ramdisk load address. The default
 load address for the ramdisk is 0x110000. It can be moved higher
 (lower will not work) if for some reason you need to load other stuff
 at the address it currently occupies. As this is a linear address and
-not a segment address, the last 4 bits are not used and should be 0.</P>
-<P>
-<HR>
-<H1><A NAME="bugs">BUGS</A></H1>
-<P>Please report all bugs to the author.</P>
-<P>
-<HR>
-<H1><A NAME="see also">SEE ALSO</A></H1>
-<P>Etherboot tutorial at <CODE>http://etherboot.sourceforge.net/</CODE> Mtools package
-is at <CODE>http://wauug.erols.com/pub/knaff/mtools/</CODE> Make sure you have a
+not a segment address, the last 4 bits are not used and should be 0.</p>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>Please report all bugs to the author.</p>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p>Etherboot tutorial at <code>http://etherboot.sourceforge.net/</code> Mtools package
+is at <code>http://wauug.erols.com/pub/knaff/mtools/</code> Make sure you have a
 recent version, the ability to map a drive to a file is not present in
-old versions.</P>
-<P>
-<HR>
-<H1><A NAME="copyright">COPYRIGHT</A></H1>
-<P><STRONG>mknbi</STRONG> is under the GNU Public License</P>
-<P>
-<HR>
-<H1><A NAME="author">AUTHOR</A></H1>
-<P>Ken Yap (<CODE>ken_yap@users.sourceforge.net</CODE>)</P>
-<P>
-<HR>
-<H1><A NAME="date">DATE</A></H1>
-<P>See man page footer for date and version. Sorry, not available in the
-HTML version.</P>
+old versions.</p>
+<p>
+</p>
+<hr />
+<h1><a name="copyright">COPYRIGHT</a></h1>
+<p><strong>mknbi</strong> is under the GNU Public License</p>
+<p>
+</p>
+<hr />
+<h1><a name="author">AUTHOR</a></h1>
+<p>Ken Yap (<code>ken_yap@users.sourceforge.net</code>)</p>
+<p>mk{nbi,elf}-nfl was contributed by Robb Main of Genedyne.</p>
+<p>
+</p>
+<hr />
+<h1><a name="date">DATE</a></h1>
+<p>See man page footer for date and version. Sorry, not available in the
+HTML version.</p>
 
-</BODY>
+</body>
 
-</HTML>
+</html>

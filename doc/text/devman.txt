@@ -1,7 +1,7 @@
   Etherboot Developers Manual
   Ken Yap, <kenUNDERSCOREyap AT users PERIOD sourceforge
   PERIOD net>
-  v5.0.7, 31 July 2002
+  v5.0.11, 31 July 2003
 
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
@@ -13,11 +13,10 @@
   1. About this Developers Manual
 
      1.1 Purpose / Scope of this Developers Manual
-     1.2 Obtaining the most recent version of this document
-     1.3 Document history
-     1.4 Feedback
-     1.5 Copyrights and Trademarks
-     1.6 Acknowledgements and Thanks
+     1.2 Document history
+     1.3 Feedback
+     1.4 Copyrights and Trademarks
+     1.5 Acknowledgements and Thanks
 
   2. Characteristics of Etherboot
 
@@ -63,22 +62,22 @@
   11..11..  PPuurrppoossee // SSccooppee ooff tthhiiss DDeevveellooppeerrss MMaannuuaall
 
 
-
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
+  Please note that the 5.0 is no longer the latest release of Etherboot.
+  This document is provided in case you need to use 5.0.  In general the
+  Etherboot Home Page <http://www.etherboot.org/>.  will have the latest
+  source distributions and documentation.
 
 
-  11..22..  OObbttaaiinniinngg tthhee mmoosstt rreecceenntt vveerrssiioonn ooff tthhiiss ddooccuummeenntt
+  11..22..  DDooccuummeenntt hhiissttoorryy
 
 
-  This document and related documents are also kept online at the
-  Etherboot Home Page <http://etherboot.sourceforge.net/>.  This will in
-  general have the latest source distributions and documentation.
 
 
-  11..33..  DDooccuummeenntt hhiissttoorryy
-
-
+     55..00..1111 22000033--0077--3311
+        Released as Etherboot-doc 5.0.11. Last release of 5.0
+        documentation.
 
 
      55..00..77 22000022--0077--3311
@@ -111,7 +110,7 @@
 
 
 
-  11..44..  FFeeeeddbbaacckk
+  11..33..  FFeeeeddbbaacckk
 
 
   Comments on and corrections for this Developers Manual may be directed
@@ -119,7 +118,7 @@
   sourceforge PERIOD net>.
 
 
-  11..55..  CCooppyyrriigghhttss aanndd TTrraaddeemmaarrkkss
+  11..44..  CCooppyyrriigghhttss aanndd TTrraaddeemmaarrkkss
 
 
   (C) 2001,2002 Ken Yap.
@@ -128,6 +127,7 @@
 
   This manual may be reproduced in whole or in part, without fee,
   subject to the following restrictions:
+
 
 
   +o  The copyright notice above and this permission notice must be
@@ -153,7 +153,7 @@
   owners.
 
 
-  11..66..  AAcckknnoowwlleeddggeemmeennttss aanndd TThhaannkkss
+  11..55..  AAcckknnoowwlleeddggeemmeennttss aanndd TThhaannkkss
 
 
   Thanks to all the people who have contributed information and
@@ -1162,12 +1162,12 @@
 
 
 
-  Ken Yap <http://www.geocities.com/SiliconValley/Lab/9247/> came to
-  Etherboot a bit later. His original objective was to produce a 16 bit
-  version that could be used to netboot ELKS and other OSes on older
-  CPUs.  As these things happen, he got enticed into improving the code,
-  doing structural rearrangement, and merging contributions from others,
-  and is now the primary maintainer of Etherboot.
+  Ken Yap <http://www.geocities.com/ken_yap_aus/> came to Etherboot a
+  bit later. His original objective was to produce a 16 bit version that
+  could be used to netboot ELKS and other OSes on older CPUs.  As these
+  things happen, he got enticed into improving the code, doing
+  structural rearrangement, and merging contributions from others, and
+  is now the primary maintainer of Etherboot.
 
 
 

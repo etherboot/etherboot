@@ -37,8 +37,8 @@
 
 
   The method could be generalised to other OSes that could run on a 286,
-  e.g. ELKS <http://epocha.pd.mcs.net/Linux8086/>. See the discussion
-  below for what needs to be done.
+  e.g. ELKS <http://elks.sourceforge.net/>. See the discussion below for
+  what needs to be done.
 
 
 
@@ -56,8 +56,8 @@
      means more space for applications or data. All the instructions are
      in the mknbi <mknbi.html> directory that comes with the Etherboot
      distribution.  You can find a zip file
-     <http://etherboot.sourceforge.net/disklesstelnet.zip> containing
-     the components of a tagged image that runs telnet on the diskless
+     <http://www.etherboot.org/disklesstelnet.zip> containing the
+     components of a tagged image that runs telnet on the diskless
      client.
 
   2. You can do nearly all manipluations on Linux using mtools
@@ -126,18 +126,18 @@
      getting the configuration file contents right at this point, you
      can replace them at will on the ramdisk floppy.
 
-  8. Get the Etherboot <http://etherboot.sourceforge.net/> distribution,
-     version 4.4 or higher, and make a boot PROM for the card of your
-     choice. You may want to enable the ASK_BOOT option with a short
-     timeout and ANS_DEFAULT=ANS_NETWORK.  This will enable you to boot
-     the 286 normally if you need to fix anything. All network cards,
-     even the very old ones, should accept a 8 kB boot PROM. Most
-     compressed 16 bit images in Etherboot are under 8 kB.  Burn it into
-     a PROM or find someone to do it for you. If you are using a larger
-     PROM, make sure you have burnt it in the right portion of the PROM,
-     or burn multiple copies in the address space to be sure. See here
-     <http://etherboot.sourceforge.net/doc/html/userman.html> for some
-     things to watch out for.
+  8. Get the Etherboot <http://www.etherboot.org/> distribution, version
+     4.4 or higher, and make a boot PROM for the card of your choice.
+     You may want to enable the ASK_BOOT option with a short timeout and
+     ANS_DEFAULT=ANS_NETWORK.  This will enable you to boot the 286
+     normally if you need to fix anything. All network cards, even the
+     very old ones, should accept a 8 kB boot PROM. Most compressed 16
+     bit images in Etherboot are under 8 kB.  Burn it into a PROM or
+     find someone to do it for you. If you are using a larger PROM, make
+     sure you have burnt it in the right portion of the PROM, or burn
+     multiple copies in the address space to be sure. See here
+     <http://www.etherboot.org/doc/html/userman.html> for some things to
+     watch out for.
 
   9. Set up bootp/DHCP and tftp services on the server if you haven't
      already. Did I mention read the Etherboot documentation already?

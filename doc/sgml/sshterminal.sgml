@@ -100,13 +100,13 @@ No mail.
 [user@remote user]$
 </code>
 
-After I did this for mgetty, Peter Samuel pointed me to <url
-url="http://www.nodomainname.net/software/rungetty/" name=rungetty>
+After I did this for mgetty, Peter Samuel pointed me to rungetty
 which is essentially an enhanced mingetty but can invoke programs other
 than login. Unlike mgetty, rungetty does not have any pattern matching
 facilities on the login name or indeed any means of passing the login
 name to the script. We get around this by prompting for the name in the
-script itself.
+script itself. Unfortunately there does not seem to be a home page for
+rungetty at the moment.
 
 In <tt>/etc/inittab</tt>, add the line:
 

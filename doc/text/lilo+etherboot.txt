@@ -68,7 +68,7 @@
      or other means to transfer this to the DOS system. To save you
      work, you can find a copy of this zip archive, minus the Etherboot
      images and the lilo.con modifications, here
-     <http://etherboot.sourceforge.net/lilo2175.zip>.
+     <http://www.etherboot.org/lilo2175.zip>.
 
   7. Alternatively pack the archive with tar and gzip. This will allow
      you to transfer this to the DOS system using the wget on the rescue
@@ -140,7 +140,7 @@
      Advanced: If you have several types of network cards on your
      network, you could provide different install scripts for them which
      would fetch different images. Or you could parameterise install.sh.
-     Of if you are really cunning, you could try to extract the network
+     Or if you are really cunning, you could try to extract the network
      card identity out of a lsmod, as tomsrtbt autoprobes for several
      common NICs.
 

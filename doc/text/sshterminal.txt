@@ -111,13 +111,13 @@
 
 
 
-  After I did this for mgetty, Peter Samuel pointed me to rungetty
-  <http://www.nodomainname.net/software/rungetty/> which is essentially
-  an enhanced mingetty but can invoke programs other than login. Unlike
-  mgetty, rungetty does not have any pattern matching facilities on the
-  login name or indeed any means of passing the login name to the
-  script. We get around this by prompting for the name in the script
-  itself.
+  After I did this for mgetty, Peter Samuel pointed me to rungetty which
+  is essentially an enhanced mingetty but can invoke programs other than
+  login. Unlike mgetty, rungetty does not have any pattern matching
+  facilities on the login name or indeed any means of passing the login
+  name to the script. We get around this by prompting for the name in
+  the script itself. Unfortunately there does not seem to be a home page
+  for rungetty at the moment.
 
   In /etc/inittab, add the line:
 

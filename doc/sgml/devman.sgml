@@ -5,7 +5,7 @@
 <title>Etherboot Developers Manual
 <author>Ken Yap,
 <tt/&lt;kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net&gt;/
-<date>v5.0.7, 31 July 2002
+<date>v5.0.11, 31 July 2003
 
 <abstract>
 This document explains the internals of the Etherboot package.  The
@@ -23,20 +23,19 @@ information here applies to version 5.0 of Etherboot.
 This document explains the internals of the Etherboot package.  The
 information here applies to version 5.0 of Etherboot.
 
-<sect1>Obtaining the most recent version of this document
-
-<p>
-
-This document and related documents are also kept online at <url
-url="http://etherboot.sourceforge.net/" name="the Etherboot Home Page">.
-This will in general have the latest source distributions and
-documentation.
+Please note that the 5.0 is no longer the latest release of Etherboot.
+This document is provided in case you need to use 5.0.  In general <url
+url="http://www.etherboot.org/" name="the Etherboot Home Page">.
+will have the latest source distributions and documentation.
 
 <sect1>Document history
 
 <p>
 
 <descrip>
+
+<tag/5.0.11 2003-07-31/ Released as Etherboot-doc 5.0.11. Last release
+of 5.0 documentation.
 
 <tag/5.0.7 2002-07-31/ Released as Etherboot-doc 5.0.7.
 
@@ -1095,7 +1094,7 @@ diskless booting, are by Gero or Markus.
 
 <p>
 
-<url name="Ken Yap" url="http://www.geocities.com/SiliconValley/Lab/9247/">
+<url name="Ken Yap" url="http://www.geocities.com/ken_yap_aus/">
 came to Etherboot a bit later. His original objective was to produce a 16 bit
 version that could be used to netboot ELKS and other OSes on older CPUs.  As
 these things happen, he got enticed into improving the code, doing structural

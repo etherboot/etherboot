@@ -127,7 +127,7 @@ The loaded image can be anything, even DOG.
 <p>
 
 There are two free implementations of TCP/IP net loaders: <htmlurl
-url="http://etherboot.sourceforge.net/" name="Etherboot"> and <htmlurl
+url="http://www.etherboot.org/" name="Etherboot"> and <htmlurl
 url="http://www.han.de/~gero/netboot.html" name="Netboot">: Etherboot
 uses built-in drivers while Netboot uses Packet drivers.
 

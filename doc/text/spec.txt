@@ -116,18 +116,18 @@
 
 
 
-  The image cannot be loaded into address spaces below 10000h, or
-  between A0000h through FFFFFh, or between 98000h through 9FFFFh.
-  ((ggkk))Only when the image is not going to return to the boot process,
-  all the memory is available to it once it has been started, so it can
-  relocate parts of itself to these areas.((ggkk))
+  The image cannot be loaded into address spaces below 10000h((kkyy:: TThhiiss
+  rreessttrriiccttiioonn rreemmoovveedd iinn EEtthheerrbboooott)), or between A0000h through FFFFFh,
+  or between 98000h((kkyy:: CChhaannggeedd ttoo 9944000000hh iinn EEtthheerrbboooott 55..xx oonnwwaarrddss))
+  through 9FFFFh.  ((ggkk))Only when the image is not going to return to the
+  boot process, all the memory is available to it once it has been
+  started, so it can relocate parts of itself to these areas.((ggkk))
 
 
 
   The boot process must be capable of loading the image into all other
   memory locations. Specifically, where the machine supports this, this
   means memory over 100000h.
-
 
 
   The net boot process must execute the bootp protocol, followed by the
@@ -169,7 +169,7 @@
   data can overwrite the first 512 boot bytes. If the image reaches
   98000h, then any further data is continued to be loaded above 100000h.
   When all the data has been loaded, the net boot process jumps to
-  location 0:7c00.
+  location 0:7c00.((kkyy))NNoo lloonnggeerr ssuuppppoorrtteedd iinn EEtthheerrbboooott((kkyy))
 
 
 

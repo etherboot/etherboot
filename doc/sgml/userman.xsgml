@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;kenUNDERSCOREyap AT users PERIOD sourceforge PERIOD net&gt;/,
 <tt/&lt;markus+etherboot AT gutschke PERIOD com&gt;/
-<date>v5.0.7, 31 July 2002
+<date>v5.0.11, 31 July 2003
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -26,20 +26,21 @@ This User Manual explains how to install, configure and use the
 Etherboot package.  The instructions here apply to version 5.0 of
 Etherboot.
 
-<sect1>Obtaining the most recent version of this document
-
 <p>
 
-This document and related documents are also kept online at <url
-url="http://etherboot.sourceforge.net/" name="the Etherboot Home Page">.
-This will in general have the latest source distributions and
-documentation.
+Please note that the 5.0 is no longer the latest release of Etherboot.
+This document is provided in case you need to use 5.0.  In general <url
+url="http://www.etherboot.org/" name="the Etherboot Home Page">.
+will have the latest source distributions and documentation.
 
 <sect1>Document history
 
 <p>
 
 <descrip>
+
+<tag/5.0.11 2003-07-31/ Released as Etherboot-doc 5.0.11. Last release
+of 5.0 documentation.
 
 <tag/5.0.7 2002-07-31/ Released as Etherboot-doc 5.0.7.
 
@@ -156,7 +157,7 @@ if you are distributing binaries generated from Etherboot, such as ROMs
 or ROM images, you must provide or promise to provide the user with the
 source. If you have not made private changes to the code, you can do
 this by pointing the user to the <url name="Etherboot home page"
-url="http://etherboot.sourceforge.net/">, noting the release version of
+url="http://www.etherboot.org/">, noting the release version of
 course. If you have made private changes to the code, then you must
 distribute those changes too with binary distributions.
 
@@ -167,7 +168,7 @@ whole package but portions may be used under other licenses. See the
 section on <ref name="source copyrights" id="sourcecopyrights"> for
 details, file by file. Please support Open Source by joining the
 community and sharing.  See the <url name="Etherboot home page"
-url="http://etherboot.sourceforge.net/"> for some ways you can help
+url="http://www.etherboot.org/"> for some ways you can help
 Etherboot.
 
 <p>
@@ -300,7 +301,7 @@ top directory.
 
 To build the ROM images you need a recent release of gcc and the
 binutils tools. This package has been compiled with the tools from a
-SuSE 7.1 distribution but it should work with any recent Linux or
+SuSE 8.2 distribution but it should work with any recent Linux or
 FreeBSD distribution. gas 2.9.1 is too old to handle the 16-bit code in
 loader.S. Use gas 2.9.5 at least. Also the "gcc 2.96" used in RedHat 7.0
 (and later versions maybe) generates faulty machine code compiling
@@ -335,7 +336,7 @@ NICs. Look at the file NIC. Locate the line that has the correct PCI IDs
 for your NIC. This will give you the name of the ROM image you should
 use.  The PCI IDs are usually displayed by the BIOS on booting up. They
 can also be read out from a running Linux system using the <url
-url="http://atrey.karlin.mff.cuni.cz/&tilde;mj/pciutils.html"
+url="http://atrey.karlin.mff.cuni.cz/&tilde;mj/pciutils.shtml"
 name="Linux PCI Utilities">.  If you do not use the ROM with the correct
 IDs, the floppy version will work, but the ROM will not since the BIOS
 will check for a match.
@@ -770,8 +771,8 @@ Another solution is to run a dedicated tftpd that is not spawned from
 inetd. One such tftpd can be found here at:
 <tt>ftp://nilo.on.openprojects.net/pub/nilo/snapshots</tt> Another
 possible contender is in the directory atftp at the Etherboot
-web site. This one is started from inetd, but thereafter
-multithreads internally.
+web site. This one can be started from inetd, or run as a daemon,
+but thereafter multithreads internally.
 
 <sect>Testing the network booting
 
@@ -980,10 +981,10 @@ server, for which Linux or FreeBSD has workalikes. Also it is said that
 only certain versions of Windows will allow diskless booting.  You will
 also have problems with pathnames and the usual Windows hassles. Do you
 really want to do this?  You do know that you can run lots of desktop
-applications like Netscape, StarOffice, etc. on Linux, FreeBSD, etc.
+applications like Mozilla, OpenOffice.org, etc. on Linux, FreeBSD, etc.
 now? Why pay good money when you can use equally good free replacements?
 Anyway if you are still determined, in the <url
-url="http://etherboot.sourceforge.net/" name="Etherboot home page">,
+url="http://www.etherboot.org/" name="Etherboot home page">,
 there are links to external Web pages, one explaining how this was done
 with a commercial TCP/IP boot ROM, another explaining how to do it using
 Etherboot and Netbios over IPX. A recent user experience is <url
@@ -1002,7 +1003,7 @@ assumes access to hardware to program (and possibly erase) EPROMs.
 Access to a friendly electronics engineer and/or lab is one way to
 program and erase EPROMs. Otherwise you can look at the <url
 name="commercial links page"
-url="http://etherboot.sourceforge.net/commercial.html">
+url="http://www.etherboot.org/clinks.html">
 for places you can buy programmed EPROMs from.
 
 <p>
@@ -1118,11 +1119,11 @@ RAM before executing. I'm told Netboot does the same thing.
 
 If you have your own EPROM programming hardware, there is a nice
 collection of EPROM file format conversion utilities <url name="here"
-url="http://www.canb.auug.org.au/~millerp/srecord.html">. The files
+url="http://srecord.sourceforge.net/index.html">. The files
 produced by the Etherboot build process are plain binary. A simple
 binary to Intel hex format converter can be found at the Etherboot web
 site <url name="here"
-url="http://etherboot.sourceforge.net/bin2intelhex.c">.
+url="http://www.etherboot.org/bin2intelhex.c">.
 
 <p>
 
@@ -1519,7 +1520,7 @@ Please note that these estimates are approximate:
 perhaps only a few telnet sessions are possible. With 8MB you might be
 able to run a text based web browser like Lynx or W3M. You can also run
 firewalls such as <url name="floppyfw"
-url="http://www.zelow.no/floppyfw">.
+url="http://www.zelow.no/floppyfw/">.
 
 <item>On a 486 with 16MB of memory you can run X to make an X-terminal.
 
@@ -1746,7 +1747,7 @@ load across servers.
 <p>
 
 There is a server program called <url name="p910nd"
-url="http://etherboot.sourceforge.net/p910nd/"> at the Etherboot web
+url="http://www.etherboot.org/p910nd/"> at the Etherboot web
 site (and modified versions of it at <url name="LTSP"
 url="http://www.ltsp.org/">) that funnels data from a TCP/IP connection
 to the printer port. You can instruct lpd or <url name="CUPS"
@@ -1886,9 +1887,7 @@ directory in the Etherboot distribution.
 Finally some recent motherboard have flash BIOSes which contain
 space where an extension BIOS such as Etherboot can be inserted. The
 Phoenix Award BIOSes can be modified using a program called cbrom.exe
-possibly <url name="here" url="http://www.ping.be/bios">. It
-is also reputed to live <url name="here"
-url="http://www.boardrunner.com/download/utility/utility.htm">. Or do a
+possibly <url name="here" url="http://www.ping.be/bios">.  Or do a
 Web search for it. No success has been reported for AMI BIOSes. Dirk von
 Suchodoletz maintains a list of successes and failures <url name="here"
 url="http://goe.net/anleitungen/award_board.html">.
@@ -2003,9 +2002,9 @@ diskette? If you know the manufacturer, you might be able to get the program
 from their website. You have a mystery card? Well the first thing to do is to
 identify the card. If it is an ISA card and made in Taiwan or China it's almost
 certainly a NE2000 clone. For some information, try <url name="here"
-url="http://www.geocities.com/SiliconValley/Lab/9247/NIC/">. If it's a PCI
+url="http://www.geocities.com/ken_yap_aus/">. If it's a PCI
 card, then either the BIOS or the <url
-url="http://atrey.karlin.mff.cuni.cz/&tilde;mj/pciutils.html" name="Linux PCI
+url="http://atrey.karlin.mff.cuni.cz/&tilde;mj/pciutils.shtml" name="Linux PCI
 Utilities"> should be able to tell you the manufacturer and device IDs, which
 you can then look up to convert to names.
 
