@@ -1,5 +1,5 @@
 #include "etherboot.h"
-#if defined(CONSOLE_SERIAL) || defined(CONSOLE_DUAL)
+#ifdef	CONSOLE_SERIAL
 
 /*
  * The serial port interface routines implement a simple polled i/o

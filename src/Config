@@ -170,8 +170,7 @@
 #	-DCONSOLE_SERIAL
 #			Set for serial console.
 #	-DCONSOLE_DUAL
-#			Set for FIRMWARE and serial console, see comment at
-#			-DANSIESC and -DGFX.
+#			Both of the above
 #	-DCOMCONSOLE
 #			Set port, e.g. 0x3F8.
 #	-DCONSPEED
