@@ -27,10 +27,6 @@
 *				(C) 1999-2001 Torben Mathiasen
 *				(C) 2002 Samuel Chessman
 *
-*    $Revision$
-*    $Author$
-*    $Date 2003/07/18 $
-*
 *    REVISION HISTORY:
 *    ================
 *    v1.0	07-08-2003	timlegge	Initial not quite working version

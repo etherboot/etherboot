@@ -31,14 +31,12 @@
 *    	this driver.  RealTek's support for Etherboot 
 *    	is appreciated.
 *    	
-*    $Revision$
-*    $Author$
-*    $Date$
-* 
 *    REVISION HISTORY:
 *    ================
-*    v1.0	11-26-2003	timlegge	Initial port of Linux driver
 *
+*    v1.0	11-26-2003	timlegge	Initial port of Linux driver
+*    v1.5	01-17-2004	timlegge	Initial driver output cleanup
+*    
 *    Indent Options: indent -kr -i8
 ***************************************************************************/
 
@@ -50,8 +48,8 @@
 #include "pci.h"
 #include "timer.h"
 
-#define drv_version "v1.4"
-#define drv_date "11-30-2003"
+#define drv_version "v1.5"
+#define drv_date "01-17-2004"
 
 typedef unsigned char u8;
 typedef signed char s8;
@@ -662,8 +660,7 @@ static int r8169_probe(struct dev *dev, struct pci_device *pci)
 	/* BASE is used throughout to address the card */
 	printf("\n");
 	printf
-	    ("r8169.c: %s, %s Written by Timothy Legge (tlegge@rogers.com)\n",
-	     drv_version, drv_date);
+	    ("r8169.c: %s, %s\n", drv_version, drv_date);
 	printf("%s: Probing for Vendor=%hX   Device=%hX, %s\n", pci->name,
 	       pci->vendor, pci->dev_id);
 
