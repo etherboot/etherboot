@@ -914,6 +914,7 @@ typedef struct {
 		struct {
 			uint32_t magic_cookie;
 			unsigned int len;
+			int eof;
 			char data[TFTP_MAX_PACKET];
 		} tftpdata;
 	};
