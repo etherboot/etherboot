@@ -160,12 +160,6 @@ struct igmptable_t {
 #define	KERNEL_BUF	(BOOTP_DATA_ADDR->bootp_reply.bp_file)
 
 #define	FLOPPY_BOOT_LOCATION	0x7c00
-/* Must match offsets in loader.S */
-#define ROM_SEGMENT		0x1fa
-#define ROM_LENGTH		0x1fc
-
-#define	ROM_INFO_LOCATION	(FLOPPY_BOOT_LOCATION+ROM_SEGMENT)
-/* at end of floppy boot block */
 
 struct rom_info {
 	unsigned short	rom_segment;
