@@ -2364,7 +2364,8 @@ PCI config space. Should do similar to ioaddr, but too much work.
 + Updated instructions in contrib/tomsrtbt for latest 2.0.103 release.
 
 + Folded in changes by Michael Brown to send PCI IDs to the server
-and to encapsulate Etherboot specific options.
+and to encapsulate Etherboot specific options. Changed scheme to
+send fixed binary structure instead of variable length string.
 
 + Bug in sis900.c, wrongly classifies revisions 0x81 and 0x82 because
 first test catches too many revisions. Changed to match the Linux
