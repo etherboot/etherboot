@@ -86,6 +86,13 @@ sub genroms($) {
 			$buildent{$rom} = 1;
 			push(@{$isaent{$curfam}}, [$rom, $comment]);
 		}
+		elsif($_ =~ m/^\s*PCI_ROM/ or $_ =~ m/^\s*ISA_ROM/) {
+			# Complain since we cannot parse this. Of course it would be nicer if we could parse...
+			print STDERR "\nFound incomplete PCI_ROM or ISA_ROM macro in file $driver.\n";
+			print STDERR "ROM macros spanning more than one line are not supported,\n";
+			print STDERR "please adjust $driver accordingly.\n\n\n";
+			exit 1;
+		}
 	}
 }
 
