@@ -84,16 +84,8 @@ Author: Martin Renters
 #define CONSOLE_CRT
 #endif
 
-#ifndef	DOWNLOAD_PROTO_NFS
-#undef DOWNLOAD_PROTO_TFTP
-#define DOWNLOAD_PROTO_TFTP	/* default booting protocol */
-#endif
-
-#ifdef	DOWNLOAD_PROTO_TFTP
-#define download(fname,loader) tftp((fname),(loader))
-#endif
-#ifdef	DOWNLOAD_PROTO_NFS
-#define download(fname,loader) nfs((fname),(loader))
+#if	!defined(DOWNLOAD_PROTO_TFTP) && !defined(DOWNLOAD_PROT_NFS) && !defined(DOWNLOAD_PROTO_SLAM) && !defined(DOWNLOAD_PROTO_TFTM) && !defined(DOWNLOAD_PROTO_DISK)
+#error No download protocol defined!
 #endif
 
 #ifndef	MAX_TFTP_RETRIES
@@ -561,10 +553,14 @@ extern long random P((void));
 extern long rfc2131_sleep_interval P((int base, int exp));
 extern long rfc1112_sleep_interval P((int base, int exp));
 extern void cleanup P((void));
+#ifndef DOWNLOAD_PROTO_TFTP
+#define	tftp(fname, load_block) 0
+#endif
+
 
 /* nfs.c */
 extern void rpc_init(void);
-extern int nfs P((const char *name, int (*)(unsigned char *, int, int, int)));
+extern int nfs P((const char *name, int (*)(unsigned char *, unsigned int, unsigned int, int)));
 extern void nfs_umountall P((int));
 
 /* proto_slam.c */
