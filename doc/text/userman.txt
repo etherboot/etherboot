@@ -159,6 +159,10 @@
 
 
 
+     55..00..77 22000022--0077--3311
+        Released as Etherboot-doc 5.0.7.
+
+
      55..00..66 22000022--0033--3311
         Released as Etherboot-doc 5.0.6.
 
@@ -189,6 +193,7 @@
 
 
   11..44..  FFeeeeddbbaacckk
+
 
 
   Comments on and corrections for this User Manual may be directed to
@@ -257,7 +262,6 @@
   LILO/SYSLINUX compatible image, or from a hard disk partition.
 
 
-
   Etherboot requires the PC architecture, it does not work for other
   Linux platforms such as Alphas or Suns. Typically the computer is
   diskless and the code is Linux or FreeBSD, but these are not the only
@@ -307,17 +311,13 @@
   22..33..  WWhhaatt hhaarrddwwaarree iiss ssuuppppoorrtteedd??
 
 
-  The following is the current NIC configuration file as of 2002-07-17.
+  The following is the current NIC configuration file as of 2002-07-29.
 
   Even if your NIC does not appear in the list, it may still be
   supported if the chip is one of those supported.  Many OEMs use chips
   from foundries. An exhaustive list of brand names is impossible.  The
   best strategy is to read the number on the LAN controller chip on the
   board.
-
-
-
-
 
 
 

@@ -18,6 +18,7 @@
 	<LI><A HREF="#mknbilinux options">MKNBI-LINUX OPTIONS</A></LI>
 	<LI><A HREF="#mknbilinux bootp/dhcp vendor tags">MKNBI-LINUX BOOTP/DHCP VENDOR TAGS</A></LI>
 	<LI><A HREF="#mknbirom">MKNBI-ROM</A></LI>
+	<LI><A HREF="#mknbimenu">MKNBI-MENU</A></LI>
 	<LI><A HREF="#mknbifdos">MKNBI-FDOS</A></LI>
 	<LI><A HREF="#mknbifdos options">MKNBI-FDOS OPTIONS</A></LI>
 	<LI><A HREF="#mknbidos">MKNBI-DOS</A></LI>
@@ -41,13 +42,18 @@
 <P><STRONG>mknbi-linux</STRONG> [--output=<EM>outputfile</EM>] <EM>kernelimage</EM> [<EM>ramdisk</EM>]</P>
 <P><STRONG>mkelf-linux</STRONG> [--output=<EM>outputfile</EM>] <EM>kernelimage</EM> [<EM>ramdisk</EM>]</P>
 <P><STRONG>mknbi-rom</STRONG> [--output=<EM>outputfile</EM>] <EM>ROM-image</EM></P>
+<P><STRONG>mknbi-menu</STRONG> [--output=<EM>outputfile</EM>] [<EM>dataimage</EM>]</P>
+<P><STRONG>mkelf-menu</STRONG> [--output=<EM>outputfile</EM>] [<EM>dataimage</EM>]</P>
 <P><STRONG>mknbi-fdos</STRONG> [--output=<EM>outputfile</EM>] <EM>kernel.sys floppyimage</EM></P>
 <P><STRONG>mknbi-dos</STRONG> [--output=<EM>outputfile</EM>] <EM>floppyimage</EM></P>
 <P>
 <HR>
 <H1><A NAME="description">DESCRIPTION</A></H1>
 <P><STRONG>mknbi</STRONG> is a program that makes network bootable images for various
-operating systems suitable for network loading by Etherboot or Netboot.</P>
+operating systems suitable for network loading by Etherboot or Netboot,
+which are ROM boot loaders.  If you are looking to boot using PXE, look
+no further, mknbi is not what you want. You probably want something like
+PXELINUX which is part of the SYSLINUX package.</P>
 <P><STRONG>mknbi</STRONG> can be invoked with the <STRONG>--format</STRONG> and <STRONG>--target</STRONG> options or
 links can be made to it under format and target specific names. E.g.
 mkelf-linux is the same as mknbi --format=elf --target=linux.</P>
@@ -223,6 +229,32 @@ The boot ROM will load this as the <EM>operating system</EM> and execute the
 ROM image.</P>
 <P>
 <HR>
+<H1><A NAME="mknbimenu">MKNBI-MENU</A></H1>
+<P><STRONG>mknbi-menu</STRONG> and <STRONG>mkelf-menu</STRONG> make a tagged or ELF image from an
+auxiliary menu program. Etherboot has the ability to load an auxiliary
+program which can interact with the user, modify the DHCP structure, and
+return a status.  Based on the status, Etherboot can load another
+binary, restart or exit.  This makes it possible to have elaborate user
+interface programs without having to modify Etherboot. The specification
+for auxiliary program is documented in the Etherboot Developer's Manual.</P>
+<P><STRONG>mknbi-menu</STRONG> and <STRONG>mkelf-menu</STRONG> take a binary named <CODE>menu</CODE> from the
+library directory, which is assumed to have an entry point of 0x10000.
+An optional argument is accepted, and this is loaded at 0x20000. This
+can be a data file used by the menu program.</P>
+<P>Currently, the menu binary provided duplicates the builtin menu facility
+of Etherboot with the exception of a couple of small differences: no
+server or gateway specifications are used and nested TFTP loads don't
+work. You should not have MOTD or IMAGE_MENU defined in your Etherboot
+build to be able to use this external menu binary. The specifications of
+the DHCP tags required is in the vendortags document in the Etherboot
+documentation.</P>
+<P>Typical usage is like this:</P>
+<P><CODE>mkelf-menu</CODE> &gt; <CODE>menu.nb</CODE></P>
+<P>Then put menu.nb in the TFTP boot directory and edit your DHCP tags
+according to the documentation.</P>
+<P>Alternate user interface programs are highly encouraged.</P>
+<P>
+<HR>
 <H1><A NAME="mknbifdos">MKNBI-FDOS</A></H1>
 <P><STRONG>mknbi-fdos</STRONG> makes a tagged image from a FreeDOS kernel file and a
 floppy image.  Note that the kernel image is not read from the floppy
@@ -233,7 +265,7 @@ image file can now be used for applications and data.</P>
 <P>Obtain a distribution of FreeDOS with a recent kernel, probably at least
 2006. It has been tested with 2012 but nothing older. You can get the
 FreeDOS kernel here:</P>
-<P><CODE>ftp://ftp.gcfl.net/freedos/kernel/</CODE></P>
+<P><CODE>http://freedos.sourceforge.net/</CODE></P>
 <P>Follow the instructions to make a bootable floppy. Then get an image
 of the floppy with:</P>
 <P><CODE>dd if=/dev/fd0 of=/tmp/floppyimage</CODE></P>
@@ -287,8 +319,8 @@ from the floppy, this boot block must match the DOS kernel files you
 will copy in the next step:</P>
 <P><CODE>dd if=/dev/fd0 of=bootblock bs=512 count=1</CODE></P>
 <P>Then get the DOS kernel files (this is correct for DR-DOS, the names
-are different in MS-DOS, io.sys and msdos.sys):</P>
-<P><CODE>mcopy a:ibmbio.com a:ibmdos.com a:command.com .</CODE></P>
+are different in MS-DOS, IO.SYS and MSDOS.SYS):</P>
+<P><CODE>mcopy a:IBMBIO.COM a:IBMDOS.COM a:COMMAND.COM .</CODE></P>
 <P>Next make an entry in <EM>~/.mtoolsrc</EM> to declare a floppy to be mapped
 to a file:</P>
 <P><CODE>drive x: file=&quot;/tmp/floppyimage&quot;</CODE></P>
@@ -301,15 +333,17 @@ and the amount of RAM you are willing to allocate to the ``floppy'' in
 memory. As RAM is precious, choose a size slightly bigger than what is
 needed to hold your ``floppy'' files.</P>
 <P>Finally, copy all your desired files onto the floppy:</P>
-<P><CODE>mcopy ibmbio.com x:</CODE></P>
-<P><CODE>mcopy ibmdos.com x:</CODE></P>
-<P><CODE>mcopy command.com x:</CODE></P>
-<P><CODE>mcopy config.sys autoexec.bat app.exe app.dat ... x:</CODE></P>
-<P>For MS-DOS substitute io.sys for ibmio.com, and msdos.sys for
-ibmdos.com. Pay attention to the order of copying as the boot block
-expects the first two entries on a newly formatted disk to be io.sys,
-msdos.sys.  Possibly too command.com has to be the third entry so we
-play safe.  Thanks to Phil Davey for this tip.</P>
+<P><CODE>mcopy IBMBIO.COM x:</CODE></P>
+<P><CODE>mcopy IBMDOS.COM x:</CODE></P>
+<P><CODE>mcopy COMMAND.COM x:</CODE></P>
+<P><CODE>mcopy CONFIG.SYS AUTOEXEC.BAT APP.EXE APP.DAT ... x:</CODE></P>
+<P>For MS-DOS substitute IO.SYS for IBMIO.COM, and MSDOS.SYS for
+IBMDOS.COM.  The case of the files must be preserved, it may not work if
+VFAT lower case names are generated in the floppy image.  Pay attention
+to the order of copying as the boot block may expect the first two
+entries on a newly formatted disk to be IO.SYS, MSDOS.SYS.  Possibly too
+COMMAND.COM has to be the third entry so we play safe.  Thanks to Phil
+Davey and Phillip Roa for these tips.</P>
 <P>I have reports that the bootblock of MS-DOS 6.22 sometimes fails to boot
 the ramdisk.  You could try using the boot block from Netboot instead of
 getting the boot block off the floppy. I have provided this boot block

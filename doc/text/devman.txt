@@ -81,6 +81,10 @@
 
 
 
+     55..00..77 22000022--0077--3311
+        Released as Etherboot-doc 5.0.7.
+
+
      55..00..66 22000022--0033--3311
         Released as Etherboot-doc 5.0.6.
 
@@ -128,7 +132,6 @@
 
   +o  The copyright notice above and this permission notice must be
      preserved complete on all complete or partial copies.
-
 
   +o  Any translation or derived work must be approved by the author in
      writing before distribution.
@@ -257,6 +260,7 @@
   +o  The PCIR structure contains the vendor and device IDs of the
      network adaptor, and these must match the IDs that is stored in the
      adaptor's PCI configuration memory, or the ROM will be ignored.
+
 
   +o  The PnP structure contains various vectors. The one of interest to
      us is the Boot Execution Vector (BEV). This points to the starting
@@ -394,6 +398,7 @@
      use a convention like always referencing global entities as offsets
      from a particular register. But we don't want to write in assembler
      and we don't have control over what the C compiler generates.
+
   2. C code assumes that data locations are writable. ROM locations are
      not writable, by definition. One could remedy this by locating the
      writable entities in a RAM segment, but this causes more
@@ -514,6 +519,13 @@
 
 
 
+
+
+
+
+
+
+
   ______________________________________________________________________
           +------------------+------------------+
           |  Etherboot core  |   Miscellaneous  |
@@ -525,6 +537,9 @@
           |              Hardware               |
           +-------------------------------------+
   ______________________________________________________________________
+
+
+
 
   44..11..  EEtthheerrbboooott ccoorree
 
@@ -577,8 +592,6 @@
   categories. These are ansisec.c (fancy graphics), bootmenu.c (menu
   support), floppy.c (floppy I/O), md5.c (authentication), and serial.S
   (serial console support).
-
-
   44..44..  EExxtteerrnnaall aauuxxiilliiaarryy pprrooggrraammss
 
 
@@ -591,6 +604,8 @@
   of this approach is that the menu system does not have to be compiled
   into Etherboot, which means it can be changed without changing ROMs,
   and can be much larger.
+
+
 
   How does such a menu program indicate to Etherboot which image is to
   be loaded next? Several new features of Etherboot make this possible.
@@ -643,8 +658,6 @@
 
   Let us take an example of a ROM image that we could build,
   mx987x5.lzrom. According to this line in the file NIC:
-
-
   ______________________________________________________________________
   mx987x5         tulip           0x10d9,0x0531
   ______________________________________________________________________
@@ -723,7 +736,6 @@
      the peculiarity of starting at COM_SEGMENT:0x100. All it does
      however is jump to the Etherboot ROM image, again at offset 6.
 
-
   +o  All the preceeding special preloaders have associated Makefile
      rules and are created by asking for images with the appropriate
      suffix.  For example, if one wanted an image for writing onto a
@@ -777,6 +789,7 @@
   environment, these services may be provided in different ways.
 
 
+
   66..22..  HHooww ccaann II ggeett EEtthheerrbboooott ttoo bboooott aa CCaarrddbbuuss ((PPCCMMCCIIAA)) oorr aa UUSSBB NNIICC??
 
 
@@ -787,7 +800,6 @@
   In Etherboot, all this must be done by the code in the ROM. What needs
   to be written is a subsystem like the PCI subsystem in Etherboot.
   Volunteers are most welcome.
-
 
 
   77..  WWrriittiinngg aann EEtthheerrbboooott DDrriivveerr
@@ -855,6 +867,7 @@
   Examine the file skel.c, in the src directory, which is a template for
   a driver. You may also want to examine a working driver. You will see
   that an Etherboot driver requires 5 functions to be provided:
+
 
   +o  A probe routine, that determines if the network adapter is present
      on the machine. This is passed a pointer to a `nic' struct, a list
@@ -975,7 +988,6 @@
   create Makefile rules for it in the file Roms. The build process will
   cause the driver object will be pulled in from the driver library.
 
-
   77..44..  BBoooottiinngg tthhee ccooddee ffrroomm aa ffllooppppyy
 
 
@@ -1042,9 +1054,6 @@
   refer to the programmer's guide to the adapter when you do this.  You
   can also get some information by reading a Linux or FreeBSD driver.
   You may also need to get the reset routine working at this time.
-
-
-
   Next, get the transmit routine working. To check that packets are
   going out on the wire, you can use tcpdump or ethereal on the
   development machine to snoop on the Ethernet. The first packet to be
@@ -1110,6 +1119,7 @@
   77..88..  TTiiddyyiinngg uupp
 
 
+
   When you get something more or less working, release early. People on
   the mailing lists can help you find problems or improve the code.
   Besides you don't want to get run over by a bus and then the world
@@ -1120,6 +1130,8 @@
   Your opus should be released under GPL, BSD or a similar Open Source
   license, otherwise people will have problems using your code, as most
   of the rest of Etherboot is GPLed.
+
+
   88..  AA ppootttteedd hhiissttoorryy ooff EEtthheerrbboooott
 
 
@@ -1166,18 +1178,6 @@
   April 2000, Etherboot has been hosted at Sourceforge
   <http://sourceforge.net/>. Sourceforge has provided superb facilities
   for hosting community Open Source development.
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
