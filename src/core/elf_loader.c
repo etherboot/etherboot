@@ -268,6 +268,7 @@ static sector_t elf32_download(unsigned char *data, unsigned int len, int eof)
 		}
 		if (estate.segment == -1) {
 			if (elf_freebsd_debug_loader(offset)) {
+				estate.segment = 0; /* -1 makes it not read anymore */
 				continue;
 			}
 			/* No more segments to be loaded, so just start the

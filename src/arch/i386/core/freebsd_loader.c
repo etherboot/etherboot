@@ -168,7 +168,7 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 					for (j=0; j < estate.e.elf32.e_phnum; j++)
 					{
 						/* Check only for loaded sections */
-						if ((estate.p.phdr32[i].p_type | 0x80) == (PT_LOAD | 0x80))
+						if ((estate.p.phdr32[j].p_type | 0x80) == (PT_LOAD | 0x80))
 						{
 							/* Only the extra symbols */
 							if ((shdr[i].sh_offset >= estate.p.phdr32[j].p_offset) &&
@@ -214,7 +214,7 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 					estate.toread, estate.curaddr);
 #endif
 				/* Save where we are loading this... */
-				symtab_load = estate.curaddr;
+				symtab_load = phys_to_virt(estate.curaddr);
 				
 				*((long *)phys_to_virt(estate.curaddr)) = estate.toread;
 				estate.curaddr += sizeof(long);
@@ -242,7 +242,7 @@ static int elf_freebsd_debug_loader(unsigned int offset)
 					estate.toread, estate.curaddr);
 #endif
 				/* Save where we are loading this... */
-				symstr_load = estate.curaddr;
+				symstr_load = phys_to_virt(estate.curaddr);
 				
 				*((long *)phys_to_virt(estate.curaddr)) = estate.toread;
 				estate.curaddr += sizeof(long);

@@ -2627,11 +2627,17 @@ drivers corrected.
 
 + Added make rule for a floppy emulation ISO boot image
 
-+ Timothy Legge updated proto_tftm to make it easier to maintain and fix some issues
++ Timothy Legge updated proto_tftm to make it easier to maintain and fix
+some issues
 
-+ Timothy Legge contributed a forcedeth driver for the NVidia Force
-NIC.
++ Timothy Legge contributed a forcedeth driver for the NVidia Force NIC.
 
-+ Timothy Legge contributed a ns83820 driver for National Semiconductor 83820 based NICS
++ Timothy Legge contributed a ns83820 driver for National Semiconductor
+83820 based NICS
 
 Released as Etherboot 5.2.4 (production)
+
++ Fixed bugs in genrules.pl, was generating duplicate undi.o entries and
+ISA .o files for etherboot-pci.
+
++ Doug Ambrisko fixed bugs in the FreeBSD loader.
