@@ -2520,3 +2520,15 @@ it boots with vmware although the image fails later in the emulation.
 Released as Etherboot 5.2.1 (production)
 
 CVSed as Etherboot 5.3 (development)
+
++ Break out etherboot.h into multiple files along protocol lines.
+
++ Georg Baum's conversion of a more recent version of the Linux e1000
+driver.
+
++ Add mini-slamd to contrib/, it was missed during 5.2 release.
+
++ Timothy Legge enabled multicast for a bunch of drivers. Tested with
+mini-slamd.
+
+Released as Etherboot 5.3.0 (development)

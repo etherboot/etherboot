@@ -193,9 +193,9 @@ family		drivers/net/tg3
 
 family		drivers/net/pcnet32
 
-family		drivers/net/lance
-ne2100		-		Novell NE2100, NE1500
-ni6510		-		Racal-Interlan NI6510
+#family		drivers/net/lance
+#ne2100		-		Novell NE2100, NE1500
+#ni6510		-		Racal-Interlan NI6510
 
 family		drivers/net/tulip
 
