@@ -90,6 +90,7 @@ static void sis900_read_mode(struct nic *nic, int phy_addr, int *speed, int *dup
 static void amd79c901_read_mode(struct nic *nic, int phy_addr, int *speed, int *duplex);
 static void ics1893_read_mode(struct nic *nic, int phy_addr, int *speed, int *duplex);
 static void rtl8201_read_mode(struct nic *nic, int phy_addr, int *speed, int *duplex);
+static void vt6103_read_mode(struct nic *nic, int phy_addr, int *speed, int *duplex);
 
 static struct mii_chip_info {
     const char * name;
@@ -103,6 +104,7 @@ static struct mii_chip_info {
     {"AMD 79C901 HomePNA PHY",   0x0000, 0x35c8, amd79c901_read_mode},
     {"ICS 1893 Integrated PHYceiver"   , 0x0015, 0xf441,ics1893_read_mode},
     {"RTL 8201 10/100Mbps Phyceiver"   , 0x0000, 0x8201,rtl8201_read_mode},
+    {"VIA 6103 10/100Mbps Phyceiver", 0x0101, 0x8f20,vt6103_read_mode},
     {0,0,0,0}
 };
 
@@ -952,6 +954,50 @@ static void rtl8201_read_mode(struct nic *nic, int phy_addr, int *speed, int *du
 		       "full" : "half");
 	else
 		printf("rtl8201_read_config_mode: Media Link Off\n");
+}
+
+/**
+ *	vt6103_read_mode: - read media mode for vt6103 phy
+ *	@nic: the net device to read mode for
+ *	@phy_addr: mii phy address
+ *	@speed: the transmit speed to be determined
+ *	@duplex: the duplex mode to be determined
+ *
+ *	read MII_STATUS register from rtl8201 phy
+ *	to determine the speed and duplex mode for sis900
+ */
+
+static void vt6103_read_mode(struct nic *nic, int phy_addr, int *speed, int *duplex)
+{
+	u32 status;
+
+	status = sis900_mdio_read(phy_addr, MII_STATUS);
+
+	if (status & MII_STAT_CAN_TX_FDX) {
+		*speed = HW_SPEED_100_MBPS;
+		*duplex = FDX_CAPABLE_FULL_SELECTED;
+	}
+	else if (status & MII_STAT_CAN_TX) {
+		*speed = HW_SPEED_100_MBPS;
+		*duplex = FDX_CAPABLE_HALF_SELECTED;
+	}
+	else if (status & MII_STAT_CAN_T_FDX) {
+		*speed = HW_SPEED_10_MBPS;
+		*duplex = FDX_CAPABLE_FULL_SELECTED;
+	}
+	else if (status & MII_STAT_CAN_T) {
+		*speed = HW_SPEED_10_MBPS;
+		*duplex = FDX_CAPABLE_HALF_SELECTED;
+	}
+
+	if (status & MII_STAT_LINK)
+		printf("vt6103_read_mode: Media Link On %s %s-duplex \n",
+		       *speed == HW_SPEED_100_MBPS ?
+		       "100mbps" : "10mbps",
+		       *duplex == FDX_CAPABLE_FULL_SELECTED ?
+		       "full" : "half");
+	else
+		printf("vt6103_read_config_mode: Media Link Off\n");
 }
 
 /* Function: sis900_transmit
