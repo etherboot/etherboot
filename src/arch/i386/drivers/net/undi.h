@@ -57,20 +57,7 @@ typedef union pxenv_structure {
 	PXENV_STATUS_t			Status; /* Make it easy to read status
 						   for any operation */
 	undi_loader_t			loader;
-	t_PXENV_START_UNDI		start_undi;
-	t_PXENV_UNDI_STARTUP		undi_startup;
-	t_PXENV_UNDI_CLEANUP		undi_cleanup;
-	t_PXENV_UNDI_INITIALIZE		undi_initialize;
-	t_PXENV_UNDI_SHUTDOWN		undi_shutdown;
-	t_PXENV_UNDI_OPEN		undi_open;
-	t_PXENV_UNDI_CLOSE		undi_close;
-	t_PXENV_UNDI_TRANSMIT		undi_transmit;
-	t_PXENV_UNDI_SET_STATION_ADDRESS undi_set_station_address;
-	t_PXENV_UNDI_GET_INFORMATION	undi_get_information;
-	t_PXENV_UNDI_GET_IFACE_INFO	undi_get_iface_info;
-	t_PXENV_UNDI_ISR		undi_isr;
-	t_PXENV_STOP_UNDI		stop_undi;
-	t_PXENV_UNLOAD_STACK		unload_stack;
+	t_PXENV_ANY;
 } pxenv_structure_t;
 
 /* BIOS PnP parameter block.  We scan for this so that we can pass it
