@@ -72,7 +72,8 @@ typedef struct {
 	uint16_t		Seg_Addr;
 	uint32_t		Phy_Addr;
 	uint16_t		Seg_Size;
-} SEGDESC_t;
+} PACKED SEGDESC_t; /* PACKED is required, otherwise gcc pads this out to 12
+		       bytes - mbrown@fensystems.co.uk (mcb30) 17/5/03 */
 
 typedef	uint16_t		SEGSEL_t;
 typedef	uint16_t		PXENV_STATUS_t;
