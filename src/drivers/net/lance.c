@@ -1,3 +1,4 @@
+/* Note: this will probably not work relocated above 16MB */
 /**************************************************************************
 Etherboot -  BOOTP/TFTP Bootstrap Program
 LANCE NIC driver for Etherboot
