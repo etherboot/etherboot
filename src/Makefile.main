@@ -105,7 +105,7 @@ BOBJS:=
 MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	2
-VERSION_PATCH=	5
+VERSION_PATCH=	6
 EXTRAVERSION=
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
@@ -345,7 +345,7 @@ $(BIN)/%.z:	$(BIN)/%.img $(BIN)/nrv2b $(MAKEDEPS)
 
 clean:
 	$(RM) $(BIN)/*
-	$(RM) $(FILO)/config.h
+	$(RM) $(FILO)/config.h $(RM) $(FILO)/main/version.h
 
 ../index.html:	../doc/html/template ../index.xhtml
 	(cd ..; m4 -P -DHTML_INCLUDE=index.xhtml -DHTML_DIR=doc/html -DHOSTSITE=SOURCEFORGE doc/html/template > index.html)
