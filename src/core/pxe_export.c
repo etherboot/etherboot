@@ -42,8 +42,6 @@
 #endif
 
 /* Not sure why this isn't a globally-used structure within Etherboot.
- * (Because I didn't want to use packed to prevent gcc from aligning
- * source however it liked. Also nstype is a u16, not a uint. - Ken)
  */
 typedef	struct {
 	char dest[ETH_ALEN];
@@ -741,8 +739,7 @@ PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
 	ENSURE_READY ( tftp_open );
 
 	/* Change server address if different */
-	if ( tftp_open->ServerIPAddress && 
-	     tftp_open->ServerIPAddress!=arptable[ARP_SERVER].ipaddr.s_addr ) {
+	if ( tftp_open->ServerIPAddress!=arptable[ARP_SERVER].ipaddr.s_addr ) {
 		memset(arptable[ARP_SERVER].node, 0, ETH_ALEN ); /* kill arp */
 		arptable[ARP_SERVER].ipaddr.s_addr=tftp_open->ServerIPAddress;
 	}
@@ -824,34 +821,13 @@ PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
 
 /* PXENV_TFTP_READ_FILE
  *
- * Status: working
+ * Status: stub
  */
-
-int pxe_tftp_read_block ( unsigned char *data, unsigned int block __unused, unsigned int len, int eof ) {
-	if ( pxe_stack->readfile.offset + len >= pxe_stack->readfile.bufferlen ) return -1;
-	memcpy ( pxe_stack->readfile.buffer + pxe_stack->readfile.offset, data, len );
-	pxe_stack->readfile.offset += len;
-	return eof ? 0 : 1;
-}
-
 PXENV_EXIT_t pxenv_tftp_read_file ( t_PXENV_TFTP_READ_FILE *tftp_read_file ) {
-	int rc;
-
-	DBG ( "PXENV_TFTP_READ_FILE %s to [%x,%x)", tftp_read_file->FileName,
-	      tftp_read_file->Buffer, tftp_read_file->Buffer + tftp_read_file->BufferSize );
-	ENSURE_READY ( tftp_read_file );
-
-	pxe_stack->readfile.buffer = phys_to_virt ( tftp_read_file->Buffer );
-	pxe_stack->readfile.bufferlen = tftp_read_file->BufferSize;
-	pxe_stack->readfile.offset = 0;
-
-	rc = tftp ( tftp_read_file->FileName, pxe_tftp_read_block );
-	if ( rc ) {
-		tftp_read_file->Status = PXENV_STATUS_FAILURE;
-		return PXENV_EXIT_FAILURE;
-	}
-	tftp_read_file->Status = PXENV_STATUS_SUCCESS;
-	return PXENV_EXIT_SUCCESS;
+	DBG ( "PXENV_TFTP_READ_FILE" );
+	/* ENSURE_READY ( tftp_read_file ); */
+	tftp_read_file->Status = PXENV_STATUS_UNSUPPORTED;
+	return PXENV_EXIT_FAILURE;
 }
 
 /* PXENV_TFTP_GET_FSIZE
@@ -873,8 +849,7 @@ PXENV_EXIT_t pxenv_udp_open ( t_PXENV_UDP_OPEN *udp_open ) {
 	DBG ( "PXENV_UDP_OPEN" );
 	ENSURE_READY ( udp_open );
 
-	if ( udp_open->src_ip &&
-	     udp_open->src_ip != arptable[ARP_CLIENT].ipaddr.s_addr ) {
+	if ( udp_open->src_ip != arptable[ARP_CLIENT].ipaddr.s_addr ) {
 		/* Overwrite our IP address */
 		DBG ( " with new IP %@", udp_open->src_ip );
 		arptable[ARP_CLIENT].ipaddr.s_addr = udp_open->src_ip;
@@ -915,8 +890,7 @@ int await_pxe_udp ( int ival __unused, void *ptr,
 	
 	/* Check dest_ip */
 	if ( udp_read->dest_ip && ( udp_read->dest_ip != ip->dest.s_addr ) ) {
-		DBG ( " wrong dest IP (got %@, wanted %@)",
-		      ip->dest.s_addr, udp_read->dest_ip );
+		DBG ( " wrong dest IP" );
 		return 0;
 	}
 
@@ -932,19 +906,11 @@ int await_pxe_udp ( int ival __unused, void *ptr,
 	udp_read->src_ip = ip->src.s_addr;
 	udp_read->s_port = udp->src; /* Both in network order */
 	size = ntohs(udp->len) - sizeof(*udp);
-	/* Workaround: NTLDR expects us to fill these in, even though
-	 * PXESPEC clearly defines them as input parameters.
-	 */
-	udp_read->dest_ip = ip->dest.s_addr;
-	udp_read->d_port = udp->dest;
-	DBG ( " %@:%d->%@:%d (%d)",
-	      udp_read->src_ip, ntohs(udp_read->s_port),
-	      udp_read->dest_ip, ntohs(udp_read->d_port), size );
 	if ( udp_read->buffer_size < size ) {
-		/* PXESPEC: what error code should we actually return? */
-		DBG ( " buffer too small (%d)", udp_read->buffer_size );
-		udp_read->Status = PXENV_STATUS_OUT_OF_RESOURCES;
-		return 0;
+		/* PXESPEC: are we meant to report any kind of error
+		 * in this case?
+		 */
+		size = udp_read->buffer_size;
 	}
 	memcpy ( SEGOFF16_TO_PTR ( udp_read->buffer ), &udp->payload, size );
 	udp_read->buffer_size = size;
@@ -957,9 +923,8 @@ PXENV_EXIT_t pxenv_udp_read ( t_PXENV_UDP_READ *udp_read ) {
 	ENSURE_READY ( udp_read );
 
 	/* Use await_reply with a timeout of zero */
-	/* Allow await_reply to change Status if necessary */
-	udp_read->Status = PXENV_STATUS_FAILURE;
 	if ( ! await_reply ( await_pxe_udp, 0, udp_read, 0 ) ) {
+		udp_read->Status = PXENV_STATUS_FAILURE;
 		return PXENV_EXIT_FAILURE;
 	}
 
@@ -984,8 +949,7 @@ PXENV_EXIT_t pxenv_udp_write ( t_PXENV_UDP_WRITE *udp_write ) {
 	src_port = ntohs(udp_write->src_port);
 	if ( src_port == 0 ) src_port = 2069;
 	dst_port = ntohs(udp_write->dst_port);
-	DBG ( " %d->%@:%d (%d)", src_port, udp_write->ip, dst_port,
-	      udp_write->buffer_size );
+	DBG ( " %d->%d (%d)", src_port, dst_port, udp_write->buffer_size );
 	
 	/* FIXME: we ignore the gateway specified, since we're
 	 * confident of being able to do our own routing.  We should
@@ -1080,7 +1044,7 @@ PXENV_EXIT_t pxenv_get_cached_info ( t_PXENV_GET_CACHED_INFO
 	memcpy ( cached_info->CAddr, arptable[ARP_CLIENT].node, ETH_ALEN );
 	/* Nullify server name */
 	cached_info->Sname[0] = '\0';
-	memcpy ( cached_info->bootfile, KERNEL_BUF,
+	memcpy ( cached_info->bootfile, bootfile,
 		 sizeof(cached_info->bootfile) );
 	/* Copy DHCP vendor options */
 	memcpy ( &cached_info->vendor.d, BOOTP_DATA_ADDR->bootp_reply.bp_vend,
@@ -1117,31 +1081,13 @@ PXENV_EXIT_t pxenv_get_cached_info ( t_PXENV_GET_CACHED_INFO
 
 /* PXENV_RESTART_TFTP
  *
- * Status: working
+ * Status: stub
  */
 PXENV_EXIT_t pxenv_restart_tftp ( t_PXENV_RESTART_TFTP *restart_tftp ) {
-	PXENV_EXIT_t tftp_exit;
-
 	DBG ( "PXENV_RESTART_TFTP" );
-	ENSURE_READY ( restart_tftp );
-
-	/* Words cannot describe the complete mismatch between the PXE
-	 * specification and any possible version of reality...
-	 */
-	restart_tftp->Buffer = PXE_LOAD_ADDRESS; /* Fixed by spec, apparently */
-	restart_tftp->BufferSize = get_free_base_memory() - PXE_LOAD_ADDRESS; /* Near enough */
-	DBG ( "(" );
-	tftp_exit = pxe_api_call ( PXENV_TFTP_READ_FILE, (t_PXENV_ANY*)restart_tftp );
-	DBG ( ")" );
-	if ( tftp_exit != PXENV_EXIT_SUCCESS ) return tftp_exit;
-
-	/* Fire up the new NBP */
-	restart_tftp->Status = xstartpxe();
-
-	/* Not sure what "SUCCESS" actually means, since we can only
-	 * return if the new NBP failed to boot...
-	 */
-	return PXENV_EXIT_SUCCESS;
+	/* ENSURE_READY ( restart_tftp ); */
+	restart_tftp->Status = PXENV_STATUS_UNSUPPORTED;
+	return PXENV_EXIT_FAILURE;
 }
 
 /* PXENV_START_BASE

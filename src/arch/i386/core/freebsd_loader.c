@@ -266,7 +266,7 @@ static void elf_freebsd_boot(unsigned long entry)
 	bsdinfo.bi_extmem = meminfo.memsize;
 	bsdinfo.bi_memsizes_valid = 1;
 	bsdinfo.bi_version = BOOTINFO_VERSION;
-	bsdinfo.bi_kernelname = virt_to_phys(KERNEL_BUF);
+	bsdinfo.bi_kernelname = virt_to_phys(bootfile);
 	bsdinfo.bi_nfs_diskless = NULL;
 	bsdinfo.bi_size = sizeof(bsdinfo);
 #define RB_BOOTINFO     0x80000000      /* have `struct bootinfo *' arg */  
@@ -364,7 +364,7 @@ static void aout_freebsd_boot(void)
 		bsdinfo.bi_extmem = meminfo.memsize;
 		bsdinfo.bi_memsizes_valid = 1;
 		bsdinfo.bi_version = BOOTINFO_VERSION;
-		bsdinfo.bi_kernelname = virt_to_phys(KERNEL_BUF);
+		bsdinfo.bi_kernelname = virt_to_phys(bootfile);
 		bsdinfo.bi_nfs_diskless = NULL;
 		bsdinfo.bi_size = sizeof(bsdinfo);
 		xstart32(astate.head.a_entry, freebsd_howto, NODEV, 0, 0, 0, 

@@ -144,14 +144,6 @@
 #define MULTICAST_MASK    0xF0000000
 #define MULTICAST_NETWORK 0xE0000000
 
-/* Helper macros used to identify when DHCP options are valid/invalid in/outside of encapsulation */
-#define NON_ENCAP_OPT in_encapsulated_options == 0 &&
-#ifdef ALLOW_ONLY_ENCAPSULATED
-#define ENCAP_OPT in_encapsulated_options == 1 &&
-#else
-#define ENCAP_OPT
-#endif
-
 #include	"if_arp.h"
 #include	"ip.h"
 #include	"udp.h"
@@ -171,7 +163,7 @@ struct igmptable_t {
 	unsigned long time;
 };
 
-#define	KERNEL_BUF	(BOOTP_DATA_ADDR->bootp_reply.bp_file)
+extern char bootfile[];
 
 #define	FLOPPY_BOOT_LOCATION	0x7c00
 
@@ -220,7 +212,6 @@ extern int tcp_transmit(unsigned long destip, unsigned int srcsock,
 int tcp_reset(struct iphdr *ip);
 typedef int (*reply_t)(int ival, void *ptr, unsigned short ptype, struct iphdr *ip, struct udphdr *udp, struct tcphdr *tcp);
 extern int await_reply P((reply_t reply,	int ival, void *ptr, long timeout));
-extern int decode_rfc1533 P((unsigned char *, unsigned int, unsigned int, int));
 extern void join_group(int slot, unsigned long group);
 extern void leave_group(int slot);
 #define RAND_MAX 2147483647L
@@ -247,13 +238,6 @@ extern int url_tftm P((const char *name, int (*fnc)(unsigned char *, unsigned in
 
 /* config.c */
 extern void print_config(void);
-
-/* isa_probe.c and pci_probe.c */
-struct dev;
-extern void isa_enumerate(void);
-extern int isa_probe(struct dev *, const char *);
-extern void pci_enumerate(void);
-extern int pci_probe(struct dev *, const char *);
 
 /* heap.c */
 extern void init_heap(void);
@@ -282,7 +266,11 @@ extern int sprintf P((char *, const char *, ...));
 extern int inet_aton P((const char *p, in_addr *i));
 #ifdef PCBIOS
 extern void gateA20_set P((void));
+#ifdef	RELOCATE
 #define gateA20_unset()
+#else
+extern void gateA20_unset P((void));
+#endif
 #else
 #define gateA20_set()
 #define gateA20_unset()
@@ -331,8 +319,12 @@ struct meminfo {
 extern struct meminfo meminfo;
 extern void get_memsizes(void);
 extern unsigned long get_boot_order(unsigned long order, unsigned *index);
+#ifdef RELOCATE
 extern void relocate(void);
 extern void relocate_to(unsigned long phys_dest);
+#else
+#define relocate() do {} while(0)
+#endif
 extern void disk_init P((void));
 extern unsigned int pcbios_disk_read P((int drv,int c,int h,int s,char *buf));
 
@@ -401,7 +393,8 @@ External variables
 ***************************************************************************/
 /* main.c */
 extern struct rom_info rom;
-extern char *hostname;
+#define MAXHOSTNAMELEN 1024
+extern char hostname[MAXHOSTNAMELEN];
 extern int hostnamelen;
 extern jmp_buf restart_etherboot;
 extern int url_port;
@@ -417,7 +410,6 @@ extern unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
 #endif
 extern struct bootpd_t bootp_data;
 #define	BOOTP_DATA_ADDR	(&bootp_data)
-extern unsigned char *end_of_rfc1533;
 #ifdef	IMAGE_FREEBSD
 extern int freebsd_howto;
 #define FREEBSD_KERNEL_ENV_SIZE 256

@@ -950,7 +950,7 @@ struct Elf_Bhdr *prepare_boot_params(void *header)
 	notes.nv4.n_namesz = 0;
 	notes.nv4.n_descsz = sizeof(notes.nv4_loaded_image);
 	notes.nv4.n_type   = EBN_LOADED_IMAGE;
-	memcpy(&notes.nv4_loaded_image, KERNEL_BUF, sizeof(notes.nv4_loaded_image));
+	memcpy(&notes.nv4_loaded_image, bootfile, sizeof(notes.nv4_loaded_image));
 
 	/* Pass an empty command line for now */
 	notes.nv5.n_namesz = 0;

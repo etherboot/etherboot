@@ -27,12 +27,9 @@ struct igmptable_t	igmptable[MAX_IGMP];
 struct rom_info	rom __attribute__ ((section (".text16.nocompress"))) = {0,0};
 static unsigned long	netmask;
 /* Used by nfs.c */
-char *hostname = "";
+char hostname[MAXHOSTNAMELEN] = "";
 int hostnamelen = 0;
 static uint32_t xid;
-unsigned char *end_of_rfc1533 = NULL;
-static int vendorext_isvalid;
-static const unsigned char vendorext_magic[] = {0xE4,0x45,0x74,0x68}; /* ‰Eth */
 static const unsigned char broadcast[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 static const in_addr zeroIP = { 0L };
 
@@ -44,7 +41,33 @@ static unsigned char	rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
 static int dhcp_reply;
 static in_addr dhcp_server = { 0L };
 static in_addr dhcp_addr = { 0L };
-static unsigned char	rfc1533_cookie[] = { RFC1533_COOKIE };
+/*
+ * If the bp_file is overloaded (RFC2132 opt 52 and 67), put the
+ * filename from opt 67 in the bootfile buffer.  Leave an extra octet
+ * for a zero termination. If the 0th byte remains zero, either no
+ * overloading occurred or the opt 67 value was itself zero-length.
+ * PRL,2004-JUL-03
+ */
+char bootfile[BOOTP_FILE_LEN+1] = { 0L };
+static uint8_t option_overload = 0;
+static uint8_t rfc1533_cookie[] = { RFC1533_COOKIE };
+
+extern int decode_rfc2132_options P((unsigned char *p, unsigned int len, int flags));
+/*
+ * For the moment, LSB must be the "eof" flag: during TFTP, 1 for the
+ * last block, 0 otherwise.  PRL,2004-JUL-10
+
+ * CHKCOOK - Check DHCP magic cookie at the start of the IN_ENCP
+ * Options are encapsulated, IN_OVLD Options are overloaded file or
+ * sname fields (disregard opt 52) IN_TFTP Options are being read via
+ * tftp (disregard opt 18).
+ */
+
+#define DECODE_RFC2132_OPTIONS_FLAG_CHKCOOK 1<<0
+#define DECODE_RFC2132_OPTIONS_FLAG_IN_ENCP 1<<1
+#define DECODE_RFC2132_OPTIONS_FLAG_IN_OVLD 1<<2
+#define DECODE_RFC2132_OPTIONS_FLAG_IN_TFTP 1<<3
+
 #define DHCP_MACHINE_INFO_SIZE (sizeof dhcp_machine_info)
 static unsigned char dhcp_machine_info[] = {
 	/* Our enclosing DHCP tag */
@@ -206,7 +229,7 @@ int eth_poll(int retrieve)
 void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p)
 {
 	(*nic.transmit)(&nic, d, t, s, p);
-	if (t == ETH_P_IP) twiddle();
+	if (t == IP) twiddle();
 }
 
 void eth_disable(void)
@@ -260,7 +283,6 @@ LOAD - Try to get booted
 **************************************************************************/
 int eth_load(struct dev *dev __unused)
 {
-	const char	*kernel;
 	printf("Me: %@, Server: %@",
 		arptable[ARP_CLIENT].ipaddr.s_addr,
 		arptable[ARP_SERVER].ipaddr.s_addr);
@@ -283,12 +305,7 @@ int eth_load(struct dev *dev __unused)
 #ifdef	DOWNLOAD_PROTO_NFS
 	rpc_init();
 #endif
-#ifdef	DEFAULT_BOOTFILE
-	kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
-#else
-	kernel = KERNEL_BUF;
-#endif
-	loadkernel(kernel); /* We don't return except on error */
+	loadkernel(bootfile); /* We don't return except on error */
 	printf("Unable to load file.\n");
 	interruptible_sleep(2);		/* lay off the server for a while */
 	longjmp(restart_etherboot, -1);
@@ -317,7 +334,7 @@ static int await_arp(int ival, void *ptr,
 	struct tcphdr *tcp __unused)
 {
 	struct	arprequest *arpreply;
-	if (ptype != ETH_P_ARP)
+	if (ptype != ARP)
 		return 0;
 	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
 		return 0;
@@ -342,7 +359,7 @@ int ip_transmit(int len, const void *buf)
 	ip = (struct iphdr *)buf;
 	destip = ip->dest.s_addr;
 	if (destip == IP_BROADCAST) {
-		eth_transmit(broadcast, ETH_P_IP, len, buf);
+		eth_transmit(broadcast, IP, len, buf);
 #ifdef MULTICAST_LEVEL1 
 	} else if ((destip & htonl(MULTICAST_MASK)) == htonl(MULTICAST_NETWORK)) {
 		unsigned char multicast[6];
@@ -354,7 +371,7 @@ int ip_transmit(int len, const void *buf)
 		multicast[3] = (hdestip >> 16) & 0x7;
 		multicast[4] = (hdestip >> 8) & 0xff;
 		multicast[5] = hdestip & 0xff;
-		eth_transmit(multicast, ETH_P_IP, len, buf);
+		eth_transmit(multicast, IP, len, buf);
 #endif
 	} else {
 		if (((destip & netmask) !=
@@ -382,7 +399,7 @@ int ip_transmit(int len, const void *buf)
 			memcpy(arpreq.tipaddr, &destip, sizeof(in_addr));
 			for (retry = 1; retry <= MAX_ARP_RETRIES; retry++) {
 				long timeout;
-				eth_transmit(broadcast, ETH_P_ARP, sizeof(arpreq),
+				eth_transmit(broadcast, ARP, sizeof(arpreq),
 					&arpreq);
 				timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 				if (await_reply(await_arp, arpentry,
@@ -391,7 +408,7 @@ int ip_transmit(int len, const void *buf)
 			return(0);
 		}
 xmit:
-		eth_transmit(arptable[arpentry].node, ETH_P_IP, len, buf);
+		eth_transmit(arptable[arpentry].node, IP, len, buf);
 	}
 	return 1;
 }
@@ -686,7 +703,7 @@ static int await_rarp(int ival, void *ptr,
 	struct tcphdr *tcp __unused)
 {
 	struct arprequest *arpreply;
-	if (ptype != ETH_P_RARP)
+	if (ptype != RARP)
 		return 0;
 	if (nic.packetlen < ETH_HLEN + sizeof(struct arprequest))
 		return 0;
@@ -724,7 +741,7 @@ static int rarp(void)
 
 	for (retry = 0; retry < MAX_ARP_RETRIES; ++retry) {
 		long timeout;
-		eth_transmit(broadcast, ETH_P_RARP, sizeof(rarpreq), &rarpreq);
+		eth_transmit(broadcast, RARP, sizeof(rarpreq), &rarpreq);
 
 		timeout = rfc2131_sleep_interval(TIMEOUT, retry);
 		if (await_reply(await_rarp, 0, rarpreq.shwaddr, timeout))
@@ -732,7 +749,7 @@ static int rarp(void)
 	}
 
 	if (retry < MAX_ARP_RETRIES) {
-		(void)sprintf(KERNEL_BUF, DEFAULT_KERNELPATH, arptable[ARP_CLIENT].ipaddr);
+		(void)sprintf(bootfile, DEFAULT_KERNELPATH, arptable[ARP_CLIENT].ipaddr);
 
 		return (1);
 	}
@@ -744,6 +761,9 @@ static int rarp(void)
 /**************************************************************************
 BOOTP - Get my IP address and load information
 **************************************************************************/
+/*
+ * Return 1 if we get a useful configuration, 0 if stuff went wrong.
+ */
 static int await_bootp(int ival __unused, void *ptr __unused,
 	unsigned short ptype __unused, struct iphdr *ip __unused, 
 	struct udphdr *udp, struct tcphdr *tcp __unused)
@@ -772,12 +792,6 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 		return 0;
 	if (memcmp(&bootpreply->bp_siaddr, &zeroIP, sizeof(in_addr)) == 0)
 		return 0;
-#ifndef	DEFAULT_BOOTFILE
-	if (bootpreply->bp_file[0] == '\0') {
-		printf("F?");	/* No filename in offer */
-		return 0;
-	}
-#endif
 	if ((memcmp(broadcast, bootpreply->bp_hwaddr, ETH_ALEN) != 0) &&
 		(memcmp(arptable[ARP_CLIENT].node, bootpreply->bp_hwaddr, ETH_ALEN) != 0)) {
 		return 0;
@@ -791,21 +805,107 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 	memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);	 /* Kill arp */
 	arptable[ARP_GATEWAY].ipaddr.s_addr = bootpreply->bp_giaddr.s_addr;
 	memset(arptable[ARP_GATEWAY].node, 0, ETH_ALEN);  /* Kill arp */
-	/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
-	memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
-	decode_rfc1533(BOOTP_DATA_ADDR->bootp_reply.bp_vend, 0,
-#ifdef	NO_DHCP_SUPPORT
-		BOOTP_VENDOR_LEN + MAX_BOOTP_EXTLEN, 
-#else
-		DHCP_OPT_LEN + MAX_BOOTP_EXTLEN, 
-#endif	/* NO_DHCP_SUPPORT */
-		1);
 #ifdef	REQUIRE_VCI_ETHERBOOT
+	vci_etherboot = 0;
+#endif
+	memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
+
+#ifdef	NO_DHCP_SUPPORT
+#define PACKET_OPTLEN ( BOOTP_VENDOR_LEN + MAX_BOOTP_EXTLEN )
+#else
+#define PACKET_OPTLEN ( DHCP_OPT_LEN + MAX_BOOTP_EXTLEN )
+#endif	/* NO_DHCP_SUPPORT */
+
+	decode_rfc2132_options(BOOTP_DATA_ADDR->bootp_reply.bp_vend,
+			       PACKET_OPTLEN,
+			       DECODE_RFC2132_OPTIONS_FLAG_CHKCOOK );
+	/*
+	 * If the overload flag (RFC2132 opt 52) in the main options
+	 * field indicates overloading of the FILE or SNAME bootp
+	 * fixed fields, process the fixed fields as DHCP options
+	 * (call decode_rfc2132_options with the LASTBLK flag set).
+	 * The value of opt 67 (if specified) is copied into bootfile.
+	 * NB - these may already have been stashed away in options
+	 * processing before we see the overload flag; RFC2132 does
+	 * not state where these options may be found.  Etherboot does
+	 * not use SNAME, but should process opt 66 if it ever needs
+	 * to. If FILE or SNAME is not overloaded, memcpy the
+	 * "traditional" value from the bootp fixed fields.
+	 * PRL,2004-JUL-03
+	 */
+	/*
+	 * WHINE - RFC2132 seems to indicate that it is only possible
+	 * to put opt 52 in the main options field and that options
+	 * 66/67 can sensibly appear anywhere in the main options
+	 * field or the overloaded file and/or sname. The explicit
+	 * requirement of opt (tftp extension file) that it cannot
+	 * contain another opt 18 makes sense, so I'm taking the view
+	 * that it would be equally silly to have another opt 52 in an
+	 * overload option which changes the behaviour (ignoring the
+	 * lack of guidance from RFCs handling duplicates).  It is
+	 * unclear why RFC2132 restricts opts 66/67 to being processed
+	 * only in conjunction with 52.  It would make more sense IMHO
+	 * to say "if you get 66 or 67, override the matching bootp
+	 * field" and then, after the main options field is processed,
+	 * 52 indicates whether FILE and SNAME should also be
+	 * processed as option fields.  We must process 66/67 anyway,
+	 * on the basis that there *might* be a 52 later on, right?
+	 * Sample code in the RFCs would have made the intentions
+	 * clearer, and maybe could have sorted out some of these
+	 * ambiguities in the minds of the RFC authors. Hey ho.
+	 * PRL,2004-JUL-03
+	 */
+	if (option_overload & RFC2132_OVLD_FILE ) {
+		printf("Loading overload dhcp options from FILE field\n");
+		decode_rfc2132_options(BOOTP_DATA_ADDR->bootp_reply.bp_file,
+				       BOOTP_FILE_LEN,
+				       DECODE_RFC2132_OPTIONS_FLAG_IN_OVLD);
+	} else {
+		memcpy(bootfile, bootpreply->bp_file, BOOTP_FILE_LEN);
+		bootfile[BOOTP_FILE_LEN] = '\0';
+	}
+	if (option_overload & RFC2132_OVLD_SNAME ) {
+		printf("Loading overload dhcp options from SNAME field\n");
+		decode_rfc2132_options(BOOTP_DATA_ADDR->bootp_reply.bp_sname,
+				       BOOTP_SNAME_LEN,
+				       DECODE_RFC2132_OPTIONS_FLAG_IN_OVLD);
+	}
+#ifdef  IMAGE_FREEBSD
+	/* yes this is a pain FreeBSD uses this for swap, however,
+	   there are cases when you don't want swap and then
+	   you want this set to get the extra features so lets
+	   just set if dealing with FreeBSD.  I haven't run into
+	   any troubles with this but I have without it
+	*/
+#ifdef  FREEBSD_KERNEL_ENV
+	if (freebsd_kernel_env[0]=='\0')
+		sprintf(freebsd_kernel_env, FREEBSD_KERNEL_ENV);
+	/* FREEBSD_KERNEL_ENV had better be a string constant */
+#else
+#endif	/* FREEBSD_KERNEL_ENV */
+#endif  /* IMAGE_FREEBSD */
+#ifdef	DEFAULT_BOOTFILE
+	if (bootfile[0] == '\0')
+		sprintf(bootfile,DEFAULT_BOOTFILE);
+#endif /* DEFAULT_BOOTFILE */
+	/* This test is slightly different from the previous logic.
+	   DEFAULT_BOOTFILE could be set to "", which is non-null to
+	   #ifdef but still evaluates to a null string, so test for
+	   zero-length after all possible sources of the bootfile have
+	   been eliminated. PRL,2004-JUL-03 */
+	if (bootfile[0] == '\0') {
+		printf("F?");	/* No filename in offer */
+		return 0;
+	}
+#ifdef	REQUIRE_VCI_ETHERBOOT
+#ifdef	MDEBUG
+	printf("vci_etherboot %d\n", vci_etherboot);
+#endif
 	if (!vci_etherboot)
 		return (0);
 #endif
 	return(1);
-}
+} /* await_bootp */
 
 static int bootp(void)
 {
@@ -1044,11 +1144,9 @@ void join_group(int slot, unsigned long group)
 	}
 }
 #else
-#define send_igmp_reports(now) do {} while(0)
-#define process_igmp(ip, now)  do {} while(0)
+#define send_igmp_reports(now);
+#define process_igmp(ip, now)
 #endif
-
-#include "proto_eth_slow.c"
 
 /**************************************************************************
 TCP - Simple-minded TCP stack. Can only send data once and then
@@ -1304,7 +1402,6 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 	 */
 	for (;;) {
 		now = currticks();
-		send_eth_slow_reports(now);
 		send_igmp_reports(now);
 		result = eth_poll(1);
 		if (result == 0) {
@@ -1331,7 +1428,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 		} else continue; /* what else could we do with it? */
 		/* Verify an IP header */
 		ip = 0;
-		if ((ptype == ETH_P_IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
+		if ((ptype == IP) && (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr))) {
 			unsigned ipoptlen;
 			ip = (struct iphdr *)&nic.packet[ETH_HLEN];
 			if ((ip->verhdrlen < 0x45) || (ip->verhdrlen > 0x4F)) 
@@ -1400,9 +1497,9 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 		}
 		
 		/* If it isn't a packet the upper layer wants see if there is a default
-		 * action.  This allows us reply to arp, igmp, and lacp queries.
+		 * action.  This allows us reply to arp and igmp queryies.
 		 */
-		if ((ptype == ETH_P_ARP) &&
+		if ((ptype == ARP) &&
 			(nic.packetlen >= ETH_HLEN + sizeof(struct arprequest))) {
 			struct	arprequest *arpreply;
 			unsigned long tmp;
@@ -1416,7 +1513,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 				memcpy(arpreply->thwaddr, arpreply->shwaddr, ETH_ALEN);
 				memcpy(arpreply->sipaddr, &arptable[ARP_CLIENT].ipaddr, sizeof(in_addr));
 				memcpy(arpreply->shwaddr, arptable[ARP_CLIENT].node, ETH_ALEN);
-				eth_transmit(arpreply->thwaddr, ETH_P_ARP,
+				eth_transmit(arpreply->thwaddr, ARP,
 					sizeof(struct  arprequest),
 					arpreply);
 #ifdef	MDEBUG
@@ -1425,92 +1522,260 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 #endif	/* MDEBUG */
 			}
 		}
-		process_eth_slow(ptype, now);
 		process_igmp(ip, now);
 	}
 	return(0);
 }
 
-#ifdef	REQUIRE_VCI_ETHERBOOT
 /**************************************************************************
-FIND_VCI_ETHERBOOT - Looks for "Etherboot" in Vendor Encapsulated Identifiers
-On entry p points to byte count of VCI options
+DHCP_OPTION_DOWNLOAD - A loader to options from a DHCP extension file.
 **************************************************************************/
-static int find_vci_etherboot(unsigned char *p)
-{
-	unsigned char	*end = p + 1 + *p;
+/*
+ * A download block function compatible with the osloader functions,
+ * specifically load_block.  It may appropriate to integrate these,
+ * specifically using the probe and download idea which looks at the
+ * the first block to identify the signature and then uses a specific
+ * download style (usually an appropriate memory layout for the
+ * image).  The reason for not doing so is that there is quite a lot
+ * of OS specific code (e.g. SAFEBOOTMODE) rolled in with load_block
+ * and I really don't understand the memory management stuff yet.
+ * Also, we may merge the dhcp options from various sources in the
+ * dhcp reply and extensions files (plural: there is no reason why
+ * there can't be multiple extension files) and hand the merged result
+ * off to payload - at the moment only the options in the reply's
+ * options field are visible to the payload.  Until that happy day,
+ * stash the options in a buffer extensionopts, scan it, then chuck it
+ * in the bit bucket.  We can get away with a small file - its hard to
+ * imagine a really big dhcp options file being useful - most people
+ * get all they need into a normal Ethernet frame. As we understand
+ * only a few options anyway, it makes sense to merge them and keep
+ * only the useful ones.  PRL,2004-JUL-23
+ */
 
-	for (p++; p < end; ) {
-		if (*p == RFC2132_VENDOR_CLASS_ID) {
-			if (strncmp("Etherboot", p + 2, sizeof("Etherboot") - 1) == 0)
-				return (1);
-		} else if (*p == RFC1533_END)
-			return (0);
-		p += TAG_LEN(p) + 2;
+#define EXTENSIONOPTS_BUF_SIZE 2048
+/* extensionopts_next points initially to a terminating END option */
+static uint8_t extensionopts[EXTENSIONOPTS_BUF_SIZE] = { RFC1533_END };
+static int extensionopts_next 0;
+
+int dhcp_option_download(unsigned char *data, unsigned int block, unsigned int len, int eof)
+{
+	int bufspare = EXTENSIONOPTS_BUF_SIZE - extensionopts_next ;
+	int maxlen = (len < bufspare ) ? len : bufspare;
+
+	memcpy (extensionopts_next, data, maxlen);
+	extensionopts_next += maxlen;
+	
+	/* Last block, place an END marker.  */
+	if ( eof && (extensionopts_next < EXTENSIONOPTS_BUF_SIZE ) ) {
+		extensionopts_next =  RFC1533_END;
 	}
-	return (0);
+}
+
+/**************************************************************************
+DECODE_RFC2132_OPTIONS - Decodes RFC2132 options.
+**************************************************************************/
+/* Return value: 1 = OK, 0 = something wrong */
+
+/* This function was a TFTP/DHCP block processor, but has now been
+ * adapted to read memory directly.
+
+ * There are more conditions when DHCP option processing, so we now
+ * have a table of options and handlers which process the details.  It
+ * is intended that this can make a flexible system for processing
+ * options rather than a switch statement of every increasing size and
+ * complexity.
+
+ * This table is essentially encodes much of the actual meaning of
+ * RFC2132 and others, i.e. "this is option so-and-so, its length
+ * should be this much (0 means variable length).  If you see it, do
+ * such-and-such. The flags pass a context, to all for rules such as
+ * the anti-recursion rules (do not recurse an opt 18 tftp extension
+ * file if that is what we are already doing).
+ 
+ */
+
+typedef int (*opt_handler_t) ( uint8 *option, int len);
+
+struct opt_table {
+	uint8 option;
+	int length;
+	opt_handler_t handler;
+};
+
+int netmask_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	memcpy(&netmask, p+2, sizeof(in_addr));
+}
+
+/*
+ * This is a little simplistic, but it will usually be sufficient.
+ * Take only the first entry (NB, the tag should be at least
+ * sizeof(in_addr) in size).
+ */
+int gateway_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	if (TAG_LEN(p) >= sizeof(in_addr))
+		memcpy(&arptable[ARP_GATEWAY].ipaddr, p+2, sizeof(in_addr));
+}
+
+int msgtype_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	dhcp_reply=*(p+2);
+}
+
+int srvid_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	memcpy(&dhcp_server, p+2, sizeof(in_addr));
+}
+
+int overld_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	if ( ! ( flags & DECODE_RFC2132_OPTIONS_FLAG_IN_OVLD ) )
+		option_overload = *(p+2);
+}
+
+int bootfile_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	int ovld_file_len = (TAG_LEN(p) < BOOTP_FILE_LEN) ?
+		TAG_LEN(p) : BOOTP_FILE_LEN;
+	memcpy(bootfile, p+2, ovld_file_len);
+	bootfile[ovld_file_len] = '\0';
+}
+
+int hostname_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	int hostname_len = (TAG_LEN(p) < MAXHOSTNAMELEN) ?
+		TAG_LEN(p) : MAXHOSTNAMELEN ;
+
+	hostname = p + 2;
+	hostnamelen = *(p + 1);
+}
+#if 0
+int eb_magic_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	static const unsigned char vendorext_magic[] = {0xE4,0x45,0x74,0x68}; /* ‰Eth */
+	if ( len >= 6 &&
+	     !memcmp(p+2,vendorext_magic,4) &&
+	     p[6] == RFC1533_VENDOR_MAJOR )
+		// vendorext_is_valid++;
+}
+#endif
+/*
+ * Process encapsulated private EB options.
+ */
+
+int eb_encap_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	int maxlen = ( TAGLEN(p) < len ) ? TAG_LEN(p) : len ;
+	decode_rfc2132_options(p+2, maxlen, flags & DECODE_RFC2132_OPTIONS_FLAG_IN_ENCP);
+}
+
+/*
+ * Process encapsulated options.
+ */
+int encapsulated_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	int maxlen = ( TAGLEN(p) < len ) ? TAG_LEN(p) : len ;
+	decode_rfc2132_options(p+2, maxlen, flags & DECODE_RFC2132_OPTIONS_FLAG_IN_ENCP);
+}
+
+/*
+ * If, while parsing the dhcp reply (including overloaded sname/file),
+ * we see the EXTENSIONPATH option, stash the extensionpath and tftp
+ * the extensions into the extensionopts buffer, then parse dhcp
+ * options by recursively decoding BUT with IN_TFTP set. Ignore this
+ * option if it is called with IN_TFTP set.  PRL,2004-JUL-10
+ */
+#define MAXEXTPATHLEN 1024
+int extpath_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	if ( ! (flags & DECODE_RFC2132_OPTIONS_FLAG_IN_TFTP) &&
+	     (*p == RFC1533_EXTENSIONPATH) ) {
+		int extpath_len = (TAG_LEN(p) < MAXEXTPATHLEN) ?
+			TAG_LEN(p) : MAXEXTPATHLEN;
+		if (extpath_len) {
+			uint8_t extensionpath[MAXEXTPATHLEN+1] = { "" };
+			memcpy(extensionpath, p+2, extpath_len);
+			extensionpath[extpath_len] = '\0';
+			printf("Loading BOOTP-extension file: %s\n", extensionpath);
+			tftp(extensionpath, dhcp_option_download);
+			/* Process the contents */
+			decode_rfc2132_options(extensionopts, len,
+					       DECODE_RFC2132_OPTIONS_FLAG_CHKCOOK |
+					       DECODE_RFC2132_OPTIONS_FLAG_IN_TFTP );
+		}
+	}
+}
+
+/*
+ * Check that the vendor class ID is "Etherboot". Note that it may be
+ * fine to have OTHER VCIs which are NOT "Etherboot", though not
+ * strictly RFC2132 compliant, so do not zero vci_etherboot if we see
+ * a VCI which does NOT match.
+ */
+
+#ifdef	REQUIRE_VCI_ETHERBOOT
+int vci_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	int maxlen = TAGLEN(p) < len ? TAGLEN(p) : len ;
+	if ( ( maxlen >= (sizeof ("Etherboot") - 1 ) ) &&
+	     ( strncmp( "Etherboot", p + 2, sizeof("Etherboot") - 1 ) == 0 ) )
+		vci_etherboot = 1;
 }
 #endif	/* REQUIRE_VCI_ETHERBOOT */
-
-/**************************************************************************
-DECODE_RFC1533 - Decodes RFC1533 header
-**************************************************************************/
-int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int eof)
-{
-	static unsigned char *extdata = NULL, *extend = NULL;
-	unsigned char	     *extpath = NULL;
-	unsigned char	     *endp;
-	static unsigned char in_encapsulated_options = 0;
-
-	if (eof == -1) {
-		/* Encapsulated option block */
-		endp = p + len;
-	}
-	else if (block == 0) {
-#ifdef	REQUIRE_VCI_ETHERBOOT
-		vci_etherboot = 0;
-#endif
-		end_of_rfc1533 = NULL;
 #ifdef	IMAGE_FREEBSD
-		/* yes this is a pain FreeBSD uses this for swap, however,
-		   there are cases when you don't want swap and then
-		   you want this set to get the extra features so lets
-		   just set if dealing with FreeBSD.  I haven't run into
-		   any troubles with this but I have without it
-		*/
-		vendorext_isvalid = 1;
-#ifdef FREEBSD_KERNEL_ENV
-		memcpy(freebsd_kernel_env, FREEBSD_KERNEL_ENV,
-		       sizeof(FREEBSD_KERNEL_ENV));
-		/* FREEBSD_KERNEL_ENV had better be a string constant */
-#else
-		freebsd_kernel_env[0]='\0';
-#endif
-#else
-		vendorext_isvalid = 0;
-#endif
+int freebsd_howto_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	freebsd_howto = ((p[2]*256+p[3])*256+p[4])*256+p[5];
+}
+int freebsd_kenv_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	if(len < sizeof(freebsd_kernel_env))
+		memcpy(freebsd_kernel_env, p+2, len);
+	else
+		printf("Only support %ld bytes in Kernel Env\n",
+		       sizeof(freebsd_kernel_env));
+}
+#endif /* IMAGE_FREEBSD */
+
+#ifdef	DNS_RESOLVER
+// TODO: Copy the DNS IP somewhere reasonable
+int dns_opt_handler ( unsigned char *p, unsigned int len, int flags) {
+	if (len >= sizeof(in_addr))
+		memcpy(&arptable[ARP_NAMESERVER].ipaddr, p+2, sizeof(in_addr));
+}
+#endif /* DNS_RESOLVER */
+
+/*
+ * Note that PAD and END are by definition zero length; the behaviour
+ * of PAD or END encountered in the dhcp data is NOT affected by this
+ * table. But... you can insert a PAD if you like (it will do no
+ * harm), and this table must be ended by { RFC1533_END, 0, NULL }.
+ * This is NOT the RFC meaning of the END option but - since END
+ * cannot be redefined - it is a mnemonically convenient overloading
+ * "if you see END in the lookup table, stop scanning".
+ * PRL,2004-JUL-22
+ */
+
+struct opt_table dhcp_opt_table[] = {
+	{ RFC1533_NETMASK,         4, netmask_opt_handler },  /* BOOTP */
+	{ RFC1533_GATEWAY,         0, gateway_opt_handler },  /* BOOTP */
+	{ RFC1533_EXTENSIONPATH,   0, extpath_opt_handler },  /* BOOTP */
+	{ RFC2132_MSG_TYPE,        1, msgtype_opt_handler },  /* DHCP */
+	{ RFC2132_SRV_ID,          4, srvid_opt_handler },    /* DHCP */
+	{ RFC2132_OPTION_OVERLOAD, 1, overld_opt_handler },   /* DHCP */
+	{ RFC2132_OVLD_BOOTFILE,   0, bootfile_opt_handler }, /* DHCP */
+	{ RFC1533_HOSTNAME,        0, hostname_opt_handler }, /* BOOTP */
+	{ RFC1533_VENDOR_MAGIC,    0, eb_magic_opt_handler }, /* BOOTP */
+	{ RFC1533_VENDOR,          0, encapsulated_opt_handler },
+	{ RFC1533_VENDOR_ETHERBOOT_ENCAP, 0, eb_encap_opt_handler },
+	{ RFC2132_VENDOR_CLASS_ID, 0, vci_opt_handler },      /* DHCP */    
+#ifdef	IMAGE_FREEBSD
+	{ RFC1533_VENDOR_HOWTO,      4, freebsd_howto_opt_handler },
+	{ RFC1533_VENDOR_KERNEL_ENV, 0, freebsd_kenv_opt_handler },
+#endif /* IMAGE_FREEBSD */
+#ifdef	DNS_RESOLVER
+	{ RFC1533_DNS, 4, dns_opt_handler },
+#endif /* DNS_RESOLVER */
+	{ RFC1533_END, 0, NULL }
+};
+
+int decode_rfc2132_options(struct opt_table *opt_table, unsigned char *p, unsigned int len, int flags)
+{
+	unsigned char *endp = p + len;
+	
+	if (flags & DECODE_RFC2132_OPTIONS_FLAG_CHKCOOK) {
 		if (memcmp(p, rfc1533_cookie, 4))
 			return(0); /* no RFC 1533 header found */
 		p += 4;
-		endp = p + len;
-	} else {
-		if (block == 1) {
-			if (memcmp(p, rfc1533_cookie, 4))
-				return(0); /* no RFC 1533 header found */
-			p += 4;
-			len -= 4; }
-		if (extend + len <= (unsigned char *)&(BOOTP_DATA_ADDR->bootp_extension[MAX_BOOTP_EXTLEN])) {
-			memcpy(extend, p, len);
-			extend += len;
-		} else {
-			printf("Overflow in vendor data buffer! Aborting...\n");
-			*extdata = RFC1533_END;
-			return(0);
-		}
-		p = extdata; endp = extend;
+		len -= 4;
 	}
-	if (!eof)
-		return 1;
 	while (p < endp) {
 		unsigned char c = *p;
 		if (c == RFC1533_PAD) {
@@ -1518,88 +1783,44 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 			continue;
 		}
 		else if (c == RFC1533_END) {
-			end_of_rfc1533 = endp = p;
-			continue;
+			return(1);		
 		}
-		else if (NON_ENCAP_OPT c == RFC1533_NETMASK)
-			memcpy(&netmask, p+2, sizeof(in_addr));
-		else if (NON_ENCAP_OPT c == RFC1533_GATEWAY) {
-			/* This is a little simplistic, but it will
-			   usually be sufficient.
-			   Take only the first entry */
-			if (TAG_LEN(p) >= sizeof(in_addr))
-				memcpy(&arptable[ARP_GATEWAY].ipaddr, p+2, sizeof(in_addr));
-		}
-		else if (c == RFC1533_EXTENSIONPATH)
-			extpath = p;
-#ifndef	NO_DHCP_SUPPORT
-#ifdef	REQUIRE_VCI_ETHERBOOT
-		else if (NON_ENCAP_OPT c == RFC1533_VENDOR) {
-			vci_etherboot = find_vci_etherboot(p+1);
-#ifdef	MDEBUG
-			printf("vci_etherboot %d\n", vci_etherboot);
-#endif
-		}
-#endif	/* REQUIRE_VCI_ETHERBOOT */
-		else if (NON_ENCAP_OPT c == RFC2132_MSG_TYPE)
-			dhcp_reply=*(p+2);
-		else if (NON_ENCAP_OPT c == RFC2132_SRV_ID)
-			memcpy(&dhcp_server, p+2, sizeof(in_addr));
-#endif	/* NO_DHCP_SUPPORT */
-		else if (NON_ENCAP_OPT c == RFC1533_HOSTNAME) {
-			hostname = p + 2;
-			hostnamelen = *(p + 1);
-		}
-		else if (ENCAP_OPT c == RFC1533_VENDOR_MAGIC
-			 && TAG_LEN(p) >= 6 &&
-			  !memcmp(p+2,vendorext_magic,4) &&
-			  p[6] == RFC1533_VENDOR_MAJOR
-			)
-			vendorext_isvalid++;
-		else if (NON_ENCAP_OPT c == RFC1533_VENDOR_ETHERBOOT_ENCAP) {
-			in_encapsulated_options = 1;
-			decode_rfc1533(p+2, 0, TAG_LEN(p), -1);
-			in_encapsulated_options = 0;
-		}
-#ifdef	IMAGE_FREEBSD
-		else if (NON_ENCAP_OPT c == RFC1533_VENDOR_HOWTO)
-			freebsd_howto = ((p[2]*256+p[3])*256+p[4])*256+p[5];
-		else if (NON_ENCAP_OPT c == RFC1533_VENDOR_KERNEL_ENV){
-			if(*(p + 1) < sizeof(freebsd_kernel_env)){
-				memcpy(freebsd_kernel_env,p+2,*(p+1));
-			}else{
-				printf("Only support %ld bytes in Kernel Env\n",
-					sizeof(freebsd_kernel_env));
+		else if (p + 1 + TAG_LEN(p) > endp) {
+			printf("Overflow in options tag! Aborting...\n");
+			*p = RFC1533_END;
+			return(0); /* This tag overflows the buffer */
+		} else {
+			struct dhcp_table *table_entry = opt_table ;
+			/* Iterate over the option table to find out if this
+			   tag is interesting */
+			while (table_entry->option != RFC1533_END) {
+				if (c == table_entry->option)
+					break;
 			}
-		}
-#endif
-#ifdef	DNS_RESOLVER
-		else if (NON_ENCAP_OPT c == RFC1533_DNS) {
-			// TODO: Copy the DNS IP somewhere reasonable
-			if (TAG_LEN(p) >= sizeof(in_addr))
-				memcpy(&arptable[ARP_NAMESERVER].ipaddr, p+2, sizeof(in_addr));
-		}
-#endif
-		else {
+			
+			/* If we know this tag, the length is OK and
+			 * the handler is non null, execute the
+			 * handler on the value.
+			 */
+			if ( ( table_entry->option != RFC1533_END ) &&
+			     ( TAG_LEN(p) == 0 ||
+			       TAG_LEN(p) == table_entry.length ) &&
+			     table_entry.handler ) {
+				table_entry.handler ( p, TAG_LEN(p), flags );
+			}
+			else {
 #if 0
-			unsigned char *q;
-			printf("Unknown RFC1533-tag ");
-			for(q=p;q<p+2+TAG_LEN(p);q++)
-				printf("%hhX ",*q);
-			putchar('\n');
+				unsigned char *q;
+				printf("Unknown RFC1533-tag ");
+				for(q=p;q<p+2+TAG_LEN(p);q++)
+					printf("%hhX ",*q);
+				putchar('\n');
 #endif
+			}
 		}
 		p += TAG_LEN(p) + 2;
 	}
-	extdata = extend = endp;
-	if (block <= 0 && extpath != NULL) {
-		char fname[64];
-		memcpy(fname, extpath+2, TAG_LEN(extpath));
-		fname[(int)TAG_LEN(extpath)] = '\0';
-		printf("Loading BOOTP-extension file: %s\n",fname);
-		tftp(fname, decode_rfc1533);
-	}
-	return 1;	/* proceed with next block */
+	return 1;
 }
 
 
@@ -1635,3 +1856,9 @@ long rfc1112_sleep_interval(long base, int exp)
 	return tmo;
 }
 #endif /* MULTICAST_LEVEL_2 */
+
+/*
+ * Local variables:
+ *  c-basic-offset: 8
+ * End:
+ */

@@ -94,8 +94,8 @@ static inline void multiboot_boot(unsigned long entry)
 	 * strings of the maximum size are possible.  Note this buffer
 	 * can overrun if a stupid file name is chosen.  Oh well.  */
 	c = cmdline;
-	for (i = 0; KERNEL_BUF[i] != 0; i++) {
-		switch (KERNEL_BUF[i]) {
+	for (i = 0; bootfile[i] != 0; i++) {
+		switch (bootfile[i]) {
 		case ' ':
 		case '\\':
 		case '"':
@@ -104,7 +104,7 @@ static inline void multiboot_boot(unsigned long entry)
 		default:
 			break;
 		}
-		*c++ = KERNEL_BUF[i];
+		*c++ = bootfile[i];
 	}
 	(void)sprintf(c, " -retaddr %#lX", virt_to_phys(xend32));
 

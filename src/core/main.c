@@ -32,7 +32,7 @@ char as_main_program = 1;
 
 #ifdef	IMAGE_FREEBSD
 int freebsd_howto = 0;
-char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
+char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE] = '\0';
 #endif
 
 /* in_call(): the entry point to Etherboot.  Generally called from

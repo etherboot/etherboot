@@ -76,17 +76,27 @@
 #define RFC1533_XDM		49
 #ifndef	NO_DHCP_SUPPORT
 #define RFC2132_REQ_ADDR	50
+#define RFC2132_OPTION_OVERLOAD 52
+/* RFC2132 defines the overload options in this order! */
+#define RFC2132_OVLD_TFTPSERVER 66
+#define RFC2132_OVLD_BOOTFILE   67
 #define RFC2132_MSG_TYPE	53
 #define RFC2132_SRV_ID		54
 #define RFC2132_PARAM_LIST	55
 #define RFC2132_MAX_SIZE	57
 #define	RFC2132_VENDOR_CLASS_ID	60
-#define	RFC2132_BOOTFILE_NAME	67
+#define RFC2132_CLIENT_ID       61
+#define RFC3004_USER_CLASS      77
 
 #define DHCPDISCOVER		1
 #define DHCPOFFER		2
 #define DHCPREQUEST		3
 #define DHCPACK			5
+
+#define RFC2132_OVLD_LENGTH     1
+#define RFC2132_OVLD_FILE       1
+#define RFC2132_OVLD_SNAME      2
+#define RFC2132_OVLD_BOTH       3
 #endif	/* NO_DHCP_SUPPORT */
 
 #define RFC1533_VENDOR_MAJOR	0
@@ -116,6 +126,9 @@
 #define DHCP_OPT_LEN		312
 #endif	/* NO_DHCP_SUPPORT */
 
+#define BOOTP_SNAME_LEN  64
+#define BOOTP_FILE_LEN  128
+
 /* Format of a bootp packet */
 struct bootp_t {
 	uint8_t  bp_op;
@@ -130,8 +143,8 @@ struct bootp_t {
 	in_addr bp_siaddr;
 	in_addr bp_giaddr;
 	uint8_t  bp_hwaddr[16];
-	uint8_t  bp_sname[64];
-	char     bp_file[128];
+	uint8_t  bp_sname[BOOTP_SNAME_LEN];
+	char     bp_file[BOOTP_FILE_LEN];
 #ifdef	NO_DHCP_SUPPORT
 	uint8_t  bp_vend[BOOTP_VENDOR_LEN];
 #else
