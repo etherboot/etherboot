@@ -294,6 +294,9 @@ extern int int15 P((int));
 #ifdef	POWERSAVE
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */
+extern void irq_handler ( void );
+extern volatile uint16_t irq_triggered;
+extern void fake_irq ( uint8_t irq );
 
 /* basemem.c */
 extern uint32_t get_free_base_memory ( void );
