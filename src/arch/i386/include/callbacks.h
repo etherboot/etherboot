@@ -222,6 +222,8 @@ typedef struct {
 
 #define EP_RELOC_STACK(top) EXTCALL_RELOC_STACK, (top)
 
+#define EP_TRACE EXTCALL_NONE
+
 /* Function prototypes */
 extern uint32_t v_ext_call ( uint32_t address, va_list ap );
 extern uint32_t _ext_call ( uint32_t address, ... );
@@ -229,6 +231,8 @@ extern uint32_t _ext_call ( uint32_t address, ... );
 	_ext_call( (uint32_t)(address), ##__VA_ARGS__, EXTCALL_END_LIST )
 #ifdef DEBUG_EXT_CALL
 extern void v_ext_call_check ( uint32_t address, va_list ap );
+#define ext_call_trace(address, ...) \
+	ext_call( (address), EP_TRACE, ##__VA_ARGS__ )
 #endif
 
 #endif /* ASSEMBLY */
