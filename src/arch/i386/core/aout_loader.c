@@ -64,7 +64,7 @@ static sector_t aout_download(unsigned char *data, unsigned int len, int eof)
 		astate.head.a_entry = astate.curaddr + 0x20;
 	}
 	memcpy(phys_to_virt(astate.curaddr), data, len);
-	curaddr += len;
+	astate.curaddr += len;
 	return 0;
 #endif
 
