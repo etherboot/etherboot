@@ -413,7 +413,7 @@ int eth_poll(void)
 void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p)
 {
 	(*nic.transmit)(&nic, d, t, s, p);
-	twiddle();
+	if (t == IP) twiddle();
 }
 
 void eth_disable(void)

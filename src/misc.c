@@ -46,7 +46,7 @@ void twiddle(void)
 	putchar('\b');
 #else
 	putchar('.');
-#endif	/* DOT_PROGRESS */
+#endif	/* BAR_PROGRESS */
 }
 
 /**************************************************************************
@@ -76,7 +76,7 @@ PRINTF and friends
 		%!	- Ethernet address in xx:xx:xx:xx:xx:xx notation
 	Note: width specification not supported
 **************************************************************************/
-static int do_printf(char *buf, const char *fmt, const int *dp)
+static int vsprintf(char *buf, const char *fmt, const int *dp)
 {
 	char *p, *s;
 
@@ -159,7 +159,7 @@ static int do_printf(char *buf, const char *fmt, const int *dp)
 			else if (*fmt == '!') {
 				char *r;
 				p = (char *)*dp++;
-				for (r = p + 6; p < r; ++p)
+				for (r = p + ETH_ALEN; p < r; ++p)
 					q += sprintf(q, "%hhX:", *p);
 				--q;
 			}
@@ -179,12 +179,12 @@ static int do_printf(char *buf, const char *fmt, const int *dp)
 
 int sprintf(char *buf, const char *fmt, ...)
 {
-	return do_printf(buf, fmt, ((const int *)&fmt)+1);
+	return vsprintf(buf, fmt, ((const int *)&fmt)+1);
 }
 
 void printf(const char *fmt, ...)
 {
-	(void)do_printf(0, fmt, ((const int *)&fmt)+1);
+	(void)vsprintf(0, fmt, ((const int *)&fmt)+1);
 }
 
 #ifdef	IMAGE_MENU

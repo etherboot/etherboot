@@ -149,6 +149,7 @@ static void load_configuration(void);
 static void load(void);
 static int downloadkernel(unsigned char *data, int block, int len, int eof);
 static unsigned short ipchksum(unsigned short *ip, int len);
+static unsigned short udpchksum(struct iphdr *packet);
 
 static inline void ask_boot(void)
 {
@@ -414,6 +415,8 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 	udp->dest = htons(destsock);
 	udp->len = htons(len - sizeof(struct iphdr));
 	udp->chksum = 0;
+	if ((udp->chksum = htons(udpchksum(ip))) == 0)
+		udp->chksum = 0xffff;
 	if (destip == IP_BROADCAST) {
 		eth_transmit(broadcast, IP, len, buf);
 	} else {
@@ -802,9 +805,9 @@ UDPCHKSUM - Checksum UDP Packet (one of the rare cases when assembly is
             actually simpler...)
  RETURNS: checksum, 0 on checksum error. This
           allows for using the same routine for RX and TX summing:
-          RX  if (packet->udp.chksum && udpchksum(&packet))
+          RX  if (packet->udp.chksum && udpchksum(packet))
                   error("checksum error");
-          TX  packet->upd.chksum=0;
+          TX  packet->udp.chksum=0;
               if (0==(packet->udp.chksum=udpchksum(packet)))
                   packet->upd.chksum=0xffff;
 **************************************************************************/
@@ -829,16 +832,16 @@ static inline void dosum(unsigned short *start, unsigned int len, unsigned short
 static unsigned short udpchksum(struct iphdr *packet)
 {
 	char *ptr = (char *) packet;
-	int len = htons(packet->len);
+	int len = ntohs(packet->len);
 	unsigned short rval;
+
+	/* add udplength + protocol number */
+	rval = (len - sizeof(struct iphdr)) + IP_UDP;
 
 	/* pad to an even number of bytes */
 	if (len % 2) {
 		((char *) packet)[len++] = 0;
 	}
-
-	/* add udplength + protocol number */
-	rval = htons(packet->len) - sizeof(struct iphdr) + IP_UDP;
 
 	/* sum over src/dst ipaddr + udp packet */
 	len -= (char *) &packet->src - (char *) packet;
@@ -941,6 +944,8 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 	  in memory due to fragmented TFTP packets - took me
 	  3 days to find the cause for this :-(
 */
+			/* If More Fragments bit and Fragment Offset field
+			   are non-zero then packet is fragmented */
 			if (ip->frags & htons(0x3FFF)) {
 				printf("ALERT: got a fragmented packet - reconfigure your server\n");
 				continue;

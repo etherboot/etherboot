@@ -211,7 +211,7 @@
 
 # For prompting and default on timeout
 CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
-# If  you prefer the old style rotating bar progress display
+# If you prefer the old style rotating bar progress display
 # CFLAGS32+=	-DBAR_PROGRESS
 CFLAGS32+=	-DMOTD -DIMAGE_MENU
 

@@ -59,6 +59,7 @@ static int rpc_lookup(int addr, int prog, int ver, int sport)
 	struct rpc_t buf, *rpc;
 	unsigned long id;
 	int retries;
+	long *p;
 
 	id = rpc_id++;
 	buf.u.call.id = htonl(id);
@@ -67,16 +68,17 @@ static int rpc_lookup(int addr, int prog, int ver, int sport)
 	buf.u.call.prog = htonl(PROG_PORTMAP);
 	buf.u.call.vers = htonl(2);	/* portmapper is version 2 */
 	buf.u.call.proc = htonl(PORTMAP_GETPORT);
-	buf.u.call.data[0] = buf.u.call.data[1] = 0;	/* auth credential */
-	buf.u.call.data[2] = buf.u.call.data[3] = 0;	/* auth verifier */
-	buf.u.call.data[4] = htonl(prog);
-	buf.u.call.data[5] = htonl(ver);
-	buf.u.call.data[6] = htonl(IP_UDP);
-	buf.u.call.data[7] = 0;
+	p = (long *)buf.u.call.data;
+	*p++ = 0; *p++ = 0;				/* auth credential */
+	*p++ = 0; *p++ = 0;				/* auth verifier */
+	*p++ = htonl(prog);
+	*p++ = htonl(ver);
+	*p++ = htonl(IP_UDP);
+	*p++ = 0;
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
 		long timeout;
 		udp_transmit(arptable[addr].ipaddr.s_addr, sport, SUNRPC_PORT,
-			(char *)(buf.u.call.data + 8) - (char *)&buf, &buf);
+			(char *)p - (char *)&buf, &buf);
 		timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
@@ -95,9 +97,8 @@ static int rpc_lookup(int addr, int prog, int ver, int sport)
 /**************************************************************************
 RPC_ADD_CREDENTIALS - Add RPC authentication/verifier entries
 **************************************************************************/
-int rpc_add_credentials(long *buf, int idx)
+static long *rpc_add_credentials(long *p)
 {
-	int p = idx;
 	int hl;
 
 	/* Here's the executive summary on authentication requirements of the
@@ -112,22 +113,22 @@ int rpc_add_credentials(long *buf, int idx)
 	hl = (hostnamelen + 3) & ~3;
 
 	/* Provide an AUTH_UNIX credential.  */
-	buf[p++] = htonl(1);		/* AUTH_UNIX */
-	buf[p++] = htonl(hl+20);	/* auth length */
-	buf[p++] = htonl(0);		/* stamp */
-	buf[p++] = htonl(hostnamelen);	/* hostname string */
+	*p++ = htonl(1);		/* AUTH_UNIX */
+	*p++ = htonl(hl+20);		/* auth length */
+	*p++ = htonl(0);		/* stamp */
+	*p++ = htonl(hostnamelen);	/* hostname string */
 	if (hostnamelen & 3) {
-		buf[p + hostnamelen / 4] = 0; /* add zero padding */
+		*(p + hostnamelen / 4) = 0; /* add zero padding */
 	}
-	memcpy(buf + p, hostname, hostnamelen);
+	memcpy(p, hostname, hostnamelen);
 	p += hl / 4;
-	buf[p++] = 0;			/* uid */
-	buf[p++] = 0;			/* gid */
-	buf[p++] = 0;			/* auxiliary gid list */
+	*p++ = 0;			/* uid */
+	*p++ = 0;			/* gid */
+	*p++ = 0;			/* auxiliary gid list */
 
 	/* Provide an AUTH_NONE verifier.  */
-	buf[p++] = 0;			/* AUTH_NONE */
-	buf[p++] = 0;			/* auth length */
+	*p++ = 0;			/* AUTH_NONE */
+	*p++ = 0;			/* auth length */
 
 	return p;
 }
@@ -165,7 +166,8 @@ static int nfs_mount(int server, int port, char *path, char *fh, int sport)
 {
 	struct rpc_t buf, *rpc;
 	unsigned long id;
-	int p, retries;
+	int retries;
+	long *p;
 	int pathlen = strlen(path);
 
 	id = rpc_id++;
@@ -175,17 +177,17 @@ static int nfs_mount(int server, int port, char *path, char *fh, int sport)
 	buf.u.call.prog = htonl(PROG_MOUNT);
 	buf.u.call.vers = htonl(1);	/* mountd is version 1 */
 	buf.u.call.proc = htonl(MOUNT_ADDENTRY);
-	p = rpc_add_credentials(buf.u.call.data, 0);
-	buf.u.call.data[p++] = htonl(pathlen);
+	p = rpc_add_credentials((long *)buf.u.call.data);
+	*p++ = htonl(pathlen);
 	if (pathlen & 3) {
-		buf.u.call.data[p + pathlen / 4] = 0;	/* add zero padding */
+		*(p + pathlen / 4) = 0;	/* add zero padding */
 	}
-	memcpy(buf.u.call.data + p, path, pathlen);
+	memcpy(p, path, pathlen);
 	p += (pathlen + 3) / 4;
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
 		long timeout;
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
-			(char *)(buf.u.call.data + p) - (char *)&buf, &buf);
+			(char *)p - (char *)&buf, &buf);
 		timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
@@ -218,7 +220,8 @@ void nfs_umountall(int server)
 {
 	struct rpc_t buf, *rpc;
 	unsigned long id;
-	int p, retries;
+	int retries;
+	long *p;
 
 	if (!arptable[server].ipaddr.s_addr) {
 		/* Haven't sent a single UDP packet to this server */
@@ -235,11 +238,11 @@ void nfs_umountall(int server)
 	buf.u.call.prog = htonl(PROG_MOUNT);
 	buf.u.call.vers = htonl(1);	/* mountd is version 1 */
 	buf.u.call.proc = htonl(MOUNT_UMOUNTALL);
-	p = rpc_add_credentials(buf.u.call.data, 0);
+	p = rpc_add_credentials((long *)buf.u.call.data);
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
 		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		udp_transmit(arptable[server].ipaddr.s_addr, oport, mount_port,
-			(char *)(buf.u.call.data + p) - (char *)&buf, &buf);
+			(char *)p - (char *)&buf, &buf);
 		if (await_reply(AWAIT_RPC, oport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
@@ -260,7 +263,8 @@ static int nfs_lookup(int server, int port, char *fh, char *path, char *nfh,
 {
 	struct rpc_t buf, *rpc;
 	unsigned long id;
-	int p, retries;
+	long *p;
+	int retries;
 	int pathlen = strlen(path);
 
 	id = rpc_id++;
@@ -270,19 +274,19 @@ static int nfs_lookup(int server, int port, char *fh, char *path, char *nfh,
 	buf.u.call.prog = htonl(PROG_NFS);
 	buf.u.call.vers = htonl(2);	/* nfsd is version 2 */
 	buf.u.call.proc = htonl(NFS_LOOKUP);
-	p = rpc_add_credentials(buf.u.call.data, 0);
-	memcpy(buf.u.call.data + p, fh, NFS_FHSIZE);
-	p += NFS_FHSIZE / 4;
-	buf.u.call.data[p++] = htonl(pathlen);
+	p = rpc_add_credentials((long *)buf.u.call.data);
+	memcpy(p, fh, NFS_FHSIZE);
+	p += (NFS_FHSIZE / 4);
+	*p++ = htonl(pathlen);
 	if (pathlen & 3) {
-		buf.u.call.data[p + pathlen / 4] = 0;	/* add zero padding */
+		*(p + pathlen / 4) = 0;	/* add zero padding */
 	}
-	memcpy(buf.u.call.data + p, path, pathlen);
+	memcpy(p, path, pathlen);
 	p += (pathlen + 3) / 4;
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
 		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
-			(char *)(buf.u.call.data + p) - (char *)&buf, &buf);
+			(char *)p - (char *)&buf, &buf);
 		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
@@ -314,7 +318,8 @@ static int nfs_read(int server, int port, char *fh, int offset, int len,
 {
 	struct rpc_t buf, *rpc;
 	unsigned long id;
-	int p, retries;
+	int retries;
+	long *p;
 
 	id = rpc_id++;
 	buf.u.call.id = htonl(id);
@@ -323,16 +328,16 @@ static int nfs_read(int server, int port, char *fh, int offset, int len,
 	buf.u.call.prog = htonl(PROG_NFS);
 	buf.u.call.vers = htonl(2);	/* nfsd is version 2 */
 	buf.u.call.proc = htonl(NFS_READ);
-	p = rpc_add_credentials(buf.u.call.data, 0);
-	memcpy(buf.u.call.data + p, fh, NFS_FHSIZE);
+	p = rpc_add_credentials((long *)buf.u.call.data);
+	memcpy(p, fh, NFS_FHSIZE);
 	p += NFS_FHSIZE / 4;
-	buf.u.call.data[p++] = htonl(offset);
-	buf.u.call.data[p++] = htonl(len);
-	buf.u.call.data[p++] = 0;		/* unused parameter */
+	*p++ = htonl(offset);
+	*p++ = htonl(len);
+	*p++ = 0;		/* unused parameter */
 	for (retries = 0; retries < MAX_RPC_RETRIES; retries++) {
 		long timeout = rfc2131_sleep_interval(TIMEOUT, retries);
 		udp_transmit(arptable[server].ipaddr.s_addr, sport, port,
-			(char *)(buf.u.call.data + p) - (char *)&buf, &buf);
+			(char *)p - (char *)&buf, &buf);
 		if (await_reply(AWAIT_RPC, sport, &id, timeout)) {
 			rpc = (struct rpc_t *)&nic.packet[ETH_HLEN];
 			if (rpc->u.reply.rstatus || rpc->u.reply.verifier ||
@@ -362,7 +367,7 @@ int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
 {
 	int sport;
 	int err, namelen = strlen(name);
-	char dirname[400], *fname;
+	char dirname[300], *fname;
 	char dirfh[NFS_FHSIZE];		/* file handle of directory */
 	char filefh[NFS_FHSIZE];	/* file handle of kernel image */
 	int block, rlen, size, offs, len;
