@@ -16,6 +16,8 @@ $Id$
  * your option) any later version.
  */
 
+#ifndef LINUXBIOS
+
 /* to get some global routines like printf */
 #include "etherboot.h"
 /* to get the interface to the body of the program */
@@ -1349,3 +1351,5 @@ static struct pci_driver undi_driver __pci_driver = {
  	.id_count = sizeof(undi_nics)/sizeof(undi_nics[0]),
 	.class    = PCI_CLASS_NETWORK_ETHERNET,
 };
+
+#endif /* LINUXBIOS */
