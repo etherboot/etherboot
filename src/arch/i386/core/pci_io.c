@@ -17,6 +17,8 @@
 #ifdef	CONFIG_PCI_DIRECT
 #define  PCIBIOS_SUCCESSFUL                0x00
 
+#define DEBUG 0
+
 /*
  * Functions for accessing PCI configuration space with type 1 accesses
  */
@@ -78,6 +80,19 @@ int pcibios_write_config_dword (unsigned int bus, unsigned int device_fn, unsign
 #error "The pcibios can only be used when the PCBIOS support is compiled in"
 #endif
 
+/* Macro for calling the BIOS32 service.  This replaces the old
+ * bios32_call function.  Use in a statement such as
+ * __asm__ ( BIOS32_CALL,
+ *	     : <output registers>
+ *	     : "S" ( bios32_entry ), <other input registers> );
+ */
+#define BIOS32_CALL "call _virt_to_phys\n\t" \
+		    "pushl %%cs\n\t" \
+		    "call *%%esi\n\t" \
+		    "cli\n\t" \
+		    "cld\n\t" \
+		    "call _phys_to_virt\n\t"
+
 static unsigned long bios32_entry;
 static unsigned long pcibios_entry;
 
@@ -88,7 +103,7 @@ static unsigned long bios32_service(unsigned long service)
 	unsigned long length;		/* %ecx */
 	unsigned long entry;		/* %edx */
 
-	__asm__("call bios32_call\n\t"
+	__asm__(BIOS32_CALL
 		: "=a" (return_code),
 		  "=b" (address),
 		  "=c" (length),
@@ -116,7 +131,7 @@ int pcibios_read_config_byte(unsigned int bus,
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
 
-        __asm__("call bios32_call\n\t"
+        __asm__(BIOS32_CALL
                 "jc 1f\n\t"
                 "xor %%ah, %%ah\n"
                 "1:"
@@ -135,7 +150,7 @@ int pcibios_read_config_word(unsigned int bus,
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
 
-        __asm__("call bios32_call\n\t"
+        __asm__(BIOS32_CALL
                 "jc 1f\n\t"
                 "xor %%ah, %%ah\n"
                 "1:"
@@ -154,7 +169,7 @@ int pcibios_read_config_dword(unsigned int bus,
         unsigned long ret;
         unsigned long bx = (bus << 8) | device_fn;
 
-        __asm__("call bios32_call\n\t"
+        __asm__(BIOS32_CALL
                 "jc 1f\n\t"
                 "xor %%ah, %%ah\n"
                 "1:"
@@ -173,7 +188,7 @@ int pcibios_write_config_byte (unsigned int bus,
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
 
-	__asm__("call bios32_call\n\t"
+	__asm__(BIOS32_CALL
 		"jc 1f\n\t"
 		"xor %%ah, %%ah\n"
 		"1:"
@@ -192,7 +207,7 @@ int pcibios_write_config_word (unsigned int bus,
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
 
-	__asm__("call bios32_call\n\t"
+	__asm__(BIOS32_CALL
 		"jc 1f\n\t"
 		"xor %%ah, %%ah\n"
 		"1:"
@@ -211,7 +226,7 @@ int pcibios_write_config_dword (unsigned int bus,
 	unsigned long ret;
 	unsigned long bx = (bus << 8) | device_fn;
 
-	__asm__("call bios32_call\n\t"
+	__asm__(BIOS32_CALL
 		"jc 1f\n\t"
 		"xor %%ah, %%ah\n"
 		"1:"
@@ -233,7 +248,7 @@ static void check_pcibios(void)
 	int pack;
 
 	if ((pcibios_entry = bios32_service(PCI_SERVICE))) {
-		__asm__("call bios32_call\n\t"
+		__asm__(BIOS32_CALL
 			"jc 1f\n\t"
 			"xor %%ah, %%ah\n"
 			"1:\tshl $8, %%eax\n\t"
