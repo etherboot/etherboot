@@ -326,14 +326,69 @@ PXENV_EXIT_t pxenv_undi_close ( t_PXENV_UNDI_CLOSE *undi_close ) {
 
 /* PXENV_UNDI_TRANSMIT
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_transmit ( t_PXENV_UNDI_TRANSMIT *undi_transmit ) {
+	t_PXENV_UNDI_TBD *tbd;
+	const char *dest;
+	unsigned int type;
+	unsigned int length;
+	const char *data;
+	static const char broadcast[] = { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF };
+	struct {
+		char dest[ETH_ALEN];
+		char source[ETH_ALEN];
+		unsigned int nstype;
+	} *media_header;
+
 	DBG ( "PXENV_UNDI_TRANSMIT" );
 	ENSURE_READY ( undi_transmit );
 
-	undi_transmit->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	/* We support only the "immediate" portion of the TBD.  Who
+	 * knows what Intel's "engineers" were smoking when they came
+	 * up with the array of transmit data blocks...
+	 */
+	tbd = SEGOFF16_TO_PTR ( undi_transmit->TBD );
+	if ( tbd->DataBlkCount > 0 ) {
+		undi_transmit->Status = PXENV_STATUS_UNDI_INVALID_PARAMETER;
+		return PXENV_EXIT_FAILURE;
+	}
+	data = SEGOFF16_TO_PTR ( tbd->Xmit );
+	length = tbd->ImmedLength;
+
+	/* If destination is broadcast, we need to supply the MAC address */
+	if ( undi_transmit->XmitFlag == XMT_BROADCAST ) {
+		dest = broadcast;
+	} else {
+		dest = SEGOFF16_TO_PTR ( undi_transmit->DestAddr );
+	}
+
+	/* We can't properly support P_UNKNOWN without rewriting all
+	 * the driver transmit() methods, so we cheat: if P_UNKNOWN is
+	 * specified we rip the destination address and type out of
+	 * the pre-assembled packet, then skip over the header.
+	 */
+	switch ( undi_transmit->Protocol ) {
+	case P_IP:	type = IP;	break;
+	case P_ARP:	type = ARP;	break;
+	case P_RARP:	type = RARP;	break;
+	case P_UNKNOWN:
+		media_header = (typeof(media_header))data;
+		dest = media_header->dest;
+		type = ntohs ( media_header->nstype );
+		data += ETH_HLEN;
+		length -= ETH_HLEN;
+		break;
+	default:
+		undi_transmit->Status = PXENV_STATUS_UNDI_INVALID_PARAMETER;
+		return PXENV_EXIT_FAILURE;
+	}
+
+	/* Send the packet */
+	eth_transmit ( dest, type, length, data );
+	
+	undi_transmit->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_SET_MCAST_ADDRESS
