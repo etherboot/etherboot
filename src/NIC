@@ -211,22 +211,11 @@ cs89x0		-		Crystal Semiconductor CS89x0
 family		drivers/net/depca
 depca		-		Digital DE100 and DE200
 
-family		drivers/net/i82586
-3c507		-		3Com507
-ni5210		-		Racal-Interlan NI5210
-exos205		-		Exos 205
-
-family		drivers/net/ni5010
-ni5010		-		Racal-Interlan NI5010
-
 family		drivers/net/sk_g16
 sk_g16		-		Schneider and Koch G16
 
 family		drivers/net/smc9000
 smc9000		-		SMC9000
-
-family		drivers/net/tiara
-tiara		-		Tiara, Fujitsu Lancard
 
 family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
