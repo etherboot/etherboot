@@ -127,3 +127,7 @@ undi		0x0000,0x0000	UNDI driver support
 family		drivers/net/pnic
 
 family		arch/armnommu/drivers/net/p2001_eth
+
+family		drivers/net/mtd80x
+
+family		drivers/net/dmfe

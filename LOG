@@ -2763,6 +2763,8 @@ driver.
 
 + Small fixes to e1000 and via-rhine drivers.
 
-+ New mtd80x.c driver.
++ New mtd80x.c driver contributed by Erdem Guven
+
++ New dmfe.c driver for Davicom based cards contributed by Timothy Legge
 
 Released as Etherboot 5.3.12 aka 5.4RC3 (development)
