@@ -216,6 +216,7 @@ struct tlan_private {
     u32 txHead;
     u32 txInProgress;
     u32 txTail;
+ 	int eoc;
     u32 txBusyCount;
     u32 phyOnline;
     u32 timerSetAt;
@@ -416,12 +417,10 @@ void TLan_ResetAdapter(struct nic *nic __unused)
     } else {
 	TLan_PhyPowerDown(nic);
     }
-    /* Disable the EOF */
-/*outl(0x00102000, BASE + TLAN_HOST_CMD);
- * */
-	data = inl(BASE + TLAN_HOST_CMD);
+/*	data = inl(BASE + TLAN_HOST_CMD);
 	data |= TLAN_HC_INT_OFF;
 	outl(data, BASE + TLAN_HOST_CMD);
+*/
 
 }				/* TLan_ResetAdapter */
 
@@ -547,6 +546,7 @@ static int tlan_poll(struct nic *nic)
 
     u16 host_int = inw(BASE + TLAN_HOST_INT);
     outw(host_int, BASE + TLAN_HOST_INT);
+
     if (!(tmpCStat & TLAN_CSTAT_FRM_CMP))
 	return 0;
 
@@ -565,21 +565,19 @@ static int tlan_poll(struct nic *nic)
     rx_ring[entry].cStat = 0;
 /*    rx_ring[entry].forward = 0; */
 /*    hex_dump(nic->packet, nic->packetlen);**/
-/*  printf("%d", entry); */
+/*  printf("%d", entry);  */
 
     entry = (entry + 1) % TLAN_NUM_RX_LISTS;
     priv->cur_rx = entry;
     if (eoc) {
 	if ((rx_ring[entry].cStat & TLAN_CSTAT_READY) == TLAN_CSTAT_READY) {
 	    ack |= TLAN_HC_GO | TLAN_HC_RT;
-	   /* printf("eoc"); */
 	    host_cmd = TLAN_HC_ACK | ack | 0x001C0000;
 	    outl(host_cmd, BASE + TLAN_HOST_CMD);
 	}
     } else {
 	/*      outl( TLAN_HC_GO | TLAN_HC_RT, BASE + TLAN_HOST_CMD ); */
 	host_cmd = TLAN_HC_ACK | ack | (0x000C0000);
-/*	printf("p"); */
 	outl(host_cmd, BASE + TLAN_HOST_CMD);
 /*	printf("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM)); */
 	host_int = inw(BASE + TLAN_HOST_INT);
@@ -589,7 +587,7 @@ static int tlan_poll(struct nic *nic)
 	rx_ring[entry].frameSize = TLAN_MAX_FRAME_SIZE;
 	rx_ring[entry].cStat = TLAN_CSTAT_READY;
 	*/
-    refill_rx(nic); 
+    refill_rx(nic);
     return (1);			/* initially as this is called to flush the input */
 }
 
@@ -608,7 +606,7 @@ static void refill_rx(struct nic *nic __unused)
 
 }
 
-
+/* #define EBDEBUG */
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
@@ -617,177 +615,194 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 			  unsigned int s,	/* size */
 			  const char *p)
 {				/* Packet */
-    u16 nstype;
-    u32 to;
-    struct TLanList *tail_list;
-    struct TLanList *head_list;
-    u8 *tail_buffer;
-    int pad;
-    u16 tmpCStat;
-    u32 ack = 0;
-    int eoc = 0;
-    u32 host_cmd;
-    u16 host_int = inw(BASE + TLAN_HOST_INT);
-    int entry = 0;
-		    
-/*  printf("INT0-0x%hX\n", host_int); */
+	u16 nstype;
+	u32 to;
+	struct TLanList *tail_list;
+	struct TLanList *head_list;
+	u8 *tail_buffer;
+	int pad;
+	u16 tmpCStat;
+	u32 ack = 0;
+	u32 host_cmd;
+	u16 host_int = inw(BASE + TLAN_HOST_INT);
+	int entry = 0;
 
-    if (!priv->phyOnline) {
-	printf("TRANSMIT:  %s PHY is not ready\n", priv->nic_name);
-	return;
-    }
-    tail_list = priv->txList + priv->txTail;
+	#ifdef EBDEBUG
+		printf("INT0-0x%hX\n", host_int);
+	#endif
 
-/*    printf("TCSTAT: %hX\n", tail_list->cStat); */
-    if (tail_list->cStat != TLAN_CSTAT_UNUSED) {
-	printf("TRANSMIT: %s is busy (Head=%d Tail=%d)\n", priv->nic_name,
-	       priv->txList, priv->txTail);
-	tx_ring[entry].cStat = TLAN_CSTAT_UNUSED;
-	priv->txBusyCount++;
-	return;
-    }
-
-    tail_list->forward = 0;
-
-    /* Disable transmit */
-/*
- * outl( TLAN_HC_STOP, BASE + TLAN_HOST_CMD );
-*/
-/*ail_buffer = txb;  */
-    tail_buffer = txb + (priv->txTail * TLAN_MAX_FRAME_SIZE);
-
-    /* send the packet to destination */
-    memcpy(tail_buffer, d, ETH_ALEN);
-    memcpy(tail_buffer + ETH_ALEN, nic->node_addr, ETH_ALEN);
-    nstype = htons((u16) t);
-    memcpy(tail_buffer + 2 * ETH_ALEN, (u8 *) & nstype, 2);
-    memcpy(tail_buffer + ETH_HLEN, p, s);
-	    
-    s += ETH_HLEN;
-    s &= 0x0FFF;
-    while (s < ETH_ZLEN)
-	tail_buffer[s++] = '\0';
-
-/*	hex_dump(tail_buffer, ETH_ZLEN); */
-    /* Setup the transmit descriptor */
-
-/*=====================================================*/
-/* Receive
- * 0000 0000 0001 1100
- * 0000 0000 0000 1100
- * 0000 0000 0000 0011 = 0x0003
- *
- * 0000 0000 0000 0000 0000 0000 0000 0011
- * 0000 0000 0000 1100 0000 0000 0000 0000 = 0x000C0000
- *
- * Transmit
- * 0000 0000 0001 1100
- * 0000 0000 0000 0100
- * 0000 0000 0000 0001 = 0x0001
- *
- * 0000 0000 0000 0000 0000 0000 0000 0001
- * 0000 0000 0000 0100 0000 0000 0000 0000 = 0x00040000
- * */
-    tail_list->frameSize = (u16) s;
-    tail_list->buffer[0].address = virt_to_bus(tail_buffer);
-    tail_list->buffer[9].address = (u32) tail_buffer;
-
-    tail_list->buffer[0].count = TLAN_LAST_BUFFER | (u32) s;
-    tail_list->buffer[1].count = 0;
-    tail_list->buffer[1].address = 0;
-
-    tail_list->cStat = TLAN_CSTAT_READY;
-
-    /*      tx_ring[1].forward = virt_to_le32desc(&tx_ring[0]); */
-
-    host_int = inw(BASE + TLAN_HOST_INT); 
-    /* printf("INT1-0x%hX\n", host_int);  */
-    if (!tx_started) {
-	tx_started = 1;
-	outl(virt_to_le32desc(tail_list), BASE + TLAN_CH_PARM);
-	outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
-    } else {
-	if (priv->txTail == 0) {
-/*		printf("Out buffer\n"); */
-   		tail_list->cStat = TLAN_CSTAT_UNUSED;
-	    (priv->txList + (TLAN_NUM_TX_LISTS - 1))->forward =
-		virt_to_le32desc(tail_list);
-		outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD); 
-	} else {
-/*		printf("Fix this \n"); */
-	    (priv->txList + (priv->txTail - 1))->forward =
-		virt_to_le32desc(tail_list);
-/*		outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);  */
-	    
+	if (!priv->phyOnline) {
+		printf("TRANSMIT:  %s PHY is not ready\n", priv->nic_name);
+		return;
 	}
 
-    }
-  host_int = inw(BASE + TLAN_HOST_INT);
-/*    printf("INT2-0x%hX\n", host_int); */
+	tail_list = priv->txList + priv->txTail;
 
-    CIRC_INC(priv->txTail, TLAN_NUM_TX_LISTS);
-/*    printf("txTail2: %d\n", priv->txTail); */
+	if (tail_list->cStat != TLAN_CSTAT_UNUSED) {
+		printf("TRANSMIT: %s is busy (Head=%d Tail=%d)\n", priv->nic_name,
+		priv->txList, priv->txTail);
+		tx_ring[entry].cStat = TLAN_CSTAT_UNUSED;
+		priv->txBusyCount++;
+		return;
+	}
 
-    host_int = inw(BASE + TLAN_HOST_INT);
-/*    printf("INT2A-0x%hX\n", host_int); */
-    to = currticks() + TX_TIME_OUT;
-    while ((tail_list->cStat == TLAN_CSTAT_READY) && currticks() < to)
-	    ;
-    
-    tail_list->buffer[9].address = 0;
-    tail_list->buffer[0].address = 0;
-    host_int = inw(BASE + TLAN_HOST_INT);
-/*    printf("INT2B-0x%hX\n", host_int); */
+	tail_list->forward = 0;
 
-/*    printf("SSTAT: %hX\n", tail_list->cStat); */
-  
-    if(tail_list->cStat & TLAN_CSTAT_FRM_CMP) {
-/*	    printf("FC\n"); */
-	    ack = 1;
-	    eoc = 1;
-/*		tail_list->buffer[9].address = 0;*/
-	    host_cmd = TLAN_HC_ACK | ack;
-	    outl(host_cmd, BASE + TLAN_HOST_CMD);
-    }
+	tail_buffer = txb + (priv->txTail * TLAN_MAX_FRAME_SIZE);
+
+	/* send the packet to destination */
+	memcpy(tail_buffer, d, ETH_ALEN);
+	memcpy(tail_buffer + ETH_ALEN, nic->node_addr, ETH_ALEN);
+	nstype = htons((u16) t);
+	memcpy(tail_buffer + 2 * ETH_ALEN, (u8 *) & nstype, 2);
+	memcpy(tail_buffer + ETH_HLEN, p, s);
+
+	s += ETH_HLEN;
+	s &= 0x0FFF;
+	while (s < ETH_ZLEN)
+		tail_buffer[s++] = '\0';
+
+	/*=====================================================*/
+	/* Receive
+	* 0000 0000 0001 1100
+	* 0000 0000 0000 1100
+	* 0000 0000 0000 0011 = 0x0003
+	*
+	* 0000 0000 0000 0000 0000 0000 0000 0011
+	* 0000 0000 0000 1100 0000 0000 0000 0000 = 0x000C0000
+	*
+	* Transmit
+	* 0000 0000 0001 1100
+	* 0000 0000 0000 0100
+	* 0000 0000 0000 0001 = 0x0001
+	*
+	* 0000 0000 0000 0000 0000 0000 0000 0001
+	* 0000 0000 0000 0100 0000 0000 0000 0000 = 0x00040000
+	* */
+
+	/* Setup the transmit descriptor */
+	tail_list->frameSize = (u16) s;
+	tail_list->buffer[0].address = virt_to_bus(tail_buffer);
+	tail_list->buffer[9].address = (u32) tail_buffer;
+
+	tail_list->buffer[0].count = TLAN_LAST_BUFFER | (u32) s;
+	tail_list->buffer[1].count = 0;
+	tail_list->buffer[1].address = 0;
+
+	tail_list->cStat = TLAN_CSTAT_READY;
+
+	#ifdef EBDEBUG
+		host_int = inw(BASE + TLAN_HOST_INT);
+		printf("INT1-0x%hX\n", host_int);
+	#endif
+
+	if (!tx_started) {
+		tx_started = 1;
+		outl(virt_to_le32desc(tail_list), BASE + TLAN_CH_PARM);
+		outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
+	} else {
+		if (priv->txTail == 0) {
+			#ifdef EBDEBUG
+			printf("Out buffer\n");
+			#endif
+			tail_list->cStat = TLAN_CSTAT_UNUSED;
+			(priv->txList + (TLAN_NUM_TX_LISTS - 1))->forward =
+			virt_to_le32desc(tail_list);
+			if(priv->eoc) 
+				outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
+		} else {
+			#ifdef EBDEBUG
+			printf("Fix this \n");
+			#endif
+			tail_list->cStat = TLAN_CSTAT_UNUSED;
+			(priv->txList + (priv->txTail - 1))->forward =
+			virt_to_le32desc(tail_list);
+			if(priv->eoc) {
+				outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
+				priv->eoc = 0;
+			}
+		}
+	}
+
+	CIRC_INC(priv->txTail, TLAN_NUM_TX_LISTS);
+
+	#ifdef EBDEBUG
+		host_int = inw(BASE + TLAN_HOST_INT);
+		printf("INT2-0x%hX\n", host_int);
+	#endif
+
+	to = currticks() + TX_TIME_OUT;
+	while ((tail_list->cStat == TLAN_CSTAT_READY) && currticks() < to)
+		;
+
+	tail_list->buffer[9].address = 0;
+	tail_list->buffer[0].address = 0;
+
+	#ifdef EBDEBUG
+		host_int = inw(BASE + TLAN_HOST_INT);
+		printf("INT2B-0x%hX\n", host_int);
+		printf("SSTAT: %hX\n", tail_list->cStat);
+	#endif
+
+	if(tail_list->cStat & TLAN_CSTAT_FRM_CMP) {
+		#ifdef EBDEBUG
+			printf("FC\n");
+		#endif
+		ack = 1;
+		if(tail_list->cStat & TLAN_CSTAT_EOC){
+			priv->eoc = 1;
+		} else {
+			host_cmd = TLAN_HC_ACK | ack;
+			outl(host_cmd, BASE + TLAN_HOST_CMD);
+		}
+	}
+
 	CIRC_INC(priv->txHead, TLAN_NUM_TX_LISTS);
 
-    host_int = inw(BASE + TLAN_HOST_INT);
-/*    printf("INT3-0x%hX\n", host_int); */
-	outl(TLAN_HC_STOP, BASE + TLAN_HOST_CMD); 
-    if (eoc) { 
-	head_list = priv->txList + priv->txTail;  
-/*	head_list = tail_list; */ 
+	#ifdef EBDEBUG
+		host_int = inw(BASE + TLAN_HOST_INT);
+		printf("INT3-0x%hX\n", host_int);
+	#endif
+/*
+	if(!priv->eoc)
+    	outl(TLAN_HC_STOP, BASE + TLAN_HOST_CMD);
+*/
+
+	head_list = priv->txList + priv->txTail;
+
 	if ((head_list->cStat & TLAN_CSTAT_READY) == TLAN_CSTAT_READY) {
-/*	    printf("EOC if clause\n"); */
-   		head_list->cStat = TLAN_CSTAT_UNUSED;
-	    outl(virt_to_le32desc((priv->txList + priv->txTail)), BASE + TLAN_CH_PARM);
-	    
-/*	    ack |= TLAN_HC_GO */
-	} else {
-/*		printf("EOC2\n"); */
-		tx_started = 0;  
-		tail_list->cStat = TLAN_CSTAT_UNUSED;
-		outl(TLAN_HC_ACK | 0x00000001 | 0x00140000, BASE + TLAN_HOST_CMD);
-	    outl(virt_to_le32desc((priv->txList + priv->txTail)), BASE + TLAN_CH_PARM);
+		#ifdef EBDEBUG
+			printf("EOC if clause\n");
+		#endif
+		head_list->cStat = TLAN_CSTAT_UNUSED;
+		outl(virt_to_le32desc((priv->txList + priv->txTail)),
+					BASE + TLAN_CH_PARM);
 		
-		/*   tail_list->cStat = 0; */
+	} else {
+		#ifdef EBDEBUG
+			printf("EOC2\n");
+		#endif
+		head_list->cStat = TLAN_CSTAT_UNUSED;
+		if(priv->eoc) {
+			tx_started = 1;
+		} else {
+			tx_started = 0;
+			outl(TLAN_HC_ACK | 0x00000001 | 0x00140000, 
+					BASE + TLAN_HOST_CMD);
+		}
+		outl(virt_to_le32desc((priv->txList + priv->txTail)), 
+			BASE + TLAN_CH_PARM);
+		
 	}
-    } 
-    host_int = inw(BASE + TLAN_HOST_INT);
-/*    printf("INT4-0x%hX\n", host_int); */
 
-    /*      outl(TLAN_HC_STOP, BASE + TLAN_HOST_CMD);  */
-/*tx_ring[entry].forward=0x00000000;  */
+	#ifdef EBDEBUG
+		host_int = inw(BASE + TLAN_HOST_INT);
+		printf("INT4-0x%hX\n", host_int);
+	#endif
 
-
-    if (currticks() >= to) {
-	printf("TX Time Out");
-    }
-
-/*	outl((u32) 1 | TLAN_HC_GO, BASE + TLAN_HOST_CMD);
- 	outl(TLAN_HC_ACK | TLAN_HC_GO | 1, BASE + TLAN_HOST_CMD);
-	*/
-
+	if (currticks() >= to) {
+		printf("TX Time Out");
+	}
 
 }
 
@@ -851,6 +866,7 @@ static int tlan_probe(struct dev *dev, struct pci_device *pci)
     priv->vendor_id = pci->vendor;
     priv->dev_id = pci->dev_id;
     priv->nic_name = pci->name;
+    priv->eoc = 0;
 
     err = 0;
     for (i = 0; i < 6; i++)
@@ -867,6 +883,11 @@ static int tlan_probe(struct dev *dev, struct pci_device *pci)
     printf("\nRevision = %d\n", priv->tlanRev);
     TLan_ResetLists(nic);
     TLan_ResetAdapter(nic);
+
+    data = inl(BASE + TLAN_HOST_CMD);
+    data |= TLAN_HC_EOC;
+    outw(data, BASE + TLAN_HOST_CMD);
+
 
     data = inl(BASE + TLAN_HOST_CMD);
     data |= TLAN_HC_INT_OFF;
