@@ -34,6 +34,8 @@
 *    REVISION HISTORY:
 *    ================
 *    v1.0	07-08-2003	timlegge	Initial not quite working version
+*
+*    Indent Options: indent -kr -i8
 ***************************************************************************/
 
 /* to get some global routines like printf */
@@ -258,7 +260,6 @@ void TLan_ResetLists(struct nic *nic __unused)
 
 	int i;
 	struct TLanList *list;
-
 	priv->txHead = 0;
 	priv->txTail = 0;
 
@@ -808,6 +809,8 @@ static int tlan_probe(struct dev *dev, struct pci_device *pci)
 	/* I really must find out what this does */
 	adjust_pci_device(pci);
 
+	/* Point to private storage */
+	priv = &TLanPrivateInfo;
 	/* Figure out which chip we're dealing with */
 	i = 0;
 	chip_idx = -1;
@@ -840,6 +843,7 @@ static int tlan_probe(struct dev *dev, struct pci_device *pci)
 
 	priv->tlanRev = TLan_DioRead8(BASE, TLAN_DEF_REVISION);
 	printf("\nRevision = %d\n", priv->tlanRev);
+
 	TLan_ResetLists(nic);
 	TLan_ResetAdapter(nic);
 
