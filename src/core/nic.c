@@ -163,10 +163,12 @@ struct nic	nic =
 		0,				/* type_index */
 		{},				/* state */
 	},
-	(int (*)(struct nic *))dummy,		/* poll */
+	(int (*)(struct nic *, int))dummy,	/* poll */
 	(void (*)(struct nic *, const char *,
 		unsigned int, unsigned int,
 		const char *))dummy,		/* transmit */
+	(int (*)(struct nic *,
+		 irq_action_t))dummy,		/* irq */
 	0,					/* flags */
 	&rom,					/* rom_info */
 	arptable[ARP_CLIENT].node,		/* node_addr */
@@ -190,9 +192,9 @@ int eth_probe(struct dev *dev)
 	return probe(dev);
 }
 
-int eth_poll(void)
+int eth_poll(int retrieve)
 {
-	return ((*nic.poll)(&nic));
+	return ((*nic.poll)(&nic, retrieve));
 }
 
 void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p)
@@ -210,6 +212,11 @@ void eth_disable(void)
 	}
 #endif
 	disable(&nic.dev);
+}
+
+int eth_irq (irq_action_t action)
+{
+	return (*nic.irq)(&nic,action);
 }
 
 /*
@@ -1292,7 +1299,7 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 	for (;;) {
 		now = currticks();
 		send_igmp_reports(now);
-		result = eth_poll();
+		result = eth_poll(1);
 		if (result == 0) {
 			/* We don't have anything */
 		
