@@ -47,6 +47,7 @@ _start:
 	.global entry16
 entry16:
 	.code16
+#ifdef	VERIFY_386
 	pushw	%ax			/* Save ax */
 	pushf				/* Save flags */
 /**************************************************************************
@@ -91,6 +92,7 @@ err_prloop:
 is_386:
 	popf				/* Restore flags */
 	popw	%ax			/* Restore ax */
+#endif
 
 /*
  *	Paul Robertson of Locsoft found that if the top half of %esp
@@ -355,12 +357,14 @@ initial_regs:
 
 	.align	4
 
-#ifdef PCBIOS
+#ifdef	PCBIOS
+#ifdef	VERIFY_386
 	.section ".rodata"
 err_not386:
 	.ascii	"Etherboot/32 requires 386+"
 	.byte	0x0d, 0x0a
 err_not386_end:
+#endif
 #endif
 
 #ifdef LINUXBIOS
