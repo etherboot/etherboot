@@ -2644,3 +2644,19 @@ ISA .o files for etherboot-pci.
 
 + Anders Nystrom provided a tiny via-rhine patch
 
++ Michael Brown provided a patch to ignore UNDI cleanup return code when unloading PXE
+
++ Marty Connor conditionlized the compilation of PCMCIA and made UNDI dependant on PCBIOS
+
++ Jon Passki provided a patch to fix bugs in IMAGE_FREEBSD and REQUIRE_VCI_ETHERBOOT
+
++ Fixed typo in vsprint 
+
++ Acknowledge NXTV (http://www.nxtv.com/) who funded the developement of the National Semiconductor ns83820 gigabit driver in the last release
+
++ Timothy Legge cleaned up the pcnet32, r8169 and sundance drivers and standardize output
+
++ Timothy Legge added mii.h from Linux
+
++ Marty Connor fixed PCI_ROM Macros to make genrules.pl happy for several drivers
+
