@@ -1,4 +1,9 @@
-Etherboot 5.0.5
+Etherboot 5.0.6
+
+Christopher Li has written the first Gigabit Ethernet driver, e1000.
+
+A couple more variants of existing NICs supported, i.e. the SiS900 and
+the Tulip.
 
 E820 memory sizing support has been added by Eric Biederman.
 

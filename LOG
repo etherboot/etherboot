@@ -2266,3 +2266,30 @@ trigger false recognition of a PnP ROM. Just use legacy mode.
 
 + RISKO Gergely found that the ADMTek Comet 983 works with the tulip
 driver if you provide the right PCI IDs.
+
++ Rohit Jalan contributed patches to support FreeBSD booting via PXE.
+(genrules.pl needed hacking to make it ignore the system includes in
+osdep.h.)  Anybody want to see if it can be made to support pxelinux?
+[Glanced at it and I think general PXE support may be hard, you may need
+an Etherboot specific secondary loader. - Ken]
+
++ Merged in Eric Biederman's patches to allow trying all PCI devices.
+
++ From Eric Biederman: A small patch to allow the serial port parameters
+to be unchanged at activation.  Major changes to start32.S to merge
+LinuxBIOS support.  New files for LinuxBIOS support.  PCBIOS specific
+functions split out into pcbios.S. Massive clean up of PCI subsystem
+logic.
+
++ Jean-Jacques Michel sent in a fix for via-rhine.c to make sure the
+transmit is finished before returning from the _transmit routine.
+Also found a bug in gcc 3.0.3 that affected rtl8139.c. Moving the
+assignment to nstype in _transmit two lines up avoids it.
+
++ Based on the experience of Yedidyah Bar-David, in eepro100.c,
+increased udelay around line 533 after getting MAC address to
+udelay(10000).
+
++ Added PCI IDs for RTL8129, which can use the rtl8139 driver.
+
++ New config files for floppyfw-1.9.19 in contrib/mkffwnb/.
