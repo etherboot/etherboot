@@ -938,7 +938,7 @@ int undi_full_shutdown ( void ) {
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int undi_poll(struct nic *nic)
+static int undi_poll(struct nic *nic, int retrieve)
 {
 	/* Fun, fun, fun.  UNDI drivers don't use polling; they use
 	 * interrupts.  We therefore cheat and pretend that an
@@ -962,6 +962,14 @@ static int undi_poll(struct nic *nic)
 	/* See if a hardware interrupt has occurred since the last poll().
 	 */
 	if ( ! trivial_irq_triggered ( undi.irq ) ) return 0;
+
+	/* Given the frailty of PXE stacks, it's probably not safe to
+	 * risk calling PXENV_UNDI_ISR with
+	 * FuncFlag=PXENV_UNDI_ISR_START twice for the same interrupt,
+	 * so we cheat slightly and assume that there is something
+	 * ready to retrieve as long as an interrupt has occurred.
+	 */
+	if ( ! retrieve ) return 1;
 
 	/* Ask the UNDI driver if this is "our" interrupt.
 	 */
