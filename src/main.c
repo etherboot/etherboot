@@ -55,13 +55,12 @@ char freebsd_kernel_env[256];
 struct bootpd_t bootp_data;
 
 #ifdef	NO_DHCP_SUPPORT
-char    rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
+static unsigned char    rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
 #else	/* !NO_DHCP_SUPPORT */
 static int dhcp_reply;
 static in_addr dhcp_server = { 0L };
 static in_addr dhcp_addr = { 0L };
-unsigned char rfc1533_cookie[] = { RFC1533_COOKIE};
-unsigned char rfc1533_end[] = {RFC1533_END };
+static unsigned char	rfc1533_cookie[] = { RFC1533_COOKIE };
 static const unsigned char dhcpdiscover[] = {
 	RFC2132_MSG_TYPE,1,DHCPDISCOVER,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
@@ -836,7 +835,7 @@ static int bootp(void)
 #else
 	memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie); /* request RFC-style options */
 	memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcpdiscover, sizeof dhcpdiscover);
-	memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcpdiscover, rfc1533_end, sizeof rfc1533_end);
+	ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcpdiscover] = RFC1533_END;
 #endif	/* NO_DHCP_SUPPORT */
 
 	for (retry = 0; retry < MAX_BOOTP_RETRIES; ) {
@@ -865,14 +864,15 @@ static int bootp(void)
 				return(1);
 			dhcp_reply = 0;
 			memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
+			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
 			/* Beware: the magic numbers 9 and 15 depend on
 			   the layout of dhcprequest */
-			memcpy(ip.bp.bp_vend + 9, &dhcp_server, sizeof(in_addr));
-			memcpy(ip.bp.bp_vend + 15, &dhcp_addr, sizeof(in_addr));
-			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
+			memcpy(&ip.bp.bp_vend[9], &dhcp_server, sizeof(in_addr));
+			memcpy(&ip.bp.bp_vend[15], &dhcp_addr, sizeof(in_addr));
 			/* Append NIC IDs to end, in encapsulated option */
 			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest] = RFC1533_VENDOR_ETHERBOOT_ENCAP;
 			memcpy(&ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1], &nic.devid, NIC_ID_SIZE);
+			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1 + NIC_ID_SIZE] = RFC1533_END;
 			for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
 				udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 					sizeof(struct bootpip_t), &ip);
