@@ -13,7 +13,7 @@
  * bug), ao we have to put these asm statements inside a dummy
  * function.
  */
-static void work_around_gcc_bug ( void ) __unused;
+static void work_around_gcc_bug ( void ) __attribute__ ((used));
 static void work_around_gcc_bug ( void ) {
 	/* Export _real_mode_stack_size as absolute linker symbol */
 	__asm__ ( ".globl _real_mode_stack_size" );
