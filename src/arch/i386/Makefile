@@ -316,3 +316,8 @@ SUFFIXES +=	iso
 	cat $< > $*.dir/$(*F).bin
 	mkisofs -o $@ -c boot.cat -no-emul-boot -b $(*F).bin $*.dir
 	rm -fr $*.dir
+
+# rule to make a floppy emulation ISO boot image
+SUFFIXES +=	liso
+%.liso:	util/genliso %.zlilo
+	util/genliso $*.liso $*.zlilo
