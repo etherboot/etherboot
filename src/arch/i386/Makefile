@@ -92,6 +92,7 @@ alllilos:	$(BUILD_LILOS)
 
 BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
 BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
+BOBJS+=		$(BIN)/pic8259.o
 
 # Prepended loaders
 $(BIN)/rloader.bin:	$(BIN)/rloader.o
