@@ -45,6 +45,9 @@ appear in the window running C<serial-console>, and anything typed in
 the C<serial-console> window will arrive on the emulated machine's
 serial port.
 
+You do B<not> need to rerun C<serial-console> afresh for each Bochs
+session.
+
 =head1 OPTIONS
 
 =over 4
@@ -77,6 +80,7 @@ use warnings;
 
 my $o;
 my $restore_file = {};
+use constant BLOCKSIZE => 8192;
 
 ##############################################################################
 #
@@ -170,15 +174,51 @@ $SIG{INT} = $sigdie;
 # Create Pty, close slave side
 my $pty = IO::Pty->new();
 $pty->close_slave();
+$pty->set_raw();
 print STDERR "Slave pty is ".$pty->ttyname."\n" if $o->{verbosity} >= 1;
+
+# Open logfile
+my $log;
+if ( $o->{log} ) {
+  open $log, ">$o->{log}" or die "Could not open $o->{log}: $!\n";
+}
 
 # Modify bochsrc file
 $restore_file = { $o->{rcfile} =>
 		  patch_bochsrc ( $o->{rcfile}, $pty->ttyname ) }
     if $o->{rcfile};
 
-sleep(20);
-
+# Start character shunt
+my $attached = 1;
+my $select = IO::Select->new ( \*STDIN, $pty );
+while ( 1 ) {
+  my %can_read = map { $_ => 1 }
+  		     $select->can_read ( $attached ? undef : 1 );
+  if ( $can_read{\*STDIN} ) {
+#    print STDERR "Reading from STDIN\n";
+    sysread ( STDIN, my $data, BLOCKSIZE )
+	or die "Cannot read from STDIN: $!\n";
+    $pty->syswrite ( $data );
+  }
+  if ( $can_read{$pty} ) {
+    if ( $pty->sysread ( my $data, BLOCKSIZE ) ) {
+      # Actual data available
+      syswrite ( STDOUT, $data );
+      $log->syswrite ( $data ) if $log;
+    } else {
+      # No data available but select() says we can read.  This almost
+      # certainly indicates that nothing is attached to the slave.
+      print STDERR "\n\nWaiting for bochs to attach...\n"
+	  if $o->{verbosity} >= 1 && $attached == 1;
+      $attached = 0;
+      sleep ( 1 );
+    }
+  } else {
+    print STDERR "Bochs attached.\n\n\n"
+	if $o->{verbosity} >= 1 && $attached == 0;
+    $attached = 1;
+  }
+}
 
 END {
   # Restore bochsrc file if applicable
