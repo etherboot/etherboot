@@ -255,10 +255,10 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 
 # You must give the directory name, e.g. use $(BIN)/rtl8139.dsk as the target.
 %.dsk:	%.rom $(DISKLOADER) 
-	cat $(DISKLOADER) $< | dd bs=36k conv=sync > $@
+	cat $(DISKLOADER) $< | dd ibs=36k conv=sync > $@
 
 %.zdsk:	%.zrom $(DISKLOADER)
-	cat $(DISKLOADER) $< | dd bs=36k conv=sync > $@
+	cat $(DISKLOADER) $< | dd ibs=36k conv=sync > $@
 
 # rules to make a LILO-bootable image
 %.lilo:		%.img $(LILOPREFIX)
