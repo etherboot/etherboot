@@ -475,6 +475,23 @@ static void eepro100_disable(struct nic *nic)
     /* See if this PartialReset solves the problem with interfering with
        kernel operation after Etherboot hands over. - Ken 20001102 */
     outl(2, ioaddr + SCBPort);
+
+    /* The following is from the Intel e100 driver.
+     * This hopefully solves the problem with hanging hard DOS images. */
+
+    /* wait for the reset to take effect */
+    udelay(20);
+
+    /* Mask off our interrupt line -- it is unmasked after reset */
+    {
+	u16 intr_status;
+	/* Disable interrupts on our PCI board by setting the mask bit */
+	outw(INT_MASK, ioaddr + SCBCmd);
+	intr_status = inw(ioaddr + SCBStatus);
+	/* ack and clear intrs */
+	outw(intr_status, ioaddr + SCBStatus);
+	inw(ioaddr + SCBStatus);
+    }
 }
 
 /* exported function: eepro100_probe / eth_probe
