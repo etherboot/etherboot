@@ -1249,7 +1249,7 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 		memcpy(fname, extpath+2, TAG_LEN(extpath));
 		fname[(int)TAG_LEN(extpath)] = '\0';
 		printf("Loading BOOTP-extension file: %s\n",fname);
-		download(fname, decode_rfc1533);
+		tftp(fname, decode_rfc1533);
 	}
 	return 1;	/* proceed with next block */
 }

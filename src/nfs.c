@@ -400,7 +400,7 @@ static int nfs_read(int server, int port, char *fh, int offset, int len,
 /**************************************************************************
 NFS - Download extended BOOTP data, or kernel image from NFS server
 **************************************************************************/
-int nfs(const char *name, int (*fnc)(unsigned char *, int, int, int))
+int nfs(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int))
 {
 	int sport;
 	int err, namelen = strlen(name);
