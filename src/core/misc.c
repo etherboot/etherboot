@@ -357,7 +357,6 @@ int iskey(void)
 	return 0;
 }
 
-#define DEBUG_UTILS 0
 #if DEBUG_UTILS
 
 void pause ( void ) {
@@ -383,7 +382,7 @@ void hex_dump ( const char *data, const unsigned int len ) {
 			more();
 		}
 		if ( ( index % 16 ) == 0 ) {
-			printf ( "%hX :", index );
+			printf ( "%X : %hX :", data + index, index );
 		}
 		printf ( " %hhX", data[index] );
 	}
