@@ -1067,12 +1067,12 @@ _stack:
 	.globl	_estack
 _estack:
 #ifdef CODE16
-	/* Copy of the 16-bit prefix code that we may want to return to.
-	 * This is placed in a ".prefix" section rather than ".bss" because
-	 * ".bss" is zeroed when Etherboot starts up, *after* the prefix
-	 * has been copied in by start16.
+	/* Data that needs to be preserved across invocations of
+	 * main() and potential relocation-and-restarts, such as the
+	 * copy of the 16-bit prefix code and the record of base
+	 * memory used by the Etherboot image.
 	 */
-	.section ".prefix"
+	.section ".bss.preserve"
 	.globl _prefix_copy
 	.globl _eprefix_copy
 	.balign 16, 0

@@ -40,6 +40,11 @@ SECTIONS {
 		*(.data.*)
 	}
 	_edata = . ;
+	. = ALIGN(16);
+	.bss.preserve : {
+		*(.bss.preserve)
+		*(.bss.preserve.*)
+	}
 	_bss = . ;
 	.bss : {
 		*(.bss)
@@ -51,11 +56,6 @@ SECTIONS {
 	.stack : {
 		*(.stack)
 		*(.stack.*)
-	}
-	. = ALIGN(16);
-	.prefix : {
-		*(.prefix)
-		*(.prefix.*)
 	}
 	. = ALIGN(16);
 	_end = .;
