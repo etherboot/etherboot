@@ -630,6 +630,9 @@ static int w89c840_probe(struct dev *dev, struct pci_device *p)
 
     ioaddr = ioaddr & ~3; /* Mask the bit that says "this is an io addr" */
 
+#define PCI_DEVICE_ID_WINBOND2_89C840   0x0840
+#define PCI_DEVICE_ID_COMPEX_RL100ATX   0x2011
+
     /* From Matt Hortman <mbhortman@acpthinclient.com> */
     if (p->vendor == PCI_VENDOR_ID_WINBOND2
         && p->dev_id == PCI_DEVICE_ID_WINBOND2_89C840) {

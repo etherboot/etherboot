@@ -2775,6 +2775,9 @@ static int tg3_get_invariants(struct tg3 *tp)
 	     grc_misc_cfg == GRC_MISC_CFG_BOARD_ID_5788M))
 		tp->tg3_flags2 |= TG3_FLG2_IS_5788;
 
+#define PCI_DEVICE_ID_TIGON3_5901	0x170d
+#define PCI_DEVICE_ID_TIGON3_5901_2	0x170e
+
 	/* these are limited to 10/100 only */
 	if (((GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5703) &&
 		    ((grc_misc_cfg == 0x8000) || (grc_misc_cfg == 0x4000))) ||
