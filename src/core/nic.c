@@ -639,7 +639,7 @@ int tftp ( const char *name,
 	   int (*fnc)(unsigned char *, unsigned int, unsigned int, int) )
 {
 	struct tftpreq_info_t request_data =
-		{ name, TFTP_PORT, TFTP_DEFAULTSIZE_PACKET };
+		{ name, TFTP_PORT, TFTP_MAX_PACKET };
 	struct tftpreq_info_t *request = &request_data;
 	struct tftpblk_info_t block;
 	int rc;
@@ -735,7 +735,7 @@ int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
 					while ( *(p++) ) {};
 				}
 			}
-			if ( blksize != request->blksize ) {
+			if ( blksize > request->blksize ) {
 				/* Incorrect blksize - error and abort */
 				xmit.opcode = htons(TFTP_ERROR);
 				xmit.u.err.errcode = 8;
