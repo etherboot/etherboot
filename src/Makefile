@@ -14,6 +14,10 @@
 #	  -DT503_SHMEM	- Use 3c503 shared memory mode (off by default)
 #	-DINCLUDE_WD	- Include Western Digital/SMC support
 #	-DWD_DEFAULT_MEM- Default memory location for WD/SMC cards
+#	-DWD_790_PIO    - Read/write to WD/SMC 790 cards in PIO mode (default
+#			  is to use shared memory) Try this if you get "Bogus
+#			  packet, ignoring" messages, common on ISA/PCI hybrid
+#			  systems.
 #	-DCOMPEX_RL2000_FIX
 #
 #	If you have a Compex RL2000 PCI 32-bit (11F6:1401),
@@ -100,7 +104,7 @@ STRIP=		strip
 OBJCOPY=	objcopy
 VERSION_MAJOR=	5
 VERSION_MINOR=	0
-VERSION_PATCH=	6
+VERSION_PATCH=	7
 EXTRAVERSION=
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \

@@ -18,6 +18,8 @@ SMC8416 support added by Bill Paul (wpaul@ctr.columbia.edu) on 12/25/94
 3c503 PIO support added by Jim Hague (jim.hague@acm.org) on 2/17/98
 RX overrun by Klaus Espenlaub (espenlaub@informatik.uni-ulm.de) on 3/10/99
   parts taken from the Linux 8390 driver (by Donald Becker and Paul Gortmaker)
+SMC8416 PIO support added by Andrew Bettison (andrewb@zip.com.au) on 4/3/02
+  based on the Linux 8390 driver (by Donald Becker and Paul Gortmaker)
 
 **************************************************************************/
 
@@ -66,6 +68,7 @@ static unsigned char	t503_output;	/* AUI or internal xcvr (Thinnet) */
 #endif
 
 #if	defined(INCLUDE_WD)
+#define	ASIC_PIO	WD_IAR
 #define	eth_probe	wd_probe
 #if	defined(INCLUDE_3C503) || defined(INCLUDE_NE) || defined(INCLUDE_NS8390)
 Error you must only define one of INCLUDE_WD, INCLUDE_3C503, INCLUDE_NE, INCLUDE_NS8390
@@ -101,13 +104,16 @@ Error you must only define one of INCLUDE_WD, INCLUDE_3C503, INCLUDE_NE, INCLUDE
 #endif
 #endif
 
-#if	defined(INCLUDE_NE) || defined(INCLUDE_NS8390) || (defined(INCLUDE_3C503) && !defined(T503_SHMEM))
+#if	defined(INCLUDE_NE) || defined(INCLUDE_NS8390) || (defined(INCLUDE_3C503) && !defined(T503_SHMEM)) || (defined(INCLUDE_WD) && defined(WD_790_PIO))
 /**************************************************************************
 ETH_PIO_READ - Read a frame via Programmed I/O
 **************************************************************************/
 static void eth_pio_read(unsigned int src, unsigned char *dst, unsigned int cnt)
 {
-	if (eth_flags & FLAG_16BIT) { ++cnt; cnt &= ~1; }
+#ifdef	INCLUDE_WD
+	outb(src & 0xff, eth_asic_base + WD_GP2);
+	outb(src >> 8, eth_asic_base + WD_GP2);
+#else
 	outb(D8390_COMMAND_RD2 |
 		D8390_COMMAND_STA, eth_nic_base + D8390_P0_COMMAND);
 	outb(cnt, eth_nic_base + D8390_P0_RBCR0);
@@ -122,9 +128,10 @@ static void eth_pio_read(unsigned int src, unsigned char *dst, unsigned int cnt)
 	outb(src >> 8, eth_asic_base + _3COM_DAMSB);
 	outb(t503_output | _3COM_CR_START, eth_asic_base + _3COM_CR);
 #endif
+#endif
 
 	if (eth_flags & FLAG_16BIT)
-		cnt >>= 1;
+		cnt = (cnt + 1) >> 1;
 
 	while(cnt--) {
 #ifdef	INCLUDE_3C503
@@ -153,7 +160,10 @@ static void eth_pio_write(const unsigned char *src, unsigned int dst, unsigned i
 #ifdef	COMPEX_RL2000_FIX
 	unsigned int x;
 #endif	/* COMPEX_RL2000_FIX */
-	if (eth_flags & FLAG_16BIT) { ++cnt; cnt &= ~1; }
+#ifdef	INCLUDE_WD
+	outb(dst & 0xff, eth_asic_base + WD_GP2);
+	outb(dst >> 8, eth_asic_base + WD_GP2);
+#else
 	outb(D8390_COMMAND_RD2 |
 		D8390_COMMAND_STA, eth_nic_base + D8390_P0_COMMAND);
 	outb(D8390_ISR_RDC, eth_nic_base + D8390_P0_ISR);
@@ -170,9 +180,10 @@ static void eth_pio_write(const unsigned char *src, unsigned int dst, unsigned i
 
 	outb(t503_output | _3COM_CR_DDIR | _3COM_CR_START, eth_asic_base + _3COM_CR);
 #endif
+#endif
 
 	if (eth_flags & FLAG_16BIT)
-		cnt >>= 1;
+		cnt = (cnt + 1) >> 1;
 
 	while(cnt--)
 	{
@@ -201,8 +212,10 @@ static void eth_pio_write(const unsigned char *src, unsigned int dst, unsigned i
 	if (x >= COMPEX_RL2000_TRIES)
 		printf("Warning: Compex RL2000 aborted wait!\n");
 #endif	/* COMPEX_RL2000_FIX */
+#ifndef	INCLUDE_WD
 	while((inb(eth_nic_base + D8390_P0_ISR) & D8390_ISR_RDC)
 		!= D8390_ISR_RDC);
+#endif
 #endif
 }
 #else
@@ -238,7 +251,14 @@ static void ns8390_reset(struct nic *nic)
 	outb(eth_tx_start, eth_nic_base+D8390_P0_TPSR);
 	outb(eth_rx_start, eth_nic_base+D8390_P0_PSTART);
 #ifdef	INCLUDE_WD
-	if (eth_flags & FLAG_790) outb(0, eth_nic_base + 0x09);
+	if (eth_flags & FLAG_790) {
+#ifdef	WD_790_PIO
+		outb(0x10, eth_asic_base + 0x06); /* disable interrupts, enable PIO */
+		outb(0x01, eth_nic_base + 0x09); /* enable ring read auto-wrap */
+#else
+		outb(0, eth_nic_base + 0x09);
+#endif
+	}
 #endif
 	outb(eth_memsize, eth_nic_base+D8390_P0_PSTOP);
 	outb(eth_memsize - 1, eth_nic_base+D8390_P0_BOUND);
@@ -266,8 +286,8 @@ static void ns8390_reset(struct nic *nic)
 		outb(D8390_COMMAND_PS0 |
 			D8390_COMMAND_RD2 | D8390_COMMAND_STA, eth_nic_base+D8390_P0_COMMAND);
 	outb(0xFF, eth_nic_base+D8390_P0_ISR);
-	outb(0, eth_nic_base+D8390_P0_TCR);
-	outb(4, eth_nic_base+D8390_P0_RCR);	/* allow broadcast frames */
+	outb(0, eth_nic_base+D8390_P0_TCR);	/* transmitter on */
+	outb(4, eth_nic_base+D8390_P0_RCR);	/* allow rx broadcast frames */
 
 #ifdef	INCLUDE_3C503
         /*
@@ -357,11 +377,12 @@ static void ns8390_transmit(
 #endif
 
 #ifdef	INCLUDE_WD
-	/* Memory interface */
 	if (eth_flags & FLAG_16BIT) {
 		outb(eth_laar | WD_LAAR_M16EN, eth_asic_base + WD_LAAR);
 		inb(0x84);
 	}
+#ifndef	WD_790_PIO
+	/* Memory interface */
 	if (eth_flags & FLAG_790) {
 		outb(WD_MSR_MENB, eth_asic_base + WD_MSR);
 		inb(0x84);
@@ -378,16 +399,16 @@ static void ns8390_transmit(
 		outb(0, eth_asic_base + WD_MSR);
 		inb(0x84);
 	}
-	if (eth_flags & FLAG_16BIT) {
-		outb(eth_laar & ~WD_LAAR_M16EN, eth_asic_base + WD_LAAR);
-		inb(0x84);
-	}
+#else
+	inb(0x84);
+#endif
 #endif
 
 #if	defined(INCLUDE_3C503)
-	if (eth_flags & FLAG_PIO) {
+	if (eth_flags & FLAG_PIO)
 #endif
-#if	defined(INCLUDE_NE) || defined(INCLUDE_NS8390) || (defined(INCLUDE_3C503) && !defined(T503_SHMEM))
+#if	defined(INCLUDE_NE) || defined(INCLUDE_NS8390) || (defined(INCLUDE_3C503) && !defined(T503_SHMEM)) || (defined(INCLUDE_WD) && defined(WD_790_PIO))
+	{
 		/* Programmed I/O */
 		unsigned short type;
 		type = (t >> 8) | (t << 8);
@@ -398,12 +419,16 @@ static void ns8390_transmit(
 		eth_pio_write(p, (eth_tx_start<<8)+ETH_HLEN, s);
 		s += ETH_HLEN;
 		if (s < ETH_ZLEN) s = ETH_ZLEN;
+	}
 #endif
 #if	defined(INCLUDE_3C503)
-	}
 #endif
 
 #ifdef	INCLUDE_WD
+	if (eth_flags & FLAG_16BIT) {
+		outb(eth_laar & ~WD_LAAR_M16EN, eth_asic_base + WD_LAAR);
+		inb(0x84);
+	}
 	if (eth_flags & FLAG_790)
 		outb(D8390_COMMAND_PS0 |
 			D8390_COMMAND_STA, eth_nic_base+D8390_P0_COMMAND);
@@ -458,10 +483,12 @@ static int ns8390_poll(struct nic *nic)
 		outb(eth_laar | WD_LAAR_M16EN, eth_asic_base + WD_LAAR);
 		inb(0x84);
 	}
+#ifndef	WD_790_PIO
 	if (eth_flags & FLAG_790) {
 		outb(WD_MSR_MENB, eth_asic_base + WD_MSR);
 		inb(0x84);
 	}
+#endif
 	inb(0x84);
 #endif
 	pktoff = next << 8;
@@ -499,10 +526,12 @@ static int ns8390_poll(struct nic *nic)
 		ret = 1;
 	}
 #ifdef	INCLUDE_WD
+#ifndef	WD_790_PIO
 	if (eth_flags & FLAG_790) {
 		outb(0, eth_asic_base + WD_MSR);
 		inb(0x84);
 	}
+#endif
 	if (eth_flags & FLAG_16BIT) {
 		outb(eth_laar & ~WD_LAAR_M16EN, eth_asic_base + WD_LAAR);
 		inb(0x84);
@@ -592,9 +621,15 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 	for (i=0; i<ETH_ALEN; i++) {
 		nic->node_addr[i] = inb(i+eth_asic_base+WD_LAR);
 	}
-	printf("\n%s base %#hx, memory %#hx, addr %!\n",
-		brd->name, eth_asic_base, eth_bmem, nic->node_addr);
+	printf("\n%s base %#hx", brd->name, eth_asic_base);
 	if (eth_flags & FLAG_790) {
+#ifdef	WD_790_PIO
+		printf(", PIO mode, addr %!\n", nic->node_addr);
+		eth_bmem = 0;
+		eth_flags |= FLAG_PIO;		/* force PIO mode */
+		outb(0, eth_asic_base+WD_MSR);
+#else
+		printf(", memory %#hx, addr %!\n", eth_bmem, nic->node_addr);
 		outb(WD_MSR_MENB, eth_asic_base+WD_MSR);
 		outb((inb(eth_asic_base+0x04) |
 			0x80), eth_asic_base+0x04);
@@ -603,7 +638,9 @@ struct nic *eth_probe(struct nic *nic, unsigned short *probe_addrs)
 			(inb(eth_asic_base+0x0B) & 0xB0), eth_asic_base+0x0B);
 		outb((inb(eth_asic_base+0x04) &
 			~0x80), eth_asic_base+0x04);
+#endif
 	} else {
+		printf(", memory %#hx, addr %!\n", eth_bmem, nic->node_addr);
 		outb((((unsigned)eth_bmem >> 13) & 0x3F) | 0x40, eth_asic_base+WD_MSR);
 	}
 	if (eth_flags & FLAG_16BIT) {
