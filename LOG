@@ -2811,9 +2811,32 @@ compiled into the image.
 
 Released as Etherboot 5.3.13 aka 5.4RC4 (development)
 
-+ Lots of fixes by Eric Biederman and a couple by Michael Brown. Please
-see the CVS comments for details.
++ Lots of fixes by Eric Biederman.  Symbols for protected mode segment
+and prefix segments separated.  Multiple ASM statements combined to
+ensure compiler keeps them intact.  Allocate real mode stack if none in
+use.  Protect low memory interrupt vectors. Makefile rules for various
+prefixes factored. Dynamic relocatable image support.
 
-+ Will complete this section of the LOG later.
++ Fixes by Michael Brown. Cleanup of PXE and UNDI code.
+
++ Patch to Tulip driver for missing PCI ID.
 
 Released as Etherboot 5.3.14 aka 5.4RC5 (development)
+
++ Small ARMNOMMU architecture fixes by Toby Lorenz.
+
++ Patch to Tulip driver for additional PCI ID by Ramesh Chandler.
+
++ Proxy DHCP support, catrom.pl script, flat real mode support, and
+e1000 fixes by Michael Brown.
+
++ New PHY support for tg3.c by Timothy Legge.
+
++ FS Protocol support by Radim Kolar.
+
++ FILO config changes by YHLu.
+
++ Support for compilation on AMD64 for i386. makerom.pl fixed not to
+change product string pointer if one already exists.
+
+Released as Etherboot 5.3.15 aka 5.4RC6 (development)
