@@ -268,10 +268,8 @@ foreach my $pci (sort keys %pcient) {
 	print "EB_DSKS\t+= \$(BIN)/$img.dsk   \nEB_ZDSKS\t+= \$(BIN)/$img.zdsk\n";
 	print "EB_ELFS\t+= \$(BIN)/$img.elf   \nEB_ZELFS\t+= \$(BIN)/$img.zelf\n";
 	print "EB_LMELFS\t+= \$(BIN)/$img.lmelf \nEB_ZLMELFS\t+= \$(BIN)/$img.zlmelf\n";
-	print "EB_ELFDS\t+= \$(BIN)/$img.elfd   \nEB_ZELFS\t+= \$(BIN)/$img.zelfd\n";
-	print "EB_LMELFDS\t+= \$(BIN)/$img.lmelfd \nEB_ZLMELFS\t+= \$(BIN)/$img.zlmelfd\n";
-	print "EB_ELFDS\t+= \$(BIN)/$img.elfd   \nEB_ZELFS\t+= \$(BIN)/$img.zelfd\n";
-	print "EB_LMELFDS\t+= \$(BIN)/$img.lmelfd \nEB_ZLMELFS\t+= \$(BIN)/$img.zlmelfd\n";
+	print "EB_ELFDS\t+= \$(BIN)/$img.elfd   \nEB_ZELFDS\t+= \$(BIN)/$img.zelfd\n";
+	print "EB_LMELFDS\t+= \$(BIN)/$img.lmelfd \nEB_ZLMELFDS\t+= \$(BIN)/$img.zlmelfd\n";
 	print "EB_ISOS\t+= \$(BIN)/$img.iso\n";
 	print "EB_LISOS\t+= \$(BIN)/$img.liso\n";
 	print "EB_COMS\t+= \$(BIN)/$img.com\n";
@@ -289,6 +287,8 @@ foreach my $img (sort keys %buildent) {
 	print "EB_DSKS\t+= \$(BIN)/$img.dsk   \nEB_ZDSKS\t+= \$(BIN)/$img.zdsk\n";
 	print "EB_ELFS\t+= \$(BIN)/$img.elf   \nEB_ZELFS\t+= \$(BIN)/$img.zelf\n";
 	print "EB_LMELFS\t+= \$(BIN)/$img.lmelf \nEB_ZLMELFS\t+= \$(BIN)/$img.zlmelf\n";
+	print "EB_ELFDS\t+= \$(BIN)/$img.elfd   \nEB_ZELFDS\t+= \$(BIN)/$img.zelfd\n";
+	print "EB_LMELFDS\t+= \$(BIN)/$img.lmelfd \nEB_ZLMELFDS\t+= \$(BIN)/$img.zlmelfd\n";
 	print "EB_ISOS\t+= \$(BIN)/$img.iso\n";
 	print "EB_LISOS\t+= \$(BIN)/$img.liso\n";
 	print "EB_COMS\t+= \$(BIN)/$img.com\n";
