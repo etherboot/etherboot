@@ -158,6 +158,17 @@
 #			If defined, boots via Scalable Local Area Multicast.
 #       -DDOWNLOAD_PROTO_TFTM
 #			If defined, enables booting via TFTP Multicast mode.
+#	-DSAFEBOOTMODE
+#			Enables "Safe Boot Mode": Only boot images after verification
+#			with public-key-cryptography, this is WORK IN PROGRESS
+#			must be or'ed from one publickey storage method and
+#			one nbi-digest method value
+#			0  = store key in code (safeboot_key.h)
+#			1  = store key in ROM somewhere else (to do)
+#			0 = crypted digest in first 512 bytes -
+#			    as bytes 446...509 (compatible with most NBIs!?)
+#			16 = crypted digest as ELF block (to do... Eric?)
+#			So for now, only valid mode is "0" 
 #
 #	Console options:
 #

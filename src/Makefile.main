@@ -158,20 +158,20 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS+=	core/serial.c
+SRCS+=	core/serial.c core/rsa.c
 SRCS+=	core/main.c core/pci.c core/osloader.c core/nfs.c
 SRCS+=	core/misc.c core/config.c core/relocate.c core/heap.c
 SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/timer.c
 SRCS+=	core/proto_slam.c core/proto_tftm.c
-SRCS+=	core/isapnp.c
+SRCS+=	core/isapnp.c core/md5.c
 
 BOBJS+=		$(BIN)/main.o $(BIN)/osloader.o $(BIN)/nfs.o $(BIN)/misc.o
 BOBJS+=		$(BIN)/proto_slam.o $(BIN)/proto_tftm.o
-BOBJS+=		$(BIN)/floppy.o
+BOBJS+=		$(BIN)/floppy.o $(BIN)/md5.o
 BOBJS+=		$(BIN)/serial.o $(BIN)/timer.o  $(BIN)/relocate.o $(BIN)/heap.o
 BOBJS+=		$(BIN)/nic.o $(BIN)/disk.o
 BOBJS+=		$(BIN)/isapnp.o
-BOBJS+=		$(BIN)/pci.o
+BOBJS+=		$(BIN)/pci.o $(BIN)/rsa.o
 BOBJS+=		$(BIN)/vsprintf.o
 BLIB=		$(BIN)/bootlib.a 
 LIBS=		$(BLIB)

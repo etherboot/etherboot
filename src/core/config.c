@@ -39,6 +39,9 @@ void print_config(void)
 #ifdef	WINCE_IMAGE
 		"WINCE "
 #endif
+#ifdef	SAFEBOOTMODE
+		"SafeBoot "
+#endif
 		"for ");
 
 #ifdef CONFIG_PCI

@@ -1,0 +1,77 @@
+safeboot.txt
+
+SafeBoot is an extension to etherboot that allows the careful sysadmin
+to verify only those OS-images are started that he originally installed.
+This is - waiting for someone to contradict me - a method to 99,999%
+exclude the chance that someone else manipulates IP packets on the wire
+and so makes the client start a modified operating system.
+
+Security is achieved by distributing a "public key" with the etherboot
+software on the ROM chip, while the "private key" stays on the server -
+or somewhere else. Any NBI image has its MD5 checksum "signed" (with
+openssl, for those who don't trust homebrew solutions in cryptography:-)
+and on the client side this checksum can be verified. If some anomaly
+is detected, the client will interrupt booting and wait for some user
+to interactively confirm that booting shall proceed.
+
+For using SafeBoot, at this moment, the public key has to be stored
+inside the etherboot sources. So get them, change into the src/ dir
+and create a key (which then can be reused to sign as much images as
+you like) with "../contrib/safeboot/sign-nbi.pl gen".
+This will result in a file ".KEY" in the current directory. Enter
+the public key into the code with "../contrib/safeboot/sign-nbi.pl code"
+and move the .KEY file to any location you like - even a floppy might
+be a viable solution. Don't lose it, or you won't be able to create
+new signed images without reburning your ROMs!
+Then activate -DSAFEBOOTMODE=0 in your "Config" and compile the ROM.
+To sign any NBI (e.g. those from LTSP - which I did not test yet),
+enter "path/to/sign-nbi.pl sign <nbi-filename>". Take care that on
+issuing this command, ".KEY" must exist in the current working
+directory.
+
+For signature storage, a usually unused region of the NBI header
+is filled with 64 Bytes of data (bytes 446 to 509 are over-
+written). If you have a special NBI with lots of memory sections or
+lot of vendor information, it could happen that it is broken by this
+code - so better backup first. Anyhow, there could be some 12 or so
+memory sections, and I never saw a NBI with more than 6 used.
+
+
+The rsa.c code is copyrighted by RSAEuro - please look into that file
+(in the src/core/ directory) to find out more. It is used after
+confirmation of the copyright holder that this software may be
+distributed freely - as long as changes are reported to them and that
+the copyright notice stays attached. Import/Export from/to US is no
+problem anymore as the RSA algorithm has been freed somewhen in the
+spring 2000 by its US copyright holder RSA Inc.
+The supported file is crippled so only *decryption* of an rsa-
+signature can be performed yet. I hope this is no hindrance anymore
+to export to anywhere in the world. Behave.
+
+Changes to rsa.c, osloader.c mainly, are
+(C) 2003 Anselm Martin Hoffmeister, anselm AT hoffmeister-online DOT de
+Though I'm student at Rheinische Friedrich-Wilhelms-Universitaet Bonn,
+this work is not derived nor connected to any university activities.
+Hereby I set it under GPL, to be distributed freely.
+
+Questions welcome. Extensions too.
+
+I think Eric was it to have some ELF idea (ELF header could contain
+a checksum block like now the NBI header does). Perhaps he or someone
+else has fun doing so. There could be some other way to store the
+public key (e.g. in some other ROM, on a USB fingerprint stick or so),
+which needs some busy implementor too. The other way around - user
+needs to authenticate against server - could get some thoughts too,
+even though I cannot see practical use in this *yet*.
+
+Have a lot of fun,
+
+ Anselm Martin Hoffmeister
+ Stockholm Projekt Computer-Service
+ Haager Weg 26
+ D-53127 Bonn
+ GERMANY
+
+ anselm AT hoffmeister-online DOT de
+ phone +49.228.964 999 23
+ phone +49.160.638 999 4

@@ -1,0 +1,19 @@
+README
+======
+
+sign-nbi.pl (C) 2003 Anselm Martin Hoffmeister
+Free distribution, usage..., no guarantees. GPL.
+
+The supplied "sign-nbi.pl" file handles NBI signing for method [0] (signature
+stored in NBI headers, key in source code). It knows several ways of calling:
+
+sign-nbi.pl gen
+	Generate an openssl rsa key, 512 bits length. Stored to ".KEY" in current
+	directory, with permissions 0600.
+sign-nbi.pl code
+	Enters the Key Information into "include/safeboot_key.h" - so be sure to call
+	this only from inside the etherboot "src" directory
+	.KEY must be present in current directory
+sign-nbi.pl sign <filename>
+	Reads <filename> and enters the signature into bytes 446-509
+	.KEY must be present in current directory
