@@ -129,8 +129,8 @@ UNDIROMID:
 	 * PXE API, hence our stack is already in base memory.
 	 */
 	.equ	UNDICodeSize, _pxe_stack_size
-	.equ	UNDIDataSize, 0x1
-	.equ	UNDIStackSize, 0x1000
+	.equ	UNDIDataSize, _real_mode_stack_size
+	.equ	UNDIStackSize, _real_mode_stack_size
 UNDIROMID_end:	
 #endif	/* PXE_EXPORT */
 	
