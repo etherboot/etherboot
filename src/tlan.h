@@ -82,8 +82,12 @@ typedef	signed int 	s32;
 	 *
 	 ****************************************************************/
 
+#ifndef PCI_DEVICE_ID_NETELLIGENT_10_T2
 #define PCI_DEVICE_ID_NETELLIGENT_10_T2			0xB012
+#endif
+#ifndef PCI_DEVICE_ID_NETELLIGENT_10_100_WS_5100
 #define PCI_DEVICE_ID_NETELLIGENT_10_100_WS_5100	0xB030
+#endif
 #ifndef PCI_DEVICE_ID_OLICOM_OC2183
 #define PCI_DEVICE_ID_OLICOM_OC2183			0x0013
 #endif

@@ -9,7 +9,7 @@
 #include	"nic.h"
 
 #undef	INCLUDE_PCI
-#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN) || defined(INCLUDE_PRISM2_PLX) || defined(INCLUDE_PRISM2_PCI) || defined(INCLUDE_SUNDANCE) || defined(INCLUDE_PCNET32)
+#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN) || defined(INCLUDE_PRISM2_PLX) || defined(INCLUDE_PRISM2_PCI) || defined(INCLUDE_SUNDANCE) || defined(INCLUDE_PCNET32) || defined(INCLUDE_TLAN)
 	/* || others later */
 #define	INCLUDE_PCI
 #include	"pci.h"
@@ -75,7 +75,9 @@
 #ifdef INCLUDE_PCNET32
 #include "pcnet32_ids.h"
 #endif
-
+#ifdef INCLUDE_TLAN
+#include "tlan_ids.h"
+#endif
 /* other PCI NICs go here */
 #endif	/* INCLUDE_*PCI */
 
@@ -207,7 +209,7 @@ static const struct dispatch_table	NIC[] =
 	PCI_NIC( "W89C840F", w89c840_probe, w89c840_nics),
 #endif
 #ifdef	INCLUDE_TLAN
-	PCI_NIC( "Olicom 2326", tlan_probe, tlan_nics),
+	PCI_NIC( "Thunder Lan", tlan_probe, tlan_nics),
 #endif
 #ifdef	INCLUDE_PRISM2_PLX
 	PCI_NIC( "Prism2_PLX", prism2_plx_probe, prism2_plx_nics),
@@ -221,6 +223,7 @@ static const struct dispatch_table	NIC[] =
 #ifdef INCLUDE_PCNET32
 	PCI_NIC( "PCNet32", pcnet32_probe, pcnet32_nics),
 #endif
+		
 	/* this entry must always be last to mark the end of list */
 #ifdef INCLUDE_PCI
 	{ 0, 0, 0, 0 }
