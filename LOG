@@ -2825,7 +2825,7 @@ Released as Etherboot 5.3.14 aka 5.4RC5 (development)
 
 + Small ARMNOMMU architecture fixes by Toby Lorenz.
 
-+ Patch to Tulip driver for additional PCI ID by Ramesh Chandler.
++ Patch to Tulip driver for additional PCI ID by Ramesh Chander.
 
 + Proxy DHCP support, catrom.pl script, flat real mode support, and
 e1000 fixes by Michael Brown.
