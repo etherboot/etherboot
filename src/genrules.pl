@@ -18,6 +18,7 @@ my(%drivers_isa) = ();
 my(%roms_pci) = ();
 my(%roms_isa) = ();
 my(%ids_pci) = ();
+my(%multis) = ();
 
 my(%driver_dep, @new_dep, @collect_dep);
 
@@ -30,44 +31,52 @@ while(<>) {
 	($rom,$drv,$ids) = split;
 	# Driver name defaults to ROM name
 	$drv = $rom if (!defined($drv) or $drv eq '');
-	if (!-e "$drv.c") {
-		print STDERR "Driver file $drv.c not available, skipping...\n";
-		next;
-	}
+	if ( $drv =~ /^multi\((.*)\)/ ) {
+		# Container ROM for multiple drivers
+		# Container syntax in NIC file is
+		# rom_name	multi(driver1,driver2,...)	PCI_IDs(optional)
+		$drv = $rom;
+		@{$multis{$drv}} = split(',', $1);
+	} else {
+		if (!-e "$drv.c") {
+			print STDERR "Driver file $drv.c not available, skipping...\n";
+			next;
+		}
 
-	# Automatically generate the dependencies for the driver sources.
-	%driver_dep = ();
-	# The "$drv.c" is never inserted into %driver_dep, because it is
-	# treated specially below.
-	@new_dep = ("$drv.c");
-	while ($#new_dep >= 0) {
-		@collect_dep = ();
-		foreach $source (@new_dep) {
+		# Automatically generate the dependencies for the driver sources.
+		%driver_dep = ();
+		# The "$drv.c" is never inserted into %driver_dep, because it is
+		# treated specially below.
+		@new_dep = ("$drv.c");
+		while ($#new_dep >= 0) {
+			@collect_dep = ();
+			foreach $source (@new_dep) {
 # Warn about failure to open, then skip, rather than soldiering on with the read
-			unless (open(INFILE, "$source")) {
-				print STDERR "$source: $! (shouldn't happen)\n";
-				next;
-			}
-			while (<INFILE>) {
-				chomp($_);
+				unless (open(INFILE, "$source")) {
+					print STDERR "$source: $! (shouldn't happen)\n";
+					next;
+				}
+				while (<INFILE>) {
+					chomp($_);
 # This code is not very smart: no C comments or CPP conditionals processing is
 # done.  This may cause unexpected (or incorrect) additional dependencies.
 # However, ignoring the CPP conditionals is in some sense correct: we need to
 # figure out a superset of all the headers for the driver source.  The pci.h
 # file is treated specially, because we know which cards are PCI and not ISA.
-				next unless (s/^\s*#include\s*"([^"]*)".*$/$1/);
-				next if ($_ eq 'pci.h');
+					next unless (s/^\s*#include\s*"([^"]*)".*$/$1/);
+					next if ($_ eq 'pci.h');
 # Ignore system includes, like the ones in osdep.h
-				next if ($_ =~ m:^/:);
-				next if (exists $driver_dep{"$_"});
-				$driver_dep{"$_"} = "$_";
-				push(@collect_dep,($_));
+					next if ($_ =~ m:^/:);
+					next if (exists $driver_dep{"$_"});
+					$driver_dep{"$_"} = "$_";
+					push(@collect_dep,($_));
+				}
+				close(INFILE);
 			}
-			close(INFILE);
+			@new_dep = @collect_dep;
 		}
-		@new_dep = @collect_dep;
+		%{$drivers_deps{"$drv"}} = %driver_dep;
 	}
-	%{$drivers_deps{"$drv"}} = %driver_dep;
 
 	if (defined($ids)) {
 		@{$drivers_pci{"$drv"}}=() if (!defined($drivers_pci{"$drv"}));
@@ -104,6 +113,8 @@ foreach $key (sort keys %roms_isa) {
 # and the *.o and config-*.o rules
 print "\n# Rules to build the driver (or ROM for ISA/mixed drivers) object files\n";
 foreach $key (sort keys %drivers_pci) {
+	# Containers have separate *.o and config-*.o rules
+	next if defined $multis{$key};
 	($macro = $key) =~ tr/\-/_/;
 	$deps = join(' ', (sort keys %{$drivers_deps{$key}}));
 	# PCI drivers are compiled only once for all ROMs
@@ -117,6 +128,8 @@ bin32/config-$key.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 EOF
 }
 foreach $key (sort keys %drivers_isa) {
+	# Containers have separate *.o and config-*.o rules
+	next if defined $multis{$key};
 	$deps = join(' ', (sort keys %{$drivers_deps{$key}}));
 	foreach $key2 (@{$drivers_isa{$key}}) {
 		# ISA drivers are compiled for all used ROMs
@@ -130,6 +143,22 @@ bin32/config-$key2.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 
 EOF
 	}
+}
+foreach $key (sort keys %multis) {
+	# Containers have special rules:
+	# For config-*.o, need to define INCLUDE_* for all contained drivers
+	# (and also define TRY_ALL_DEVICES)
+	# For *.o, use partial linking from contained drivers' *.o files
+	$deps = join(' ', map { "bin32/$_.o" } sort @{$multis{$key}} );
+	$macro = join(' ', map { tr/\-/_/; "-DINCLUDE_$_" } sort @{$multis{$key}} );
+	print <<EOF;
+bin32/$key.o:	$deps
+	\$(LD32) -r -o \$@ $deps
+
+bin32/config-$key.o:	config.c \$(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	\$(CC32) \$(CFLAGS32) \U$macro\E -DTRY_ALL_DEVICES -o \$@ -c \$<
+
+EOF
 }
 
 # and generate the Rom rules
