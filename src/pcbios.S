@@ -289,32 +289,34 @@ meme820:
 	/* Allocate space on the stack for the maximum # of e820 structures */
 	popw	%ax
 	subw	%bx, %sp
-	movw	%sp, %di
+	movw	%sp, %di		/* point to the e820 array list */
 	pushw	%ax
-	xorl	%ebx, %ebx /* %ebx must be zero on first e820 int15 call */
+	xorl	%ebx, %ebx 		/* continuation pointer */
 
 jmpe820:
-	movl	$0xe820, %eax
-	movl	$SMAP, %edx
-	movl	$20, %ecx
+	movl	$0xe820, %eax		/* e820, upper word zeroed */
+	movl	$SMAP, %edx		/* ascii `SMAP' */
+	movl	$20, %ecx		/* size of e820rec */
+	pushw	%ss
+	popw	%es
 	/* %di was setup earlier */
-	int	$0x15
-	jc	bail820
+	int	$0x15			/* Make the call */
+	jc	bail820			
 
-	cmpl	$SMAP, %eax
+	cmpl	$SMAP, %eax		/* check the return is `SMAP' */
 	jne	bail820
 
 good820:	
 	/* If this is useable memory, we save it by simply advancing %di by
 	 * sizeof(e820rec)
 	 */
-	decl	%esi
+	decl	%esi			/* up to 32 entries */
 	testl	%esi,%esi
 	jz	bail820
 
 	addw	$20, %di
 again820:
-	cmpl	$0, %ebx	/* check to see if %ebx is set to EOF */
+	cmpl	$0, %ebx		/* check to see if %ebx is set to EOF */
 	jne	jmpe820
 
 bail820:
