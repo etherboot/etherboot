@@ -473,10 +473,12 @@ int loadkernel(const char *fname)
 			return proto->load(name + 1, load_block);
 		}
 	}
-#ifdef	DOWNLOAD_PROTO_TFTP
 	printf("Loading %@:%s ", arptable[ARP_SERVER].ipaddr, fname);
-#endif
+#ifdef	DEFAULT_PROTO_NFS
+	return nfs(fname, load_block);
+#else
 	return tftp(fname, load_block);
+#endif
 }
 
 

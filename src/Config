@@ -164,17 +164,19 @@
 #	-DMULTICAST_LEVEL2
 #			Support for receiving multicast packets
 #	-DDOWNLOAD_PROTO_TFTP
-#			If defined, boots by TFTP (recommended).
+#			If defined, includes TFTP support (recommended).
 #	-DDOWNLOAD_PROTO_NFS
-#			If defined, boots from a NFS mount and disables
-#			TFTP loading. Default is DOWNLOAD_PROTO_TFTP
-#			if neither is defined.
+#			If defined, includes NFS support.
+#	-DDEFAULT_PROTO_NFS
+#			If defined, makes NFS the default protocol instead
+#			of TFTP. Requires DOWNLOAD_PROTO_NFS.
 #	-DDOWNLOAD_PROTO_SLAM
-#			If defined, boots via Scalable Local Area Multicast.
+#			If defined, includes Scalable Local Area Multicast
+#			support.
 #	-DDOWNLOAD_PROTO_TFTM
-#			If defined, enables booting via TFTP Multicast mode.
+#			If defined, includes TFTP Multicast mode support.
 #	-DDOWNLOAD_PROTO_HTTP
-#			If defined, enables booting via HTTP.
+#			If defined, includes HTTP support.
 #	-DSAFEBOOTMODE
 #			Enables "Safe Boot Mode": Only boot images after verification
 #			with public-key-cryptography, this is WORK IN PROGRESS
