@@ -106,7 +106,7 @@ MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	9
-EXTRAVERSION=   pre2
+EXTRAVERSION=	pre3
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -204,6 +204,7 @@ $(BIN)/gcccheck:	Makefile Config
 		echo 'Your Perl version has a Unicode handling bug'; \
 		echo 'To workaround, execute this before compiling Etherboot:'; \
 		echo 'export LANG=$${LANG%.UTF-8}'; \
+		exit 1; \
 	fi
 
 include		arch/$(ARCH)/Makefile
