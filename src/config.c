@@ -446,6 +446,7 @@ struct nic	nic =
 	arptable[ARP_CLIENT].node,	/* node_addr */
 	packet,			/* packet */
 	0,			/* packetlen */
+	0,			/* name */
 	0,			/* priv_data */
 };
 
@@ -505,6 +506,7 @@ int eth_probe(int last_adapter)
 	for (t = NIC; t->nic_name != 0; ++t)
 	{
 		printf("[%s]", t->nic_name);
+		nic.name = t->nic_name;
 #ifdef	INCLUDE_PCI
 		eth_find_pci(t->pci_ids, t->pci_id_count, &dev);
 		if (dev.probe_id == 0) {
