@@ -756,6 +756,13 @@ a3c90x_probe(struct nic *nic, unsigned short *probeaddrs, struct pci_device *pci
            "Copyright 1999 LightSys Technology Services, Inc.\n"
            "Portions Copyright 1999 Steve Smith\n");
     printf("Provided with ABSOLUTELY NO WARRANTY.\n");
+#ifdef	CFG_3C90X_BOOTROM_FIX
+    if (INF_3C90X.isBrev)
+        {
+        printf("NOTE: 3c905b bootrom fix enabled; has side "
+	   "effects.  See 3c90x.txt for info.\n");
+	}
+#endif
     printf("-------------------------------------------------------"
            "------------------------\n");
 
