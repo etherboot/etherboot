@@ -3455,15 +3455,8 @@ e1000_poll (struct nic *nic, int retrieve)
 	nic->packetlen = rd->length;
 	fill_rx ();
 
-	/* Acknowledge interrupt.  If another packet has arrived by
-	 * the time we've done this, regenerate the interrupt, since
-	 * we can't handle multiple packets per poll(), and it seems
-	 * as though this card expects us to do so.
-	 */
+	/* Acknowledge interrupt. */
 	icr = E1000_READ_REG(&hw, ICR);
-	rd = rx_base + rx_last;
-	if (rd->status & E1000_RXD_STAT_DD)
-		e1000_irq ( nic, FORCE );
 
 	return 1;
 }
