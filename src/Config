@@ -240,9 +240,9 @@
 # You may wish to enable more of the features if the size of your ROM allows.
 
 
-# Select which busses etherboot should support
+# Select which buses etherboot should support
 CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
-CFLAGS+=	 -DCONFIG_PCMCIA
+#CFLAGS+=	-DCONFIG_PCMCIA
 
 # For prompting and default on timeout
 CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
