@@ -44,6 +44,13 @@
 #include "pci.h"
 #include "timer.h"
 
+#define EDEBUG 1
+#ifdef EDEBUG
+#define dprintf(x) printf x
+#else
+#define dprintf(x)
+#endif
+
 typedef unsigned char u8;
 typedef signed char s8;
 typedef unsigned short u16;
@@ -193,10 +200,6 @@ struct dmfe_private {
 	u8 wait_reset;		/* Hardware failed, need to reset */
 	u8 dm910x_chk_mode;	/* Operating mode check */
 	u8 first_in_callback;	/* Flag to record state */
-//      struct timer_list timer;
-
-	/* System defined statistic counter */
-//      struct net_device_stats stats;
 
 	/* Driver defined statistic counter */
 	unsigned long tx_fifo_underrun;
@@ -235,11 +238,6 @@ enum dmfe_CR6_bits {
 };
 
 /* Global variable declaration ----------------------------- */
-//static int __devinitdata printed_version;
-//static char version[] __devinitdata =
-// KERN_INFO DRV_NAME ": Davicom DM9xxx net driver, version "
-// DRV_VERSION " (" DRV_RELDATE ")\n";
-
 static int dmfe_debug;
 static unsigned char dmfe_media_mode = DMFE_AUTO;
 static u32 dmfe_cr6_user_set;
@@ -327,7 +325,6 @@ static void dmfe_reset(struct nic *nic)
 		db->cr0_data = 0;
 		db->dm910x_chk_mode = 1;	/* Enter the check mode */
 	}
-//      printf("Got Here 1\n");
 	/* Initilize DM910X board */
 	dmfe_init_dm910x(nic);
 
@@ -345,21 +342,19 @@ static void dmfe_init_dm910x(struct nic *nic)
 {
 	unsigned long ioaddr = BASE;
 
-	//DMFE_DBUG(0, "dmfe_init_dm910x()", 0);
-
 	/* Reset DM910x MAC controller */
 	outl(DM910X_RESET, ioaddr + DCR0);	/* RESET MAC */
 	udelay(100);
 	outl(db->cr0_data, ioaddr + DCR0);
 	udelay(5);
-//      printf("Got Here 2\n");
+
 	/* Phy addr : DM910(A)2/DM9132/9801, phy address = 1 */
 	db->phy_addr = 1;
 
 	/* Parser SROM and media mode */
 	dmfe_parse_srom(nic);
 	db->media_mode = dmfe_media_mode;
-//      printf("Got Here 3\n");
+
 	/* RESET Phyxcer Chip by GPR port bit 7 */
 	outl(0x180, ioaddr + DCR12);	/* Let bit 7 output port */
 	if (db->chip_id == PCI_DM9009_ID) {
@@ -367,7 +362,7 @@ static void dmfe_init_dm910x(struct nic *nic)
 		mdelay(300);	/* Delay 300 ms */
 	}
 	outl(0x0, ioaddr + DCR12);	/* Clear RESET signal */
-//      printf("Got Here 4\n");
+
 	/* Process Phyxcer Media Mode */
 	if (!(db->media_mode & 0x10))	/* Force 1M mode */
 		dmfe_set_phyxcer(nic);
@@ -379,23 +374,21 @@ static void dmfe_init_dm910x(struct nic *nic)
 	/* Initiliaze Transmit/Receive decriptor and CR3/4 */
 	dmfe_descriptor_init(nic, ioaddr);
 
+
 	/* tx descriptor start pointer */
 	outl(virt_to_le32desc(&txd[0]), ioaddr + DCR4);	/* TX DESC address */
 
 	/* rx descriptor start pointer */
 	outl(virt_to_le32desc(&rxd[0]), ioaddr + DCR3);	/* RX DESC address */
 
-//      printf("Got Here 5\n");
 	/* Init CR6 to program DM910x operation */
 	update_cr6(db->cr6_data, ioaddr);
 
 	/* Send setup frame */
 	if (db->chip_id == PCI_DM9132_ID) {
-//		printf("id_table\n");
 		dm9132_id_table(nic);	/* DM9132 */
 	} else {
 		send_filter_frame(nic);	/* DM9102/DM9102A */
-//		printf("filter_frame\n");
 	}
 
 	/* Init CR7, interrupt active bit */
@@ -439,17 +432,9 @@ static int dmfe_poll(struct nic *nic, int retrieve)
 			if (db->dm910x_chk_mode & 1)
 				printf("Silly check mode\n");
 
-/*	(calc_CRC(
-			if((db->dm910x_chk_mode & 1) && 
-				calc_CRC((
-
-*/
 			nic->packetlen = rxlen;
-//              printf("Packet Size = %d\n", nic->packetlen);
 			memcpy(nic->packet, rxb + (entry * RX_ALLOC_SIZE),
 			       nic->packetlen);
-//              hex_dump(nic->packet, nic->packetlen);
-
 		}
 	}
 	rxd[entry].rdes0 = cpu_to_le32(0x80000000);
@@ -471,23 +456,7 @@ static void dmfe_transmit(struct nic *nic, const char *dest,	/* Destination */
 
 	ptxb = &txb[db->cur_tx];
 
-//	printf("cur_tx: %d\n", db->cur_tx);
-
-	/* Transmit packet to dest MAC address.  You will need to
-	 * construct the link-layer header (dest MAC, source MAC,
-	 * type).
-	 */
-	/*
-	   unsigned int nstype = htons ( type );
-	   memcpy ( <tx_buffer>, dest, ETH_ALEN );
-	   memcpy ( <tx_buffer> + ETH_ALEN, nic->node_addr, ETH_ALEN );
-	   memcpy ( <tx_buffer> + 2 * ETH_ALEN, &nstype, 2 );
-	   memcpy ( <tx_buffer> + ETH_HLEN, data, size );
-	   <transmit_data> ( <tx_buffer>, size + ETH_HLEN );
-	 */
 	/* Stop Tx */
-	/* outl(inl(ioaddr + CSR6) & ~0x00002000, ioaddr + CSR6); */
-
 	outl(0, BASE + DCR7);
 	memcpy(ptxb, dest, ETH_ALEN);
 	memcpy(ptxb + ETH_ALEN, nic->node_addr, ETH_ALEN);
@@ -496,12 +465,10 @@ static void dmfe_transmit(struct nic *nic, const char *dest,	/* Destination */
 	memcpy(ptxb + ETH_HLEN, packet, size);
 
 	size += ETH_HLEN;
-//      size &= 0x0FFF;
 	while (size < ETH_ZLEN)
 		ptxb[size++] = '\0';
 
 	/* setup the transmit descriptor */
-//      txd[db->cur_tx].tx_buf_ptr = (u32) virt_to_bus(ptxb);
 	txd[db->cur_tx].tdes1 = cpu_to_le32(0xe1000000 | size);
 	txd[db->cur_tx].tdes0 = cpu_to_le32(0x80000000);	/* give ownership to device */
 
@@ -509,14 +476,9 @@ static void dmfe_transmit(struct nic *nic, const char *dest,	/* Destination */
 	outl(0x1, BASE + DCR1);
 	outl(db->cr7_data, BASE + DCR7);
 
-//n     hex_dump((const char *) ptxb , size);
-//ex_dump((const char *) &txb[db->cur_tx] , size);
-//      hex_dump((const char *) txd[db->cur_tx].tx_buf_ptr, size);
 	/* Point to next TX descriptor */
 	db->cur_tx++;
 	db->cur_tx = db->cur_tx % TX_DESC_CNT;
-
-
 }
 
 /**************************************************************************
@@ -524,16 +486,11 @@ DISABLE - Turn off ethernet interface
 ***************************************************************************/
 static void dmfe_disable(struct dev *dev)
 {
-	/* put the card in its initial state */
-	/* This function serves 3 purposes.
-	 * This disables DMA and interrupts so we don't receive
-	 *  unexpected packets or interrupts from the card after
-	 *  etherboot has finished. 
-	 * This frees resources so etherboot may use
-	 *  this driver on another interface
-	 * This allows etherboot to reinitialize the interface
-	 *  if something is something goes wrong.
-	 */
+	/* Reset & stop DM910X board */
+	outl(DM910X_RESET, BASE + DCR0);
+	udelay(5);
+	phy_write(BASE, db->phy_addr, 0, 0x8000, db->chip_id);
+
 }
 
 /**************************************************************************
@@ -557,6 +514,7 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
 
 	/* Read Chip revision */
 	pci_read_config_dword(pci, PCI_REVISION_ID, &dev_rev);
+	printf("Revision %d\n", &dev_rev);
 
 	/* point to private storage */
 	db = &dfx;
@@ -571,6 +529,8 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
 		db->chip_type = 1;	/* DM9102A E3 */
 	else
 		db->chip_type = 0;
+
+	dprintf(("Chip type : %d\n", db->chip_type));
 
 	/* read 64 word srom data */
 	for (i = 0; i < 64; i++)
@@ -589,19 +549,11 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
 
 	dmfe_reset(nic);
 
-//      if (board_found && valid_link)
-//      {
-	/* store NIC parameters */
-	//BASE = pci->ioaddr & ~3;
-//              nic->irqno = pci->irq;
 	/* point to NIC specific routines */
 	dev->disable = dmfe_disable;
 	nic->poll = dmfe_poll;
 	nic->transmit = dmfe_transmit;
-//nic->irq      = dmfe_irq;
-	return 1;
-//      }
-	/* else */
+
 	return 1;
 }
 
@@ -612,12 +564,7 @@ static int dmfe_probe(struct dev *dev, struct pci_device *pci)
 
 static void dmfe_descriptor_init(struct nic *nic, unsigned long ioaddr)
 {
-/*	struct tx_desc *tmp_tx;
-	struct rx_desc *tmp_rx;
-	unsigned char *tmp_buf;
-*/
 	int i;
-
 	db->cur_tx = 0;
 	db->cur_rx = 0;
 
@@ -632,10 +579,9 @@ static void dmfe_descriptor_init(struct nic *nic, unsigned long ioaddr)
 		txd[i].tx_buf_ptr = (u32) & txb[i];
 		txd[i].tdes0 = cpu_to_le32(0);
 		txd[i].tdes1 = cpu_to_le32(0x81000000);	/* IC, chain */
-//txd[i].tdes2 = cpu_to_le32(virt_to_bus(&txb[i]));
-		txd[i].tdes2 = cpu_to_le32(virt_to_bus(&txb[i]));	//virt_to_le32desc(&txb[i]);
-		txd[i].tdes3 = cpu_to_le32(virt_to_bus(&txd[i + 1]));	//virt_to_le32desc(&txd[i + 1]);
-		txd[i].next_tx_desc = cpu_to_le32(&txd[i + 1]);	//virt_to_le32desc(&txd[i + 1]);
+		txd[i].tdes2 = cpu_to_le32(virt_to_bus(&txb[i]));
+		txd[i].tdes3 = cpu_to_le32(virt_to_bus(&txd[i + 1]));
+		txd[i].next_tx_desc = cpu_to_le32(&txd[i + 1]);	
 	}
 	/* Mark the last entry as wrapping the ring */
 	txd[i - 1].tdes3 = virt_to_le32desc(&txd[0]);
@@ -645,7 +591,6 @@ static void dmfe_descriptor_init(struct nic *nic, unsigned long ioaddr)
 	for (i = 0; i < RX_DESC_CNT; i++) {
 		rxd[i].rx_skb_ptr = (u32) & rxb[i * RX_ALLOC_SIZE];
 		rxd[i].rdes0 = cpu_to_le32(0x80000000);
-//              rxd[i].rdes0 = cpu_to_le32(0);
 		rxd[i].rdes1 = cpu_to_le32(0x01000600);
 		rxd[i].rdes2 =
 		    cpu_to_le32(virt_to_bus(&rxb[i * RX_ALLOC_SIZE]));
@@ -727,59 +672,12 @@ static void dm9132_id_table(struct nic *nic)
 static void send_filter_frame(struct nic *nic)
 {
 
-//	printf("Got to send_filter_frame\n");
-//      struct dev_mc_list *mcptr;
 	struct tx_desc *txptr;
-
 	u16 *addrptr;
 	u8 *ptxb;
 	u8 *suptr;
 	int i;
 
-#ifdef WWWWW
-	txptr = &txd[0];
-	suptr = (u8) & txb[0];
-
-	/* Node address */
-	addrptr = (u16 *) nic->node_addr;
-	*suptr++ = addrptr[0];
-	*suptr++ = addrptr[1];
-	*suptr++ = addrptr[2];
-
-	/* broadcast address */
-	*suptr++ = 0xffff;
-	*suptr++ = 0xffff;
-	*suptr++ = 0xffff;
-
-	/* fit the multicast address */
-/*
-	for (mcptr = dev->mc_list, i = 0; i < mc_cnt;
-	     i++, mcptr = mcptr->next) {
-		addrptr = (u16 *) mcptr->dmi_addr;
-		*suptr++ = addrptr[0];
-		*suptr++ = addrptr[1];
-		*suptr++ = addrptr[2];
-	}
-*/
-	for (; i < 14; i++) {
-		*suptr++ = 0xffff;
-		*suptr++ = 0xffff;
-		*suptr++ = 0xffff;
-	}
-
-//      hex_dump(suptr, 60);
-//      db->tx_insert_ptr = txptr->next_tx_desc;
-	txptr->tdes1 = cpu_to_le32(0x890000c0);
-
-	/* Resource Check and Send the setup packet */
-	txptr->tdes0 = cpu_to_le32(0x80000000);
-	update_cr6(db->cr6_data | 0x2000, BASE);
-	outl(0x1, BASE + DCR1);	/* Issue Tx polling */
-	update_cr6(db->cr6_data, BASE);
-	//dev->trans_start = jiffies;
-
-
-#endif
 	/* point to the current txb incase multiple tx_rings are used */
 	ptxb = &txb[db->cur_tx];
 
@@ -794,13 +692,8 @@ static void send_filter_frame(struct nic *nic)
 	ptxb[8] = nic->node_addr[4];
 	ptxb[9] = nic->node_addr[5];
 
-
-//        hex_dump((const char *) ptxb, 192);
-//        hex_dump((const char *) txd[db->cur_tx].tx_buf_ptr, 192);
 	/* prepare the setup frame */
-//      db->tx_insert_ptr = txptr->next_tx_desc;
 	txd[db->cur_tx].tdes1 = cpu_to_le32(0x890000c0);
-
 	txd[db->cur_tx].tdes0 = cpu_to_le32(0x80000000);
 	update_cr6(db->cr6_data | 0x2000, BASE);
 	outl(0x1, BASE + DCR1);	/* Issue Tx polling */
@@ -959,7 +852,7 @@ static void dmfe_set_phyxcer(struct nic *nic)
 	phy_write(BASE, db->phy_addr, 4, phy_reg, db->chip_id);
 
 	/* Restart Auto-Negotiation */
-	if (db->chip_type && (db->chip_id == PCI_DM9102_ID))
+	if (db->chip_type) // && (db->chip_id == PCI_DM9102_ID))
 		phy_write(BASE, db->phy_addr, 0, 0x1800, db->chip_id);
 	if (!db->chip_type)
 		phy_write(BASE, db->phy_addr, 0, 0x1200, db->chip_id);
@@ -1177,8 +1070,6 @@ static void dmfe_parse_srom(struct nic *nic)
 	char *srom = db->srom;
 	int dmfe_mode, tmp_reg;
 
-//      DMFE_DBUG(0, "dmfe_parse_srom() ", 0);
-
 	/* Init CR15 */
 	db->cr15_data = CR15_DEFAULT;
 
@@ -1186,7 +1077,7 @@ static void dmfe_parse_srom(struct nic *nic)
 	if (((int) srom[18] & 0xff) == SROM_V41_CODE) {
 		/* SROM V4.01 */
 		/* Get NIC support media mode */
-		db->NIC_capability = *(u16 *) (&srom[34]);
+		db->NIC_capability = *(u16 *) (srom + 34);
 		db->PHY_reg4 = 0;
 		for (tmp_reg = 1; tmp_reg < 0x10; tmp_reg <<= 1) {
 			switch (db->NIC_capability & tmp_reg) {
@@ -1206,7 +1097,7 @@ static void dmfe_parse_srom(struct nic *nic)
 		}
 
 		/* Media Mode Force or not check */
-		dmfe_mode = *((int *) &srom[34]) & *((int *) &srom[36]);
+		dmfe_mode = *((int *) srom + 34) & *((int *) srom + 36);
 		switch (dmfe_mode) {
 		case 0x4:
 			dmfe_media_mode = DMFE_100MHF;
