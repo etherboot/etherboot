@@ -189,6 +189,7 @@ External prototypes
 /* main.c */
 struct Elf_Bhdr;
 extern int in_call(in_call_data_t *data, uint32_t opcode, va_list params);
+extern void console_init(void); 
 extern int main(in_call_data_t *data, va_list params);
 extern int loadkernel P((const char *fname));
 extern char as_main_program;

@@ -158,7 +158,7 @@ static inline void try_floppy_first(void)
 #endif /* TRY_FLOPPY_FIRST */	
 }
 
-static void console_init(void)
+void console_init(void)
 {
 #ifdef	CONSOLE_SERIAL
 	(void)serial_init();
