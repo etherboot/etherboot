@@ -241,18 +241,15 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zraw $(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/pr
 	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)
 	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
 
+# rules to generate a DOS loadable .com executable
+SUFFIXES +=	com
+$(BIN)/%.com.rt: $(BIN)/%.rt.o $(COMEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(COMEXIT)
+
+$(BIN)/%.com.prf: $(BIN)/%.rt.o $(COMENTRY) $(COMEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(COMENTRY) $(PREFIXOBJS) $< $(COMEXIT)
+
 $(BIN)/%.com: $(BIN)/%.com.prf.bin $(BIN)/%.com.rt.bin
-	cat $^ > $@
-
-# rules to generate a DOS loadable .exe executable
-SUFFIXES +=	exe
-$(BIN)/%.exe.rt: $(BIN)/%.rt.o $(EXEEXIT) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ $< $(EXEEXIT)
-
-$(BIN)/%.exe.prf: $(BIN)/%.rt.o $(EXEENTRY) $(EXEEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(EXEENTRY) $(PREFIXOBJS) $< $(EXEEXIT)
-
-$(BIN)/%.exe: $(BIN)/%.exe.prf.bin $(BIN)/%.exe.rt.bin
 	cat $^ > $@
 
 # rules to make a LILO loadable image
