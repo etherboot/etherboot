@@ -2640,6 +2640,8 @@ Released as Etherboot 5.2.4 (production)
 + Fixed bugs in genrules.pl, was generating duplicate undi.o entries and
 ISA .o files for etherboot-pci.
 
++ Ken Yap fixed issue when ASK_BOOT was defined
+
 + Doug Ambrisko fixed bugs in the FreeBSD loader.
 
 + Anders Nystrom provided a tiny via-rhine patch
@@ -2648,22 +2650,36 @@ ISA .o files for etherboot-pci.
 
 + Marty Connor conditionlized the compilation of PCMCIA and made UNDI dependant on PCBIOS
 
++ Marty Connor fixed compilation of liso images
+
 + Jon Passki provided a patch to fix bugs in IMAGE_FREEBSD and REQUIRE_VCI_ETHERBOOT
 
 + Fixed typo in vsprint 
 
 + Acknowledge NXTV (http://www.nxtv.com/) who funded the developement of the National Semiconductor ns83820 gigabit driver in the last release
 
-+ Timothy Legge cleaned up the pcnet32, r8169 and sundance drivers and standardize output
++ Timothy Legge cleaned up the pcnet32, r8169 and sundance drivers and standardize output and conditionalized isapnp
 
 + Timothy Legge added mii.h from Linux
 
 + Marty Connor fixed PCI_ROM Macros to make genrules.pl happy for several drivers
 
-+ Fixed an issue in the e1000 driver with 82544 and newer devices that 
++ Timothy Legge fixed an issue in the e1000 driver with 82544 and newer devices that 
 support port I/O.  Enabled port io for the reset.  Without the patch
 the e1000 could not reliably boot Linux on some cards.  Thanks to 
 James Pearson, Georg Baum and Marty Connor for help resolving this issue.
+
++ Small fix for AOUT_LYNX_KDI from Burton Hurff
+
++ Worked with Doug Ambrisko to resolve relocation issue introduced since 5.2.4
+
++ Marty Connor re-added the modrom utility
+
++ Minor Cleanups from Eric Biederman:
+	pic8259.c  - Allow it to compile with gcc-2.95 again
+	cs89x0.c   - Minor indentation fixes
+	ide_disk.c - Timer fix
+	config.c   - Remove extraneous space
 
 + Update to lance.c chip_table from Helge Wagner
 
