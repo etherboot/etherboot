@@ -157,7 +157,7 @@ typedef struct {
 	PXENV_STATUS_t	Status;
 	ADDR32_t	ProtocolIni;	/* Phys addr of a copy of the driver module */
 	uint8_t		reserved[8];
-} PACKED t_PXENV_UNDI_INITALIZE;
+} PACKED t_PXENV_UNDI_INITIALIZE;
 
 
 #define	MAXNUM_MCADDR		8
@@ -417,7 +417,7 @@ typedef struct {
 
 #define	PXENV_UDP_OPEN			0x0030
 typedef struct {
-	PXENV_STATUS_t	status;
+	PXENV_STATUS_t	Status;
 	IP4_t		src_ip;		/* IP address of this station */
 } PACKED t_PXENV_UDP_OPEN;
 
