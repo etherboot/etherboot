@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /* -*- Mode:C; c-basic-offset:4; -*- */
 
 /* 
@@ -30,6 +27,7 @@
 /* Revision History */
 
 /*
+  07 Dec 2003  timlegge - Enabled Multicast Support
   06 Dec 2003  timlegge - Fixed relocation issue in 5.2
   04 Jan 2002  Chien-Yu Chen, Doug Ambrisko, Marty Connor  Patch to Etherboot 5.0.5
      Added support for the SiS 630ET plus various bug fixes from linux kernel
@@ -757,18 +755,30 @@ sis900_init_rxd(struct nic *nic __unused)
 
 static void sis900_set_rx_mode(struct nic *nic __unused)
 {
-    int i;
+    int i, table_entries;
+    u32 rx_mode; 
+    u16 mc_filter[16] = {0};	/* 256/128 bits multicast hash table */
+    	
+    if((pci_revision == SIS635A_900_REV) || (pci_revision == SIS900B_900_REV))
+	table_entries = 16;
+    else
+	table_entries = 8;
 
-    /* Configure Multicast Hash Table in Receive Filter 
-       to reject all MCAST packets */
-    for (i = 0; i < 8; i++) {
+    /* accept all multicast packet */
+    rx_mode = RFAAB | RFAAM;
+    for (i = 0; i < table_entries; i++)
+		mc_filter[i] = 0xffff;
+					
+    /* update Multicast Hash Table in Receive Filter */
+    for (i = 0; i < table_entries; i++) {
         /* why plus 0x04? That makes the correct value for hash table. */
         outl((u32)(0x00000004+i) << RFADDR_shift, ioaddr + rfcr);
-        outl((u32)(0x0), ioaddr + rfdr);
+        outl(mc_filter[i], ioaddr + rfdr);
     }
-    /* Accept Broadcast packets, destination addresses that match 
+
+    /* Accept Broadcast and multicast packets, destination addresses that match 
        our MAC address */
-    outl(RFEN | RFAAB, ioaddr + rfcr);
+    outl(RFEN | rx_mode, ioaddr + rfcr);
 
     return;
 }
