@@ -20,7 +20,7 @@
 
 	.text
 	.arch i386
-	.section ".text16", "ax", @progbits
+	.section ".text16.nocompress", "ax", @progbits
 	.code16
 	
 	.equ	CR0_PE,1
@@ -93,15 +93,13 @@ _rm_in_call_far:
 _real_in_call:
 	/* Expand near return address to far return address
 	 */
-	pushw	%ax		/* padding */
+	pushw	%ax		/* Extend stack, store %ax */
 	pushfw
 	pushw	%bp
-	pushw	%ax
 	movw	%sp, %bp
 	movw	%cs, %ax
-	xchgw	%ax, 8(%bp)
-	movw	%ax, 6(%bp)
-	popw	%ax
+	xchgw	%ax, 6(%bp)
+	xchgw	%ax, 4(%bp)	/* also restores %ax */
 	popw	%bp
 	popfw
 	/* Fall through to _real_in_call_far */
@@ -130,12 +128,12 @@ _real_in_call_far:
 	pushl	%ebp
 	pushl	%eax
 
-	/* Copy opcode, set EB_CALL_FROM_REAL_MODE.  Copy it because
-	 * _in_call() and i386_in_call() expect it at a fixed
-	 * position, not as part of the va_list.
+	/* Copy opcode, set EB_CALL_FROM_REAL_MODE and EP_SKIP_OPCODE.
+	 * Copy it because _in_call() and i386_in_call() expect it at
+	 * a fixed position, not as part of the va_list.
 	 */
 	movl	RIC_OFFSET_ORIG_OPCODE(%esp), %eax
-	orl	$EB_CALL_FROM_REAL_MODE, %eax
+	orl	$(EB_CALL_FROM_REAL_MODE|EB_SKIP_OPCODE), %eax
 	movl	%eax, RIC_OFFSET_OPCODE(%esp)
 	
 	/* Set up call and return addresses */
@@ -155,9 +153,9 @@ _real_in_call_far:
 
 	/* Call to _in_call */
 	ret
+	/* opcode will be popped automatically thanks to EB_SKIP_OPCODE */
 
 2:	/* Continuation point */
-	addl	$4, %esp			/* Remove opcode from stack */
 	call	_prot_to_real			/* Return to real mode */
 	/* Note: the first two words of our segment register store
 	 * happens to be exactly what we need to pass as parameters to
@@ -171,8 +169,19 @@ _real_in_call_far:
 	popw	%fs
 	popw	%gs
 	addw	$2, %sp				/* skip pad */
+
+	/* Check for EB_SKIP_OPCODE */
+	pushw	%bp
+	movw	%sp, %bp
+	testl	$EB_SKIP_OPCODE, 6(%bp)
+	popw	%bp
+	jnz	1f
+	/* Normal return */
 	popfw					/* Restore interrupt status */
 	lret					/* Back to caller */
+1:	/* Return and skip opcode */
+	popfw
+	lret	$4
 
 /****************************************************************************
  * rm_etherboot_location: the current physical location of Etherboot.
@@ -191,7 +200,7 @@ rm_etherboot_location:	.long 0
  * stack in base memory.
  ****************************************************************************
  */
-		
+	
 	.globl _prot_to_real_prefix
 	.code32
 _prot_to_real_prefix:
@@ -527,8 +536,6 @@ _real_to_prot_suffix_end:
 real_to_prot_suffix_size:
 	.word	_real_to_prot_suffix_size
 
-	
-		
 rm_callback_interface_end:
 
 	.globl	_rm_callback_interface_size
@@ -551,6 +558,7 @@ rm_callback_interface_size:
  * callback interface.
  ****************************************************************************
  */
+	.section ".text16", "ax", @progbits
 	.globl	pxe_callback_interface
 	.code16
 pxe_callback_interface:
