@@ -103,6 +103,9 @@ $(BIN)/unnrv2b: $(BIN)/unnrv2b.tmp $(MAKEDEPS)
 $(BIN)/%.zimg: $(BIN)/%.z $(BIN)/unnrv2b arch/ia64/prefix/apply_unnrv2b_prefix.pl $(MAKEDEPS)
 	$(PERL) arch/ia64/prefix/apply_unnrv2b_prefix.pl $(BIN)/unnrv2b $< > $@
 
+# Placeholder; add no extra symbols to %.sym
+$(BIN)/%.zsym: $(BIN)/%.sym $(MAKEDEPS)
+	cp -f $< $@
 
 # rules to generate efi loadable image
 $(BIN)/efi_prefix.tmp:	$(BIN)/efi_prefix.o arch/ia64/prefix/efi_prefix.lds $(MAKEDEPS)
