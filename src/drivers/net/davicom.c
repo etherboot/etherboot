@@ -439,8 +439,8 @@ static void davicom_init_chain(struct nic *nic)
   /* Sten: Set 2 TX descriptor but use one TX buffer because
 	   it transmit a packet and wait complete every time. */
   for (i=0; i<NTXD; i++) {
-    txd[i].buf1addr = &txb[0];		/* Used same TX buffer */
-    txd[i].buf2addr = (unsigned char *)&txd[i+1]; /*  Point to Next TX desc */
+    txd[i].buf1addr = virt_to_bus(&txb[0]);	/* Used same TX buffer */
+    txd[i].buf2addr = virt_to_bus(&txd[i+1]);	/*  Point to Next TX desc */
     txd[i].buf1sz   = 0;
     txd[i].buf2sz   = 0;
     txd[i].control  = 0x184;           /* Begin/End/Chain */
@@ -459,8 +459,8 @@ static void davicom_init_chain(struct nic *nic)
 
   /* setup receive descriptor */
   for (i=0; i<NRXD; i++) {
-    rxd[i].buf1addr = &rxb[i * BUFLEN];
-    rxd[i].buf2addr = (unsigned char *)&rxd[i+1]; /* Point to Next RX desc */
+    rxd[i].buf1addr = virt_to_bus(&rxb[i * BUFLEN]);
+    rxd[i].buf2addr = virt_to_bus(&rxd[i+1]); /* Point to Next RX desc */
     rxd[i].buf1sz   = BUFLEN;
     rxd[i].buf2sz   = 0;        /* not used */
     rxd[i].control  = 0x4;		/* Chain Structure */
@@ -468,8 +468,8 @@ static void davicom_init_chain(struct nic *nic)
   }
 
   /* Chain the last descriptor to first */
-  txd[NTXD - 1].buf2addr = (unsigned char *)&txd[0];
-  rxd[NRXD - 1].buf2addr = (unsigned char *)&rxd[0];
+  txd[NTXD - 1].buf2addr = virt_to_bus(&txd[0]);
+  rxd[NRXD - 1].buf2addr = virt_to_bus(&rxd[0]);
   TxPtr = 0;
   rxd_tail = 0;
 }
@@ -500,8 +500,8 @@ static void davicom_reset(struct nic *nic)
   davicom_init_chain(nic);	/* Sten 10/9 */
 
   /* Point to receive descriptor */
-  outl((unsigned long)&rxd[0], ioaddr + CSR3);
-  outl((unsigned long)&txd[0], ioaddr + CSR4);	/* Sten 10/9 */
+  outl(virt_to_bus(&rxd[0]), ioaddr + CSR3);
+  outl(virt_to_bus(&txd[0]), ioaddr + CSR4);	/* Sten 10/9 */
 
   /* According phyxcer media mode to set CR6,
      DM9102/A phyxcer can auto-detect media mode */
