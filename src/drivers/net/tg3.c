@@ -8,6 +8,7 @@
 
 /* 11-13-2003	timlegge	Fix Issue with NetGear GA302T 
  * 11-18-2003   ebiederm        Generalize NetGear Fix to what the code was supposed to be.
+ * 01-06-2005   Alf (Frederic Olivie) Add Dell bcm 5751 (0x1677) support
  */
 
 #include "etherboot.h"
@@ -42,7 +43,7 @@ struct tg3 tg3;
 
 /*	(GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5705 ? \
 	 512 : 1024) */
- #define TG3_TX_RING_SIZE		512
+#define TG3_TX_RING_SIZE		512
 #define TG3_DEF_TX_RING_PENDING		(TG3_TX_RING_SIZE - 1)
 
 #define TG3_RX_RING_BYTES	(sizeof(struct tg3_rx_buffer_desc) * TG3_RX_RING_SIZE)
@@ -158,6 +159,8 @@ static void tg3_switch_clocks(struct tg3 *tp)
 	tp->pci_clock_ctrl = clock_ctrl;
 	
 	if ((GET_ASIC_REV(tp->pci_chip_rev_id) != ASIC_REV_5705) &&
+	    (!((GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5750)
+	       && (tp->tg3_flags & TG3_FLAG_ENABLE_ASF))) &&
 		(orig_clock_ctrl & CLOCK_CTRL_44MHZ_CORE)!=0) {
 		tw32_carefully(TG3PCI_CLOCK_CTRL, 
 			clock_ctrl | (CLOCK_CTRL_44MHZ_CORE | CLOCK_CTRL_ALTCLK));
@@ -484,6 +487,17 @@ static int tg3_phy_reset(struct tg3 *tp)
 			return err;
 		goto out;
 	}
+	if (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5750) {
+	  // Taken from Broadcom's source code
+	  tg3_writephy(tp, 0x18, 0x0c00);
+	  tg3_writephy(tp, 0x17, 0x000a);
+	  tg3_writephy(tp, 0x15, 0x310b);
+	  tg3_writephy(tp, 0x17, 0x201f);
+	  tg3_writephy(tp, 0x15, 0x9506);
+	  tg3_writephy(tp, 0x17, 0x401f);
+	  tg3_writephy(tp, 0x15, 0x14e2);
+	  tg3_writephy(tp, 0x18, 0x0400);
+	}
 	err = tg3_bmcr_reset(tp);
 	if (err)
 		return err;
@@ -676,7 +690,8 @@ static int tg3_setup_copper_phy(struct tg3 *tp)
 	int i, err;
 
 	tw32_carefully(MAC_STATUS,
-		(MAC_STATUS_SYNC_CHANGED | MAC_STATUS_CFG_CHANGED));
+		(MAC_STATUS_SYNC_CHANGED | MAC_STATUS_CFG_CHANGED
+		 | MAC_STATUS_LNKSTATE_CHANGED));
 
 	tp->mi_mode = MAC_MI_MODE_BASE;
 	tw32_carefully(MAC_MI_MODE, tp->mi_mode);
@@ -1534,10 +1549,23 @@ static void tg3_chip_reset(struct tg3 *tp)
 	 * REG_WRITE_BUG because we do all register writes indirectly.
 	 */
 
+	// Alf: here patched
 	/* do the reset */
 	val = GRC_MISC_CFG_CORECLK_RESET;
-	if (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5705)
+	if ((GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5705)
+	    || (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5750)) {
 		val |= GRC_MISC_CFG_KEEP_GPHY_POWER;
+	}
+
+	// Alf : Please VALIDATE THIS.
+	// It is necessary in my case (5751) to prevent a reboot, but
+	// I have no idea about a side effect on any other version.
+	// It appears to be what's done in tigon3.c from Broadcom
+	if (tp->pci_chip_rev_id != CHIPREV_ID_5750_A0) {
+	  tw32(GRC_MISC_CFG, 0x20000000) ;
+	  val |= 0x20000000 ;
+	}
+
 	tw32(GRC_MISC_CFG, val);
 
 	/* Flush PCI posted writes.  The normal MMIO registers
@@ -1620,7 +1648,14 @@ static int tg3_restart_fw(struct tg3 *tp, uint32_t state)
 		return -ENODEV;
 	}
 	if (!(tp->tg3_flags & TG3_FLAG_ENABLE_ASF)) {
-		state = DRV_STATE_SUSPEND;
+	  state = DRV_STATE_SUSPEND;
+	}
+
+	if ((tp->tg3_flags2 & TG3_FLG2_PCI_EXPRESS) &&
+	    (tp->pci_chip_rev_id != CHIPREV_ID_5750_A0)) {
+	  // Enable PCIE bug fix
+	  tg3_read_mem(0x7c00, &val);
+	  tg3_write_mem(0x7c00, val | 0x02000000);
 	}
 	tg3_write_mem(NIC_SRAM_FW_DRV_STATE_MBOX, state);
 	return 0;
@@ -1761,6 +1796,10 @@ static int tg3_setup_hw(struct tg3 *tp)
 
 	tw32(TG3PCI_MEM_WIN_BASE_ADDR, 0);
 
+	// This should go somewhere else
+#define T3_PCIE_CAPABILITY_ID_REG           0xD0
+#define T3_PCIE_CAPABILITY_ID               0x10
+#define T3_PCIE_CAPABILITY_REG              0xD2
 
 	/* Originally this was all in tg3_reset_hw */
 
@@ -1785,8 +1824,11 @@ static int tg3_setup_hw(struct tg3 *tp)
 	/* This works around an issue with Athlon chipsets on
 	 * B3 tigon3 silicon.  This bit has no effect on any
 	 * other revision.
+	 * Alf: Except 5750 ! (which reboots)
 	 */
-	tp->pci_clock_ctrl |= CLOCK_CTRL_DELAY_PCI_GRANT;
+
+        if (!(tp->tg3_flags2 & TG3_FLG2_PCI_EXPRESS))
+	  tp->pci_clock_ctrl |= CLOCK_CTRL_DELAY_PCI_GRANT;
 	tw32_carefully(TG3PCI_CLOCK_CTRL, tp->pci_clock_ctrl);
 
 	if (tp->pci_chip_rev_id == CHIPREV_ID_5704_A0 &&
@@ -2178,7 +2220,8 @@ static int tg3_setup_hw(struct tg3 *tp)
 	tw32(MAC_RCV_RULE_1,  0x86000004 & RCV_RULE_DISABLE_MASK);
 	tw32(MAC_RCV_VALUE_1, 0xffffffff & RCV_RULE_DISABLE_MASK);
 
-	if (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5705)
+	if ((GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5705)
+	    || (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5750))
 		limit = 8;
 	else
 		limit = 16;
@@ -2362,6 +2405,7 @@ static struct subsys_tbl_ent subsys_id_to_phy_id[] = {
 	{ PCI_VENDOR_ID_DELL, 0x0106, PHY_ID_BCM5401 }, /* JAGUAR */
 	{ PCI_VENDOR_ID_DELL, 0x0109, PHY_ID_BCM5411 }, /* MERLOT */
 	{ PCI_VENDOR_ID_DELL, 0x010a, PHY_ID_BCM5411 }, /* SLIM_MERLOT */
+	{ PCI_VENDOR_ID_DELL, 0x0179, PHY_ID_BCM5751 }, /* EtherXpress */
 
 	/* Compaq boards. */
 	{ PCI_VENDOR_ID_COMPAQ, 0x007c, PHY_ID_BCM5701 }, /* BANSHEE */
@@ -2623,6 +2667,7 @@ static int tg3_get_invariants(struct tg3 *tp)
 	uint32_t pci_state_reg, grc_misc_cfg;
 	uint16_t pci_cmd;
 	uint8_t  pci_latency;
+	uint32_t val ;
 	int err;
 
 	/* Read the subsystem vendor and device ids */
@@ -2708,6 +2753,19 @@ static int tg3_get_invariants(struct tg3 *tp)
 		pci_write_config_dword(tp->pdev, TG3PCI_PCISTATE, pci_state_reg);
 	}
 
+	/* determine if it is PCIE system */
+	// Alf : I have no idea what this is about...
+	// But it's definitely usefull
+	if (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5750) {
+	  val = tr32(TG3PCI_MSI_CAP_ID) ;
+	  if (((val >> 8) & 0xff) == T3_PCIE_CAPABILITY_ID_REG) {
+	    val = tr32(T3_PCIE_CAPABILITY_ID_REG) ;
+	    if ((val & 0xff) == T3_PCIE_CAPABILITY_ID) {
+	      tp->tg3_flags2 |= TG3_FLG2_PCI_EXPRESS ;
+	    }
+	  }
+	}
+
 	/* Force the chip into D0. */
 	tg3_set_power_state_0(tp);
 
@@ -2717,6 +2775,7 @@ static int tg3_get_invariants(struct tg3 *tp)
 
 	/* A few boards don't want Ethernet@WireSpeed phy feature */
 	if ((GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5700) ||
+	    (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5750) ||
 		((GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5705) &&
 			(tp->pci_chip_rev_id != CHIPREV_ID_5705_A0) &&
 			(tp->pci_chip_rev_id != CHIPREV_ID_5705_A1))) {
@@ -2906,6 +2965,12 @@ static int tg3_setup_dma(struct tg3 *tp)
 		tp->dma_rwctrl &= ~(DMA_RWCTRL_MIN_DMA << DMA_RWCTRL_MIN_DMA_SHIFT);
 	}
 
+	/*
+	  Alf : Tried that, but it does not work. Should be this way though :-(
+	if (tp->tg3_flags2 & TG3_FLG2_PCI_EXPRESS) {
+    	  tp->dma_rwctrl |= 0x001f0000;
+	}
+	*/
 	tp->dma_rwctrl |= DMA_RWCTRL_ASSERT_ALL_BE;
 
 	tw32(TG3PCI_DMA_RW_CTRL, tp->dma_rwctrl);
@@ -3298,6 +3363,7 @@ PCI_ROM(0x14e4, 0x1653, "tg3-5705",        "Broadcom Tigon 3 5705"),
 PCI_ROM(0x14e4, 0x1654, "tg3-5705_2",      "Broadcom Tigon 3 5705_2"),
 PCI_ROM(0x14e4, 0x165d, "tg3-5705M",       "Broadcom Tigon 3 5705M"),
 PCI_ROM(0x14e4, 0x165e, "tg3-5705M_2",     "Broadcom Tigon 3 5705M_2"),
+PCI_ROM(0x14e4, 0x1677, "tg3-5751",        "Broadcom Tigon 3 5751"),
 PCI_ROM(0x14e4, 0x1696, "tg3-5782",        "Broadcom Tigon 3 5782"),
 PCI_ROM(0x14e4, 0x169c, "tg3-5788",        "Broadcom Tigon 3 5788"),
 PCI_ROM(0x14e4, 0x16a6, "tg3-5702X",       "Broadcom Tigon 3 5702X"),
