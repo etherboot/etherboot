@@ -2,7 +2,7 @@ If you don't want to install development tools, but have access to the
 Web, you can get ROM images made on demand from http://rom-o-matic.net/
 
 For the impatient, "cd src" and "make". Your ROM images will be in
-bin32/xxx.rom and bin32/xxx.zrom, where xxx is the name of your NIC
+bin/xxx.rom and bin/xxx.zrom, where xxx is the name of your NIC
 driver.  See src/NIC for the list of supported NICs. The mknbi tools are
 now distributed separately from the Etherboot web site
 http://etherboot.sourceforge.net/  Mknbi is not needed for booting
