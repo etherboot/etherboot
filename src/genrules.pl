@@ -211,6 +211,7 @@ EOF
 		print <<EOF;
 \$(BIN)/$rom.img:	\$(BIN)/$img.img
 	cat \$< > \$@
+
 EOF
 	}
 }
