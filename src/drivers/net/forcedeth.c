@@ -901,6 +901,22 @@ static void forcedeth_disable(struct dev *dev __unused)
 	writel(np->orig_mac[1], base + NvRegMacAddrB);
 }
 
+/**
+ * is_valid_ether_addr - Determine if the given Ethernet address is valid
+ * @addr: Pointer to a six-byte array containing the Ethernet address
+ *
+ * Check that the Ethernet address (MAC) is not 00:00:00:00:00:00, is not
+ * a multicast address, and is not FF:FF:FF:FF:FF:FF.  The multicast
+ * and FF:FF:... tests are combined into the single test "!(addr[0]&1)".
+ *
+ * Return true if the address is valid.
+ */
+static inline int is_valid_ether_addr( u8 *addr ) {
+        const char zaddr[6] = {0,};
+                                                                                
+        return !(addr[0]&1) && memcmp( addr, zaddr, 6);
+}
+
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
@@ -946,26 +962,17 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 	nic->node_addr[3] = (np->orig_mac[0] >> 16) & 0xff;
 	nic->node_addr[4] = (np->orig_mac[0] >> 8) & 0xff;
 	nic->node_addr[5] = (np->orig_mac[0] >> 0) & 0xff;
-#ifdef LINUX
-	if (!is_valid_ether_addr(dev->dev_addr)) {
+
+	if (!is_valid_ether_addr(nic->node_addr)) {
 		/*
 		 * Bad mac address. At least one bios sets the mac address
 		 * to 01:23:45:67:89:ab
 		 */
-		printk(KERN_ERR
-		       "%s: Invalid Mac address detected: %02x:%02x:%02x:%02x:%02x:%02x\n",
-		       pci_name(pci_dev), dev->dev_addr[0],
-		       dev->dev_addr[1], dev->dev_addr[2],
-		       dev->dev_addr[3], dev->dev_addr[4],
-		       dev->dev_addr[5]);
-		printk(KERN_ERR
-		       "Please complain to your hardware vendor. Switching to a random MAC.\n");
-		dev->dev_addr[0] = 0x00;
-		dev->dev_addr[1] = 0x00;
-		dev->dev_addr[2] = 0x6c;
-		get_random_bytes(&dev->dev_addr[3], 3);
+		printf("Invalid Mac address detected: %!\n",
+		       nic->node_addr);
+		printf("Please complain to your hardware vendor.\n");
+		return 0;
 	}
-#endif
 	printf("%s: MAC Address %!, ", pci->name, nic->node_addr);
 
 	np->tx_flags =
