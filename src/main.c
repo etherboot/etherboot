@@ -942,7 +942,7 @@ int await_reply(int type, int ival, void *ptr, int timeout)
 	  3 days to find the cause for this :-(
 */
 			if (ip->frags & htons(0x3FFF)) {
-				printf("ALERT: got a fragmented packet - reconfigure your server\n", ntohs(ip->frags));
+				printf("ALERT: got a fragmented packet - reconfigure your server\n");
 				continue;
 			}
 			udp = (struct udphdr *)&nic.packet[ETH_HLEN +
