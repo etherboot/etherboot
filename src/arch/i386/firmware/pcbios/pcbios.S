@@ -400,6 +400,10 @@ BASEMEMSIZE - Get size of the conventional (base) memory
 **************************************************************************/
 	.globl	basememsize
 basememsize:
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+
 	pushl	$ 10f
 	pushl	$ 20f - 10f
 	call	_real_call
@@ -411,6 +415,9 @@ basememsize:
 20:	.code32
 	.previous
 	movw	%cx,%ax
+	popl	%edi
+	popl	%esi
+	popl	%ebx
 	ret
 
 /**************************************************************************
