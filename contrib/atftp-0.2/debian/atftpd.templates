@@ -1,0 +1,54 @@
+Template: atftpd/configure
+Type: boolean
+Default: true
+Description: Do you want to configure the server?
+ atftpd can have various parameters passed to it. These parameters
+ can optimise performances for servers that do heavy work. The
+ default values are suitable for most purposes.
+
+Template: atftpd/tftpd-timeout
+Type: string
+Default: 300
+Description: Server timeout.
+ How many seconds the main thread waits before exiting.
+
+Template: atftpd/retry-timeout
+Type: string
+Default: 5
+Description: Retry timeout.
+ How many seconds to wait for a reply before retransimitting a packet.
+
+Template: atftpd/maxthread
+Type: string
+Default: 100
+Description: Maximum number of threads.
+ Maximum number of concurrent threads that can be running.
+
+Template: atftpd/verbosity
+Type: select
+Choices: 7 (LOG_DEBUG), 6 (LOG_INFO), 5 (LOG_NOTICE), 4 (LOG_WARNING)
+Default: 5 (LOG_NOTICE)
+Description: Verbosity level.
+ Level of logging. 7 logs everything including debug logs. 1 will log
+ only the system critical logs. 5 (LOG_NOTICE) is the default value.
+
+Template: atftpd/logtofile
+Type: boolean
+Default: false
+Description: Log to file instead of syslog?
+ If your server do intensive tftp file servering, it is a good idea
+ to say yes. That will avoid to clutter your syslog with tftpd logs.
+
+Template: atftpd/logfile
+Type: string
+Default: /var/log/atftpd.log
+Description: Log file.
+ A file where tftpd write it's logs. This file will be made writable no
+ the user 'nobody' and group 'nogroup'.
+
+Template: atftpd/basedir
+Type: string
+Default: /tftpboot
+Description: Base directory.
+ The directory tree from where atftpd can server files. That directory
+ must be world readable.

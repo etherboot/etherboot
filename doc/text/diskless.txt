@@ -1,0 +1,330 @@
+  SLUG talk: Setting up a diskless Linux system
+  Ken Yap
+  30th January 1998
+  ____________________________________________________________
+
+  Table of Contents
+
+
+  1. Why network booting?
+
+  2. How does it work?
+
+  3. Server setup
+
+     3.1 Bootpd setup
+     3.2 Tftpd setup
+     3.3 Kernel image
+
+  4. Net loader
+
+  5. RH5 configuration
+
+  6. Gotchas and caveats
+
+  7. X-terminal
+
+  8. Other applications
+
+
+
+  ______________________________________________________________________
+
+  11..  WWhhyy nneettwwoorrkk bboooottiinngg??
+
+
+
+  +o  No moving parts, less noise and power consumption
+
+  +o  Centralised administration
+
+  +o  No tampering
+
+  +o  Standalone applications
+
+
+  22..  HHooww ddooeess iitt wwoorrkk??
+
+
+
+  1. Diskless computer (DC) broadcasts MAC address with bootp: Who am I?
+
+  2. Bootp or DHCP server on S looks up DB: Your IP address is X.X.X.X,
+     your server is S, your boot file is vmlinuz.myname, etc.
+
+  3. DC asks to load file from TFTP server on S: Please give me
+     vmlinuz.myname
+
+  4. S: Here you are (/tftpdir/vmlinuz.myname)
+
+
+
+     DC thinks a while (booting Linux).
+
+
+
+
+  5. DC: Please let me mount / with NFS
+
+  6. S: Here is your root FS (/tftpboot/_I_P_n_u_m_b_e_r).  (In 2.2 kernels,
+     /tftpboot/_d_o_m_a_i_n_n_a_m_e.)
+
+  7. DC: Please let me mount other NFSes (/usr, /home/, etc)
+
+  8. S: Here you are
+
+  9. DC: Runs intended application
+
+  Network boot ROM contains code to do 1 and 3.
+
+
+  33..  SSeerrvveerr sseettuupp
+
+
+
+  33..11..  BBoooottppdd sseettuupp
+
+
+
+  +o  Install bootpd
+
+  +o  Edit /etc/bootptab, typical line
+
+
+  xterm.ken.net.au:tc=.default:ht=ethernet:ha=08002BB7F380:\
+          ip=192.168.26.100:bf=vmlinuz.xterm
+
+
+
+
+  33..22..  TTffttppdd sseettuupp
+
+
+
+  +o  Install tftpd, make sure it's active in /etc/inetd.conf, typical
+     line
+
+
+  tftp dgram udp wait root /usr/sbin/tcpd in.tftpd /tftpdir
+
+
+
+
+  33..33..  KKeerrnneell iimmaaggee
+
+
+  You must compile a kernel for the DC that includes NFS support and NIC
+  driver compiled in (not modules).  Answer yes to _R_o_o_t _f_i_l_e _s_y_s_t_e_m _o_n
+  _N_F_S_? and _B_O_O_T_P _s_u_p_p_o_r_t_?
+
+
+
+  After building the kernel, run mknbi-linux from the Etherboot
+  distribution on it.  Install this _t_a_g_g_e_d _i_m_a_g_e as /tftpdir/_<_b_f
+  _a_t_t_r_i_b_u_t_e _i_n _b_o_o_t_p_t_a_b_>.
+
+
+  44..  NNeett llooaaddeerr
+
+
+  A small program that runs as a BIOS extension, usually on an EPROM on
+  the NIC. It handles the BOOTP query and TFTP loading and then
+  transfers control to the loaded image.
+  It uses TCP/IP protocols but the loaded image doesn't have to be
+  Linux.  The loaded image can be anything, even DOG.
+
+
+
+  There are two free implementations of TCP/IP net loaders: Etherboot
+  and Netboot: Etherboot uses built-in drivers while Netboot uses Packet
+  drivers.
+
+
+
+  They can also be loaded from a floppy for testing and for temporary
+  setups.
+
+
+  55..  RRHH55 ccoonnffiigguurraattiioonn
+
+
+  The DC requests to mount /tftpboot/_<_I_P _a_d_d_r_e_s_s _o_f _D_C_> (in 2.1 and
+  above: /tftpboot/_<_n_a_m_e _o_f _D_C _i_n _b_o_o_t_p_t_a_b_>) as its / by NFS from
+  server. You must export this from the server (rw, no_root_squash)
+  because the DC wants to write on it (log files, etc).
+
+
+
+  The / must contain /sbin, /bin, /lib, /etc, /var, /tmp, /root, /dev
+  and /proc.
+
+
+
+  /sbin, /bin, /lib/ can be a copy of an existing RH5 system. They can
+  be shared between all DCs. But hard links only. BTW, don't link to
+  server originals.
+
+
+
+  /etc, /var and /dev should be non-sharable copies. Customise
+  /etc/sysconfig/network, /etc/sysconfig/network-scripts/ifcfg-eth0,
+  /etc/fstab, /etc/conf.modules, and others. Turn off all network
+  services you don't need. Remove all stuff you don't need from /var,
+  e.g.  RPM db, lpd files.
+
+
+
+  /root and /proc should just exist. /tmp should exist and be mode 1777.
+
+
+
+  You probably want to create /usr and /home mount points. /usr can be
+  mounted ro.
+
+
+
+  About 10 MB per DC plus about 15 MB of shared files should be
+  sufficient.  BTW: if your DCs are quite similar, the kernel image can
+  also be shared.
+
+
+
+  Here is an illustrative script to create the first root filesystem.
+  Here is an illustrative script to duplicate the root filesystem.
+
+
+
+
+
+  66..  GGoottcchhaass aanndd ccaavveeaattss
+
+
+  RH5 wants to fsck the root FS. I stopped this with a /fastboot.  But
+  init script wants to delete it, so I did chattr +i /fastboot
+
+
+
+  Another way (unverified): ln -s /bin/true /sbin/fsck.nfs
+
+
+
+  /etc/localtime is a link to TZ file in /usr/share/...  I made it a
+  copy.
+
+
+
+  Turn off /etc/rc.d/rc6.d/K97network or it will disable the network
+  before root FS is done with.
+
+
+
+  X server wants to write into /usr/X11R6/lib/X11/xkb/compiled.  I made
+  this a link to /etc/X11/kbd/compiled
+
+
+
+  Remember your DC will keep appending to log files so have logrotate or
+  something deal with them at regular intervals.
+
+
+  77..  XX--tteerrmmiinnaall
+
+
+  The reason I started this. I had a 486DX2/66 left over from an upgrade
+  and I wanted to have a quiet X-terminal while the server makes noise
+  somewhere else.
+
+
+
+  486 or Pentium best. 16 MB should be the minimum. Put in the best
+  video card  you can get for it. Normal NIC should do.
+
+
+
+  On the server, make sure the DC is matched by a clause in
+  /etc/X11/xdm/Xaccess and comment out the :0 in /etc/X11/xdm/Xservers.
+  Then make sure that xdm is run from the init scripts.
+
+
+
+  On the client, run X -query _s_e_r_v_e_r
+
+
+
+  You will get the xdm login box and then all your X clients will run on
+  the server.
+
+
+
+  I have been using this for several weeks now.
+
+
+
+
+
+  88..  OOtthheerr aapppplliiccaattiioonnss
+
+
+  You could netboot routers, print servers (but should not be spooling
+  print server), standalone apps, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

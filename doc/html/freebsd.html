@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>FreeBSD network booting</TITLE>
+
+
+</HEAD>
+<BODY>
+Next
+Previous
+Contents
+<HR>
+<H1>FreeBSD network booting</H1>
+
+<H2>Doug Ambrisko (?)</H2>16 October 1999
+<P><HR>
+<EM>These are some notes on FreeBSD network booting with etherboot.</EM>
+<HR>
+<P>
+<P>Add kernel configuration via bootp to kernel.  You can see more options
+in LINT, these are a good set
+<P>
+<HR>
+<PRE>
+  # Kernel BOOTP support  
+  options         BOOTP           # Use BOOTP to obtain IP address/hostname
+  options         BOOTP_NFSROOT   # NFS mount root filesystem using BOOTP info
+  options         BOOTP_NFSV3     # Use NFS v3 to NFS mount root
+  options         BOOTP_COMPAT    # Workaround for broken bootp daemons.
+</PRE>
+<HR>
+<P>Setup Bootp server or DHCP server, here is an example entry for /etc/bootptab
+refer to the man page bootpd for more information.
+<P>
+<HR>
+<PRE>
+       .default:\
+             :sm=255.255.255.0:\
+             :gw=your.gateway.ip:\
+             :hn:ht=ether:vm=rfc1048:\
+             :rp="rootfs.ip:/rootfs/path":\
+             :T128="swapfs.ip:/swapfs/path":\
+             :T129=swapsize:\
+             :T130="root,mount,options":\
+             :T131="swap,mount,options":\
+             :ra=255.255.255.255:
+       client01:bf="kernel":ha=00400530d6d9:tc=.default:
+</PRE>
+<HR>
+<P>Enable bootpd in inetd by uncommented the "bootps" line.
+<P>Setup tftpd, copy your kernel into you tftpboot directory.  Note you should
+make the kernel accessible in both the rootfs and the tftpboot area.
+<P>Enable tftpd by uncommenting tftp in /etc/inetd.conf.  If you give the
+full kernel path then remove the /tftpboot directory option in inetd.conf.
+Again for more information look at man tftpd.
+<P>Send a SIGHUP to the inetd process.
+<P>Make sure you export the rootfs, in /etc/exports and SIGHUP mountd if
+needed.  Refer to the man page mountd for more information.
+<P>The swapfile if specified will need to be created.  Just do a "dd" of
+/dev/zero for the size you want into the path specified in the bootptab
+with the IP address appended for example:
+<HR>
+<PRE>
+        /usr/exports/swap/swap.192.168.1.1
+</PRE>
+<HR>
+<P>Now you should be ready to boot diskless.
+<P>Note there are some useful boot time configuration file in /etc/rc.diskless.
+<P>Note2 NFS mount of root was broken in current it has been fixed.
+<P>
+<HR>
+Next
+Previous
+Contents
+</BODY>
+</HTML>

@@ -1,0 +1,32 @@
+Etherboot 5.0.0
+
+This is a production release. Some important notes have been retained
+from the 4.7 development series. Please read the documentation for more
+details.
+
+mknbi is now distributed separately from Etherboot to allow independent
+development.
+
+Etherboot should make PnP ROMs properly now. A long-standing bug in the
+headers has been tracked down. However some faulty old BIOSes are out
+there so I have written a Perl script swapdevids.pl to switch the header
+around if necessary. You'll have to experiment with it both ways to find
+out which works. Or you could dump a ROM image that works (e.g. RPL, PXE
+ROM) using the Perl script disrom.pl. The fields to look at are Device
+(base, sub, interface) Type. It should be 02 00 00, but some BIOSes may
+want 00 00 02 due to an ambiguity in the original specification.
+
+You need gas 2.9.5 or later to be able to assemble loader.S and
+boot1a.s.
+
+It has been reported that RH 7.0's gcc ("gcc 2.96") generates buggy code
+when compiling Etherboot. Please do not use it. If you must compile on
+RH 7.0, use kgcc.
+
+If you are booting kernel 2.2.18 or .19, you MUST specify ip=dhcp (or
+bootp or one of the other options, see kernel Documentation/nfsroot.txt)
+if you want the kernel to do IP autoconfiguration, even though you have
+included the option in your kernel build. The alternative is to use
+ip=rom and then the kernel will use values passed down by Etherboot.
+For me at least, kernel IP autoconfiguration is instant and any concerns
+about it slowing down the booting are misplaced.

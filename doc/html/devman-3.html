@@ -1,0 +1,314 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot Developers Manual: The execution environment of Etherboot</TITLE>
+ <LINK HREF="devman-4.html" REL=next>
+ <LINK HREF="devman-2.html" REL=previous>
+ <LINK HREF="devman.html#toc3" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="devman-4.html">Next</A>
+<A HREF="devman-2.html">Previous</A>
+<A HREF="devman.html#toc3">Contents</A>
+<HR>
+<H2><A NAME="extension"></A> <A NAME="s3">3. The execution environment of Etherboot</A></H2>
+
+<H2><A NAME="ss3.1">3.1 The network booting process</A>
+</H2>
+
+<P>
+<P>Since this is the part that the user sees first, let us first demystify
+how network booting works.
+<P>
+<P>
+<P>From time immemorial, well actually since the IBM XT appeared on the
+market, the PC architecture has a mechanism for invoking "extension
+BIOSes". The original reason for this mechanism was to allow adaptor
+cards that the main BIOS didn't know how to deal with to carry ROMs with
+initialisation code or drivers.  An early example was the XT hard disk
+controller. The main BIOS of XTs only knew how to boot from floppies.
+When an XT hard disk controller is added, the code in the ROM on the
+controller appears in the memory space of the PC and is called as part
+of the machine initialisation. Another example is the BIOSes on VGA
+video adaptor cards, although strictly speaking that is a special case
+in terms of ROM address. When network adaptors were made for the PC, it
+was a natural step to put ROMs on them that could contact a server for
+network booting.
+<P>
+<P>
+<P>How does the main BIOS know that the code in the ROM is to be executed
+and why does it not execute some random code by accident? The ROM code
+has several conditions placed on it.
+<P>
+<UL>
+<LI>The ROM must start on a 2kB boundary in the memory space, between
+0xC8000 and 0xEE000, although some main BIOSes scan outside these limits.
+</LI>
+<LI>The first two bytes of the ROM must be 55 AA hex.
+</LI>
+<LI>The third byte of the ROM should contain the number of bytes in
+the ROM code divided by 512. So if the ROM code is 16kB long, then this
+byte would hold 20 hex (32 decimal).
+</LI>
+<LI>All the bytes in the ROM (specified by the length byte just
+mentioned) must checksum to 8 bits of binary zero. The sum is formed by
+8 bit addition of all the bytes, throwing away the carry. Note that
+there is not a particular location designated as the "checksum byte".
+Normally the ROM building process alters an unused byte somewhere to
+fulfil the checksum condition.
+</LI>
+</UL>
+<P>If such a ROM is detected and validated by a scan, then the main BIOS
+does a far call to ROMSEG:3, where ROMSEG is the segment of the ROM and
+3 is the offset to transfer control to the discovered extension BIOS.
+Typically a network boot ROM does not take full control at this point.
+Instead the normal procedure to do some initialisation or probing of the
+hardware and then plant a vector that will be called when the BIOS is
+ready to boot the OS. The vector used for this purpose is normally
+interrupt 0x19 although interrupt 0x18 is sometimes used.
+<P>
+<P>
+<P>For PCI plug and play ROMs things are more complicated. For the full
+story, you need to get the specifications from Phoenix and Intel. Here
+is a quick summary.
+<P>
+<UL>
+<LI>The boot ROM must satisfy the requirements for ROMs listed above
+(called legacy ROMs).
+</LI>
+<LI>There are two additional structures in the ROM, the PCIR structure
+and the PnP structure. These structures are pointed to by offsets in two
+16-bit words at 0x18 and 0x1A bytes respectively from the beginning of
+the ROM. As a double check, the structures each begin with 4 magic
+bytes, PCIR and $PnP respectively.
+</LI>
+<LI>The PCIR structure contains the vendor and device IDs of the
+network adaptor, and these must match the IDs that is stored in the
+adaptor's PCI configuration memory, or the ROM will be ignored.
+</LI>
+<LI>The PnP structure contains various vectors. The one of interest to
+us is the Boot Execution Vector (BEV). This points to the starting point
+of the boot ROM code. The first time the ROM is detected, it is called
+at the ROMSEG+3 entry point as for legacy ROMs. This entry point must
+indicate, by returning 0x20 in register AX, that it is a network boot
+device. When the BIOS is ready to boot, it calls the BEV. Note that the
+BIOS only calls the BEV if the BIOS configuration specifies the device
+in the boot sequence.
+</LI>
+<LI>There is a checksum for the PnP structure in addition to the
+overall checksum in legacy ROMs.
+</LI>
+</UL>
+<P>
+<P>
+<P>The network boot process then works like this:
+<P>
+<OL>
+<LI>The main BIOS detects the Etherboot ROM as an extension BIOS and
+passes control to it with a far call.
+</LI>
+<LI>For legacy ROMs, the Etherboot code hooks itself to interrupt 0x19
+and returns control to the main BIOS. For PnP ROMs the Etherboot code
+indicates that it is a bootable device.
+</LI>
+<LI>The main BIOS finishes initialising other devices and boots the
+operating system by calling interrupt 0x19.
+</LI>
+<LI>The Etherboot code gains control.
+</LI>
+<LI>It initialises the network hardware so that it is ready to send
+and receive packets.
+</LI>
+<LI>It sends a Boot Protocol (
+<A HREF="http://www.ietf.org/rfc/rfc951.txt">BOOTP</A>) or Dynamic Host
+Configuration Protocol (
+<A HREF="http://www.ietf.org/rfc/rfc2131.txt">DHCP</A>) broadcast query packet.
+An alternative is Reverse Address Resolution Protocol (
+<A HREF="http://www.ietf.org/rfc/rfc903.txt">RARP</A>)
+</LI>
+<LI>Assuming a reply is received, the Etherboot code decodes the
+fields of the reply, sets its IP address and other parameters, and sends
+a Trivial File Transfer Protocol (
+<A HREF="http://www.ietf.org/rfc/rfc1350.txt">TFTP</A>) request to download the
+file. An alternative loading protocol is Network File System (
+<A HREF="http://www.ietf.org/rfc/rfc1094.txt">NFS</A>) protocol.  In
+this instance a mount of the remote filesystem is done (with the bare
+minimum of features) and the boot file is read off the filesystem.
+</LI>
+<LI>The file to be loaded is in a special format, it contains a
+"directory" in the first block that specifies where in memory the
+various pieces of the file are to be loaded. Formats that are supported
+are 
+<A HREF="spec.html">tagged</A> or Execution and Loader Format
+(ELF).
+</LI>
+<LI>Etherboot transfers control to the loaded image.
+</LI>
+</OL>
+<P>
+<P>
+<P>Notice no assumption was made that the image is a Linux kernel. Even
+though loading Linux kernels is the most common use of Etherboot, there
+is nothing in the procedure above that is Linux specific. By creating
+the loaded file appropriately, different operating systems, e.g.
+FreeBSD, DOS, can be loaded.
+<P>
+<P>
+<P>In the case of a Linux kernel, there is some additional work to be done
+before the kernel can be called, so the segment of the file that
+Etherboot transfers to is not the startup segment of the kernel, but an
+initial stub, whose code is in mknbi/first32.c. This stub has several
+tasks, which either cannot be done by Etherboot, or should not be done
+by Etherboot because they are Linux specific. These are: to append
+kernel arguments from option 129 of the BOOTP or DHCP reply; to copy and
+expand special kernel parameters, in particular the vga= and the ip=
+parameters and then to point the kernel to the location of the parameter
+area; to move the RAMdisk, if there is one, to the top of memory (this
+last cannot be done at image creation time since the size of the RAM of
+the machine is not known then).
+<P>
+<P>
+<P>The kernel parameters are passed to the kernel as a pointer to the
+string written in a certain location in the original bootblock (boot.S
+from the Linux kernel sources). This is a 16-bit pointer and is the
+offset of the parameter area from the base of the bootblock. This is one
+reason why the parameter area must be in the same 64kB as the bootblock.
+If the components of Etherboot are to be relocated elsewhere, e.g.
+0x80000 upwards, then they should be relocated together.  In version
+0x0202 and above of the Linux setup segment, this can be passed instead
+as a absolute 32-bit pointer in a certain location in the setup segment.
+This eases the relocation requirements.  The address of the RAM disk, if
+it exists, is passed to the kernel as a 32-bit address in a certain
+location in the setup segment (setup.S from the Linux kernel sources).
+This is filled in with the final location of the RAM disk after it has
+been moved to the top of memory.
+<P>
+<H2><A NAME="ss3.2">3.2 To compress or not to compress, that is the question</A>
+</H2>
+
+<P>
+<P>We simplified things a little when we talked about how the main BIOS
+detects the Etherboot ROM and passes control to it. At this point the
+code is executing from ROM. There are two problems with executing from
+ROM where x86 PCs are concerned.
+<P>
+<OL>
+<LI>The x86 architecture does not easily support Position Independent
+Code (PIC). The main drawback when executing C code is referencing
+global entities (global and static variables). Since the ROM address is
+not known when building the image, addresses cannot be assigned to
+global entities. More advanced environments have a dynamic loader for
+adjusting references just before use. Etherboot has no such help. If the
+code were written in assembler, we could use a convention like always
+referencing global entities as offsets from a particular register. But
+we don't want to write in assembler and we don't have control over what
+the C compiler generates.
+</LI>
+<LI>C code assumes that data locations are writable. ROM locations are
+not writable, by definition. One could remedy this by locating the
+writable entities in a RAM segment, but this causes more complication.
+</LI>
+</OL>
+<P>For the reasons above, Etherboot copies itself into a known RAM area and
+executes from there. The area chosen is the 64kB segment starting at
+0x90000. The area from 0x90000 to 0x93FFF is reserved for various code
+and data structures needed by the kernel and the Etherboot code starts
+at 0x94000. This gives us about 48kB of room for code, data, initialised
+data and stack. There is no heap; Etherboot does not have dynamic
+storage allocation. This keeps things simple, makes it a bit less prone
+to programming errors, and also acts as a check against unthinking use
+of memory by programmers.
+<P>
+<P>
+<P>One thing that we usually want to do is minimise the size of the ROM
+used to hold Etherboot. Even if the network adapter accommodates large
+ROMs, there are many claims on the area between 0xC8000 to 0xEE000, by
+other extension BIOSes, by peripherals that use shared memory, and so
+forth. Etherboot allows the code to be compressed before loading into
+ROM, and then when the ROM is executed, a special header decompresses
+the code into memory. ROM images that are compressed are designated by
+a suffix of .lzrom. By the magic or horror, depending on how you view
+it, of conditional code using, or abusing, the C preprocessor, both the
+normal and the decompressing loaders are generated from one source file,
+loader.S. The compressor is a C program called lzhuf.c.
+<P>
+<P>
+<P>So to summarise, if the loader is normal, it simply copies the payload,
+i.e. the bytes after itself, to the final execution environment and
+jumps to it. If it is a decompressing loader, it copies all of the ROM
+contents to a temporary location starting at 0x80000 and continues
+execution from there. The reason for this first relocation is so that
+execution goes faster. Typically ROM has longer access times than RAM and
+is often accessed 8 bits at a time. The glue chipsets used in
+motherboards add wait states so that the CPU can interface with
+relatively slow ROM. This is to reduce ROM costs, as execution speed is
+not important at boot time. By copying itself to RAM first, the
+decompression goes faster.  After relocation and resumption of
+execution, the loader decompresses the payload into the final execution
+location and jumps to it.
+<P>
+<P>
+<P>If you have understood by now that the loader must be written as PIC and
+in assembler, give youself a pat on the back.
+<P>
+<H2><A NAME="ss3.3">3.3 Real and protected mode</A>
+</H2>
+
+<P>
+<P>One of the complications of the x86 architecture is the existence of the
+real and protected modes of execution. To simplify a long story, if we
+want to execute 32-bit code as generated by the C compiler, we need to
+be in protected mode. However the processor boots up in real mode, which
+is 16-bit. So the loaders must execute in real mode. In addition, the
+main BIOS calls the extension BIOS in real mode. So at least the
+prologue of the main code must be in real mode. BIOS calls must also be
+in real mode. In Etherboot this is handled by a pair of functions
+(written in assembler of course) called prot_to_real and real_to_prot
+that do the switching. The C code doesn't call this directly. They are
+implicitly called from routines that use BIOS services, such as printing
+characters to the screen or reading characters from the keyboard.
+<P>
+<P>
+<P>In previous versions of Etherboot, the 16-bit code was written for
+as86/nasm. Fortunately they have now been translated to assemble using
+the .code16 mode of the GNU assembler, so less extra tools are needed
+now.
+<P>
+<P>
+<P>In the case of Linux tagged images, the initial segment first32.c runs
+in protected mode. The segment uses the same stack as Etherboot. Since
+the call to the initial segment goes through real mode first, this means
+that the stack must be located in the same 64kB segment as the Etherboot
+body. To be specific, say the Etherboot code runs with a base of
+0x94000. The stack is near the end of the low 640kB of memory, i.e.
+0xA0000. This means that the real mode stack segment register (%ss) has
+the value 0x9400 and the real mode stack pointer (%sp) is a little less
+than 0xC000 (the difference between the top of memory and the base of
+the Etherboot segment). When first32.c is called, the code at the
+beginning does a calculation to work out what the 32-bit extended stack
+pointer (%esp) should be set to. This is done by adding the 16-bit stack
+pointer (%sp) to the relocation base of Etherboot (%ss * 16). This
+calculation will not produce the correct result if first32.c is not in
+the same 64kB as Etherboot.  Currently first32.c is loaded at 0x92200 so
+this condition is satisfied.  But it will fail if first32.c is called
+from something other than Etherboot, e.g. from another boot ROM, or if
+mknbi.pl has been changed to load first32.c somewhere else, e.g.
+0x82200.
+<P>
+<P>
+<P>The remedy for this situation is for first32.c to establish its own
+stack, and to copy the arguments on the stack that are passed from
+Etherboot from the old stack. The program menu-simple.c which is called
+by the initial code in startmenu.S uses this strategy. Not only do you
+have to copy the arguments, but you also have to establish another GDT,
+because the old GDT will be using a different 16-bit segment. Recall
+that the mode switching routines prot_to_real and real_to_prot assume
+that protected mode and real mode share the same stack.
+<P>
+<HR>
+<A HREF="devman-4.html">Next</A>
+<A HREF="devman-2.html">Previous</A>
+<A HREF="devman.html#toc3">Contents</A>
+</BODY>
+</HTML>

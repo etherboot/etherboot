@@ -1,0 +1,39 @@
+#!/bin/sh
+if [ $# != 1 ]
+then
+	echo Usage: $0 client-IP-addr-or-name
+	exit 1
+fi
+
+cd /
+
+umask 022
+
+mkdir -p /tftpboot/$1
+
+# just make these ones
+for d in home mnt proc tmp usr
+do
+	mkdir /tftpboot/$1/$d
+done
+
+chmod 1777 /tftpboot/$1/tmp
+
+touch /tftpboot/$1/fastboot
+chattr +i /tftpboot/$1/fastboot
+
+# copy these ones
+cp -a bin lib sbin dev etc root var /tftpboot/$1
+
+cat <<EOF
+Now, in /tftpboot/$1/etc, edit
+
+	sysconfig/network
+	sysconfig/network-scripts/ifcfg-eth0
+	fstab
+	conf.modules
+
+and configure
+
+	rc.d/rc3.d
+EOF

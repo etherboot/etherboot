@@ -1,0 +1,68 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot Developers Manual: Frequently asked questions</TITLE>
+ <LINK HREF="devman-7.html" REL=next>
+ <LINK HREF="devman-5.html" REL=previous>
+ <LINK HREF="devman.html#toc6" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="devman-7.html">Next</A>
+<A HREF="devman-5.html">Previous</A>
+<A HREF="devman.html#toc6">Contents</A>
+<HR>
+<H2><A NAME="s6">6. Frequently asked questions</A></H2>
+
+<P>
+<P>
+<H2><A NAME="ss6.1">6.1 How portable is Etherboot?</A>
+</H2>
+
+<P>
+<P>Now and then, the question is raised whether Etherboot is portable to
+other machine platforms, i.e. not x86.  Etherboot is not per se a
+portable program as it only handles one architecture. Portability was
+not a goal simply because the only development platform available to me
+that did not already have a boot ROM capability was the x86 platform.
+(Sparcs and Alphas already have network booting capability in their boot
+ROMs.)
+<P>
+<P>
+<P>The portability, or rather, lack of portability, of Etherboot isn't
+simply an issue of the assembler code. Etherboot needs and assumes
+certain hooks into the running environment, e.g. the extension BIOS
+mechanism that invokes Etherboot, the BIOS calls made by Etherboot, and
+the memory layout of the Etherboot components. The core routines of
+Etherboot that handle the address configuration and network loading
+should be machine-independent, but there may be byte-order bugs lurking,
+this has not been checked. The drivers are hardware dependent of course,
+so the ISA adaptor drivers are no use anywhere else. The PCI adaptor
+drivers should work on other machines, but the PCI subsystem that
+handles adaptor detection is x86 PCI BIOS specific.
+<P>
+<P>
+<P>Here are the low-level services that need to provided: writing and
+reading from the console, determining the size of memory, obtaining the
+time of day, inserting a boot vector to be called, and a microsecond
+timer for short delays.  Depending on the target environment, these
+services may be provided in different ways.
+<P>
+<H2><A NAME="ss6.2">6.2 How can I get Etherboot to boot a Cardbus (PCMCIA) or a USB NIC?</A>
+</H2>
+
+<P>
+<P>Cardbus (PCMCIA) and USB NICs are interfaced to the CPU through their
+respective bus controllers. Before Etherboot can address the registers
+and memory on these NICs, it must initialise the bus controller
+appropriately. In Linux this is done by the PCMCIA and USB subsystems.
+In Etherboot, all this must be done by the code in the ROM. What needs
+to be written is a subsystem like the PCI subsystem in Etherboot.
+Volunteers are most welcome.
+<P>
+<HR>
+<A HREF="devman-7.html">Next</A>
+<A HREF="devman-5.html">Previous</A>
+<A HREF="devman.html#toc6">Contents</A>
+</BODY>
+</HTML>

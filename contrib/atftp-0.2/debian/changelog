@@ -1,0 +1,17 @@
+atftp (0.2) unstable; urgency=low
+
+  * Add statistics collecting functions to the server.
+  * Added support for debconf.
+  * Bugfixes.
+
+ -- Remi Lefebvre <remi@debian.org>  Wed, 27 Dec 2000 11:44:02 -0500
+
+atftp (0.1) unstable; urgency=low
+
+  * Initial Release (Closes: #69486).
+
+ -- Remi Lefebvre <remi@debian.org>  Fri, 30 Jun 2000 14:32:15 -0400
+
+Local variables:
+mode: debian-changelog
+End:

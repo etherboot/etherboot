@@ -1,0 +1,80 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>Copying conditions
+<author>Markus Gutschke, <tt/gutschk@math.uni-muenster.de/
+<date>1 July 1997
+
+<abstract>
+This explains the copyright conditions of the Etherboot package
+</abstract>
+
+<p>
+
+The code, that I wrote for this package, basically consists of a set
+of patches against existing code written by other authors. As part of
+the existing code is covered by a BSD-style license whereas the other
+part is covered by the GNU General Public License, mixing these
+packages would cause conflicts between the two licenses. Fortunately,
+you can clearly separate the two packages (all of the original code
+for the BOOT-prom is covered by the BSD-style license, all of the
+original code for creating the required Linux kernel images is covered
+by GPL).
+
+<p>
+
+As I did not intend to complicate things even more, I decided to
+release my patches (note! this only applies my patches! it does not
+mean, that either the copyright conditions for the original packages
+or for the patched files are changed!) into the PUBLIC DOMAIN. This
+means, I do not accept any responsibility for what my code does; the
+patches are provided `as is' without warranty of any kind, either
+expressed of implied, including, but not limited to, the implied
+warranties of merchantability and fitness for a particular
+purpose. The entire risk as to the quality and performance of the
+program is with you. Should the program prove defective, you assume
+the cost of all necessary servicing, repair or correction. On the
+other hand, I do not claim any rights to this software other than the
+right that I am acknowledged as the author of the patches.
+
+<p>
+
+For information on the copyright conditions of the individual
+packages/files please refer to the separate subdirectories. The
+directory `src*' contains part of a FreeBSD source tree (you can
+obtain the full source tree from a large selection of different FTP
+servers), the directory `netboot-0.4' contains part of a package that
+uses a different approach to disk-less loading of Linux kernels (you
+can obtain the full package from sunsite in
+pub/linux/system/Linux-boot/netboot-0.4.tar.gz). The directory `bin'
+contains pre-compiled binaries; these binaries are derived from the
+code in the `src*' directory and therefore share its copying
+conditions. The directory 'patches' contains two patches `netboot*'
+against the FreeBSD code (these two files are the only code written by
+me; I hereby place them in the PUBLIC DOMAIN) and one patch that is
+derived from the file `netboot-linux/lx-1.3.15.patch` and therefore
+shares the GNU General Public License with that file. Most of these
+patches are probably outdated by now.
+
+If you do not clearly understand the terms of this license or if you
+want to report bugs, please contact me. (You could also send me a
+postcard from your hometown, if you really like my code.) At the time
+of writing my address is:
+
+<p>
+
+<code>
+  Markus Gutschke
+  Schlage 5a
+  D-48268 Greven-Gimbte
+  Germany
+
+  Internet: gutschk@math.uni-muenster.de
+</code>
+
+Current releases of "etherboot" are co-authored by Ken Yap
+&lt;ken_yap@users.sourceforge.net&gt; and me; so please send e-mail to both of
+our addresses.
+
+</article>

@@ -1,0 +1,249 @@
+#
+# Config for Etherboot/32
+#
+# Do not delete the tag OptionDescription and /OptionDescription
+# It is used to automatically generate the documentation.
+#
+# <OptionDescription>
+#	User interaction options:
+#
+#	-DASK_BOOT=n
+#			Ask "Boot from Network or from Local? " at startup,
+#			timeout after n seconds (0 = no timeout); this
+#			can be done in a more generic way by using the
+#			IMAGE_MENU, but it requires that the "bootp"
+#			server is accessible, even when booting locally.
+#			If unset, boot immediately using the default.
+#	-DANS_DEFAULT=ANS_NETWORK
+#			Assume Network to previous question
+#			(alternative: ANS_LOCAL) on timeout or Return key
+#			See etherboot.h for prompt and answer strings.
+#	-DMOTD
+#			Display message of the day; read vendortags.html
+#			for further information.
+#	-DIMAGE_MENU
+#			Allow to interactively chose between different
+#			bootimages; read vendortags.html for further
+#			information.
+#	-DPASSWD
+#			Enable password protection for boot images; this
+#			requires -DIMAGE_MENU.
+#	-DUSRPARMS
+#			Allow the user to interactively edit parameters
+#			that are passed to the booted kernel; you should
+#			probably enable -DPASSWD as well; this feature
+#			requires -DIMAGE_MENU.
+#	-DANSIESC
+#			Evaluate a subset of common ANSI escape sequences
+#			when displaying the message of the day; this
+#			probably does not make sense unless you also
+#			define -DMOTD or at least -DIMAGE_MENU. It is
+#			possible to combine this option with -DCONSOLE_DUAL,
+#			but you have to be aware that the boot menu will
+#			no longer use ANSI escapes to be compatible with the
+#			serial console. Also be careful with your banners, as
+#			they may confuse your serial console. Generally you
+#			lose most of the ANSIESC functionality..
+#	-DGFX
+#			Support extensions to the ANSI escape sequences for
+#			displaying graphics (icons or logos); this
+#			requires -DANSIESC. It probably does not make sense
+#			to use -DGFX if you have -DCONSOLE_DUAL, as the
+#			serial console normally cannot handle the GFX stuff.
+#	-DSHOW_NUMERIC
+#			Display menu item labels as numbers.
+#	-DDELIMITERLINES
+#			Print a line of = characters at the start
+#			and also just before starting an image.
+#	-DSIZEINDICATOR
+#			Update a running total of the amount of code
+#			loaded so far, in kilobytes.
+#
+#	Boot autoconfiguration protocol options:
+#
+#	-DNO_DHCP_SUPPORT
+#			Use BOOTP instead of DHCP.
+#	-DRARP_NOT_BOOTP
+#			Use RARP instead of BOOTP/DHCP.
+#	-DREQUIRE_VCI_ETHERBOOT
+#			Require an encapsulated Vendor Class Identifier
+#			of "Etherboot" in the DHCP reply
+#			Requires DHCP support.
+#
+#	Boot tuning parameters:
+#
+#	-DCONGESTED
+#			Turns on packet retransmission.  Use it on a
+#			congested network, where the normal operation
+#			can't boot the image.
+#	-DBACKOFF_LIMIT
+#			Sets the maximum RFC951 backoff exponent to n.
+#			Do not set this unreasonably low, because on networks
+#			with many machines they can saturate the link
+#			(the delay corresponding to the exponent is a random
+#			time in the range 0..3.5*2^n seconds).  Use 5 for a
+#			VERY small network (max. 2 minutes delay), 7 for a
+#			medium sized network (max. 7.5 minutes delay) or 10
+#			for a really huge network with many clients, frequent
+#			congestions (max. 1  hour delay).  On average the
+#			delay time will be half the maximum value.  If in
+#			doubt about the consequences, use a larger value.
+#			Also keep in mind that the number of retransmissions
+#			is not changed by this setting, so the default of 20
+#			may no longer be appropriate.  You might need to set
+#			MAX_ARP_RETRIES, MAX_BOOTP_RETRIES, MAX_TFTP_RETRIES
+#			and MAX_RPC_RETRIES to a larger value.
+#
+#	Boot device options:
+#
+#	-DFLOPPY
+#			Boot from floppy/hd if bootimage matches the
+#			pattern "/dev/[fh]d*".
+#	-DTRY_FLOPPY_FIRST
+#			If > 0, tries that many times to read the boot
+#			sector from a floppy drive before booting from
+#			ROM. If successful, does a local boot.
+#			It assumes the floppy is bootable. Requires -DFLOPPY.
+#	-DEMERGENCYDISKBOOT
+#			If no BOOTP server can be found, then boot from
+#			local disk. The accessibility of the TFTP server
+#			has no effect, though! So configure your BOOTP
+#			server properly. You should probably reduce
+#			MAX_BOOTP_RETRIES to a small number like 3.
+#
+#	Boot image options:
+#
+#	-DTAGGED_IMAGE
+#			Add tagged image kernel boot support (recommended).
+#	-DAOUT_IMAGE
+#			Add a.out kernel boot support (generic).
+#	-DELF_IMAGE
+#			Add generic ELF kernel boot support (recommended).
+#	-DIMAGE_MULTIBOOT
+#			Add Multiboot image support (currently only
+#			for ELF images).
+#			Without this, generic ELF support is selected.
+#	-DIMAGE_FREEBSD
+#			Add FreeBSD image loading support (requires at least
+#			-DAOUT_IMAGE and/or -DELF_IMAGE).
+#	-DDOWNLOAD_PROTO_TFTP
+#			If defined, boots by tftp (recommended).
+#	-DDOWNLOAD_PROTO_NFS
+#			If defined, boots from a NFS mount and disables
+#			tftp loading. Default is DOWNLOAD_PROTO_TFTP
+#			if neither is defined.
+#
+#	Console options:
+#
+#	-DCONSOLE_CRT
+#			Set for CRT console (default if nothing else is set).
+#	-DCONSOLE_SERIAL
+#			Set for serial console.
+#	-DCONSOLE_DUAL
+#			Set for CRT and serial console, see comment at
+#			-DANSIESC and -DGFX.
+#	-DCOMCONSOLE
+#			Set port, e.g. 0x3F8.
+#	-DCONSPEED
+#			Set speed, e.g. 57600.
+#	-DCOMPARM
+#			Set Line Control Register value for data bits, stop
+#			bits and parity. See a National Semiconditor 8250/
+#			16450/16550 data sheet for bit meanings.
+#			If undefined, defaults to 0x03 = 8N1.
+#
+#	BIOS interface options:
+#
+#	-DNO_DELAYED_INT
+#			Take control as soon as BIOS detects the ROM.
+#			Normally hooks onto INT18H or INT19H. Use only if you
+#			have a very non-conformant BIOS as it bypasses
+#			BIOS initialisation of devices. This only works for
+#			legacy ROMs, i.e. PCI_PNP_HEADER not defined.
+#			This option was formerly called NOINT19H.
+#	-DBOOT_INT18H
+#			Etherboot normally hooks onto INT19H for legacy ROMs.
+#			You can choose to hook onto INT18H (Basic interpreter
+#			entry point) instead. This entry point is used when
+#			all boot devices have been exhausted.
+#	-DCONFIG_PCI_DIRECT
+#			Define this for PCI BIOSes that do not implement
+#			BIOS32 or not correctly. Normally not needed.
+#			Only works for BIOSes of a certain era.
+#
+#	Obscure options you probably don't need to touch:
+#
+#	-DT503_AUI
+#			Use AUI by default on 3c503 cards.
+#	-DMOVEROM
+#			If your motherboard does not cache adapter memory
+#			space, then this option can speed up loading of
+#			compressed BOOT-Prom images. It has not affect on
+#			uncompressed images. Unless you are very tight on
+#			free space, you will usually want to define this
+#			option.  This flag must be added to LCONFIG!
+#			(recommended).
+#	-DBOOTP_DATA_AT_0x93C00
+#			If the area 0x93C00-0x93FFF is to be used for
+#			bootpd_data (not recommended).
+#	-DUSE_LOWMEM_BUFFER
+#			Define to put some buffers below 0x10000 which
+#			may interfere with other programs (not recommended).
+# </OptionDescription>
+
+# These default settings compile Etherboot with a small number of options.
+# You may wish to enable more of the features if the size of your ROM allows.
+
+# For prompting and default on timeout
+CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
+CFLAGS32+=	-DMOTD -DIMAGE_MENU
+
+# Enabling this makes the boot ROM require a Vendor Class Identifier
+# of "Etherboot" in the Vendor Encapsulated Options
+# This can be used to reject replies from servers other than the one
+# we want to give out addresses to us, but it will prevent Etherboot
+# from getting an IP lease until you have configured DHCPD correctly
+# CFLAGS32+=	-DREQUIRE_VCI_ETHERBOOT
+
+# Limit the delay on packet loss/congestion to a more bearable value. See
+# description above.  If unset, do not limit the delay between resend.
+CFLAGS32+=	-DBACKOFF_LIMIT=7
+
+# More optional features
+# CFLAGS32+=	-DANSIESC -DGFX
+# CFLAGS32+=	-DPASSWD -DUSRPARMS
+# CFLAGS32+=	-DFLOPPY -DTRY_FLOPPY_FIRST=4
+
+# For a serial console, which can run in parallel with CRT console
+# CFLAGS32+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
+
+# Enable tagged image, generic ELF, Multiboot ELF
+# or FreeBSD ELF/a.out boot image support
+CFLAGS32+=	-DTAGGED_IMAGE -DELF_IMAGE
+# CFLAGS32+=	-DAOUT_IMAGE -DIMAGE_MULTIBOOT -DIMAGE_FREEBSD
+
+# Change download protocol to NFS, default is TFTP
+# CFLAGS32+=	-DDOWNLOAD_PROTO_NFS
+
+# These flags affect the loader that is prepended to the Etherboot image
+LCONFIG+=	-DMOVEROM
+
+# you should normally not need to change these
+RM=		rm -f
+TOUCH=		touch
+CC32=		gcc
+LD32=		ld
+SIZE32=		size
+AR32=		ar
+RANLIB32=	ranlib
+
+# If you use egcs or gcc-2.8, using -Os may help to reduce the code size.
+# Otherwise use -O2 (under no circumstance use -O3 or above!).
+CFLAGS32+=	-O2 -g -fstrength-reduce -fomit-frame-pointer -m386
+# Squeeze the code in as little space as possible.
+CFLAGS32+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
+CFLAGS32+=	-Wall -W -Wno-format -Wno-unused
+ASFLAGS32=
+LDFLAGS32+=	-N -Ttext $(RELOCADDR) -e _start
+LDBINARY32=	-oformat binary		# flag for headerless binary
+LIBC32=					# not needed

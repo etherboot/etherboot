@@ -1,0 +1,88 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>16-bit README
+<author>Ken Yap, <tt/ken_yap@users.sourceforge.net/
+<date>1 July 1997
+
+<abstract>
+
+These are some notes on the 16-bit version of etherboot, a package
+for making boot ROMS for Linux.
+
+</abstract>
+
+<toc>
+
+<sect>Why a 16-bit version?
+
+<p>
+
+So that etherboot can run on XTs and ATs.
+
+<sect>But Linux doesn't run on XTs and ATs
+
+<p>
+
+That's right, but Linux/ELKS eventually will.  Not that it will be ever
+the same as the Linux you love.  So Etherboot would be useful for booting
+those over the network. After all, embedded apps for XTs and ATs are one
+goal of Linux/ELKS. It might also be useful for netbooting other OSes,
+but you have to figure out how yourself.
+
+<sect>So should I use Etherboot/32 or Etherboot/16?
+
+<p>
+
+If you are using etherboot to load Linux, then you probably want Etherboot/32
+because Etherboot/16 is a subset. It only loads tagged images. It can load
+to extended memory if running on a 286 or above. On a 8086/8 loading to
+extended memory will silently fail.
+
+If you want to make Etherboot/16 ROMs, you need to change the ETHERBOOT
+variable in src/Config.
+
+<sect>What do I need to run it?
+
+<p>
+
+Most of the ISA cards are supported. PCI cards don't work with XTs and ATs
+anyway.
+
+<sect>How do I build it?
+
+<p>
+
+First of all get a bcc (Bruce Evan's C compiler) distribution,
+from the ELKS tool distribution at http://www.cix.co.uk/~mayday/
+There is also a mailing list for Linux-8086 developers at
+linux-8086@vger.rutgers.edu. Send mail to majordomo@vger.rutgers.edu
+with the line "subscribe linux-8086" if you want to join. It's very
+technical though and there won't be anything user friendly for a while.
+
+Look over the Config file to see if you need to alter something. By
+default it builds images for all 4 versions. You can omit the ones
+you don't want. But it compiles very quickly anyway.  Then build the
+software by saying make. There will be some warnings about duplication
+definitions of some library routines. Ignore them, the correct ones are
+the ones in this directory.
+
+<sect>How do I run it?
+
+<p>
+
+Like in bin32, two versions of the boot program for a given card will be
+built in bin16, card.rom, and card.lzrom.  If you want to test from a floppy,
+prepend floppyload.bin before writing raw to a blank floppy or use the
+.fd0 targets in the Makefile. All this is just like the Etherboot/32 version.
+Note that currently floppyload.bin requires at least an 80186/188 due to size
+constraints. Contributions are welcome.
+
+<p>
+
+Currently only booting tagged images (see documentation) is supported
+as I don't know when or if Linux/ELKS will support booting off a NFS
+mounted root. To make a tagged image see the directory netboot-*.
+
+</article>

@@ -1,0 +1,25 @@
+Source: atftp
+Section: net
+Priority: optional
+Maintainer: Remi Lefebvre <remi@debian.org>
+Build-Depends: libreadline4-dev, debhelper (>= 1.1.17)
+Standards-Version: 3.1.1
+
+Package: atftp
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Advanced TFTP client.
+ Interactive client for the Trivial File Transfer Protocol (TFTP). Its
+ usage is mainly for testing and debugging a TFTP server since a client 
+ is usually implemented in BIOS' for boot from LAN setups.
+
+Package: atftpd
+Architecture: any
+Depends: ${shlibs:Depends}, netkit-inetd, debconf
+Conflicts: tftpd
+Description: Advanced TFTP server.
+ Multithreaded TFTP server implementing all options specified in
+ RFCs 1350, 2090, 2347, 2348, 2349 (multicast not implemented yet).
+ The server currently supports being started from inetd(8) only. The
+ server then handles new connections directly by starting new threads
+ and kills itself after 5 minutes of inactivity.

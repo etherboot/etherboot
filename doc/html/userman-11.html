@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot User Manual: Source copyrights</TITLE>
+ <LINK HREF="userman-10.html" REL=previous>
+ <LINK HREF="userman.html#toc11" REL=contents>
+</HEAD>
+<BODY>
+Next
+<A HREF="userman-10.html">Previous</A>
+<A HREF="userman.html#toc11">Contents</A>
+<HR>
+<H2><A NAME="sourcecopyrights"></A> <A NAME="s11">11. Source copyrights</A></H2>
+
+<P>
+<P>The boot code from FreeBSD is under the BSD license. The code taken from
+the Linux PCI subsystem and Linux NIC drivers are under GPL. Some source
+files have been put under GPL by their authors.  Hence the Etherboot
+distribution is in general under the GPL, but you may use parts of it
+derived from FreeBSD under FreeBSD rules.  Simply speaking, the GPL says
+that if you distribute a binary derived from Etherboot code (this
+includes boot ROMs) you have to provide, or promise to provide on
+demand, the source code.  The full conditions of the GPL are specified
+in the file COPYING.
+<P>
+<P>
+<P>Here are the copyright details of the source, file by file:
+<P>
+<HR>
+<PRE>
+Files marked GPL may be used under the GPL. Files marked BSD may be used
+under the GPL or BSD license. For other licenses see the respective source
+for details. The BSD files are those inherited from FreeBSD netboot. The
+GPL files are in general either from Linux or have been explicitly put
+under GPL by the authors.
+
+File                    Copyright status
+
+3c509.c                 BSD
+3c509.h                 BSD
+3c595.c                 BSD
+3c595.h                 BSD
+3c90x.c                 Open Source
+ansiesc.c               GPL
+boot1a.s                BSD
+bootmenu.c              BSD
+cards.h                 GPL
+comprefix.S             GPL
+config.c                GPL
+cs89x0.c                GPL
+cs89x0.h                GPL
+davicom.c               GPL
+depca.c                 GPL
+disrom.pl               GPL
+eepro.c                 GPL
+eepro100.c              GPL
+epic100.c               None
+epic100.h               None
+etherboot.h             GPL
+floppy.c                GPL
+floppyload.S            GPL
+genrules.pl             GPL
+i82586.c                GPL
+lance.c                 GPL
+liloprefix.S            GPL
+linux-asm-io.h          GPL
+linux-asm-string.h      None
+loader.S                BSD/GPL?
+lzhuf.c                 Open Source
+main.c                  BSD
+makerom.c               BSD
+md5.c                   GPL
+misc.c                  BSD
+nfs.c                   GPL
+ni5010.c                GPL
+nic.h                   GPL
+ns8390.c                BSD
+ns8390.h                BSD
+osdep.h                 BSD
+osloader.c              GPL
+otulip.c                BSD
+otulip.h                BSD
+pci.c                   GPL
+pci.h                   GPL
+rtl8139.c               GPL
+serial.S                Mach
+sis900.c                GPL
+sis900.h                GPL
+sk_g16.c                GPL
+sk_g16.h                GPL
+skel.c                  GPL
+smc9000.c               GPL
+smc9000.h               GPL
+start32.S               BSD
+swapdevids.pl           GPL
+tiara.c                 GPL
+timer.c                 GPL
+timer.h                 GPL
+tulip.c                 BSD
+via-rhine.c             GPL
+w89c840.c               GPL
+
+This lengthy notice is required for serial.S:
+
+/*
+ * Mach Operating System
+ * Copyright (c) 1992, 1991 Carnegie Mellon University
+ * All Rights Reserved.
+ *
+ * Permission to use, copy, modify and distribute this software and its
+ * documentation is hereby granted, provided that both the copyright
+ * notice and this permission notice appear in all copies of the
+ * software, derivative works or modified versions, and any portions
+ * thereof, and that both notices appear in supporting documentation.
+ *
+ * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS"
+ * CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
+ * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
+ *
+ * Carnegie Mellon requests users of this software to return to
+ *
+ *  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
+ *  School of Computer Science
+ *  Carnegie Mellon University
+ *  Pittsburgh PA 15213-3890
+ *
+ * any improvements or extensions that they make and grant Carnegie Mellon
+ * the rights to redistribute these changes.
+ *
+ *      from: Mach, Revision 2.2  92/04/04  11:34:26  rpd
+ *      $Id$
+ */
+
+/*
+  Copyright 1988, 1989, 1990, 1991, 1992
+   by Intel Corporation, Santa Clara, California.
+
+                All Rights Reserved
+
+Permission to use, copy, modify, and distribute this software and
+its documentation for any purpose and without fee is hereby
+granted, provided that the above copyright notice appears in all
+copies and that both the copyright notice and this permission notice
+appear in supporting documentation, and that the name of Intel
+not be used in advertising or publicity pertaining to distribution
+of the software without specific, written prior permission.
+
+INTEL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE
+INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS,
+IN NO EVENT SHALL INTEL BE LIABLE FOR ANY SPECIAL, INDIRECT, OR
+CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT,
+NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+*/
+
+/*
+ * Serial bootblock interface routines
+ * Copyright (c) 1994, J"org Wunsch
+ *
+ * Permission to use, copy, modify and distribute this software and its
+ * documentation is hereby granted, provided that both the copyright
+ * notice and this permission notice appear in all copies of the
+ * software, derivative works or modified versions, and any portions
+ * thereof, and that both notices appear in supporting documentation.
+ *
+ * THE AUTHOR ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS"
+ * CONDITION.  THE AUTHOR DISCLAIMS ANY LIABILITY OF ANY KIND FOR
+ * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
+ */
+</PRE>
+<HR>
+<P>
+<HR>
+Next
+<A HREF="userman-10.html">Previous</A>
+<A HREF="userman.html#toc11">Contents</A>
+</BODY>
+</HTML>

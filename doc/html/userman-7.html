@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot User Manual: Making an Etherboot EPROM or EEPROM</TITLE>
+ <LINK HREF="userman-8.html" REL=next>
+ <LINK HREF="userman-6.html" REL=previous>
+ <LINK HREF="userman.html#toc7" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="userman-8.html">Next</A>
+<A HREF="userman-6.html">Previous</A>
+<A HREF="userman.html#toc7">Contents</A>
+<HR>
+<H2><A NAME="s7">7. Making an Etherboot EPROM or EEPROM</A></H2>
+
+<P>
+<P>Assuming you have satisfactorily set up your server environment, you may
+now wish to put the Etherboot onto an EPROM or EEPROM. Naturally this
+assumes access to hardware to program (and possibly erase) EPROMs.
+Access to a friendly electronics engineer and/or lab is one way to
+program and erase EPROMs. Otherwise you can look at the 
+<A HREF="http://etherboot.sourceforge.net/commercial.html">commercial links page</A>
+for places you can buy programmed EPROMs from.
+<P>
+<P>
+<P>If you are familiar with electronics construction, an alternative is to
+use an EEPROM card. There is a schematic and PCB artwork for such a card
+at the web site where you got the Etherboot distribution. This EEPROM
+card plugs onto the ISA bus and can be reprogrammed with software.
+<P>
+<P>
+<P>Some high-end network cards, for example the 3Com 905B, have a socket
+for an EEPROM which can be programmed in situ with the right utilities.
+See any release notes accompanying Etherboot for more information.
+<P>
+<H2><A NAME="ss7.1">7.1 Choosing the EPROM</A>
+</H2>
+
+<P>
+<P>Most network cards come with a blank (E)EPROM socket even though it is
+seldom used. When it is used, it is typically filled with a proprietary
+EPROM from the network card manufacturer. You can put an Etherboot
+EPROM there instead.
+<P>
+<H2><A NAME="ss7.2">7.2 Enabling the EPROM</A>
+</H2>
+
+<P>
+<P>First you must discover how to enable the EPROM socket on your
+card. Typically the EPROM is not enabled from the factory and a jumper
+or a software configuration program is used to enable it.
+<P>
+<H2><A NAME="ss7.3">7.3 Size and speed of the EPROM</A>
+</H2>
+
+<P>
+<P>Secondly, you must discover what size and speed of EPROM is needed. This
+can be difficult as network card manufacturers often neglect to provide
+this information.
+<P>
+<P>
+<P>The smallest EPROM that is accepted by network cards is an 8k EPROM
+(2764). 16kB (27128) or 32kB (27256) are the norm. Some cards will even
+go up to 64kB EPROMs (27512). (You will often see a C after the 27, e.g.
+27C256. This indicates a CMOS EPROM, which is equivalent to the non-C
+version and is a good thing because of lower power consumption.) You
+want to use the smallest EPROM you can so that you don't take up more of
+the upper memory area than needed as other extensions BIOSes may need
+the space.  However you also want to get a good price for the EPROM.
+Currently the 32kB and 64kB EPROMs (27256 and 27512) seem to be the
+cheapest per unit. Smaller EPROMs appear to be more expensive because
+they are out of mainstream production.
+<P>
+<P>
+<P>If you cannot find out from the documentation what capacity of EPROM your
+card takes, for ISA NICs only, you could do it by trial and error. (PCI
+NICs do not enable the EPROM until the BIOS tells the NIC to.)  Take a ROM
+with some data on it (say a character generator ROM) and plug it into the
+socket. Be careful not to use an extension BIOS for this test because it
+may be detected and activated and prevent you from booting your computer.
+Using the debug program under DOS, dump various regions of the memory
+space. Say you discover that you can see the data in a memory window
+from CC00:0 to CC00:3FFF (= 4000 hex = 16384 decimal locations). This
+indicates that a 16kB EPROM is needed. However if you see an alias in
+parts of the memory space, say the region from CC00:0 to CC00:1FFF is
+duplicated in CC00:2000 to CC00:3FFF, then you have put an 8kB EPROM
+into a 16kB slot and you need to try a larger EPROM.
+<P>
+<P>
+<P>Note that because pinouts for 28 pin EPROMs are upward compatible after a
+fashion, you can probably use a larger capacity EPROM in a slot intended
+for a smaller one. The higher address lines will probably be held high
+so you will need to program the image in the upper half or upper quarter
+of the larger EPROM, as the case may be. However you should double check
+the voltages on the pins armed with data sheet and a meter because CMOS
+EPROMs don't like floating pins.
+<P>
+<P>
+<P>If the ROM is larger than the size of the image, for example, a 32
+kB ROM containing a 16 kB image, then you can put the image in either
+half of the ROM. You will sometimes see advice to put two copies of the
+image in the ROM. This will work but is not recommended because the ROM
+will be activated twice if it's a legacy ROM and may not work at all
+if it's a PCI/PnP ROM.  It is tolerated by Etherboot because the code
+checks to see if it's been activated already and the second activation
+will do nothing. The recommended method is to fill the unused half with
+blank data.  All ones data is recommended because it is the natural state
+of the EPROM and involves less work for the PROM programmer. Here is a
+Unix command line that will generate 16384 bytes of 0xFF and combine it
+with a 16 kB ROM into a 32 kB image for your PROM programmer.
+<P>
+<HR>
+<PRE>
+        (perl -e 'print "\xFF" x 16384'; cat bin32/3c509.lzrom) > 32kbimage
+</PRE>
+<HR>
+<P>
+<P>
+<P>The speed of the EPROM needed depends on how it is connected to the
+computer bus.  If the EPROM is directly connected to the computer bus,
+as in the case of many cheap NE2000 clones, then you will probably have
+to get an EPROM that is at least as fast as the ROMs used for the main
+BIOS. This is typically 120-150 ns. Some network cards mediate access to
+the EPROM via circuitry and this may insert wait states so that slower
+EPROMs can be used. Incidentally the slowness of the EPROM doesn't
+affect Etherboot execution speed much because Etherboot copies itself to
+RAM before executing. I'm told Netboot does the same thing.
+<P>
+<P>
+<P>If you have your own EPROM programming hardware, there is a nice
+collection of EPROM file format conversion utilities 
+<A HREF="http://www.canb.auug.org.au/~millerp/srecord.html">here</A>. The files
+produced by the Etherboot build process are plain binary. A simple
+binary to Intel hex format converter can be found at the Etherboot web
+site 
+<A HREF="http://etherboot.sourceforge.net/bin2intelhex.c">here</A>.
+<P>
+<P>
+<P>Etherboot is believed to make PnP compliant ROMs for PCI NICs. A
+long-standing bug in the headers has been tracked down. However some
+faulty old BIOSes are out there so I have written a Perl script
+swapdevids.pl to switch the header around if necessary. You'll have to
+experiment with it both ways to find out which works. Or you could dump
+a ROM image that works (e.g. RPL, PXE ROM) using the Perl script
+disrom.pl. The fields to look at are Device (base, sub, interface) Type.
+It should be 02 00 00, but some BIOSes want 00 00 02 due to ambiguity in
+the original specification.
+<P>
+<HR>
+<A HREF="userman-8.html">Next</A>
+<A HREF="userman-6.html">Previous</A>
+<A HREF="userman.html#toc7">Contents</A>
+</BODY>
+</HTML>

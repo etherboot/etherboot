@@ -1,0 +1,84 @@
+This is tftp-hpa-0.17; this version was put out by H. Peter Anvin
+<hpa@zytor.com>.
+
+===> IMPORTANT: SEE THE FILE "README.security" FOR IMPORTANT SECURITY
+===> CHANGES IN THIS VERSION!!!!!!!!!
+
+Changes in 0.17:
+
+	Add support for tcpwrapper checking (/etc/hosts.allow;
+	/etc/hosts.deny) in tftpd.
+
+	Compile correctly on glibc 2.1.2.
+
+	Add -u option to specify the user id to run as (default
+	"nobody".)
+
+	Operate in "daemon mode" as long as we keep getting requests.
+	This should speed up handling large amounts of requests at
+	once, as can happen when a client starts up, and avoids inetd
+	misconfiguration problems.
+	
+
+Changes in 0.16:
+
+	Correct massive lossage from 0.15: apparently 0.15 was based
+	on an out-of-date CVS repository, somehow.
+
+	Fix for ACKs in TFTP PUT; patch by Roger Venning.
+
+Changes in 0.15:
+
+	If the operating system allows, try to obtain the local
+	address used for the request packet, and reply using the same
+	local IP address.  Some embedded TFTP clients are (probably
+	incorrectly) picky about this.
+
+Changes in 0.14:
+
+	Hacks to signal handling to avoid "zombie servers."
+
+Changes in 0.13:
+
+	Added the non-standard option "blksize2".  The "blksize"
+	option is limited in its usability, since TFTP is designed to
+	be implemented in a ROM, and ROM code might find it painful to
+	deal with packets that don't meet certain alignment
+	restrictions.
+
+	The "blksize2" option tells the server that the block size
+	must be a power of 2 to be usable to the client.  The server
+	SHALL respond with a block size that is a power of two, up to
+	a maximum of 32768, or reject the option.  Furthermore, the
+	server SHALL grant a block size that is no smaller than 512
+	bytes unless the client explicitly requested a smaller block
+	size.  If the client request both options, the server MAY
+	accept one or the other, but not both.  At some point I will
+	probably write up an IETF draft for this option.
+
+
+General information on the tftp-hpa series:
+
+This is a conglomerate of a number of versions of the BSD TFTP code,
+ported to Linux, although it should work on mostly any POSIX-compliant
+OS with sockets.  You may have to use GNU make to build it.
+
+The core software was taken from OpenBSD (CVS source as of
+1999-09-21).  I believe this was the most secure source base available
+at the time I obtained this code, and it included support for the -s
+and -c options.
+
+The un-BSD-ized Makefiles and a lot of the configure macros were taken
+from netkit-tftp-0.10 by David Holland; I also followed this example
+and modernized the code style throughout.
+
+Patches by Markus Gutschke and Gero Kuhlmann were the basis for the
+option negotiation as well as the "blksize" and "tsize" option
+support, although I made a fair amount of mostly stylistic changes to
+their code.
+
+Adding the -r option (disable a specific option), the "timeout"
+option, and converting to using autoconf for setup was my own code, as
+are any bugs introduced in this merge, and any features added to the
+Changes list above.
+

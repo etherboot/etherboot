@@ -1,0 +1,363 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot User Manual: Unpacking, compiling and testing the package</TITLE>
+ <LINK HREF="userman-4.html" REL=next>
+ <LINK HREF="userman-2.html" REL=previous>
+ <LINK HREF="userman.html#toc3" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="userman-4.html">Next</A>
+<A HREF="userman-2.html">Previous</A>
+<A HREF="userman.html#toc3">Contents</A>
+<HR>
+<H2><A NAME="s3">3. Unpacking, compiling and testing the package</A></H2>
+
+<H2><A NAME="ss3.1">3.1 A short cut to getting ROM images</A>
+</H2>
+
+<P>
+<P>Marty Connor has set up a 
+<A HREF="http://rom-o-matic.net/">web form</A> for creating a ROM image on the fly and
+returning it as the output of the form. If all you want is a ROM image,
+this could save you time building the distribution.
+<P>
+<H2><A NAME="ss3.2">3.2 Unpacking the distribution</A>
+</H2>
+
+<P>
+<P>Unpack the distribution using gunzip and tar, using one of the following
+commands, where you replace x by the patchlevel number:
+<P>
+<P>
+<P>
+<HR>
+<PRE>
+        tar zxvf etherboot-5.0.x.tar.gz
+        tar Ixvf etherboot-5.0.x.tar.bz2
+        gunzip &lt; etherboot-5.0.x.tar.gz | tar xvf -
+        bunzip2 &lt; etherboot-5.0.x.tar.bz2 | tar xvf -
+</PRE>
+<HR>
+<P>
+<H2><A NAME="ss3.3">3.3 Compiling the ROM images</A>
+</H2>
+
+<P>
+<P>To build the ROM images you need a recent release of gcc and the
+binutils tools. This package has been compiled with the tools from a
+SuSE 7.1 distribution but it should work with any recent Linux or
+FreeBSD distribution. gas 2.9.1 is too old to handle the 16-bit code in
+loader.S. Use gas 2.9.5 at least. Also the "gcc 2.96" used in RedHat 7.0
+(and later versions maybe) generates faulty machine code compiling
+Etherboot.  Use kgcc from those distributions instead.
+<P>
+<P>
+<P>You only have to go to src/, edit the options in Config and say make. We
+suggest you accept the default options if you are not sure what to select.
+This will create all the ROM images available in bin32. The .lzrom images are
+the same as the .rom images. Since the .lzrom images are smaller and work
+exactly the same, there is no real reason to use .rom images any more, unless
+you are nervous about compression algorithm patents. We believe the algorithm
+used does not infringe patents, having been in public use for some time, but we
+do not know all the legal ramifications. See 
+<A HREF="COPYING_compressor.html">here</A> for more details.
+<P>
+<P>
+<P>Here is a description of the options available:
+<P>
+<HR>
+<PRE>
+User interaction options:
+
+-DASK_BOOT=n
+                Ask "Boot from Network or from Local? " at startup,
+                timeout after n seconds (0 = no timeout); this
+                can be done in a more generic way by using the
+                IMAGE_MENU, but it requires that the "bootp"
+                server is accessible, even when booting locally.
+                If unset, boot immediately using the default.
+-DANS_DEFAULT=ANS_NETWORK
+                Assume Network to previous question
+                (alternative: ANS_LOCAL) on timeout or Return key
+                See etherboot.h for prompt and answer strings.
+-DMOTD
+                Display message of the day; read vendortags.html
+                for further information.
+-DIMAGE_MENU
+                Allow to interactively chose between different
+                bootimages; read vendortags.html for further
+                information.
+-DPASSWD
+                Enable password protection for boot images; this
+                requires -DIMAGE_MENU.
+-DUSRPARMS
+                Allow the user to interactively edit parameters
+                that are passed to the booted kernel; you should
+                probably enable -DPASSWD as well; this feature
+                requires -DIMAGE_MENU.
+-DANSIESC
+                Evaluate a subset of common ANSI escape sequences
+                when displaying the message of the day; this
+                probably does not make sense unless you also
+                define -DMOTD or at least -DIMAGE_MENU. It is
+                possible to combine this option with -DCONSOLE_DUAL,
+                but you have to be aware that the boot menu will
+                no longer use ANSI escapes to be compatible with the
+                serial console. Also be careful with your banners, as
+                they may confuse your serial console. Generally you
+                lose most of the ANSIESC functionality..
+-DGFX
+                Support extensions to the ANSI escape sequences for
+                displaying graphics (icons or logos); this
+                requires -DANSIESC. It probably does not make sense
+                to use -DGFX if you have -DCONSOLE_DUAL, as the
+                serial console normally cannot handle the GFX stuff.
+-DSHOW_NUMERIC
+                Display menu item labels as numbers.
+-DDELIMITERLINES
+                Print a line of = characters at the start
+                and also just before starting an image.
+-DSIZEINDICATOR
+                Update a running total of the amount of code
+                loaded so far, in kilobytes.
+
+Boot autoconfiguration protocol options:
+
+-DNO_DHCP_SUPPORT
+                Use BOOTP instead of DHCP.
+-DRARP_NOT_BOOTP
+                Use RARP instead of BOOTP/DHCP.
+-DREQUIRE_VCI_ETHERBOOT
+                Require an encapsulated Vendor Class Identifier
+                of "Etherboot" in the DHCP reply
+                Requires DHCP support.
+
+Boot tuning parameters:
+
+-DCONGESTED
+                Turns on packet retransmission.  Use it on a
+                congested network, where the normal operation
+                can't boot the image.
+-DBACKOFF_LIMIT
+                Sets the maximum RFC951 backoff exponent to n.
+                Do not set this unreasonably low, because on networks
+                with many machines they can saturate the link
+                (the delay corresponding to the exponent is a random
+                time in the range 0..3.5*2^n seconds).  Use 5 for a
+                VERY small network (max. 2 minutes delay), 7 for a
+                medium sized network (max. 7.5 minutes delay) or 10
+                for a really huge network with many clients, frequent
+                congestions (max. 1  hour delay).  On average the
+                delay time will be half the maximum value.  If in
+                doubt about the consequences, use a larger value.
+                Also keep in mind that the number of retransmissions
+                is not changed by this setting, so the default of 20
+                may no longer be appropriate.  You might need to set
+                MAX_ARP_RETRIES, MAX_BOOTP_RETRIES, MAX_TFTP_RETRIES
+                and MAX_RPC_RETRIES to a larger value.
+
+Boot device options:
+
+-DFLOPPY
+                Boot from floppy/hd if bootimage matches the
+                pattern "/dev/[fh]d*".
+-DTRY_FLOPPY_FIRST
+                If > 0, tries that many times to read the boot
+                sector from a floppy drive before booting from
+                ROM. If successful, does a local boot.
+                It assumes the floppy is bootable. Requires -DFLOPPY.
+-DEMERGENCYDISKBOOT
+                If no BOOTP server can be found, then boot from
+                local disk. The accessibility of the TFTP server
+                has no effect, though! So configure your BOOTP
+                server properly. You should probably reduce
+                MAX_BOOTP_RETRIES to a small number like 3.
+
+Boot image options:
+
+-DTAGGED_IMAGE
+                Add tagged image kernel boot support (recommended).
+-DAOUT_IMAGE
+                Add a.out kernel boot support (generic).
+-DELF_IMAGE
+                Add generic ELF kernel boot support (recommended).
+-DIMAGE_MULTIBOOT
+                Add Multiboot image support (currently only
+                for ELF images).
+                Without this, generic ELF support is selected.
+-DIMAGE_FREEBSD
+                Add FreeBSD image loading support (requires at least
+                -DAOUT_IMAGE and/or -DELF_IMAGE).
+-DDOWNLOAD_PROTO_TFTP
+                If defined, boots by tftp (recommended).
+-DDOWNLOAD_PROTO_NFS
+                If defined, boots from a NFS mount and disables
+                tftp loading. Default is DOWNLOAD_PROTO_TFTP
+                if neither is defined.
+
+Console options:
+
+-DCONSOLE_CRT
+                Set for CRT console (default if nothing else is set).
+-DCONSOLE_SERIAL
+                Set for serial console.
+-DCONSOLE_DUAL
+                Set for CRT and serial console, see comment at
+                -DANSIESC and -DGFX.
+-DCOMCONSOLE
+                Set port, e.g. 0x3F8.
+-DCONSPEED
+                Set speed, e.g. 57600.
+-DCOMPARM
+                Set Line Control Register value for data bits, stop
+                bits and parity. See a National Semiconditor 8250/
+                16450/16550 data sheet for bit meanings.
+                If undefined, defaults to 0x03 = 8N1.
+
+BIOS interface options:
+
+-DNO_DELAYED_INT
+                Take control as soon as BIOS detects the ROM.
+                Normally hooks onto INT18H or INT19H. Use only if you
+                have a very non-conformant BIOS as it bypasses
+                BIOS initialisation of devices. This only works for
+                legacy ROMs, i.e. PCI_PNP_HEADER not defined.
+                This option was formerly called NOINT19H.
+-DBOOT_INT18H
+                Etherboot normally hooks onto INT19H for legacy ROMs.
+                You can choose to hook onto INT18H (Basic interpreter
+                entry point) instead. This entry point is used when
+                all boot devices have been exhausted.
+-DCONFIG_PCI_DIRECT
+                Define this for PCI BIOSes that do not implement
+                BIOS32 or not correctly. Normally not needed.
+                Only works for BIOSes of a certain era.
+
+Obscure options you probably don't need to touch:
+
+-DT503_AUI
+                Use AUI by default on 3c503 cards.
+-DMOVEROM
+                If your motherboard does not cache adapter memory
+                space, then this option can speed up loading of
+                compressed BOOT-Prom images. It has not affect on
+                uncompressed images. Unless you are very tight on
+                free space, you will usually want to define this
+                option.  This flag must be added to LCONFIG!
+                (recommended).
+-DBOOTP_DATA_AT_0x93C00
+                If the area 0x93C00-0x93FFF is to be used for
+                bootpd_data (not recommended).
+-DUSE_LOWMEM_BUFFER
+                Define to put some buffers below 0x10000 which
+                may interfere with other programs (not recommended).
+</PRE>
+<HR>
+<P>
+<H2><A NAME="pciids"></A> <A NAME="ss3.4">3.4 Adjusting the PCI IDs</A>
+</H2>
+
+<P>
+<P>You may have to set the PCI vendor and device IDs correctly for PCI
+NICs. Look at the file NIC. Locate the line that has the correct PCI IDs
+for your NIC. This will give you the name of the ROM image you should
+use.  The PCI IDs are usually displayed by the BIOS on booting up. They
+can also be read out from a running Linux system using the 
+<A HREF="http://atrey.karlin.mff.cuni.cz/~mj/pciutils.html">Linux PCI Utilities</A>.  If you do not use the ROM with the correct
+IDs, the floppy version will work, but the ROM will not since the BIOS
+will check for a match.
+<P>
+<H2><A NAME="ss3.5">3.5 Testing the ROM images</A>
+</H2>
+
+<P>
+<P>You can test the image with a floppy before programming an EPROM. On
+Linux just put a blank floppy in fd0 and say make bin32/card.fd0 where
+card is the name of your network card and it will copy a bootable image
+onto the floppy. If you wish to do this by hand, it's easy, just make
+bin/boot1a.bin and prepend this to card.rom (or card.lzrom) and write
+this combined binary to the floppy raw, i.e. starting at the boot block.
+Like this, after you have done a make to create all the images:
+<P>
+<P>
+<P>
+<HR>
+<PRE>
+        cat bin/boot1a.bin bin32/3c509.lzrom > /dev/fd0
+</PRE>
+<HR>
+<P>Make sure the floppy has no bad blocks. It is best if it has been
+formatted just before use. You do not need to put any kind of filesystem
+on it. If you wish, you could substitute /dev/fd0 with the actual device
+suitable for the floppy size you are using, for example /dev/fd0H1440
+for 1.44 MB floppies. This may be more reliable than using the
+autodetecting device /dev/fd0.
+<P>
+<P>
+<P>This will also work on a hard disk partition, but as this is a riskier
+operation, you should read the instructions in boot1a.s. If you don't
+understand how to do it, please ask the mailing list for help, don't
+just try it and destroy your disk data.
+<P>
+<P>
+<P>When you boot with this floppy it will load the Etherboot ROM image from
+floppy and execute it. If you chose the correct ROM image, it should be
+able to detect your card. To get the bootrom to acquire an IP address
+and load the intended code, you need to set up bootp, tftp and NFS
+services, which we will discuss next.
+<P>
+<P>
+<P>We suggest you continue to use floppy booting until you have completed
+the setup of the server and are satisfied that diskless booting works.
+<P>
+<P>
+<P>In addition, you can generate images with the suffixes .com, .lilo  and
+.lzlilo. Where you would normally say:
+<P>
+<HR>
+<PRE>
+        make bin32/3c509.rom
+</PRE>
+<HR>
+<P>you would say
+<P>
+<HR>
+<PRE>
+        make bin32/3c509.com
+</PRE>
+<HR>
+<P>and similarly for .lilo and .lzlilo. These are alternate boot image
+formats.
+<P>
+<P>
+<P>The ones ending in .com are DOS format executables, suitable for
+starting from DOS. It requires a real DOS environment, not a virtual DOS
+environment such as that provided by the DOS prompt window under
+Windows. Also it requires that there be no XMS drivers or other memory
+handlers loaded. It is not guaranteed to work if the environment is not
+clean, and sometimes not even if it is. The best chance of this format
+working is when DOS is booted with no device drivers whatsoever.  If you
+can, use raw floppy or SYSLINUX booting instead.
+<P>
+<P>
+<P>The ones ending in .lilo and .lzlilo look sufficiently like Linux kernel
+images to be accepted by LILO and SYSLINUX for installation.
+Unfortunately loadlin uses a slightly different method of booting for
+Linux kernels from LILO and SYSLINUX and will not work with these
+images. The difference between .lilo and .lzlilo is compression,
+analogous to the difference between .rom and .lzrom.
+<P>
+<P>
+<P>In addition you can generate .dsk and .lzdsk images. These are just the
+.rom or .lzrom with the disk loader already prepended, and the size
+padded out to 18 kB, for reasons of filling out a floppy track. The make
+command is similar to those above.
+<P>
+<HR>
+<A HREF="userman-4.html">Next</A>
+<A HREF="userman-2.html">Previous</A>
+<A HREF="userman.html#toc3">Contents</A>
+</BODY>
+</HTML>

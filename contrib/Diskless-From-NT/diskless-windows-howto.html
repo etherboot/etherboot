@@ -1,0 +1,221 @@
+<html>
+<head><title>Diskless Windows Cookbook</title></head>
+<body>
+<h1>Diskless Windows Cookbook</h1>
+<h2><i>Paul Whittaker (<a href="mailto:Paul.Whittaker@iname.com">Paul.Whittaker@iname.com</a>)<br>
+Director, Cloud Network Technologies Pty Ltd, Australia</i></h2><p>
+
+This HowTo is intended for use with Windows NT 4.0 Terminal Server Edition.  I have no experience with Windows 2000 (yet), but I believe that the same basic procedure could be applied to Windows 2000 server even more easily (without the need for one or both of the add-on server packages).<p>
+
+If you don't already have a Windows Terminal Server, I advise you to think carefully about whether you really want to do this.  Windows Terminal Server solutions are very expensive, and there are other lower-cost means of accessing Microsoft applications from a Linux-based server, or accessing Microsoft documents from Linux-based applications.  This HowTo is really aimed at sites that already have a major investment in Microsoft platforms and an ongoing need for extensive use of Microsoft apps, but who want to transition to a thin-client model while recycling existing desktop hardware.  To give you some idea of the cost, I have roughly estimated the total licensing costs of a 10-user solution - not including application costs (Microsoft Office etc) - at just short of US$3000.<p>
+
+<This is a work-in-progress, which I am undertaking in my spare time in a &quot;home laboratory&quot; environment.  I have not used this solution in a production environment, and make no guarantees whatsoever that this procedure will work for you or provide the functionality you expect.  If you want assurances or to see this project developed beyond experimental status, feel free to employ my company (Cloud Network Technologies Pty Ltd) on a contract basis!<p>
+
+This recipe assumes a fairly in-depth knowledge of Linux and various network protocols.  I suggest you do some background reading on <a href="http://etherboot.sourceforge.net/">Etherboot</a> and the <a href="http://ltsp.sourceforge.net">Linux Terminal Server Project</a> operational model before proceeding.<p>
+
+<h2>Ingredients</h2>
+
+<ul>
+<li>Windows NT 4.0 Terminal Server Edition Server<p>
+Make sure you have enough Terminal Client Access Licenses installed to support the diskless terminals that will connect to this server.  You will of course need TCP/IP network services installed, and you will need to install the DHCP server.<p>
+
+Having never used this solution in a production environment I can't give you any pointers on how powerful your server will need to be in order to support <i>X</I> number of diskless clients.  I'm running NT4TSE as an alternate O/S on my home PC (an Athlon K7 600 Mhz) off an antique 540 Mb disk using software compression, with clients ranging from a 386DX40 to a Pentium 166, so my test environment's performance is understandably pretty bad.<p>
+
+<li>Linux development box<p>
+Unless you can get a complete ltsroot hierarchy (with the correct kernel binary for the network cards you are using) from someone who has already built one using this procedure, you will need - at least temporarily - a Linux box to do some compilation and assembly on.  The flavour of Linux is not important, so long as it is a distribution supported by LTSP.  I used RedHat 6.2.<p>
+
+<li>Client PCs with <i>Etherboot</i>-enabled NICs<p>
+
+You don't need anything particularly powerful for your diskless clients.  I found that a 166 MHz Pentium with 32 MB RAM works just fine, and you can get by with less.  If you have the opportunity and the money to assemble your own, splash out on a 100 Mbit/s flash-programmable NIC and an AGP graphics card, and try for a small footprint (Micro-ATX mainboard and small case) and ideally a fanless power supply.  Do your research first and make sure everything is Linux-supported.<p>
+
+You <b>don't</b> need a hard disk, a CDROM unit, a floppy drive, or a sound card, but it won't hurt anything to leave them in if you intend to use the PCs for other purposes as well.  Although LTSP can make use of some of this hardware, it will not do so in a way that is useful in /accessable from a Windows environment.<p>
+
+Unless you are content to boot from floppy disk or your NIC has a boot ROM that can be flashed with an etherboot image, you will need to burn or <a href="http://www.disklessworkstations.com/">obtain</a> etherboot ROMs for your NICs.<p>
+
+It may be possible to use PXE/RPL or other vendor protocols instead of or in conjunction with Etherboot, but that's outside the scope of this HowTo.  See the <a href="http://ltsp.sourceforge.net/contrib/">LTSP contrib area</a> for some hints about this.<p>
+
+<li>TFTP Server<p>
+NT4TSE provides a TFTP client but no TFTP server.  You will need to source a third-party server.  I had a quick look around and found a shareware server that suited my needs perfectly: <i>TFTP Server 1.2 for NT</i> by Bud Millwood (Millwood Data A.B., Sweden), at an entry price of US$40.  There are plenty of other viable options, but this was the best well-behaved no-frills NT service that I could find in the few minutes I spent looking.  Unfortunately I now don't remember where I got it from, and I can no longer find it - it used to live on ftp.coast.net, but this site has gone AWOL.<p>
+
+<li>NFS Server<p>
+NT4TSE does not provide an NFS server either (although I believe Windows 2000 does).  However, the <a href="http://www.microsoft.com/windows2000/sfu/">Microsoft Windows Services For UNIX (SFU) 2.0</a> add-on package (approx US$150) has one that is adequate for our purpose, plus other useful goodies.  If you go with another third-party NFS server package, make sure that it supports symbolic links - many don't.  If it supports character- and device-special files, even better!  I couldn't find one that did.<p>
+
+With some additional work it ought to be possible to obviate the need for an NFS server by attaching a ramdisk image (eg. a <i>cramfs</i> or <i>romfs</i> filesystem) to the tagged kernel served to the diskless client via TFTP and using the initial ramdisk (<i>initrd</i>) capability of Linux.  This approach would require client PCs with a fairly generous amount of RAM, whereas the LTSP-based approach does not.<p>
+
+<li>Linux Terminal Server Project (LTSP) Core Package and relevant X Server Package(s)<p>
+<a href="http://ltsp.sourceforge.net/">LTSP</a> doesn't have to be the basis of the Linux distribution that will run on the diskless client, but it's what I used.  LTSP is intended for use with an X11-based Linux server, so we will need to bend it a bit to make it work with a Windows server.<p>
+
+<li>Devfs-enabled Kernel Sources and Devfsd Source<p>
+Unless you have found an Windows NFS server that supports character- and block-special files, you will need to prepare a Linux kernel with devfs support to overcome this limitation.  <i>Devfs</i> and <i>devfsd</i> sources can be found at <a href="http://www.atnf.csiro.au/~rgooch/linux/">http://www.atnf.csiro.au/~rgooch/linux/</a>.<p>
+
+<li>Mknbi<p>
+You will need the <i>mknbi</i> utility available from the <a href="http://etherboot.sourceforge.net/">Etherboot website</a> to create a network-bootable binary.<p>
+
+<li>Rdesktop Source and latest Integrated Patch<p>
+<i><a href="http://www.rdesktop.org/">Rdesktop</a></i> is a freeware RDP client (RDP is the remote display protocol used natively by NT4TSE and Windows 2000).  The <i>Rdesktop</i> project is still rather immature, but after application of the semi-official <a href="http://bibl4.oru.se/projects/rdesktop/">integrated patch</a> it is reliable enough for our purposes on standard Intel-based PC hardware.  I used unified patch revision 19-5-1.<p>
+
+If you are using Citrix Metaframe, it is possible to attach the Linux ICA client which is freely available from Citrix to the LTSP distribution and use this to connect to your Terminal Server using the ICA protocol rather than the RDP protocol.  This is a complicated process, and is the subject of a separate HowTo.  ICA/Metaframe has various advantages over RDP, potentially including compression, sound support, application abstraction and load balancing, and &gt;8-bit colour-depths.<p>
+
+Another nice solution is to use Citrix UNIX Integration Services or a similar package to configure your Terminal Server as an X11/XDMCP server.  This will allow the Linux-based clients to connect to your server using the X11 protocol native to Linux.  You may even be able to use LTSP out of the box.<p>
+
+<li>Syslog server (optional)<p>
+You may also want to consider installing a <i>syslog</i> daemon on your NT4TSE server to record events logged by your diskless clients.  Several low-cost NT <i>syslog</i> implementations are available, eg. <a href="http://www.winsyslog.com/">Adiscon WinSyslog</a>.<p>
+
+</ul><p>
+
+<h2>Method</h2><p>
+
+<ol>
+<li>Install the LTSP components on your Linux box.  If by some miracle you have found a Windows-NT-based NFS server that supports block- and character-special files and symbolic links, you can use one of the standard kernels provided at the LTSP website and skip to step 5.<p>
+
+Unless you intend to do dry-run boot tests from your Linux box, it is not necessary to run <i><tt>ltsp_initialize</tt></i> at this point, or to get bogged down in the details of LTS setup.  We are only using Linux as an intermediary to generate a root filesystem footprint - the configuration can be done later from Windows.<p>
+
+<li>Compile a <i>devfs</i>-enabled kernel bzImage using <i><tt>make bzImage ROOT_DEV=''</tt></i>.  There is a patch you can apply to 2.2.x kernel sources to add <i>devfs</i> support, but there are some side-issues, and I would suggest just grabbing 2.4.x kernel source (with <i>devfs</i> built in) and using this.  I used 2.4.0 source with <a href="config.txt">this</a> config file for clients with NE2000 compatible network cards.  DHCP kernel-level IP autoconfiguration should not be necessary if using recent versions of Etherboot and <i>mknbi</i>.<p>
+
+If you intend to use loadable modules you will also need to compile the modules and install them into <tt>/tftpboot/lts/ltsroot/lib/modules/<i>kernel-version</i></tt>.  Note that the version 2.4.x kernel sources install modules using a new directory layout that most likely won't be understood by your modutils, in which case you will need to massage the modules directory back into the traditional format (because we'll be using the <i>modprobe</i> and <i>depmod</i> binaries from your Linux distro).  The following procedure should work for a version 2.4.x kernel:<p>
+
+<tt>
+make modules<br>
+make modules_install<br>
+mkdir -p /tftpboot/lts/ltsroot/lib/modules/<i>new-kernel-version</i><br>
+cd /lib/modules/<i>new-kernel-version</i>/kernel<br>
+mv fs drivers/* /tftpboot/lts/ltsroot/lib/modules/<i>new-kernel-version</i><br>
+cd /<br>
+rm -rf /lib/modules/<i>new-kernel-version</i> /tftpboot/lts/ltsroot/modules<br>
+cp /sbin/depmod /tftpboot/lts/ltsroot/sbin<br>
+chroot /tftpboot/lts/ltsroot /sbin/depmod -a
+</tt><p>
+
+<li>Create a tagged image using <i>mknbi-linux</i>.  Unfortunately it appears that you must explicity state the NFS root path that you intend to use because, despite appearances, NT4TSE's DHCP Server doesn't provide <i>RootPath</i> information that Etherboot/Linux can make sense of.<p>
+
+<pre>
+cd /usr/src/linux/arch/i386/boot
+rdev -R bzImage 0
+rdev -r bzImage 1
+mknbi-linux --ipaddrs=rom --rootdir=/tftpboot/lts/ltsroot bzImage >vmlinuz
+cp vmlinuz /tftpboot/lts
+</pre><p>
+
+My personal preference is to keep the TFTP and NFS areas separate rather than have the latter a subset of the former, so for my kernel I actually used <tt>--rootdir=/ltsroot</tt> for use in the directory <tt>d:\ltsroot</tt> on my server.<p>
+
+<li><a href="http://www.atnf.csiro.au/~rgooch/linux/">Obtain</a> and compile <i>devfsd</i> and install it into the ltsroot hierarchy.  <i>Devfsd</i> requires <i>modprobe</i>, which LTSP doesn't normally use, so we will need to make some minor modifications.<p>
+
+<pre>
+cp devfsd /sbin/modprobe /tftpboot/lts/ltsroot/sbin
+cp /usr/lib/libnsl.so.1 /tftpboot/lts/ltsroot/lib
+cp devfsd.conf modules.devfs /tftpboot/lts/ltsroot/etc
+rm -rf /tftpboot/lts/ltsroot/dev/*
+ed /tftpboot/lts/ltsroot/etc/rc.local << EOF
+/^function get_cfg/
+/^}/
+a
+
+#
+# Set up devfs compatibility devices
+#
+/sbin/devfsd /dev
+.
+1,\$s/\/dev\/ram/\/dev\/ram0/
+/insmod/
+d
+i
+        /sbin/modprobe \${MODULE}
+.
+w
+q
+EOF
+ed /tftpboot/lts/ltsroot/etc/modules.devfs << EOF
+/^include /
+s/^/#/
+w
+q
+EOF
+</pre><p>
+
+Note that as you are now using <i>modprobe</i> you will need to remove the &quot;.o&quot; extensions from all your <tt>MODULES_<i>NN</i></tt> lines in <tt>/tftpboot/lts/ltsroot/etc/lts.conf</tt>.<p>
+
+<li>Patch, compile and install rdesktop.<p>
+
+<pre>
+cp rdesktop /tftpboot/lts/ltsroot/ltsbin
+cp /usr/X11R6/bin/xinit /tftpboot/lts/ltsroot/bin
+cd /usr/X11R6/lib
+cp libXmu.so.6 libXt.so.6 libSM.so.6 libICE.so.6 /tftpboot/lts/ltsroot/lib
+ln -s /tmp/xinitrc /tftpboot/lts/ltsroot/.xinitrc
+ed /tftpboot/lts/ltsroot/etc/rc.local << EOF
+/\*)/
+i
+        RDP)  XSERVER=\`get_cfg XSERVER XF86_SVGA\`
+	      RDP_SERVER=\`get_cfg RDP_SERVER \${DEFAULT_SERVER}\`
+	      echo "while true; do /ltsbin/rdesktop -u Administrator -4 -F -T x \${RDP_SERVER}; done" >/tmp/xinitrc
+	      echo "/bin/xinit -- /ltsbin/\${XSERVER}" >/tmp/start_ws
+	      ;;
+
+.
+w
+q
+EOF
+</pre><p>
+
+Finally, edit <tt>/tftpboot/lts/ltsroot/etc/lts.conf</tt> and set <tt>UI_MODE</tt> to <tt>RDP</tt> and <tt>SERVER</tt> to the IP address of your NT4TSE server.<p>
+
+<li>Install and activate the TFTP and NFS servers on your Terminal Server.<p>
+
+I recommend giving each server a separate directory to work with, eg. <tt>c:\tftpboot</tt> for the TFTP server and <tt>c:\ltsroot</tt> for NFS server.  You <b>must</b> ensure that the root path you used in the <i>mknbi-linux</i> command in step 3 matches the directory name that you use for the NFS server (without the leading drive letter and colon, and with forward-slashes substituted for back-slashes).  Be careful not to compromise the security of your server; your diskless clients only need TFTP access to a single file, and read-only NFS access to their root directory.  Initially, however, you must give your Linux development box read-write access to the LTS root directory so that the files can be transferred.  Once your diskless PCs are up and running properly you can revoke this access.<p>
+
+If using the Millwood TFTP server, install by positioning the binary in the desired permanent location and running using <i><tt>tftpds -install</tt></i> and then configure using the new icon which appears in the Control Panel.  Make sure that you select <i>Limit to default directory</i>.  You will need to manually start the TFTP service after it is installed - the install procedure sets startup to <i>Automatic</i> but doesn't actually start the service.<p>
+
+Setting up the SFU NFS server is very easy.  Once installed from CD (you need only install the NFS server, no other components of SFU are required), just start <i>Windows NT Explorer</i>, right click on on the directory you want to share via NFS and select <i>Sharing...</i>.  In the window which appears you will see a new <i>NFS Sharing</i> tab which you can use to activate NFS sharing.  Use the <i>Permissions</i> button to set sharing to <i>Read-Only</i> for the default group <i>ALL_MACHINES</i>, and then add an explicit <i>Read-Write</i> permission for your Linux development box.<p>
+
+<li>Copy files from your Linux development box to the correct locations on your NT4TSE server.<p>
+
+<tt>
+cd /tftpboot/lts<br>
+tftp <i>your-server-name</i><br>
+binary<br>
+put vmlinuz<br>
+quit<br>
+mount <i>your-server-name</i>:/<i>path-to-ltsroot</i> /mnt<br>
+cd ltsroot<br>
+tar cf - . | (cd /mnt; tar xf -)<br>
+umount /mnt
+</tt><p>
+
+<li>Set up the DHCP Server on your NT4TSE server.<p>
+
+<b>N.B.</b>: The DHCP server doesn't work properly straight off the NT4TSE CD.  You must apply a Service Pack after installing it; I'm not sure what the minimum Service Pack it needs is, but SP6 does the trick.<p>
+
+Start <i>DHCP Manager</i> from the menu, double click <i>Local Machine</i> and create a new scope using the option in the <i>Scope</i> menu.  It's OK to make use of an existing subnet to host your diskless clients, you don't need a dedicated one.  If you do this, however, make sure that you add exclusions for any network entities that already exist on that subnet and aren't diskless PCs, including your Terminal Server itself.  <i>Lease Duration</i> should be set to <i>Unlimited</i>.<p>
+
+Select the newly-created scope and then pick <i>Scope...</i> from the <i>DHCP Options</i> menu.  Minimally, add <i>Root Path</i> and <i>Bootfile Name</i> options, and set the values of these appropriately.  You must use UNIX conventions here, which means forward-slashes instead of back-slashes and no drive letter prefixes.  You will probably want to add some other options as well.  Here's what I use:<p>
+
+<table border>
+<tr><th>Option<th>Value</tr>
+<tr><td>017 Root Path<td>/ltsroot</tr>
+<tr><td>028 Broadcast Address<td>10.255.255.255</tr>
+<tr><td>030 Mask Supplier Option<td>0x1</tr>
+<tr><td>036 Ethernet Encapsulation<td>0x1</tr>
+<tr><td>066 Boot Server Host Name<td>nimbus</tr>
+<tr><td>067 Boot File Name<td>/tftpboot/vmlinuz</tr>
+</table><p>
+
+Now select <i>Add Reservations...</i> from the <i>Scope</i> menu, and add entries for each of your diskless clients, so that there is a one-to-one mapping of ethernet (MAC) addresses onto IP addresses.  The MAC address goes into the field named <i>Unique Identifier</i> - just use 12 sequential hexidecimal digits with no separating punctuation.  I found that setting <i>Client Name</i> didn't work - the only way I could get the DHCP server to send the client its hostname was to set the <i>012 Host Name</i> option using the <i>Options...</i> button for every single reservation entry.  Mind you, I'm not using WINS or DNS - your mileage may vary.<p>
+
+Finally activate the scope from the <i>Scope</i> menu.<p>
+
+<li>Set up your diskless PCs for Etherboot.<p>
+
+This may mean fitting a ROM chip, using a flash programming utility to program a flash PROM, or writing a ROM image to a floppy disk.  ROM chips burned with Etherboot ROM images are available from <a href="http://www.disklessworkstations.com/">DisklessWorkstations.Com</a>.  Free custom ROM images can be generated and downloaded on demand from <a href="http://www.rom-o-matic.net/">ROM-o-matic.net</a>.  To prepare a bootable floppy using a floppy-boot ROM image, just use your Linux box to <i>dd</i> it to <tt>/dev/fd0H1440</tt> or use <i>rawrite.exe</i> from Windows.<p>
+
+<li>Configure LTS, boot client PCs and perform fine-tuning.<p>
+
+At this point you should read the LTSP doco and set up <tt>lts.conf</tt> file as appropriate.  Note that in a Windows-only server environment we will not be able to make use of LTSP's advanced features such as the Font Server, Remote Apps and floppy disk/printer support.<p>
+
+If all goes well you should now be able to get at least as far as booting Linux.  You'll probably need to do quite a bit of additional fine-tuning to get the X server working with your particular brands of video cards and monitors.<p>
+
+If you are using <i>WordPad</i> or similar to edit your configuration files, be careful not to inadvertently introduce carriage-return characters into the file as this can mess things up quite badly (as I discovered).  In particular, be careful when doing Windows cut-and-paste operations.  It's probably safer to NFS-mount <tt>ltsroot</tt> onto your Linux box and edit from there.<p>
+
+</ol><p>
+
+</body>
+</html>

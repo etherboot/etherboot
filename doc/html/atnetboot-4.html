@@ -1,0 +1,27 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Netbooting a 286 with a ramdisk: What needs to be done to boot other OSes with ramdisk</TITLE>
+ <LINK HREF="atnetboot-3.html" REL=previous>
+ <LINK HREF="atnetboot.html#toc4" REL=contents>
+</HEAD>
+<BODY>
+Next
+<A HREF="atnetboot-3.html">Previous</A>
+<A HREF="atnetboot.html#toc4">Contents</A>
+<HR>
+<H2><A NAME="s4">4. What needs to be done to boot other OSes with ramdisk</A></H2>
+
+<P>
+<P>Essentially a version of mknbi similar to <CODE>mknbi-dos</CODE> needs to
+be written for that OS and filesystem. For example, for ELKS, the setup
+code in <CODE>first.S</CODE> would do validity checks for a <CODE>Minix</CODE>
+filesystem and <CODE>mknbi</CODE> would create a <CODE>Minix</CODE> ramdisk.
+<P>
+<HR>
+Next
+<A HREF="atnetboot-3.html">Previous</A>
+<A HREF="atnetboot.html#toc4">Contents</A>
+</BODY>
+</HTML>

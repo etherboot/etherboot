@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot Developers Manual: The architecture of Etherboot</TITLE>
+ <LINK HREF="devman-5.html" REL=next>
+ <LINK HREF="devman-3.html" REL=previous>
+ <LINK HREF="devman.html#toc4" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="devman-5.html">Next</A>
+<A HREF="devman-3.html">Previous</A>
+<A HREF="devman.html#toc4">Contents</A>
+<HR>
+<H2><A NAME="s4">4. The architecture of Etherboot</A></H2>
+
+<P>
+<P>Leaving aside the peripheral code for the loaders, the rest of Etherboot
+can be divided into the core, the drivers and miscellaneous (catch-all
+category).
+<P>
+<P>
+<P>
+<HR>
+<PRE>
+        +------------------+------------------+
+        |  Etherboot core  |   Miscellaneous  |
+        +------------------+------------------+
+        |           Driver support            |
+        +-------------------------------------+
+        |           Hardware drivers          |
+        +-------------------------------------+
+        |              Hardware               |
+        +-------------------------------------+
+</PRE>
+<HR>
+<P>
+<H2><A NAME="ss4.1">4.1 Etherboot core</A>
+</H2>
+
+<P>
+<P>The core of Etherboot handles the protocol for obtaining a network
+identity and for loading data over the network. This comprises the files
+start32.S (startup code and BIOS interface), main.c (most of the
+protocol handling), config.c (links in the desired driver), osloader.c
+(support for various load image formats), nfs.c (support for NFS I/O)
+and misc.c (printing routines and A20 gate handling). config.c is
+special in that it is compiled into one object file for each network
+adapter, again using C preprocessor technology.
+<P>
+<H2><A NAME="ss4.2">4.2 Drivers</A>
+</H2>
+
+<P>
+<P>These files are listed in the file NIC. Generally each file represents a
+family of network adapters. For example tulip.c handles all adapters
+that use a Tulip compatible network controller, even if they are from
+different manufacturers. 3c90x.c handles a whole family of related
+adapters from 3Com.
+<P>
+<P>
+<P>The interface between the core and the drivers is well-defined and
+explained in the section on 
+<A HREF="devman-7.html#driver">writing a driver</A>.
+<P>
+<P>
+<P>The files timer.h and timer.c provide routines for access to the
+second hardware timer of the PC. This is used for implementing
+microsecond timeouts.
+<P>
+<P>
+<P>The files pci.h and pci.c provide a PCI initialisation subsystem that is
+executed for PCI adapters.
+<P>
+<P>
+<P>skel.c is a skeleton driver that an aspiring driver writer can use as a
+starting point.
+<P>
+<H2><A NAME="ss4.3">4.3 Miscellaneous</A>
+</H2>
+
+<P>
+<P>In this category are all the files that don't fit into the first two
+categories. These are ansisec.c (fancy graphics), bootmenu.c (menu
+support), floppy.c (floppy I/O), md5.c (authentication), and serial.S
+(serial console support).
+<P>
+<H2><A NAME="ss4.4">4.4 External auxiliary programs</A>
+</H2>
+
+<P>
+<P>In Etherboot 5.0 and later there is the facility to load and run external
+auxiliary programs. Etherboot executes at 0x94000. All the memory below that
+and above 0x10000 is fair game for loading. What if we did not load the target
+operating system but instead loaded an external program, one that returned to
+Etherboot after doing something. This something could be a fancy menu system.
+The advantage of this approach is that the menu system does not have to be
+compiled into Etherboot, which means it can be changed without changing ROMs,
+and can be much larger.
+<P>
+<P>
+<P>How does such a menu program indicate to Etherboot which image is to be
+loaded next? Several new features of Etherboot make this possible.
+Firstly, a bit in the header of the loaded image is used to indicate
+that the loaded program intends to return to Etherboot, as opposed to
+never returning, in the case of an operating system. Next, the external
+program is passed a pointer to the BOOTP/DHCP structure obtained by
+Etherboot, which includes the filename field. Finally, the external
+program can return one longword of status to Etherboot to indicate
+various conditions.
+<P>
+<P>
+<P>So here's how the external menu program would work. Etherboot is told to
+load an image which is a menu program. The program would present the
+user with a list of images to choose from. The presentation can be as
+simple as a numbered menu or as fancy as a point and click interface (if
+you can arrange to interface to the pointer). When a particular image
+has been chosen, the menu program alters the filename field in the
+BOOTP/DHCP structure and returns a longword of status indicating that
+Etherboot should retry the loading. Since the filename has been altered,
+Etherboot will end up loading the desired image instead of the menu this
+time around. Think of it as a program chaining facility.
+<P>
+<HR>
+<A HREF="devman-5.html">Next</A>
+<A HREF="devman-3.html">Previous</A>
+<A HREF="devman.html#toc4">Contents</A>
+</BODY>
+</HTML>

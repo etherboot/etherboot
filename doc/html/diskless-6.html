@@ -1,0 +1,45 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>SLUG talk: Setting up a diskless Linux system: Gotchas and caveats</TITLE>
+ <LINK HREF="diskless-7.html" REL=next>
+ <LINK HREF="diskless-5.html" REL=previous>
+ <LINK HREF="diskless.html#toc6" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="diskless-7.html">Next</A>
+<A HREF="diskless-5.html">Previous</A>
+<A HREF="diskless.html#toc6">Contents</A>
+<HR>
+<H2><A NAME="Gotchas"></A> <A NAME="s6">6. Gotchas and caveats</A></H2>
+
+<P>
+<P>RH5 wants to fsck the root FS. I stopped this with a <CODE>/fastboot</CODE>.
+But init script wants to delete it, so I did <CODE>chattr +i /fastboot</CODE>
+<P>
+<P>
+<P>Another way (unverified): ln -s /bin/true /sbin/fsck.nfs
+<P>
+<P>
+<P><CODE>/etc/localtime</CODE> is a link to TZ file in <CODE>/usr/share/...</CODE>
+I made it a copy.
+<P>
+<P>
+<P>Turn off <CODE>/etc/rc.d/rc6.d/K97network</CODE> or it will disable the
+network before root FS is done with.
+<P>
+<P>
+<P>X server wants to write into <CODE>/usr/X11R6/lib/X11/xkb/compiled</CODE>.
+I made this a link to <CODE>/etc/X11/kbd/compiled</CODE>
+<P>
+<P>
+<P>Remember your DC will keep appending to log files so have logrotate or
+something deal with them at regular intervals.
+<P>
+<HR>
+<A HREF="diskless-7.html">Next</A>
+<A HREF="diskless-5.html">Previous</A>
+<A HREF="diskless.html#toc6">Contents</A>
+</BODY>
+</HTML>

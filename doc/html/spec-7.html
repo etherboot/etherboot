@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Draft Net Boot Image Proposal 0.3: Example of a boot image.</TITLE>
+ <LINK HREF="spec-8.html" REL=next>
+ <LINK HREF="spec-6.html" REL=previous>
+ <LINK HREF="spec.html#toc7" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="spec-8.html">Next</A>
+<A HREF="spec-6.html">Previous</A>
+<A HREF="spec.html#toc7">Contents</A>
+<HR>
+<H2><A NAME="s7">7. Example of a boot image.</A></H2>
+
+<P>
+<P>Here is an example of how the boot image would look for Linux:
+<P>
+<HR>
+<PRE>
+          0x1B031336,  /* magic number */
+          0x4,         /* length of header is 16 bytes, no vendor info */
+          0x90000000,  /* location in ds:bx format */
+          0x90000200,  /* execute address in cs:ip format */
+
+                       /* 2048 setup.S bytes */
+          0x4,         /* flags, not end, absolute address, 16 bytes this
+                          record, no vendor info */
+          0x90200,     /* load address - note format */
+          0x800,       /* 4 8 512 byte blocks for linux */
+          0x800,
+
+                       /* kernel image */
+          0x4,         /* flags, not end, absolute address, 16 bytes this
+                          record, no vendor info */
+          0x10000,     /* load address - note format */
+          0x80000,     /* 512K (this could be shorter */
+          0x80000,
+
+                       /* ramdisk for root file system */
+          0x04000004,  /* flags = last, absolute address, 16 bytes this
+                          record, no vendor info *//
+          0x100000,    /* load address - in extended memory */
+          0x80000,     /* 512K for instance */
+          0x80000,
+
+                       /* Then follows linux specific information */
+</PRE>
+<HR>
+<P>
+<HR>
+<A HREF="spec-8.html">Next</A>
+<A HREF="spec-6.html">Previous</A>
+<A HREF="spec.html#toc7">Contents</A>
+</BODY>
+</HTML>

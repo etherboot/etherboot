@@ -1,0 +1,58 @@
+dnl
+dnl autoconf input file to generate MCONFIG
+dnl
+
+AC_INIT(MCONFIG.in)
+
+AC_PROG_CC
+AC_C_CONST
+AC_C_INLINE
+
+AC_CHECK_FUNCS(recvmsg)
+AC_CHECK_FUNCS(setreuid)
+AC_CHECK_FUNCS(setregid)
+PA_MSGHDR_MSG_CONTROL
+PA_STRUCT_IN_PKTINFO
+
+PA_WITH_BOOL(tcpwrappers, 1,
+[ --without-tcpwrappers	Disable tcpwrapper permissions checking],
+[
+	AC_SEARCH_LIBS(yp_get_default_domain, [nsl resolv])
+	PA_HAVE_TCPWRAPPERS
+],
+[
+	:
+])
+
+PA_ADD_CFLAGS(-Wall)
+PA_ADD_CFLAGS(-W)
+PA_ADD_CFLAGS(-Wpointer-arith)
+PA_ADD_CFLAGS(-Wbad-function-cast)
+PA_ADD_CFLAGS(-Wcast-equal)
+PA_ADD_CFLAGS(-Wstrict-prototypes)
+PA_ADD_CFLAGS(-Wmissing-prototypes)
+PA_ADD_CFLAGS(-Wmissing-declarations)
+PA_ADD_CFLAGS(-Wnested-externs)
+PA_ADD_CFLAGS(-Winline)
+PA_ADD_CFLAGS(-Wcast-align)
+PA_ADD_CFLAGS(-pipe)
+
+PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
+
+LIBXTRA=0
+
+AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=1 LIBOBJS="$LIBOBJS xmalloc.o")
+AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=1 LIBOBJS="$LIBOBJS xstrdup.o")
+AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=1 LIBOBJS="$LIBOBJS bsdsignal.o")
+
+if test "$LIBXTRA" -eq 1; then
+	LIBS="../lib/libxtra.a $LIBS"
+fi
+
+AC_SUBST(LIBOBJS)
+
+AC_PROG_RANLIB
+AC_PROG_INSTALL
+
+AC_CONFIG_HEADER(config.h)
+AC_OUTPUT(MCONFIG)

@@ -1,0 +1,50 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Security: PASSWORDS PROTECTED BOOT-PROMS</TITLE>
+ <LINK HREF="security-5.html" REL=next>
+ <LINK HREF="security-3.html" REL=previous>
+ <LINK HREF="security.html#toc4" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="security-5.html">Next</A>
+<A HREF="security-3.html">Previous</A>
+<A HREF="security.html#toc4">Contents</A>
+<HR>
+<H2><A NAME="s4">4. PASSWORDS PROTECTED BOOT-PROMS</A></H2>
+
+<P>
+<P>Password protected BOOT-Proms are  a considerable improvement over the
+standard security measures  offered by the  PC architecture,  but they
+are still vulnerable  to a variety  of attacks. Most of  these attacks
+are related to the weaknesses of the BOOTP and TFTP protocol and these
+issues are discussed in another section of text.
+<P>
+<P>
+<P>As the BOOT-Prom cannot store the passwords locally, it has to request
+them from the BOOTP/TFTP server.  The  BOOTP and TFTP protocols do not
+allow for any elaborate  challenge/response authorization scheme. Thus
+the BOOT-Prom  requests the password from  the server and subsequently
+compares it   with the password   as  input by  the user.   As packets
+transmitted on the ethernet can  easily be monitored, the server sends
+a MD5 message  digest (as invented  by Ron  Rivest/"RSA Data Security,
+Inc.")  of the actual password.  The  BOOT-Prom computes the MD5 value
+for the user   input and compares  these two values.  It is  generally
+believed that there is no way of  computing a valid  plain text from a
+known   MD5 message digest,   other    than comparing it against   all
+conceivable  input texts.   Thus, this  approach  is still  vulnerable
+against  dictionary attacks. You should   aim for using long passwords
+(although,  anything beyond 20  characters is unlikely to considerably
+improve the security of  the  password) which are   not listed in  any
+dictionary.   Make  sure that  these passwords  are memorized  and not
+available in un-encrypted form. Replace the passwords regularly and do
+not offer  more menu  entries in the   BOOTP data than are  absolutely
+neccessary.
+<P>
+<HR>
+<A HREF="security-5.html">Next</A>
+<A HREF="security-3.html">Previous</A>
+<A HREF="security.html#toc4">Contents</A>
+</BODY>
+</HTML>

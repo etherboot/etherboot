@@ -1,0 +1,52 @@
+1) What are the best values for --tftpd-timeout, --retry-timeout and
+    --max-thread ?
+
+There is no absolute answer to that question. It is highly dependent
+of your personnal setup. Here's an explanation of what they mean and
+how to tune them.
+
+--tftpd-timeout controls how much time the server will wait for an
+incomming connection before killing the main thread. If you use small
+number, the server will be respawned by inetd when a new query
+arrives. If number is high, atftpd will behave more like a standalone
+server in that it will always receive queries directly. When booting a
+whole cluster, the first tftp request will start the daemon and have
+higher latency. All other clients will be handled directly by the tftp
+server. It is a good idea to set the timeout high enough so that the
+main thread won't hog your system killing itself and respawning all
+the time.
+
+--retry-timeout controls how much time the server waits before
+retransmitting a packet. If you expect some lag on the network (when
+the network is under high load), it is a good idea to increase that
+value. Note that the client's delay must be taken into
+consideration. The client can set the server delay too, and it
+overides the --retry-timeout value.
+
+--max-thread controls how many simultaneous client may be served. This
+limit depends on your server's performance. It also depends on the
+maximum load you are willing to put on the server. For exemple, this
+server may have other things to do, and you want to limit the number
+of clients booting at the same time to 10. The maximum number of
+threads is also throttled by the available bandwidth of the network
+and server, because packet cannot be processed fast enough and there is
+a maximum rate at which servers may be started. But this is not a desirable
+condition and --maxthread should be set to avoid that.
+
+2) Why do I get "recvfrom: Connection refused" is my log file?
+
+That indicates that either your server or network can't handle all the
+packets fast enough. What happens is the following:
+	- client sends a RRQ (read request)
+	- server starts a thread (A) that sends a DATA packet
+	- the client times out and sends a second RRQ
+	- server A sends the whole file
+	- client and server thread A both exit normally
+	- server finally starts a second thread (B) for the second RRQ
+	- the server thread sends a DATA packet to the client
+	- the client isn't listenning anymore, we got a connection refused.
+
+Solution:
+	a) increase timeout on client and server side
+	b) reduce the number of concurrent thread allowed
+	c) do nothing, it's not harmfull at all.

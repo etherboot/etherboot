@@ -1,0 +1,54 @@
+#!/bin/sh
+if [ $# != 2 ]
+then
+	echo Usage: $0 olddir newdir
+	exit 1
+fi
+
+cd /tftpboot
+
+if [ ! -d $1 ]
+then
+	echo $1 is not a directory
+	exit 1
+fi
+
+umask 022
+
+mkdir -p $2
+
+# just make these ones
+for d in home mnt proc tmp usr
+do
+	mkdir $2/$d
+done
+
+chmod 1777 $2/tmp
+
+touch $2/fastboot
+chattr +i $2/fastboot
+
+# link these ones
+for d in bin lib sbin
+do
+	(cd $1; find $d -print | cpio -pl ../$2)
+done
+
+# copy these ones
+for d in dev etc root var
+do
+	cp -a $1/$d $2
+done
+
+cat <<EOF
+Now, in /tftpboot/$2/etc, edit
+
+	sysconfig/network
+	sysconfig/network-scripts/ifcfg-eth0
+	fstab (maybe)
+	conf.modules (maybe)
+
+and configure
+
+	rc.d/rc3.d
+EOF

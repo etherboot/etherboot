@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot User Manual: Acknowledgements</TITLE>
+ <LINK HREF="userman-11.html" REL=next>
+ <LINK HREF="userman-9.html" REL=previous>
+ <LINK HREF="userman.html#toc10" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="userman-11.html">Next</A>
+<A HREF="userman-9.html">Previous</A>
+<A HREF="userman.html#toc10">Contents</A>
+<HR>
+<H2><A NAME="acknowledgements"></A> <A NAME="s10">10. Acknowledgements</A></H2>
+
+<P>
+<P>The following people have contributed substantially to Etherboot. If you
+feel your name has been left out, just let me know and I will fix it up.
+<P>
+<DL>
+<P>
+<DT><B>Markus Gutschke</B><DD><P>Co-author of Etherboot. He was the person who
+ported the Netboot suite from FreeBSD. He has enhanced Etherboot with many
+features, one new driver and has contributed various utilities and addons.
+<P>
+<DT><B>Gero Kuhlmann</B><DD><P>The original mknbi utilities used by Etherboot are
+from Netboot.  He has also clarified the original specification by Jamie
+Honan.
+<P>
+<DT><B>Jamie Honan</B><DD><P>Jamie started Netboot off by writing the first version
+that used code from a packet driver.
+<P>
+<DT><B>Martin Renters et. al</B><DD><P>The original authors of Netboot on FreeBSD.
+<P>
+<DT><B>Bruce Evans</B><DD><P>Created bcc compiler used by Etherboot/16 (16 bit ROMs
+are no longer supported).
+<P>
+<DT><B>Rob de Bath</B><DD><P>Current maintainer of bcc and associated tools like as86,
+used in older versions of Etherboot to assemble the x86 assembly language
+files.
+<P>
+<DT><B>Gerd Knorr</B><DD><P>Contributed MASQ for making a boot floppy without DOS.
+<P>
+<DT><B>Adam Richter</B><DD><P>Contributed comboot for making a boot floppy without DOS.
+<P>
+<DT><B>Claus-Justus Heine</B><DD><P>Contributed patch for serial console and NFS
+swapping. See the contrib/nfs-swap directory for his Web page.
+<P>
+<DT><B>Dickon Reed</B><DD><P>Contributed display of loading status and a hack for
+the 3c509 card.
+<P>
+<DT><B>David Munro</B><DD><P>Contributed PCI detection code originally from Linux sources.
+<P>
+<DT><B>Charlie Brady</B><DD><P>Donated NE2100 card so that a driver could be written,
+and helped test the LancePCI driver. Spotted bug with 4.1 header code.
+<P>
+<DT><B>Rogier Wolff</B><DD><P>Created Intel EtherExpressPro 100 driver and binary
+to hex converter.
+<P>
+<DT><B>Vlag Lungu</B><DD><P>Contributed patches to work with DHCP. Also contributed
+a fix to match the received XID against the transmitted one, important
+in a network with many requesters.
+<P>
+<DT><B>William Arbaugh</B><DD><P>Patches for eepro to work with 3.2.
+<P>
+<DT><B>Jean Marc Lacroix</B><DD><P>Contributed an improved bin2intelhex.
+<P>
+<DT><B>Jim Hague</B><DD><P>Contributed fixes to 3c503 driver for PIO mode, fix to
+makerom for presetting EPROM bytes, and various endian fixes.
+<P>
+<DT><B>Andrew Coulthurst</B><DD><P>Contributed patch for making Intel eepro work
+in 4.0.
+<P>
+<DT><B>Doug Ambrisko</B><DD><P>Contributed patches to start32.S from FreeBSD version
+to make it boot Windoze after answering N to Boot from Network question.
+Contributed FreeBSD support and improved serial console support which
+is now merged into distribution since version 4.2.8. Minor patches to
+4.7.21 to make compilation under FreeBSD easier.
+<P>
+<DT><B>Alex Harin</B><DD><P>Contributed patches for prepended loaders and makerom
+to make bootrom PnP and PCI compatible.
+<P>
+<DT><B>Peter Dobcsanyi</B><DD><P>Contributed vendor and device IDs for the Netvin
+NE2000/PCI clone.
+<P>
+<DT><B>adam@mudlist.eorbit.net</B><DD><P>Contributed RARP code as alternative to
+BOOTP/DHCP. Activated by RARP_NOT_BOOTP define.
+<P>
+<DT><B>Daniel Engstrom</B><DD><P>Contributed a SMC9000 driver.
+<P>
+<DT><B>Didier Poirot</B><DD><P>Contributed an Etherpower II (EPIC 100) driver.
+<P>
+<DT><B>Martin Atkins</B><DD><P>Contributed mntnbi for mounting DOS NBIs.
+<P>
+<DT><B>Attila Bogar</B><DD><P>Contributed a bug fix to the bootmenu code and a
+patch to main.c to remove looping menus on failure. Also code for ARP
+replies and TFTP retransmit (#ifdef CONGESTED). Cleanup of tftp and tftpd.
+<P>
+<DT><B>Nathan R. Neulinger</B><DD><P>Found bug due to tu_block being declared signed
+short in arpa/tftp.h on many platforms when it should be unsigned short.
+<P>
+<DT><B>David Sharp</B><DD><P>Contributed a FreeBSD driver for Tulip based cards. Ken
+Yap ported it to Etherboot. Not tested because code needs to be written
+for all the variants of the Tulip and also because no hardware available
+to me.
+<P>
+<DT><B>Greg Beeley</B><DD><P>Contributed a 3c905b driver. Be sure to read the
+release notes in 3c905b.txt before using.
+<P>
+<DT><B>Alex Nemirovsky</B><DD><P>Contributed patches to use BIOS call to size memory
+otherwise Etherboot was trampling on top of 640kB area, which is used
+by some extended BIOSes. Also contributed patches to pci.c to implement
+PCI bus support on BIOSes that do not implement BIOS32, or incorrectly.
+<P>
+<DT><B>G&uuml;nter Knauf</B><DD><P>Suggested making the ASK_BOOT prompts more generic and
+clearer. Also contributed a DOS utility for extracting the identifier string
+and PCI IDs, if any, out of the boot ROM. Contributed a wake on LAN CGI script.
+<P>
+<DT><B>Klaus Espenlaub</B><DD><P>Contributed various cleanup patches to the code
+especially in the bootmenu area, fixes for the NE2000 driver, as well as
+a completely revamped start32.S.  Also introduced Rainer Bawidamann's
+code, see next paragraph. Contributed further improvements in Realtek
+8139 driver. Did a major rewrite from 4.4.5 to 4.5.5, see doc/maint/LOG.
+<P>
+<DT><B>Rainer Bawidamann</B><DD><P>Contributed a Realtek 8139 driver.
+<P>
+<DT><B>Georg Baum</B><DD><P>contributed a Schneider &amp; Koch G16 driver.
+<P>
+<DT><B>jluke@deakin.edu.au</B><DD><P>sent in a fix for the WD/SMC8013 which I
+finally verified.
+<P>
+<DT><B>Mark Burazin</B><DD><P>contributed a fix for Compex RL2000 NICs.
+<P>
+<DT><B>Matthias Meixner</B><DD><P>found a receive status bug in the RTL8139 driver.
+<P>
+<DT><B>Jim McQuillan</B><DD><P>provided changes to support the SMC1211 which uses
+the RTL8139 chip.
+<P>
+<DT><B>Steve Smith</B><DD><P>Extended the 3c905b driver for other members of the
+90x family. Be sure to read the release notes in 3c90x.txt before using.
+Modified loader.S for some BIOSes that don't behave correctly with INT19H.
+<P>
+<DT><B>John Finlay</B><DD><P>Wrote a utility for programming EEPROMs on 3c90x
+in situ.
+<P>
+<DT><B>Nick Lopez</B><DD><P>Contributed change to tulip.c to handle Macronix 98715
+(Tulip clone).
+<P>
+<DT><B>Matt Hortman</B><DD><P>Contributed fix to eepro100 driver that fixes incorrect
+latency setting. Also Makefile rule for .lzfd0.
+<P>
+<DT><B>Marty Connor</B><DD><P>Contributed new Tulip driver ntulip.c. Reduced RTL8139
+footprint. Added support for Netgear FA310TX (Tulip clone, LC82C168 chip).
+Support for 3Com905C. Romutil for 905C, which have block erase EEPROMs.
+Contributed the development of liloprefix.S through thinguin.org.
+Finally made the ROM images conformant PnP boot ROM images. Wrote the
+SiS900 driver. Made Tulip driver work for many more variants.
+<P>
+<DT><B>Anders Larsen</B><DD><P>contributed mkQNXnbi, for generating tagged images
+from QNX kernels.
+<P>
+<DT><B>Bernd Wiebelt</B><DD><P>contributed code to request vendor tags in DHCP.
+<P>
+<DT><B>Paolo Marini</B><DD><P>contributed the Via-Rhine driver.
+<P>
+<DT><B>Adam Fritzler</B><DD><P>contributed 3c529 (MCA version of 3c509) support
+in driver.
+<P>
+<DT><B>Shusuke Nisiyama</B><DD><P>contributed a 3c595 (may work for 3c590) driver.
+<P>
+<DT><B>Igor V. Kovalenko</B><DD><P>contributed a Winbind W89C840 driver.
+<P>
+<DT><B>Gary Byers</B><DD><P>of thinguin.org wrote the LILO prefix program
+liloprefix.S.
+<P>
+<DT><B>Donald Christensen</B><DD><P>converted all the as86/nasm .S files to gas
+format, thus allowing Etherboot to be built without requiring as86/nasm.
+<P>
+<DT><B>Luigi Rizzo</B><DD><P>contributed a bootloader from FreeBSD that works for
+both floppy and hard disk partitions. This obsoletes floppyload.S.
+<P>
+<DT><B>Michael Sinz</B><DD><P>contributed patches for loading debug symbols when
+booting FreeBSD.
+<P>
+<DT><B>Jean-Jacques Michel</B><DD><P>contributed patches to the via-rhine.c driver
+to make it work for the VT6102 model as used on some DFE530-TX Rev.A3
+NICs.
+<P>
+<DT><B>Peter K&ouml;gel</B><DD><P>contributed patches to the SiS900 driver to make
+it work for the SiS630e/SiS730s.
+<P>
+</DL>
+<P>
+<HR>
+<A HREF="userman-11.html">Next</A>
+<A HREF="userman-9.html">Previous</A>
+<A HREF="userman.html#toc10">Contents</A>
+</BODY>
+</HTML>

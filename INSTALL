@@ -1,0 +1,31 @@
+For the impatient, "cd src" and "make". Your ROM images will be in
+bin32/xxx.rom and bin32/xxx.lzrom, where xxx is the name of your NIC
+driver.  See src/NIC for the list of supported NICs. The mknbi tools are
+now distributed separately from the Etherboot web site
+http://etherboot.sourceforge.net/  Mknbi is not needed for booting
+FreeBSD.
+
+If you don't want to install development tools, but have access to the
+Web, you can get ROM images made on demand from http://rom-o-matic.net/
+
+More likely if you are unfamiliar with Etherboot you should read the
+documentation starting with index.html if you have a Web browser, or
+doc/text/userman.txt if you just have a plain text terminal.
+
+Also read RELNOTES for any additional recent information.
+
+Don't forget to check out the contrib/ directory which contains much
+contributed software and documentation. Please contact the authors of
+those packages directly for queries.
+
+If you are booting FreeBSD, enable -DELF_IMAGE (and optionally
+-DAOUT_IMAGE) in Config. This should happen automatically now.
+
+The index.html file is the same as the one on the Etherboot home page at
+the time the distribution was made. Therefore some of the local file:/
+links from the Distribution section may not work.
+
+Etherboot was built using gcc 2.95.2 and binutils 2.10.0.33 from SuSE
+7.1, but earlier versions of gcc and binutils may work. The version of
+as used must recognise the code16 and code32 directives. gas 2.9.5 or
+later is required.

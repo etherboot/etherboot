@@ -1,0 +1,73 @@
+#!/bin/sh -e
+#
+# TODO:
+#  - error checking on values provided by debconf frontend
+
+BASEDIR=/tftpboot
+
+. /usr/share/debconf/confmodule
+db_version 2.0
+
+db_get atftpd/configure
+if [ "$RET" = "true" ]; then
+
+    db_get atftpd/tftpd-timeout
+    if [ "$RET" ]; then
+        TFTPD_TIMEOUT="--tftpd-timeout $RET"
+    fi
+
+    db_get atftpd/retry-timeout
+    if [ "$RET" ]; then
+        RETRY_TIMEOUT="--retry-timeout $RET"
+    fi
+
+    db_get atftpd/maxthread
+    if [ "$RET" ]; then
+        MAXTHREAD="--maxthread $RET"
+    fi
+
+    db_get atftpd/verbosity
+    if [ "$RET" ]; then
+	RET=`echo $RET | cut -f1 -d ' '`
+        VERBOSITY="--verbose=$RET"
+    fi
+
+    db_get atftpd/logtofile
+    if [ "$RET" = "true" ]; then
+	db_get atftpd/logfile
+	if [ "$RET" ]; then
+	    LOGFILE="--logfile $RET"
+	    # if the file doesn't exist, create it
+	    if [ ! -f $RET ]; then
+		touch $RET
+		chown nobody.nogroup $RET
+		chmod 640 $RET
+	    fi
+	    # modify the logrotate file
+	    echo -e "$RET {\n" \
+		    "  daily\n" \
+		    "  rotate 5\n" \
+		    "  compress\n" \
+		    "  copytruncate\n" \
+		    "  missingok\n" \
+		    "}" > /etc/logrotate.d/atftpd
+	fi
+    else
+	LOGFILE=""
+	# remove the logrotate file
+	rm -f /etc/logrotate.d/atftpd
+    fi
+
+    db_get atftpd/basedir
+    if [ "$RET" ]; then
+        BASEDIR="$RET"
+    fi
+
+    update-inetd --group BOOT --remove "tftp.*/usr/sbin/in.tftpd.*"
+fi
+
+update-inetd --group BOOT --add "tftp		dgram	udp	wait	nobody\
+	/usr/sbin/tcpd /usr/sbin/in.tftpd $TFTPD_TIMEOUT $RETRY_TIMEOUT \
+$MAXTHREAD $VERBOSITY $LOGFILE $BASEDIR"
+
+#DEBHELPER#

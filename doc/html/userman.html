@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot User Manual</TITLE>
+ <LINK HREF="userman-1.html" REL=next>
+
+
+</HEAD>
+<BODY>
+<A HREF="userman-1.html">Next</A>
+Previous
+Contents
+<HR>
+<H1>Etherboot User Manual</H1>
+
+<H2>Ken Yap and Markus Gutschke,
+<CODE>&lt;ken_yap@users.sourceforge.net&gt;</CODE>,
+<CODE>&lt;markus+etherboot@gutschke.com&gt;</CODE></H2>v5.0.0, 26 April 2001
+<P><HR>
+<EM>This User Manual explains how to install, configure and use the
+Etherboot package.  The instructions here apply to version 5.0 of
+Etherboot.</EM>
+<HR>
+<P>
+<H2><A NAME="toc1">1.</A> <A HREF="userman-1.html">About this User Manual</A></H2>
+
+<UL>
+<LI><A HREF="userman-1.html#ss1.1">1.1 Purpose / Scope of this User Manual</A>
+<LI><A HREF="userman-1.html#ss1.2">1.2 Obtaining the most recent version of this document</A>
+<LI><A HREF="userman-1.html#ss1.3">1.3 Document history</A>
+<LI><A HREF="userman-1.html#ss1.4">1.4 Feedback</A>
+<LI><A HREF="userman-1.html#ss1.5">1.5 Copyrights and Trademarks</A>
+<LI><A HREF="userman-1.html#ss1.6">1.6 Acknowledgements and Thanks</A>
+</UL>
+<P>
+<H2><A NAME="toc2">2.</A> <A HREF="userman-2.html">Introduction to Etherboot</A></H2>
+
+<UL>
+<LI><A HREF="userman-2.html#ss2.1">2.1 What is Etherboot?</A>
+<LI><A HREF="userman-2.html#ss2.2">2.2 Legal status of the code</A>
+<LI><A HREF="userman-2.html#ss2.3">2.3 What hardware is supported?</A>
+<LI><A HREF="userman-2.html#ss2.4">2.4 Getting help</A>
+</UL>
+<P>
+<H2><A NAME="toc3">3.</A> <A HREF="userman-3.html">Unpacking, compiling and testing the package</A></H2>
+
+<UL>
+<LI><A HREF="userman-3.html#ss3.1">3.1 A short cut to getting ROM images</A>
+<LI><A HREF="userman-3.html#ss3.2">3.2 Unpacking the distribution</A>
+<LI><A HREF="userman-3.html#ss3.3">3.3 Compiling the ROM images</A>
+<LI><A HREF="userman-3.html#ss3.4">3.4 Adjusting the PCI IDs</A>
+<LI><A HREF="userman-3.html#ss3.5">3.5 Testing the ROM images</A>
+</UL>
+<P>
+<H2><A NAME="toc4">4.</A> <A HREF="userman-4.html">Setting up a diskless boot</A></H2>
+
+<UL>
+<LI><A HREF="userman-4.html#ss4.1">4.1 Making a tagged image</A>
+<LI><A HREF="userman-4.html#ss4.2">4.2 Compiling a custom kernel</A>
+<LI><A HREF="userman-4.html#ss4.3">4.3 Setting up a DHCP daemon</A>
+<LI><A HREF="userman-4.html#ss4.4">4.4 Setting up a bootp daemon</A>
+<LI><A HREF="userman-4.html#ss4.5">4.5 Setting up a tftp daemon</A>
+</UL>
+<P>
+<H2><A NAME="toc5">5.</A> <A HREF="userman-5.html">Testing the network booting</A></H2>
+
+<UL>
+<LI><A HREF="userman-5.html#ss5.1">5.1 Setting up a NFS root filesystem</A>
+<LI><A HREF="userman-5.html#ss5.2">5.2 Initial ramdisk</A>
+<LI><A HREF="userman-5.html#ss5.3">5.3 Other filesystem setups</A>
+<LI><A HREF="userman-5.html#ss5.4">5.4 Swap over NFS</A>
+</UL>
+<P>
+<H2><A NAME="toc6">6.</A> <A HREF="userman-6.html">Booting DOS</A></H2>
+
+<P>
+<H2><A NAME="toc7">7.</A> <A HREF="userman-7.html">Making an Etherboot EPROM or EEPROM</A></H2>
+
+<UL>
+<LI><A HREF="userman-7.html#ss7.1">7.1 Choosing the EPROM</A>
+<LI><A HREF="userman-7.html#ss7.2">7.2 Enabling the EPROM</A>
+<LI><A HREF="userman-7.html#ss7.3">7.3 Size and speed of the EPROM</A>
+</UL>
+<P>
+<H2><A NAME="toc8">8.</A> <A HREF="userman-8.html">Troubleshooting tips</A></H2>
+
+<P>
+<H2><A NAME="toc9">9.</A> <A HREF="userman-9.html">Frequently Answered Questions</A></H2>
+
+<UL>
+<LI><A HREF="userman-9.html#ss9.1">9.1 Building Etherboot</A>
+<LI><A HREF="userman-9.html#ss9.2">9.2 Testing Etherboot</A>
+<LI><A HREF="userman-9.html#ss9.3">9.3 Hardware capabilities</A>
+<LI><A HREF="userman-9.html#ss9.4">9.4 Booting Linux</A>
+<LI><A HREF="userman-9.html#ss9.5">9.5 Running X</A>
+<LI><A HREF="userman-9.html#ss9.6">9.6 Other client applications</A>
+<LI><A HREF="userman-9.html#ss9.7">9.7 Booting FreeBSD</A>
+<LI><A HREF="userman-9.html#ss9.8">9.8 Booting other operating systems (DOS, Windows)</A>
+<LI><A HREF="userman-9.html#ss9.9">9.9 Hardware issues</A>
+<LI><A HREF="userman-9.html#ss9.10">9.10 Drivers</A>
+<LI><A HREF="userman-9.html#ss9.11">9.11 Miscellaneous</A>
+</UL>
+<P>
+<H2><A NAME="toc10">10.</A> <A HREF="userman-10.html">Acknowledgements</A></H2>
+
+<P>
+<H2><A NAME="toc11">11.</A> <A HREF="userman-11.html">Source copyrights</A></H2>
+
+<HR>
+<A HREF="userman-1.html">Next</A>
+Previous
+Contents
+</BODY>
+</HTML>

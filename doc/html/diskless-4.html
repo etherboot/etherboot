@@ -1,0 +1,41 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>SLUG talk: Setting up a diskless Linux system: Net loader</TITLE>
+ <LINK HREF="diskless-5.html" REL=next>
+ <LINK HREF="diskless-3.html" REL=previous>
+ <LINK HREF="diskless.html#toc4" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="diskless-5.html">Next</A>
+<A HREF="diskless-3.html">Previous</A>
+<A HREF="diskless.html#toc4">Contents</A>
+<HR>
+<H2><A NAME="Netloader"></A> <A NAME="s4">4. Net loader</A></H2>
+
+<P>
+<P>A small program that runs as a BIOS extension, usually on an EPROM on
+the NIC. It handles the BOOTP query and TFTP loading and then transfers
+control to the loaded image.
+<P>
+<P>
+<P>It uses TCP/IP protocols but the loaded image doesn't have to be Linux.
+The loaded image can be anything, even DOG.
+<P>
+<P>
+<P>There are two free implementations of TCP/IP net loaders: 
+<A HREF="http://etherboot.sourceforge.net/">Etherboot</A> and 
+<A HREF="http://www.han.de/~gero/netboot.html">Netboot</A>: Etherboot
+uses built-in drivers while Netboot uses Packet drivers.
+<P>
+<P>
+<P>They can also be loaded from a floppy for testing and for temporary
+setups.
+<P>
+<HR>
+<A HREF="diskless-5.html">Next</A>
+<A HREF="diskless-3.html">Previous</A>
+<A HREF="diskless.html#toc4">Contents</A>
+</BODY>
+</HTML>

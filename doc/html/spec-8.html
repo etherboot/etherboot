@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Draft Net Boot Image Proposal 0.3: Terms</TITLE>
+ <LINK HREF="spec-9.html" REL=next>
+ <LINK HREF="spec-7.html" REL=previous>
+ <LINK HREF="spec.html#toc8" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="spec-9.html">Next</A>
+<A HREF="spec-7.html">Previous</A>
+<A HREF="spec.html#toc8">Contents</A>
+<HR>
+<H2><A NAME="s8">8. Terms</A></H2>
+
+<P>
+<P>When I say 'the net boot process', I mean the act of loading the image into
+memory, setting up any tables, up until the jump to the required location
+in the image.
+<P>
+<P>
+<P>The net booting program executes the net boot process. The net boot program
+may be a rom, but not neccassarily. It is a set of instructions and data
+residing on the booting machine.
+<P>
+<P>
+<P>The image, or boot image,  consists of the data loaded by the net boot process.
+<P>
+<P>
+<P>When I say 'the PC boot process', I mean the general PC rom bios boot process,
+the setting up of hardware, the scanning for adaptor roms, the execution
+of adaptor roms, the loading in of the initial boot track. The PC boot
+process will include the net boot process, if one is present.
+<P>
+<P>
+<P>When I say client, I mean the PC booting up.
+<P>
+<P>
+<P>When I say 'image host', I mean the host where the boot image is comming from.
+This may not have the same architecture as the client.
+<P>
+<P>
+<P>The bootp protocol is defined in RFC951 and RFC1084. The tftp protocol
+is defined in RFC783. These are available on many sites.
+See Comer 1991 for details on how to obtain them.
+<P>
+<P>
+<P>A bootp server is the machine that answers the bootp request. It is not
+neccessarily the image host.
+<P>
+<P>
+<P>"Can" and "may" means doesn't have to, but is allowed to and might.
+"Must" means just that. "Cannot" means must not.
+<P>
+<HR>
+<A HREF="spec-9.html">Next</A>
+<A HREF="spec-7.html">Previous</A>
+<A HREF="spec.html#toc8">Contents</A>
+</BODY>
+</HTML>

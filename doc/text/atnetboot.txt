@@ -1,0 +1,264 @@
+  Netbooting a 286 with a ramdisk
+  Ken Yap, ken_yap@users.sourceforge.net
+  14 September 1999
+
+  This document explains how I netbooted a ramdisk onto a 286 and used
+  it to run DOS applications.
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+  1. Netbooting a 286 with a ramdisk
+
+  2. How to do it
+
+  3. Various tips
+
+  4. What needs to be done to boot other OSes with ramdisk
+
+
+
+  ______________________________________________________________________
+
+  11..  NNeettbboooottiinngg aa 228866 wwiitthh aa rraammddiisskk
+
+
+  I have booted a 286 diskless, using a boot ROM on a network card,
+  sending an image of a ramdisk containing a DOS startup floppy disk.
+  The 286 then ran programs from the ramdisk. This could be used to send
+  programs like telnet, print spoolers, routers and other standalone
+  utilities that you want to run on a diskless (and maybe headless and
+  keyless) 286. Here are some ideas
+  <http://www.geocities.com/SiliconValley/lab/9247/> for what you could
+  run.
+
+
+
+  The method could be generalised to other OSes that could run on a 286,
+  e.g. ELKS <http://epocha.pd.mcs.net/Linux8086/>. See the discussion
+  below for what needs to be done.
+
+
+
+
+  22..  HHooww ttoo ddoo iitt
+
+
+
+  1. Prepare a floppy containing a bootable DOS. I used Caldera's DR-DOS
+     <http://www.caldera.com/dos/>, which is free for personal and
+     charitable uses. _(_I_t _h_a_s _b_e_e_n _c_o_n_f_i_r_m_e_d _t_h_a_t _D_R_-_D_O_S _7_._0_3 _h_a_s
+     _c_h_a_n_g_e_d _i_n _s_o_m_e _w_a_y _t_h_a_t _n_e_t_b_o_o_t_i_n_g _f_a_i_l_s_; _r_e_a_s_o_n _i_s _s_t_i_l_l _u_n_k_n_o_w_n_.
+     _7_._0_2 _w_o_r_k_s_._) FreeDOS can also be netbooted and the kernel is loaded
+     from the tagged image rather than from the floppy image, which
+     means more space for applications or data. All the instructions are
+     in the mknbi <mknbi.html> directory that comes with the Etherboot
+     distribution.  You can find a zip file
+     <http://etherboot.sourceforge.net/disklesstelnet.zip> containing
+     the components of a tagged image that runs telnet on the diskless
+     client.
+
+  2. You can do nearly all manipluations on Linux using mtools
+     <http://wauug.erols.com/pub/knaff/mtools/> on a floppy image in a
+     file but you have to get the boot block from DR-DOS first to pass
+     to mformat. You can do this by extracting the first 512 bytes from
+     a formatted and sys'ed floppy.  The DOS commands are: format b:,
+     then sys b:.
+
+
+     ___________________________________________________________________
+     dd if=/dev/fd0 of=dosboot.bin bs=512 count=1
+     ___________________________________________________________________
+
+
+
+  You also need the kernel files ibmbio.com and ibmdos.com; and com-
+  mand.com.
+
+
+  ______________________________________________________________________
+  mattrib -rsh a:ibmbio.com a:ibmdos.com
+  mcopy a:ibmbio.com a:ibmdos.com a:command.com .
+  ______________________________________________________________________
+
+
+
+  3. Since the RAM available for ramdisk may be limited, in the case of
+     a 286 with 1 MB memory: 384k less the 64 kB High Memory Area,
+     giving 320 kB, you probably want to create a 320kB ramdisk floppy.
+     If you have more extended memory, then you can create larger
+     ramdisks, e.g.  720kB or even 1.44MB.
+
+  4. Set up a mapping between the floppy image and a drive letter by
+     editing .mtoolsrc, see the mtools man pages.
+
+
+     ___________________________________________________________________
+     drive z: file="/tmp/floppyimage.320"
+     ___________________________________________________________________
+
+
+
+  5. Create the floppy image and copy the boot block onto it in a file
+     using mformat (adjust the number of tracks, sectors and heads if
+     you are not using a 320kB format).
+
+
+     ___________________________________________________________________
+     mformat -t 40 -s 8 -h 2 -B dosboot.bin -C z:
+     ___________________________________________________________________
+
+
+
+  In what follows, when I write floppy, I mean the image in a disk file
+  referred to by z:.
+
+  6. Copy the DOS kernel files onto the floppy.  In the case of DR-DOS
+     these are ibmbio.com, ibmdos.com, and command.com. The first two
+     are read-only hidden system files so use mattrib to set these
+     attributes.
+
+  7. Copy all the programs you need to run onto the floppy. Don't forget
+     any configuration files needed. Also include an autoexec.bat (and
+     perhaps config.sys) to start everything up. Don't worry about
+     getting the configuration file contents right at this point, you
+     can replace them at will on the ramdisk floppy.
+
+  8. Get the Etherboot <http://etherboot.sourceforge.net/> distribution,
+     version 4.4 or higher, and make a boot PROM for the card of your
+     choice. You may want to enable the ASK_BOOT option with a short
+     timeout and ANS_DEFAULT=ANS_NETWORK.  This will enable you to boot
+     the 286 normally if you need to fix anything. All network cards,
+     even the very old ones, should accept a 8 kB boot PROM. Most
+     compressed 16 bit images in Etherboot are under 8 kB.  Burn it into
+     a PROM or find someone to do it for you. If you are using a larger
+     PROM, make sure you have burnt it in the right portion of the PROM,
+     or burn multiple copies in the address space to be sure. See here
+     <http://etherboot.sourceforge.net/doc/html/userman.html> for some
+     things to watch out for.
+
+  9. Set up bootp/DHCP and tftp services on the server if you haven't
+     already. Did I mention read the Etherboot documentation already?
+
+  10.
+     In the same Etherboot distribution, compile the mknbi-dos program.
+     Use the program to create a tagged image in the directory that
+     tftpd fetches from, typically /tftpdir. The command is probably:
+     mknbi-dos -x -x -r floppyimage -o /tftpdir/dos.nb.  (The two -x
+     flags print out verbose information.) Check that the /etc/bootptab
+     entry or the dhcpd.conf entry for the 286 specifies dos.nb as the
+     file to load. You may need the -f flag to disable checking if
+     mknbi-dos doesn't recognise your DOS version.
+
+  11.
+     On your 286, disable any floppies or hard disks in the CMOS
+     configuration. Also set it to not require a keyboard, if you intend
+     to run keyless. If the CMOS setup doesn't allow you to disable the
+     keyboard, you have a problem.  One way out might be to attach an
+     unloved keyboard, one that is just good enough to pass the probe
+     from the BIOS.
+
+  12.
+     Now hit the reset switch and watch the boot PROM take over. It
+     should find the bootp/DHCP server and then the tftp server and load
+     the tagged image.  Then DOS will start executing, reading
+     autoexec.bat and running the commands there.  Hopefully the last
+     command there is the program you want leave running.
+
+  13.
+     You may wish to look at the contributed program romid.exe in the
+     Etherboot distribution. This is meant to be run from autoexec.bat.
+     It returns the ID of the boot ROM installed in an environment
+     variable so that the appropriate packet driver
+     <http://www.crynwr.com> can be installed.
+
+  14.
+     Another program I like to invoke in autoexec.bat is pdclksml.com,
+     found here <http://www.geocities.com/SiliconValley/lab/9247/> which
+     sets the PC clock using bootp and the UDP time service (port 37).
+
+  Things that I have netbooted in this fashion are:
+
+
+  +o  NCSA telnet, using a version that gets most parameters by bootp.  I
+     compressed the binary using lzexe to save space.
+
+  +o  DOS Kermit 3.16, again using BOOTP. Kermit has better terminal
+     emulation than NCSA Telnet and is generally more polished but
+     requires a 720kB "floppy". Again I compressed the binary using
+     lzexe.
+
+  +o  Non-spooling printer daemon.
+
+  +o  DOS syslogd.
+
+  +o  Network traffic monitors.
+
+
+  You can find these and other suggested applications here
+  <http://www.geocities.com/SiliconValley/lab/9247/>.
+
+
+  33..  VVaarriioouuss ttiippss
+
+
+  Tip: You can do a mdir directly on the netboot image if you use the
+  offset parameter of mtools. In $HOME/.mtoolsrc, put
+
+
+  ______________________________________________________________________
+  drive t: file="/tftpdir/dos.nb" offset=4096
+  ______________________________________________________________________
+
+
+
+  Then you can do
+
+
+  ______________________________________________________________________
+  mdir t:
+  ______________________________________________________________________
+
+
+
+  4096 is the sum of the header size (512) and the startup segment size
+  (3584). It may be different for other versions of mknbi-dos.
+
+
+
+  Caveat: For this trick, access other than reading only may not work.
+  You may be able to rewrite things on the "floppy" with mcopy, etc. but
+  the declared size in the header will not get updated. If you wish to
+  modify things you should work on the "floppy" image, then rebuild with
+  mknbi-dos.
+
+
+
+  Hint: As mentioned before, using an executable compressor like lzexe
+  or pklite might allow you to squeeze more programs onto the "floppy".
+  See a site like Simtel.Net <http://www.simtel.net/simtel.net/> for
+  such programs.
+
+
+
+  Note: Of course, this technique works for 386s and higher. However you
+  may want to consider netbooting Linux <http://www.linux.org> with an
+  initial ramdisk instead of DOG.
+
+
+  44..  WWhhaatt nneeeeddss ttoo bbee ddoonnee ttoo bboooott ootthheerr OOSSeess wwiitthh rraammddiisskk
+
+
+  Essentially a version of mknbi similar to mknbi-dos needs to be
+  written for that OS and filesystem. For example, for ELKS, the setup
+  code in first.S would do validity checks for a Minix filesystem and
+  mknbi would create a Minix ramdisk.
+
+
+
+
+
+
+
+

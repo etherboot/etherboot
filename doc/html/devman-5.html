@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot Developers Manual: The development environment of Etherboot</TITLE>
+ <LINK HREF="devman-6.html" REL=next>
+ <LINK HREF="devman-4.html" REL=previous>
+ <LINK HREF="devman.html#toc5" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="devman-6.html">Next</A>
+<A HREF="devman-4.html">Previous</A>
+<A HREF="devman.html#toc5">Contents</A>
+<HR>
+<H2><A NAME="s5">5. The development environment of Etherboot</A></H2>
+
+<P>
+<P>Etherboot is written in C, with certain routines written in x86
+assembler for access to machine resources or to do things not possible
+in C. The tools used are the GNU C compiler and GNU x86 assembler. ld is
+used to link the object files. objcopy is used to convert the output of
+the linker to pure binary, suitable for standalone execution. An
+auxiliary program called makerom converts this binary into a form
+suitable for writing into a ROM.
+<P>
+<P>
+<P>A Makefile coordinates all the building procedures. However there are
+many network adapters that differ only in the PCI vendor and device IDs.
+This information must be programmed into the ROM header using makerom.
+An auxiliary script called genrules.pl takes a file NIC, containing a
+tabular description of all the device names and IDs and outputs make
+rules to a file called Roms that is included by the main Makefile to
+generate all the ROM images.  Another file included by Makefile is
+Config, which contains user configurable build parameters.
+<P>
+<P>
+<P>Let us take an example of a ROM image that we could build,
+mx987x5.lzrom. According to this line in the file NIC:
+<P>
+<HR>
+<PRE>
+mx987x5         tulip           0x10d9,0x0531
+</PRE>
+<HR>
+<P>the driver code is in tulip.c and the vendor ID is 0x10d9 and the device
+ID is 0x0531. If one were to say make bin32/mx987x5.lzrom, the following
+actions happen:
+<P>
+<UL>
+<LI>Any needed utilities such as bin/makerom and bin/lzhuf are built.
+</LI>
+<LI>tulip.c is compiled to bin32/tulip.o.
+</LI>
+<LI>The startup routine, start32.S is assembled to bin32/start32.o.
+</LI>
+<LI>All the core Etherboot files, e.g. main.c, osloader.c, etc, are
+compiled to corresponding object files in bin32/*.o and combined into an
+ar archive, bootlib.a, for convenience.
+</LI>
+<LI>The file config.c is compiled to bin32/config-tulip.o while
+applying the appropriate define: INCLUDE_TULIP.
+</LI>
+<LI>The startup routine (which must be first in the list of objects),
+the driver object, bootlib.a, and config-tulip.o are linked to
+produce an ELF binary, linked to run at the relocation address of
+Etherboot, currently 0x94000.
+</LI>
+<LI>The ELF binary is converted to a pure binary using the GNU utility
+objcopy.
+</LI>
+<LI>The prepended loaders, rloader, rzloader, prloader, and przloader,
+are produced by assembling loader.S with different defines. The meaning
+of the prefixes are: rloader = basic ROM loader, rzloader =
+decompressing ROM loader, prloader = PCI header basic ROM loader,
+przloader = PCI header decompressing ROM loader. The loaders contain the
+needed headers for the BIOS to recognise the code as an extension ROM.
+See the 
+<A HREF="devman-3.html#extension">discussion</A> on the extension BIOS
+mechanism.
+</LI>
+<LI>In the case of mx987x5.lzrom, this is for a PCI adaptor and we want a
+compressed ROM, so the loader is przloader.  This is prepended to the binary
+image to generate a ROM image.
+</LI>
+<LI>makerom is run over this ROM image to pad it to the size of a
+standard EPROM. (8 kB, 16 kB, 32 kB, etc.) The PCI IDs are written into
+the image into the PnP structure at the right spots. A string
+identifying the device and Etherboot version is written into the
+unprogrammed bytes at the end of the ROM image, if space is available,
+and a pointer to that written into the PnP structure. The vendor string
+and the device string are normally printed by the PCI PnP BIOS at boot
+time. Makerom also calculates the checksum (both for the PnP structure,
+if present and for the whole image) and alters designated spare bytes in
+the image so that the checksums come out right.
+</LI>
+<LI>The image is ready to be written into an EPROM. However if the
+image is to be tested from floppy, hard disk or LILO/SYSLINUX,
+additional preloaders are prepended to the ROM image. In the case of
+floppy or hard disk loading, the preloader is called bin/boot1a.bin. It
+is one sector (512 bytes) long and loaded from the floppy or hard disk,
+starting at the beginning of the floppy or the beginning of a hard disk
+partition. It then loads the blocks following itself, which it assumes
+to be an Etherboot image, into memory, then jumps to it at a second
+entry point 6 bytes from the beginning of the image. This second entry
+point is used when not booting from ROM. In the case of LILO/SYSLINUX
+booting, the preloader is liloprefix.bin. It contains what looks like a
+floppy sector and a startup segment to LILO/SYSLINUX and makes
+LILO/SYSLINUX "think" that this is a Linux kernel.
+</LI>
+<LI>There is yet another preloader and this is not for a device but
+for an OS environment. This is comprefix.bin, and when prepended to a
+ROM image, it makes it look like a DOS .com executable, including the
+peculiarity of starting at COM_SEGMENT:0x100. All it does however is
+jump to the Etherboot ROM image, again at offset 6.
+</LI>
+<LI>All the preceeding special preloaders have associated Makefile
+rules and are created by asking for images with the appropriate suffix.
+For example, if one wanted an image for writing onto a floppy one would
+say:
+
+<HR>
+<PRE>
+make mx987x5.lzdsk
+</PRE>
+<HR>
+
+</LI>
+</UL>
+<P>
+<P>
+<P>
+<HR>
+<A HREF="devman-6.html">Next</A>
+<A HREF="devman-4.html">Previous</A>
+<A HREF="devman.html#toc5">Contents</A>
+</BODY>
+</HTML>

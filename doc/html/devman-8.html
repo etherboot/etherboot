@@ -1,0 +1,65 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot Developers Manual: A potted history of Etherboot</TITLE>
+ <LINK HREF="devman-7.html" REL=previous>
+ <LINK HREF="devman.html#toc8" REL=contents>
+</HEAD>
+<BODY>
+Next
+<A HREF="devman-7.html">Previous</A>
+<A HREF="devman.html#toc8">Contents</A>
+<HR>
+<H2><A NAME="s8">8. A potted history of Etherboot</A></H2>
+
+<P>
+<P>In Linux circles Netboot appeared first. According to the docs Jamie
+Honan was the person who coded up the first version and specified the
+format of the tagged image files. This version used assembler code taken
+from 
+<A HREF="http://www.crynwr.com">packet drivers</A> to
+interface to the hardware, only Western Digital (now SMC) NICs in the
+first instance. It also required a DOS environment to compile. Later on
+Gero Kuhlmann took over the development of Netboot and made tremendous
+improvements to it. Among other things he created a harness that would
+simulate just enough of a DOS environment so that unmodified packet
+driver binaries could be used in a boot ROM.  This allows any NIC on the
+market that has a packet driver to be used immediately. He also migrated
+the development to a Linux (Unix) platform.
+<P>
+<P>
+<P>Etherboot was ported from FreeBSD by Markus Gutschke. He made it compile
+under Linux and added code to support tagged images in addition to NFS
+boot. Since tagged images are a more general mechanism and requires less
+boot rom code, this has become the preferred loading method. Markus has
+also coded most of the additional features between 2.0 and 3.0, such as
+additional bootp tags, ANSI screen escapes, etc. Many of the features
+common to Etherboot and Netboot, such as the tagged image format, the
+support programs such as mknbi, and support in the Linux kernel for
+diskless booting, are by Gero or Markus.
+<P>
+<P>
+<P>
+<A HREF="http://members.nbci.com/ken_yap/">Ken Yap</A> came to
+Etherboot a bit later. His original objective was to produce a 16 bit
+version that could be used to netboot ELKS and other OSes on older CPUs.
+As these things happen, he got enticed into improving the code, doing
+structural rearrangement, and merging contributions from others, and is
+now the primary maintainer of Etherboot.
+<P>
+<P>
+<P>In the early days, the Etherboot web page was hosted by the 
+<A HREF="http://www.slug.org.au/">Sydney Linux Users Group</A> web site.
+Quite coincidentally and unrelatedly, Jamie Honan is one of the founding
+members of SLUG, so the story has come a full circle here.  Since April
+2000, Etherboot has been hosted at 
+<A HREF="http://sourceforge.net/">Sourceforge</A>. Sourceforge has provided superb
+facilities for hosting community Open Source development.
+<P>
+<HR>
+Next
+<A HREF="devman-7.html">Previous</A>
+<A HREF="devman.html#toc8">Contents</A>
+</BODY>
+</HTML>

@@ -1,0 +1,55 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>SLUG talk: Setting up a diskless Linux system: How does it work?</TITLE>
+ <LINK HREF="diskless-3.html" REL=next>
+ <LINK HREF="diskless-1.html" REL=previous>
+ <LINK HREF="diskless.html#toc2" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="diskless-3.html">Next</A>
+<A HREF="diskless-1.html">Previous</A>
+<A HREF="diskless.html#toc2">Contents</A>
+<HR>
+<H2><A NAME="How"></A> <A NAME="s2">2. How does it work?</A></H2>
+
+<P>
+<P>
+<OL>
+<LI>Diskless computer (DC) broadcasts MAC address with bootp: Who am I?
+</LI>
+<LI>Bootp or DHCP server on S looks up DB: Your IP address is X.X.X.X,
+your server is S, your boot file is <CODE>vmlinuz.myname</CODE>, etc.
+</LI>
+<LI>DC asks to load file from TFTP server on S: Please give me
+<CODE>vmlinuz.myname</CODE>
+</LI>
+<LI>S: Here you are (<CODE>/tftpdir/vmlinuz.myname</CODE>)
+
+<P>
+<P>DC thinks a while (booting Linux).
+<P>
+<P>
+<P>
+</LI>
+<LI>DC: Please let me mount <CODE>/</CODE> with NFS
+</LI>
+<LI> S: Here is your root FS (<CODE>/tftpboot/</CODE><I>IPnumber</I>).
+(In 2.2 kernels, <CODE>/tftpboot/</CODE><I>domainname</I>.)
+</LI>
+<LI>DC: Please let me mount other NFSes (<CODE>/usr, /home/</CODE>, etc)
+</LI>
+<LI>S: Here you are
+</LI>
+<LI>DC: Runs intended application
+</LI>
+</OL>
+<P>Network boot ROM contains code to do 1 and 3.
+<P>
+<HR>
+<A HREF="diskless-3.html">Next</A>
+<A HREF="diskless-1.html">Previous</A>
+<A HREF="diskless.html#toc2">Contents</A>
+</BODY>
+</HTML>

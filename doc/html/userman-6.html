@@ -1,0 +1,56 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="SGML-Tools 1.0.9">
+ <TITLE>Etherboot User Manual: Booting DOS</TITLE>
+ <LINK HREF="userman-7.html" REL=next>
+ <LINK HREF="userman-5.html" REL=previous>
+ <LINK HREF="userman.html#toc6" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="userman-7.html">Next</A>
+<A HREF="userman-5.html">Previous</A>
+<A HREF="userman.html#toc6">Contents</A>
+<HR>
+<H2><A NAME="s6">6. Booting DOS</A></H2>
+
+<P>
+<P>What about DOS? The deal with DOS is that one is loading a virtual
+floppy called A: into extended memory and then booting from this floppy.
+So you have to capture an image of a bootable DOS floppy first.  Some
+more details can be found in the 
+<A HREF="mknbi.html">mknbi-dos</A>
+utility.
+<P>
+<P>
+<P>I have booted DOS (both M$ versions up to 5.0 and DR versions up to
+7.03) diskless this way.  A 
+<A HREF="mknbi.html">mknbi-fdos</A> is
+available for building tagged images for booting FreeDOS, the procedure
+differs slightly from booting M$ or DR DOS.
+<P>
+<P>
+<P>If you were thinking of booting a Windows machine via the network, it
+seems (I'm not masochistic enough to do this) the problem is not the
+network booting but the mounting of a file system over NetBIOS (Windows
+does not do remote mounts of root filesystems over NetBIOS on TCP). So
+that rules out a Samba server. It appears to be possible over a Netware
+server, for which Linux or FreeBSD has workalikes. Also it is said that
+only certain versions of Windows will allow diskless booting.  You will
+also have problems with pathnames and the usual Windows hassles. Do you
+really want to do this?  You do know that you can run lots of desktop
+applications like Netscape, StarOffice, etc. on Linux, FreeBSD, etc.
+now? Why pay good money when you can use equally good free replacements?
+Anyway if you are still determined, in the 
+<A HREF="http://etherboot.sourceforge.net/">Etherboot home page</A>,
+there are links to external Web pages, one explaining how this was done
+with a commercial TCP/IP boot ROM, another explaining how to do it using
+Etherboot and Netbios over IPX. Good luck and send us your experiences
+or better still a URL to a page explaining how you did it.
+<P>
+<HR>
+<A HREF="userman-7.html">Next</A>
+<A HREF="userman-5.html">Previous</A>
+<A HREF="userman.html#toc6">Contents</A>
+</BODY>
+</HTML>

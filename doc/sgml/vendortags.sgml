@@ -1,0 +1,486 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>VendorTag extensions
+<author>Markus Gutschke, <tt/gutschk@math.uni-muenster.de/
+<date>1 July 1997
+
+<abstract>
+This document describes the format and semantics of the VendorTags
+</abstract>
+
+<p>
+
+This documentation has been written and is copyrighted 1996,97 by
+Markus Gutschke &lt;gutschk@math.uni-muenster.de&gt;. You are
+free to distribute this file as long as you do not change its
+contents. I appreciate comments and will consider them in future
+revisions. If you have any questions, comments, or suggestions,
+please also send carbon copies of your e-mail message to
+both Ken Yap &lt;ken_yap@users.sourceforge.net&gt; and Gero Kuhlmann
+&lt;gero@gkminix.han.de&gt;. I will happily include any of your
+extensions, but I would like to avoid the proliferation of different
+incompatible revisions of this document. If these conditions are a
+problem to you, then feel free to contact me.
+
+<p>
+
+RFC1533 allows for vendor-specific extensions to the BOOTP
+protocol. It defines that all tags in the range 128 thru 254 are set
+aside for site-specific extensions. Common implementations of "bootpd"
+daemons can assign arbitrary null-terminated character strings to
+these tags.
+
+<p>
+
+This is a list of the tags that are currently used by the BOOT-Prom;
+as a general rule, you should never fill out any of these entries,
+unless you positively know that your BOOT-Prom supports the extension
+or ignores this particular tag:
+
+<p>
+
+<descrip>
+
+<tag/TAG 128/
+        this is a six-byte hexadecimal entry. The first four bytes
+        have to be the magic number E4 45 74 68; if this magic cannot
+        be found, then none of the other vendor tags are valid! The
+        fifth byte is the major version number and the sixth byte is
+        the minor version number of this protocol extension. The
+        current version is 0.0; the BOOT-Prom can assume that
+        incompatible changes increase the major version number. Mere
+        extensions to the existing protocol, increase the minor
+        version number. If the BOOT-Prom code has been written in a
+        way that anticipates future extensions, then it is acceptable
+        to honor the vendor tags even though, the minor version number
+        does not match exactly. Before making a change, that requires
+        updating the major version number, you should contact all of
+        the persons that are listed at the top of this document.
+
+<tag/TAG 129/
+        the BOOT-Prom uses this tag for passing a user-provided
+        command line to the loaded operating system. As this tag is
+        used internally, the "bootpd" daemon must not assign any value
+        to it!
+
+<tag/TAG 160/
+        a string that contains a colon separated list of
+        "parameter=value" pairs. Currently, these parameters are only
+        used to control the behavior of an interactive menu for
+        selecting different boot images; future extensions are quite
+        likely:
+
+	<descrip>
+          <tag/timeout/after this many seconds, the default image will be
+                    loaded. If no 'timeout' has been set, then the
+                    program will wait indefinitely.
+          <tag/default/either an integer 'n' in the range 0 thru 15 or
+                    192 thru 207, selecting the default image. If 'n'
+                    is in the first range, it refers to the 'n'th menu
+                    entry; if it is in the later range, it refers to
+                    the entry with the tag number 'n'. This
+                    distinction is important, if the list of images
+                    contains gaps. If no value has been set, then the
+                    image with the lowest tag number will be the
+                    default image.
+	</descrip>
+
+<tag/TAGS 161 thru 175/
+        these tags are currently unused, but they should be allocated
+        for purposes that resemble the function of tag 160.
+
+<tag/TAG 176/
+        the BOOT-Prom uses this tag for telling the loaded operating
+        system, which of the entries in tags 192 to 207 has been
+        selected by the user. As this tag is used internally, the
+        "bootpd" daemon must not assign any value to it!
+
+<tag/TAGS 177 thru 183/
+        these tags are reserved for passing information from the
+        BOOT-Prom to the boot image. Under no circumstances should the
+        "bootpd" daemon assign any of these entries. The format of
+        these parameters is yet to be discussed.
+
+<tag/TAGS 184 thru 191/
+        up to eight zero-terminated character strings can be used for
+        displaying a "message of the day". If you need to display more
+        than eight lines, you can embed suitable CR/LF pairs. If you
+        fully exploit that feature, you can display a complete 80x24
+        screen of information, but you should be aware that subsequent
+        output might scroll part of a long message.
+
+<p>
+
+        The BOOT-Prom can optionally be configured to interpret some
+        ANSI escape sequences. There also is an extension for
+        including extra data via TFTP; this overcomes the size
+        limitation of the tags 184-191.
+
+<p>
+
+        The ANSI emulation currently knows about these commands:
+
+<code>
+          Display attributes
+
+            Code          Effect
+            <esc>[0m      normal text
+            <esc>[1m      high-intensity on
+            <esc>[21m     high-intensity off
+            <esc>[5m      blinking on
+            <esc>[25m     blinking off
+            <esc>[7m      reverse video on
+            <esc>[27m     reverse video off
+            <esc>[3xm     set foreground color:
+            <esc>[4xm     set background color. x can be:
+                           0 - black                   4 - blue
+                           1 - red                     5 - magenta
+                           2 - green                   6 - cyan
+                           3 - yellow                  7 - white
+            <esc>[=xh     set video mode
+                           0 - 40x25 mono     (text)  13 - 40x25 16colors (gfx)
+                           1 - 40x25 16colors (text)  14 - 80x25 16colors (gfx)
+                           2 - 80x25 mono     (text)  15 - 80x25 mono     (gfx)
+                           3 - 80x25 16colors (text)  16 - 80x25 16colors (gfx)
+                           4 - 40x25 4colors  (gfx)   17 - 80x30 mono     (gfx)
+                           5 - 40x25 mono     (gfx)   18 - 80x30 16colors (gfx)
+                           6 - 80x25 mono     (gfx)   19 - 40x25 256colors(gfx)
+
+
+          Cursor control
+
+            Code          Effect
+            <esc>[r;cH    move cursor to row r and column c
+            <esc>[r;cf    move cursor to row r and column c
+            <esc>[rA      move cursor up r rows
+            <esc>[rB      move cursor down r rows
+            <esc>[cC      move cursor right c columns
+            <esc>[cD      move cursor left c columns
+            <esc>[?7l     turn off line wrap
+            <esc>[?7h     turn on line wrap
+            <esc>[J       clear screen and home cursor
+            <esc>[K       clear to end of line
+            <esc>[s       save the cursor position
+            <esc>[u       return cursor to saved position
+
+
+          Extended features
+
+            Code          Effect
+            <esc>['filename'#
+                          load include file with TFTP. Nested includes
+                          are  not   allowed  and   will   silently be
+                          ignored.
+            <esc>[a;b;c;d+<data>
+                          draw pixel data.  Use  one byte  per  pixel.
+                          Colors are encoded as  shown above.  In text
+                          mode, graphics is approximated by outputting
+                          suitable    characters.  Parameters   differ
+                          depending    on  the number    of parameters
+                          passed:
+                            cnt
+                              "cnt"  data  bytes follow. They  will be
+                              drawn to  the right of the last graphics
+                              position.
+                            rle;col
+                              the next  "rle"  pixels  have the  value
+                              "col". They will  be drawn to  the right
+                              of the last  graphics position.  No data
+                              bytes follow.
+                            x;y;cnt
+                              "cnt" data  bytes  follow. They  will be
+                              drawn relative to the top left corner of
+                              the text cursor with an offset of (x/y).
+                            x;y;rle;col
+                              the next "rle"   pixels have  the  value
+                              "col".  They will  be drawn  relative to
+                              the top  left corner of the  text cursor
+                              with an offset  of (x/y).  No data bytes
+                              follow
+                          you usually   do not  have   to enter  these
+                          values manually, but you  should use  a tool
+                          such as  "ppmtoansi" which  is  shipped with
+                          your BOOT-Prom or available from the contrib
+                          directory of the "etherboot" package.
+            <esc>[a;b;c;d-<data>
+                          same as above,   but pack pixels into  three
+                          bits. The first pixel is stored in the three
+                          most  significant  bits  of the  first  data
+                          byte.
+</code>
+
+        Note that you usually have to specify any control characters
+        directly (rather than in hex form) in your bootptab file.
+
+<tag/TAGS 192 thru 207/
+        these tags define all of the valid boot images and override
+        any settings that are given with the "bf" bootfile option in
+        your "bootptab". It is allowed to leave gaps in the list.
+        This has an impact on how the `default' image will be
+        selected.
+
+        All entries are of the form
+<code>
+            label:server:gateway:filename:passwd:flags:cmdline
+</code>
+        For future extensibility, it is permitted to append an
+        arbitrary amount of other colon separated entries as long as
+        the limit of 255 characters per tag is not exceeded.
+        Non-existent entries can be left empty. This means that the
+        default value for this particular entry will be used. Trailing
+        colons can be omitted.
+
+	<descrip>
+          <tag/label/this is the text string that is displayed to the
+                    user. It can contain arbitrary characters, except
+                    for a colon. Embedding arbitrary control
+                    characters is not recommended, but you might be
+                    able to include ANSI escape sequences (if enabled
+                    in the ROM) for changing text attributes as long
+                    as you restore the attributes at the end of the
+                    string. It probably does not make very much sense
+                    to leave this entry empty.
+          <tag/server/IP number of the TFTP server, where the image can
+                    be found. This data has to be in decimal form
+                    (e.g. 192.168.0.1); it is not permitted to use a
+                    hostname. It is the responsibility of the "bootpd"
+                    to look up hostnames. If this entry is omitted,
+                    then the BOOTP server will be used for the TFTP
+                    download.
+          <tag/gateway/use this IP gateway, when accessing the boot image
+                    by TFTP. If no value is given, the BOOTP gateway
+                    or alternatively the first entry in the list of
+                    gateways "gw" is used.
+          <tag/filename/name of the boot image that has to be loaded by
+                    TFTP. If this entry is omitted, then the machine
+                    boots locally from disk. If enabled in the
+                    BOOT-Prom, you can specify pseudo-filenames for
+                    booting from a local blockdevice (floppy,
+                    harddisk, ...); these filenames have to match the
+                    pattern "/dev/[fh]d*". If the BOOT-Prom does not
+                    have support for these pseudo-filenames, you can
+                    still boot from blockdevices by storing an boot
+                    image as generated by mknbi-blkdev under the name
+                    of the desired blockdevice (symbolic links will
+                    do). In Etherboot 4.6.2 and later, a - in this field
+                    means use the filename specified in the BOOTP/DHCP reply.
+                    This saves on menu size.
+          <tag/passwd/MD5 message digest of the password. If this entry
+                    is omitted, then no password is required for
+                    loading this image. Support for passwords is
+                    optional and might not be compiled into the ROM
+                    image. For generating the MD5 message digest, you
+                    can use freely available tools such as
+                    "md5sum". C.f. the flags entry for controlling
+                    the behavior of passwords.
+          <tag/flags/flags are used for controlling some aspects of how
+                    the BOOT-Prom code behaves. All flags are a string
+                    of decimal digits followed by a letter; multiple
+                    flags can be concatenated. If this entry is
+                    omitted, then a default value of "1i1p" is
+                    assumed. Currently, these flags are defined:
+
+		<descrip>
+                      <tag/0i/booting this image does not require a
+                           password; the contents of the password
+                           entry is ignored unless some other feature
+                           (such as the flag "2p") requires it.
+                      <tag/1i/booting this image requires a password. If
+                           the password entry is omitted, or no
+                           password support is available in the
+                           BOOT-Prom, then this flag is ignored.
+                      <tag/0p/the user cannot enter a command line for
+                           passing parameters to the loaded image,
+                           even if this feature has been enabled when
+                           compiling the BOOT-Prom. N.B. this does not
+                           affect the cmdline entry as described
+                           below!
+                      <tag/1p/the user does not get prompted for passing
+                           parameters to the loaded image, but he can
+                           explicitly request the prompt (e.g. by
+                           pressing a modifier key while selecting an
+                           image from the menu). If the password
+                           entry is not omitted, then the password has
+                           to be entered. Both parameter passing and
+                           password validation can be disabled when
+                           compiling the BOOT-Prom.
+                      <tag/2p/the user always gets prompted for passing
+                           parameters to the loaded image. If the
+                           password entry is present and password
+                           support has been enabled in the BOOT-Prom,
+                           then the password has to be entered.
+                      <tag/3p/the user always gets prompted for passing
+                           parameters to the loaded image. No password
+                           is required.
+		</descrip>
+
+          <tag/cmdline/the contents of this entry is appended to the end
+                    of the command line that gets passed to the loaded
+                    image. This feature is unaffected by the "p"
+                    flags. Passing parameters currently does not make
+                    sense for any operating system other than Linux
+                    and is silently ignored for other operating
+                    systems. As it is not legal to enter colons as
+                    part of an entry, you have to escape them by
+                    writing "&tilde;c" instead. This also means, that all
+                    tilde characters have to be escaped by writing
+                    "&tilde;&tilde;". As some bootp daemons do not allow for
+                    entering a backslash in a character string, the
+                    escape sequence "&tilde;b" inserts a backslash
+                    character. Currently, all other escape sequences
+                    are undefined.
+
+	</descrip>
+
+</descrip>
+
+For demonstration purposes, I attached an annotated excerpt from my
+"bootptab" illustrating some of these techniques. In the following
+the character sequence <tt/ESC/ should be replaced by the ASCII
+escape character. Also the 8-bit characters have been changed to 7-bit
+approximations due to SGML tool limitations. To get the original codes,
+use this table: top left corner, char 201 (decimal); horizontal bar,
+char 205; top right corner, char 187; vertical bar, char 186; bottom
+left corner, char 200; bottom right corner, char 188.
+
+<code>
+#
+# The MOTD (message of the day) can contain arbitrary characters, that
+# the PC is capable of displaying.  Here we use 8bit characters for
+# drawing a border around the message; also we change the foreground
+# color to red (this assumes that the BOOT Prom has support for ANSI
+# escape sequences):
+#
+.motd:\
+        :T184="ESC[31m":\
+        :T185="+------------------------------------------------------+":\
+        :T186="| This is an experimental release of the new BOOT-Prom |":\
+        :T187="| code.  It supports a couple of  non-standard  vendor |":\
+        :T188="| extensions.                                          |":\
+        :T189="+------------------------------------------------------+":\
+        :T190="ESC[37m":
+
+#
+# Alternatively, the MOTD can be stored in an external file; this
+# requires that you enabled ANSI support in the BOOT Prom!  For more
+# advanced configurability, you should explore the feature of the
+# patched tftpd daemon (as available in the contrib directory) to
+# execute shell scripts and use the output as the file contents.
+#
+# .motd:\
+#       :T184="ESC[31mLoading message of the day...ESC[37mESC['/etc/motd'#":
+#
+
+#
+# We use the "template" feature of modern versions of "bootp" in order
+# to group common entries. Unfortunately, you cannot use more than one
+# "tc" entry per (pseudo-) host.  Pseudo hostnames should begin with a
+# leading period character.
+#
+# All entries are kept as generic as possible.  This ensures that they
+# will keep working even when the network topology is changed. Leaving
+# the server IP address and the gateway IP address empty, should
+# ensure that booting works even when we go thru "bootpgw" gateways.
+#
+# "Technicolor" special effects are achieved by changing the
+# foreground text color of the individual labels. You could even embed
+# small icons after switching to graphics mode. C.f. "linux-logo.ansi"
+# for an example; this will not work, if your BOOT Prom does not have
+# support for ANSI escape sequences.
+#
+# Passing boot-time parameters to the Linux kernel, requires the
+# password "Penguin".
+#
+# Booting from the local disk requires the password "Joshua". If the
+# BOOT-Prom does not have support for booting from local block devices
+# (floppy, harddrive, ...), then you can either omit the filename
+# (c.f. README.Security for potential security problems) or your TFTP
+# server has to provide a boot image that has been generated by
+# mknbi-blkdev.
+#
+.imagemenu:\
+        :tc=.motd:\
+        :T128=E44574680000:\
+        :T160="timeout=30:default=207:":\
+        :T192="ESC[32mLinux 2.0.27ESC[37m:::/tftpdir/image-linux:99625fa1cac27bb6a2b33b7638afe47:0i1p":\
+        :T193="ESC[33mDOS 6.2ESC[37m:::/tftpdir/image-dos":\
+        :T207="ESC[34mLocal DiskESC[37m:::/dev/hda:85b103482a20682da703aa388933a6d8":
+
+#
+# When using more than a handful of vendor parameters, we have to
+# specify an extension file "ef". If you are very careful, then it is
+# possible to use one extension file for several hosts. Don't forget
+# to run "bootpef" after editing the "bootptab", and make sure that
+# you "chroot" into the proper directory, if applicable.
+#
+.default:\
+        :tc=.imagemenu:\
+        :bf=tftpdir/image-rom:\
+        :hd=:\
+        :ht=ethernet:\
+        :sm=255.255.255.0:\
+        :vm=auto:\
+        :ef=extension.bootp:
+
+#
+# Ideally, hosts differ only with respect to their ethernet hardware
+# ID and IP number. We let the "bootpd" look up the correct IP number.
+#
+thalamus:tc=.default:ha=00400529C11B:ip=thalamus:
+cortex: :tc=.default:ha=0000C0531A24:ip=cortex:
+</code>
+
+<p>
+
+Here is an example DHCP specification illustrating the use of - in the
+filename portion of the menu options to eliminate needless repetition.
+
+<code>
+    # per host setup
+    host 192.168.40.203 {
+
+        # MAC and IP addresses
+        hardware ethernet  00:60:08:0d:a9:84;
+        fixed-address 192.168.40.203;
+
+        # default file to boot, common append options, default menu selection
+and timeout
+        filename "/tftpboot/thinlinux/1.0-alpha-025/3c59x-ide.ram0";
+        option T129 "ramdisk_size=16000 vga=6";
+        option T160 "timeout=10:default=192";
+        option T184 "^[['/tftpboot/thinlinux/1.0-alpha-025/motd'#";
+
+        # menu selections, specify filename or "-" to use default filename
+specified above
+        option T192 "test1:::-:::nfs=xterm";
+        option T193 "test2:::-:::nfs=shell";
+        option T194 "test3:::-:::nfs=other";
+    }
+</code>
+
+<p>
+
+If you only have old BOOT-Proms and want to use these advanced
+features without having to burn new BOOT-Proms, there is a little
+trick.
+
+<p>
+
+You may have noticed that old BOOT-Proms ignore all of these vendor
+extensions and unconditionally load the file that is given in the "bf"
+bootfile entry. On the other hand, new BOOT-Proms completely ignore
+the "bf" entry when they find a list of images in the vendor extension
+tags.
+
+<p>
+
+Therefore, you create a boot image that contains the new BOOT-Prom
+code and specify the filename in the "bf" entry. This results in a two
+step bootloading process. First the old BOOT-Prom loads the new code
+and then the new code displays the message of the day, processes the
+image list, asks the user for his preferred image (and possibly for
+parameters and a password) and then proceeds booting.
+
+</article>

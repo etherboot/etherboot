@@ -1,0 +1,108 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH IN.TFTPD 8 "December 27, 2000"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+
+.SH NAME
+in.tftpd \- Trivial File Transfer Protocol Server.
+.SH SYNOPSIS
+.B in.tftpd
+.RI [ options ] " path"
+
+.SH DESCRIPTION
+.B in.tftpd
+is a TFTP (rfc1350) server. It must be started by inetd. This server is
+multithreaded and supports all options described in rfc2090
+(multicast not implemented yet), rfc2347 (option extension), rfc2348
+(blksize) and rfc2359 (tsize and timeout).
+
+.SH OPTIONS
+This program supports both the usual GNU command line syntax, with
+long options starting with two dashes (`-') as well as short
+options. A description of the options is included below.
+
+.TP
+.B \-t, \-\-tftpd\-timeout <value>
+Number of seconds of inactivity before the server exits. Default is
+300 seconds.
+
+.TP
+.B \-r, \-\-retry\-timeout <value>
+How many seconds to wait for a reply before retransimitting a
+packet. Default is 5 seconds. This is can be overridden by the tftp
+client.
+
+.TP
+.B \-m, \-\-maxthread <value>
+Maximum number of concurrent threads allowed. Default is 100.
+
+.TP
+.B \-v, \-\-verbose[=value]
+Increase or set the logging level. No args will increase by one the
+current value. Default is LOG_NOTICE, see syslog(3) for log
+level. Current value range from 0 (LOG_EMERG) to 7 (LOG_DEBUG).
+
+.TP
+.B \-\-no\-timeout
+disable 'timeout' from RFC2349. This will prevent the server from
+acknowledging timeout option requested by the client.
+
+.TP
+.B \-\-no\-tsize
+disable 'tsize' from RFC2349. This will prevent the server from
+acknowledging tsize option requested by the client.
+
+.TP
+.B \-\-no\-blksize
+disable 'blksize' from RFC2348. This will prevent the server from
+acknowledging blksize request by the client.
+
+.TP
+.B \-\-no\-multicast
+disable 'multicast' from RFC2090. This will prevent the server from
+acknowledging multicast request by the client.
+
+.TP
+.B \-\-logfile <logfile>
+Log to a specific file instead of only syslog. 'nobody' must have
+persmissions on the given file. Assuming the file is
+/var/log/atftpd.log, simply run: "touch /var/log/atftpd.log" and then
+"chown nobody.nogroup /var/log/atftpd.log".
+
+.TP
+.B \-h, \-\-help
+Show summary of options.
+
+.TP
+.B \-V, \-\-version
+Show version of program.
+
+.TP
+.B path
+This is the root directory used by the in.tftpd server. All requested
+files from a TFTP client must reside in this directory. If not
+specified, the directory defaults to /tftpboot. Since
+in.tftpd run as the 'nobody' user, the permission of the directory
+must be set properly to allow file reading and writing.
+
+.SH STATS
+Starting with release 0.2, the server collects some statistics.
+Currently the server compute system load, time between connections and
+some thread statistics like number of file sent, received, number of
+abort... To see those stats in the logs, you need to set --verbose=6
+(LOG_NOTICE) or higher.
+
+.SH SEE ALSO
+.BR inetd (8),
+RFC1350, RFC2090, RFC2347, RFC2348 and RFC2349.
+.SH AUTHOR
+This manual page was written by Remi Lefebvre <remi@debian.org> and Jean-Pierre
+Lefebvre <helix@step.polymtl.ca>.
