@@ -46,11 +46,13 @@ currticks:
 #ifdef FREEBSD_PXEEMU
 currticks_postswitch:
 #endif
-	movl	0x46C, %eax
-	movb	0x470, %bl
+	movl	virt_offset, %ebp
+	negl	%ebp			/* Physical address 0 */
+	movl	0x46C(%ebp), %eax
+	movb	0x470(%ebp), %bl
 	cmpb	$0, %bl
 	je	notmidnite
-	movb	$0, 0x470		/* clear the flag */
+	movb	$0, 0x470(%ebp)		/* clear the flag */
 	addl	$0x1800b0,days		/* 0x1800b0 ticks per day */
 notmidnite:
 	addl	days,%eax
