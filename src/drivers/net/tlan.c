@@ -1,9 +1,3 @@
-#define EB51
-
-#ifdef EB50
-#define __unused __attribute__((unused))
-#endif
-
 /**************************************************************************
 *
 *    tlan.c -- Etherboot device driver for the Texas Instruments ThunderLAN
@@ -60,17 +54,16 @@
 #define HZ 100
 #define TX_TIME_OUT	  (6*HZ)
 
-#ifdef EB50
-#define	cpu_to_le32(val) (val)
-#define	le32_to_cpu(val) (val)
-#define	virt_to_bus(x) ((unsigned long) x)
-#define	bus_to_virt(x) ((unsigned long) x)
-#endif
-
 /* Condensed operations for readability. */
 #define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
 #define le32desc_to_virt(addr)  bus_to_virt(le32_to_cpu(addr))
 
+//#define EDEBUG
+#ifdef EDEBUG
+#define dprintf(x) printf x
+#else
+#define dprintf(x)
+#endif
 
 static void TLan_ResetLists(struct nic *nic __unused);
 static void TLan_ResetAdapter(struct nic *nic __unused);
@@ -552,18 +545,15 @@ static int tlan_poll(struct nic *nic)
 
 	nic->packetlen = framesize;
 
-#ifdef EBDEBUG
-     printf(".%d.", framesize); 
-#endif
+	dprintf((".%d.", framesize)); 
      
 	memcpy(nic->packet, rxb +
 	       (priv->cur_rx * TLAN_MAX_FRAME_SIZE), nic->packetlen);
 
 	rx_ring[entry].cStat = 0;
-#ifdef EBDEBUG
-	hex_dump(nic->packet, nic->packetlen);
-	printf("%d", entry);  
-#endif
+
+	dprintf(("%d", entry));  
+
 	entry = (entry + 1) % TLAN_NUM_RX_LISTS;
 	priv->cur_rx = entry;
 	if (eoc) {
@@ -576,11 +566,9 @@ static int tlan_poll(struct nic *nic)
 	} else {
 		host_cmd = TLAN_HC_ACK | ack | (0x000C0000);
 		outl(host_cmd, BASE + TLAN_HOST_CMD);
-#ifdef EBDEBUG
-		printf("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM)); 
-		host_int = inw(BASE + TLAN_HOST_INT);
-		printf("PI-2: 0x%hX\n", host_int); 
-#endif
+		
+		dprintf(("AC: 0x%hX\n", inw(BASE + TLAN_CH_PARM))); 
+		dprintf(("PI-2: 0x%hX\n", inw(BASE + TLAN_HOST_INT)));
 	}
 	refill_rx(nic);
 	return (1);		/* initially as this is called to flush the input */
@@ -601,7 +589,6 @@ static void refill_rx(struct nic *nic __unused)
 
 }
 
-/* #define EBDEBUG */
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
@@ -624,9 +611,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 #endif
 	int entry = 0;
 
-#ifdef EBDEBUG
-	printf("INT0-0x%hX\n", host_int);
-#endif
+	dprintf(("INT0-0x%hX\n", host_int));
 
 	if (!priv->phyOnline) {
 		printf("TRANSMIT:  %s PHY is not ready\n", priv->nic_name);
@@ -685,10 +670,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 
 	tail_list->cStat = TLAN_CSTAT_READY;
 
-#ifdef EBDEBUG
-	host_int = inw(BASE + TLAN_HOST_INT);
-	printf("INT1-0x%hX\n", host_int);
-#endif
+	dprintf(("INT1-0x%hX\n", inw(BASE + TLAN_HOST_INT)));
 
 	if (!priv->txInProgress) {
 		priv->txInProgress = 1;
@@ -696,15 +678,11 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 		outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
 	} else {
 		if (priv->txTail == 0) {
-#ifdef EBDEBUG
-			printf("Out buffer\n");
-#endif
+			dprintf(("Out buffer\n"));
 			(priv->txList + (TLAN_NUM_TX_LISTS - 1))->forward =
 			    virt_to_le32desc(tail_list);
 		} else {
-#ifdef EBDEBUG
-			printf("Fix this \n");
-#endif
+			dprintf(("Fix this \n"));
 			(priv->txList + (priv->txTail - 1))->forward =
 			    virt_to_le32desc(tail_list);
 		}
@@ -712,10 +690,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 	
 	CIRC_INC(priv->txTail, TLAN_NUM_TX_LISTS);
 
-#ifdef EBDEBUG
-	host_int = inw(BASE + TLAN_HOST_INT);
-	printf("INT2-0x%hX\n", host_int);
-#endif
+	dprintf(("INT2-0x%hX\n", inw(BASE + TLAN_HOST_INT)));
 
 	to = currticks() + TX_TIME_OUT;
 	while ((tail_list->cStat == TLAN_CSTAT_READY) && currticks() < to);
@@ -770,11 +745,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 /**************************************************************************
 DISABLE - Turn off ethernet interface
 ***************************************************************************/
-#ifdef EB51
 static void tlan_disable(struct dev *dev __unused)
-#else
-static void tlan_disable(struct nic *nic __unused)
-#endif
 {
 	/* put the card in its initial state */
 	/* This function serves 3 purposes.
@@ -812,15 +783,10 @@ PROBE - Look for an adapter, this routine's visible to the outside
 
 #define board_found 1
 #define valid_link 0
-#ifdef EB51
 static int tlan_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *) dev;
-#else
-struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
-{
-#endif
-		u16 data = 0;
+	u16 data = 0;
 	int err;
 	int i;
 
@@ -891,17 +857,11 @@ struct nic *tlan_probe(struct nic *nic, unsigned short *io_addrs, struct pci_dev
 /*	if (board_found && valid_link)
 	{*/
 	/* point to NIC specific routines */
-#ifdef EB51
+
 	dev->disable = tlan_disable;
 	nic->poll = tlan_poll;
 	nic->transmit = tlan_transmit;
 	return 1;
-#else
-	nic->disable = tlan_disable;
-	nic->poll = tlan_poll;
-	nic->transmit = tlan_transmit;
-	return nic;
-#endif
 }
 
 
@@ -1763,7 +1723,6 @@ void TLan_PhyMonitor(struct net_device *dev)
 
 #endif				/* MONITOR */
 
-#ifdef EB51
 static struct pci_id tlan_nics[] = {
 	PCI_ROM(0x0e11, 0xae34, "netel10", "Compaq Netelligent 10 T PCI UTP"),
 	PCI_ROM(0x0e11, 0xae32, "netel100","Compaq Netelligent 10/100 TX PCI UTP"),
@@ -1788,4 +1747,3 @@ static struct pci_driver tlan_driver __pci_driver = {
 	.id_count = sizeof(tlan_nics) / sizeof(tlan_nics[0]),
 	.class = 0,
 };
-#endif

@@ -34,12 +34,6 @@
 * Indent Style: indent -kr -i8
 ***************************************************************************/
 
-/*
-#include <asm/io.h>
-#include <asm/types.h>
-#include <linux/netdevice.h>
-*/
-
 typedef unsigned char u8;
 typedef signed char s8;
 typedef unsigned short u16;
