@@ -14,4 +14,8 @@ fi
 /sbin/ifconfig $INTERFACE 10.254.254.2 netmask 255.255.255.252
 
 # Force dhcpd to notice the new network interface
-/etc/init.d/dhcpd reload
+if [ -x /etc/init.d/dhcpd ]; then
+  /etc/init.d/dhcpd reload # Redhat
+elif [ -x /etc/init.d/dhcp ]; then
+  /etc/init.d/dhcp restart # Debian
+fi

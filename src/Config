@@ -173,6 +173,8 @@
 #			If defined, boots via Scalable Local Area Multicast.
 #	-DDOWNLOAD_PROTO_TFTM
 #			If defined, enables booting via TFTP Multicast mode.
+#	-DDOWNLOAD_PROTO_HTTP
+#			If defined, enables booting via HTTP.
 #	-DSAFEBOOTMODE
 #			Enables "Safe Boot Mode": Only boot images after verification
 #			with public-key-cryptography, this is WORK IN PROGRESS
@@ -323,6 +325,8 @@ CFLAGS+=	-DTAGGED_IMAGE -DELF_IMAGE
 CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 # Change download protocol to NFS, default is TFTP
 # CFLAGS+=	-DDOWNLOAD_PROTO_NFS
+# Change download protocol to HTTP, default is TFTP
+# CFLAGS+=	-DDOWNLOAD_PROTO_HTTP
 
 # Multicast Support
 #CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM

@@ -71,7 +71,7 @@
 #define CONSOLE_FIRMWARE
 #endif
 
-#if	!defined(DOWNLOAD_PROTO_TFTP) && !defined(DOWNLOAD_PROTO_NFS) && !defined(DOWNLOAD_PROTO_SLAM) && !defined(DOWNLOAD_PROTO_TFTM) && !defined(DOWNLOAD_PROTO_DISK)
+#if	!defined(DOWNLOAD_PROTO_TFTP) && !defined(DOWNLOAD_PROTO_NFS) && !defined(DOWNLOAD_PROTO_SLAM) && !defined(DOWNLOAD_PROTO_TFTM) && !defined(DOWNLOAD_PROTO_DISK) && !defined(DOWNLOAD_PROTO_HTTP)
 #error No download protocol defined!
 #endif
 
@@ -148,6 +148,7 @@
 #include	"if_arp.h"
 #include	"ip.h"
 #include	"udp.h"
+#include	"tcp.h"
 #include	"bootp.h"
 #include	"tftp.h"
 #include	"igmp.h"
@@ -205,7 +206,11 @@ extern void build_udp_hdr P((unsigned long destip,
 	int len, const void *buf));
 extern int udp_transmit P((unsigned long destip, unsigned int srcsock,
 	unsigned int destsock, int len, const void *buf));
-typedef int (*reply_t)(int ival, void *ptr, unsigned short ptype, struct iphdr *ip, struct udphdr *udp);
+extern int tcp_transmit(unsigned long destip, unsigned int srcsock,
+                       unsigned int destsock, long send_seq, long recv_seq,
+                       int window, int flags, int len, const void *buf);
+int tcp_reset(struct iphdr *ip);
+typedef int (*reply_t)(int ival, void *ptr, unsigned short ptype, struct iphdr *ip, struct udphdr *udp, struct tcphdr *tcp);
 extern int await_reply P((reply_t reply,	int ival, void *ptr, long timeout));
 extern int decode_rfc1533 P((unsigned char *, unsigned int, unsigned int, int));
 extern void join_group(int slot, unsigned long group);

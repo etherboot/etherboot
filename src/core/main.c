@@ -20,6 +20,7 @@ Literature dealing with the network protocols:
 #include "dev.h"
 #include "nic.h"
 #include "disk.h"
+#include "http.h"
 #include "timer.h"
 #include "cpu.h"
 #include <stdarg.h>
@@ -409,6 +410,9 @@ static const struct proto protos[] = {
 #endif
 #ifdef DOWNLOAD_PROTO_TFTP
 	{ "tftp", tftp },
+#endif
+#ifdef DOWNLOAD_PROTO_HTTP
+        { "http", http },
 #endif
 };
 

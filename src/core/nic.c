@@ -4,7 +4,7 @@ Etherboot -  Network Bootstrap Program
 Literature dealing with the network protocols:
 	ARP - RFC826
 	RARP - RFC903
-        IP - RFC791
+	IP - RFC791
 	UDP - RFC768
 	BOOTP - RFC951, RFC2132 (vendor extensions)
 	DHCP - RFC2131, RFC2132 (options)
@@ -39,7 +39,7 @@ static const in_addr zeroIP = { 0L };
 struct bootpd_t bootp_data;
 
 #ifdef	NO_DHCP_SUPPORT
-static unsigned char    rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
+static unsigned char	rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
 #else	/* !NO_DHCP_SUPPORT */
 static int dhcp_reply;
 static in_addr dhcp_server = { 0L };
@@ -182,7 +182,7 @@ static int rarp(void);
 #else
 static int bootp(void);
 #endif
-static unsigned short udpchksum(struct iphdr *ip, struct udphdr *udp);
+static unsigned short tcpudpchksum(struct iphdr *ip);
 
 
 int eth_probe(struct dev *dev)
@@ -296,7 +296,8 @@ static inline unsigned long default_netmask(void)
 IP_TRANSMIT - Send an IP datagram
 **************************************************************************/
 static int await_arp(int ival, void *ptr,
-	unsigned short ptype, struct iphdr *ip __unused, struct udphdr *udp __unused)
+	unsigned short ptype, struct iphdr *ip __unused, struct udphdr *udp __unused,
+	struct tcphdr *tcp __unused)
 {
 	struct	arprequest *arpreply;
 	if (ptype != ARP)
@@ -410,9 +411,31 @@ void build_udp_hdr(unsigned long destip,
 	udp->dest = htons(destsock);
 	udp->len = htons(len - sizeof(struct iphdr));
 	udp->chksum = 0;
-	if ((udp->chksum = udpchksum(ip, udp)) == 0)
+	if ((udp->chksum = tcpudpchksum(ip)) == 0)
 		udp->chksum = 0xffff;
 }
+
+#ifdef DOWNLOAD_PROTO_HTTP
+void build_tcp_hdr(unsigned long destip, unsigned int srcsock,
+		  unsigned int destsock, long send_seq, long recv_seq,
+		  int window, int flags, int ttl, int len, const void *buf)
+{
+       struct iphdr *ip;
+       struct tcphdr *tcp;
+       ip = (struct iphdr *)buf;
+       build_ip_hdr(destip, ttl, IP_TCP, 0, len, buf);
+       tcp = (struct tcphdr *)(ip + 1);
+       tcp->src = htons(srcsock);
+       tcp->dst = htons(destsock);
+       tcp->seq = htonl(send_seq);
+       tcp->ack = htonl(recv_seq);
+       tcp->ctrl = htons(flags + (5 << 12)); /* No TCP options */
+       tcp->window = htons(window);
+       tcp->chksum = 0;
+       if ((tcp->chksum = tcpudpchksum(ip)) == 0)
+	       tcp->chksum = 0xffff;
+}
+#endif
 
 
 /**************************************************************************
@@ -426,11 +449,44 @@ int udp_transmit(unsigned long destip, unsigned int srcsock,
 }
 
 /**************************************************************************
+TCP_TRANSMIT - Send a TCP packet
+**************************************************************************/
+#ifdef DOWNLOAD_PROTO_HTTP
+int tcp_transmit(unsigned long destip, unsigned int srcsock,
+		unsigned int destsock, long send_seq, long recv_seq,
+		int window, int flags, int len, const void *buf)
+{
+       build_tcp_hdr(destip, srcsock, destsock, send_seq, recv_seq,
+		     window, flags, 60, len, buf);
+       return ip_transmit(len, buf);
+}
+
+int tcp_reset(struct iphdr *ip) {
+       struct tcphdr *tcp = (struct tcphdr *)(ip + 1);
+       char buf[sizeof(struct iphdr) + sizeof(struct tcphdr)];
+
+       if (!(tcp->ctrl & htons(RST))) {
+	      long seq = ntohl(tcp->seq) + ntohs(ip->len) -
+			 sizeof(struct iphdr) -
+			 ((ntohs(tcp->ctrl) >> 10) & 0x3C);
+	      if (tcp->ctrl & htons(SYN|FIN))
+		      seq++;
+	      return tcp_transmit(ntohl(ip->src.s_addr),
+				  ntohs(tcp->dst), ntohs(tcp->src),
+				  tcp->ctrl&htons(ACK) ? ntohl(tcp->ack) : 0,
+				  seq, TCP_MAX_WINDOW, RST, sizeof(buf), buf);
+       }
+       return (1);
+}
+#endif
+
+/**************************************************************************
 QDRAIN - clear the nic's receive queue
 **************************************************************************/
 static int await_qdrain(int ival __unused, void *ptr __unused,
 	unsigned short ptype __unused, 
-	struct iphdr *ip __unused, struct udphdr *udp __unused)
+	struct iphdr *ip __unused, struct udphdr *udp __unused,
+	struct tcphdr *tcp __unused)
 {
 	return 0;
 }
@@ -451,7 +507,8 @@ void rx_qdrain(void)
 TFTP - Download extended BOOTP data, or kernel image
 **************************************************************************/
 static int await_tftp(int ival, void *ptr __unused,
-	unsigned short ptype __unused, struct iphdr *ip, struct udphdr *udp)
+	unsigned short ptype __unused, struct iphdr *ip, struct udphdr *udp,
+	struct tcphdr *tcp __unused)
 {
 	if (!udp) {
 		return 0;
@@ -465,10 +522,10 @@ static int await_tftp(int ival, void *ptr __unused,
 
 int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int))
 {
-	int             retry = 0;
+	int		retry = 0;
 	static unsigned short iport = 2000;
-	unsigned short  oport = 0;
-	unsigned short  len, block = 0, prevblock = 0;
+	unsigned short	oport = 0;
+	unsigned short	len, block = 0, prevblock = 0;
 	int		bcounter = 0;
 	struct tftp_t  *tr;
 	struct tftpreq_t tp;
@@ -614,7 +671,8 @@ int tftp(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned in
 RARP - Get my IP address and load information
 **************************************************************************/
 static int await_rarp(int ival, void *ptr,
-	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+	unsigned short ptype, struct iphdr *ip, struct udphdr *udp,
+	struct tcphdr *tcp __unused)
 {
 	struct arprequest *arpreply;
 	if (ptype != RARP)
@@ -679,7 +737,7 @@ BOOTP - Get my IP address and load information
 **************************************************************************/
 static int await_bootp(int ival __unused, void *ptr __unused,
 	unsigned short ptype __unused, struct iphdr *ip __unused, 
-	struct udphdr *udp)
+	struct udphdr *udp, struct tcphdr *tcp __unused)
 {
 	struct	bootp_t *bootpreply;
 	if (!udp) {
@@ -721,7 +779,7 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 #endif	/* NO_DHCP_SUPPORT */
 	netmask = default_netmask();
 	arptable[ARP_SERVER].ipaddr.s_addr = bootpreply->bp_siaddr.s_addr;
-	memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);  /* Kill arp */
+	memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);	 /* Kill arp */
 	arptable[ARP_GATEWAY].ipaddr.s_addr = bootpreply->bp_giaddr.s_addr;
 	memset(arptable[ARP_GATEWAY].node, 0, ETH_ALEN);  /* Kill arp */
 	/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
@@ -825,7 +883,7 @@ static int bootp(void)
 }
 #endif	/* RARP_NOT_BOOTP */
 
-static uint16_t udpchksum(struct iphdr *ip, struct udphdr *udp)
+static uint16_t tcpudpchksum(struct iphdr *ip)
 {
 	struct udp_pseudo_hdr pseudo;
 	uint16_t checksum;
@@ -833,15 +891,16 @@ static uint16_t udpchksum(struct iphdr *ip, struct udphdr *udp)
 	/* Compute the pseudo header */
 	pseudo.src.s_addr  = ip->src.s_addr;
 	pseudo.dest.s_addr = ip->dest.s_addr;
-	pseudo.unused      = 0;
-	pseudo.protocol    = IP_UDP;
-	pseudo.len         = udp->len;
+	pseudo.unused	   = 0;
+	pseudo.protocol	   = ip->protocol;
+	pseudo.len	   = htons(ntohs(ip->len) - sizeof(struct iphdr));
 
 	/* Sum the pseudo header */
 	checksum = ipchksum(&pseudo, 12);
 
-	/* Sum the rest of the udp packet */
-	checksum = add_ipchksums(12, checksum, ipchksum(udp, ntohs(udp->len)));
+	/* Sum the rest of the tcp/udp packet */
+	checksum = add_ipchksums(12, checksum, ipchksum(ip + 1,
+				 ntohs(ip->len) - sizeof(struct iphdr)));
 	return checksum;
 }
 
@@ -981,20 +1040,255 @@ void join_group(int slot, unsigned long group)
 #endif
 
 /**************************************************************************
+TCP - Simple-minded TCP stack. Can only send data once and then
+      receive the response. The algorithm for computing window
+      sizes and delaying ack's is currently broken, and thus
+      disabled. Performance would probably improve a little, if
+      this gets fixed. FIXME
+**************************************************************************/
+#ifdef DOWNLOAD_PROTO_HTTP
+static int await_tcp(int ival, void *ptr, unsigned short ptype __unused,
+		    struct iphdr *ip, struct udphdr *udp __unused,
+		    struct tcphdr *tcp)
+{
+       if (!tcp) {
+	       return 0;
+       }
+       if (arptable[ARP_CLIENT].ipaddr.s_addr != ip->dest.s_addr)
+	       return 0;
+       if (ntohs(tcp->dst) != ival) {
+	       tcp_reset(ip);
+	       return 0;
+       }
+       *(void **)ptr = tcp;
+       return 1;
+}
+
+int tcp_transaction(unsigned long destip, unsigned int destsock, void *ptr,
+		   int (*send)(int len, void *buf, void *ptr),
+		   int (*recv)(int len, const void *buf, void *ptr)) {
+       static uint16_t srcsock = 0;
+       int	       rc = 1;
+       long	       send_seq = currticks();
+       long	       recv_seq = 0;
+       int	       can_send = 0;
+       int	       sent_all = 0;
+       struct iphdr   *ip;
+       struct tcphdr  *tcp;
+       int	       ctrl = SYN;
+       char	       buf[128]; /* Small outgoing buffer */
+       long	       payload;
+       int	       header_size;
+       int	       window = 3*TCP_MIN_WINDOW;
+       long	       last_ack = 0;
+       long	       last_sent = 0;
+       long	       rtt = 0;
+       long	       srtt = 0;
+       long	       rto = TCP_INITIAL_TIMEOUT;
+       int	       retry = TCP_MAX_TIMEOUT/TCP_INITIAL_TIMEOUT;
+       enum { CLOSED, SYN_RCVD, ESTABLISHED,
+	      FIN_WAIT_1, FIN_WAIT_2 } state = CLOSED;
+
+       if (!srcsock) {
+	       srcsock = currticks();
+       }
+       if (++srcsock < 1024)
+	       srcsock += 1024;
+
+       await_reply(await_qdrain, 0, NULL, 0);
+
+ send_data:
+       if (ctrl & ACK)
+	       last_ack = recv_seq;
+       if (!tcp_transmit(destip, srcsock, destsock, send_seq,
+			 recv_seq, window, ctrl,
+			 sizeof(struct iphdr) + sizeof(struct tcphdr)+
+			 can_send, buf)) {
+	       return (0);
+       }
+       last_sent = currticks();
+
+ recv_data:
+       if (!await_reply(await_tcp, srcsock, &tcp,
+			(state == ESTABLISHED && !can_send)
+			? TCP_MAX_TIMEOUT : rto)) {
+	       if (state == ESTABLISHED) {
+ close:
+		       ctrl = FIN|ACK;
+		       state = FIN_WAIT_1;
+		       rc = 0;
+		       goto send_data;
+	       }
+
+	       if (state == FIN_WAIT_1 || state == FIN_WAIT_2)
+		       return (rc);
+
+	       if (--retry <= 0) {
+		       /* time out */
+		       if (state == SYN_RCVD) {
+			       tcp_transmit(destip, srcsock, destsock,
+					    send_seq, 0, window, RST,
+					    sizeof(struct iphdr) +
+					    sizeof(struct tcphdr), buf);
+		       }
+		       return (0);
+	       }
+	       /* retransmit */
+	       goto send_data;
+       }
+ got_data:
+       retry = TCP_MAX_RETRY;
+
+       if (tcp->ctrl & htons(ACK) ) {
+	       char *data;
+	       int syn_ack, consumed;
+
+	       if (state == FIN_WAIT_1 || state == FIN_WAIT_2) {
+		       state = FIN_WAIT_2;
+		       ctrl = ACK;
+		       goto consume_data;
+	       }
+	       syn_ack = state == CLOSED || state == SYN_RCVD;
+	       consumed = ntohl(tcp->ack) - send_seq - syn_ack;
+	       if (consumed < 0 || consumed > can_send) {
+		       tcp_reset((struct iphdr *)&nic.packet[ETH_HLEN]);
+		       goto recv_data;
+	       }
+
+	       rtt = currticks() - last_sent;
+	       srtt = !srtt ? rtt : (srtt*4 + rtt)/5;
+	       rto = srtt + srtt/2;
+	       if (rto < TCP_MIN_TIMEOUT)
+		       rto = TCP_MIN_TIMEOUT;
+	       else if (rto > TCP_MAX_TIMEOUT)
+		       rto = TCP_MAX_TIMEOUT;
+
+	       can_send -= consumed;
+	       send_seq += consumed + syn_ack;
+	       data = buf + sizeof(struct iphdr) + sizeof(struct tcphdr);
+	       if (can_send) {
+		       memmove(data, data + consumed, can_send);
+	       }
+	       if (!sent_all) {
+		       int more_data;
+		       data += can_send;
+		       more_data = buf + sizeof(buf) - data;
+		       if (more_data > 0) {
+			       more_data = send(more_data, data, ptr);
+			       can_send += more_data;
+		       }
+		       sent_all = !more_data;
+	       }
+	       if (state == SYN_RCVD) {
+		       state = ESTABLISHED;
+		       ctrl = PSH|ACK;
+		       goto consume_data;
+	       }
+	       if (tcp->ctrl & htons(RST))
+		       return (0);
+       } else if (tcp->ctrl & htons(RST)) {
+	       if (state == CLOSED)
+		       goto recv_data;
+	       return (0);
+       }
+
+ consume_data:
+       ip  = (struct iphdr *)&nic.packet[ETH_HLEN];
+       header_size = sizeof(struct iphdr) + ((ntohs(tcp->ctrl)>>10)&0x3C);
+       payload = ntohs(ip->len) - header_size;
+       if (payload > 0 && state == ESTABLISHED) {
+	       int old_bytes = recv_seq - (long)ntohl(tcp->seq);
+	       if (old_bytes >= 0 && payload - old_bytes > 0) {
+		       recv_seq += payload - old_bytes;
+		       if (state != FIN_WAIT_1 && state != FIN_WAIT_2 &&
+			   !recv(payload - old_bytes,
+				 &nic.packet[ETH_HLEN+header_size+old_bytes],
+				 ptr)) {
+			       goto close;
+		       }
+		       if ((state == ESTABLISHED || state == SYN_RCVD) &&
+			   !(tcp->ctrl & htons(FIN))) {
+			       int in_window = window - 2*TCP_MIN_WINDOW >
+						recv_seq - last_ack;
+			       ctrl = can_send ? PSH|ACK : ACK;
+			       if (!can_send && in_window) {
+/* Window scaling is broken right now, just fall back to acknowledging every */
+/* packet immediately and unconditionally. FIXME		       */ /***/
+/*				       if (await_reply(await_tcp, srcsock,
+						       &tcp, rto))
+					       goto got_data;
+				       else */
+					       goto send_data;
+			       }
+			       if (!in_window) {
+				       window += TCP_MIN_WINDOW;
+				       if (window > TCP_MAX_WINDOW)
+					       window = TCP_MAX_WINDOW;
+			       }
+			       goto send_data;
+		       }
+	       } else {
+		       /* saw old data again, must have lost packets */
+		       window /= 2;
+		       if (window < 2*TCP_MIN_WINDOW)
+			       window = 2*TCP_MIN_WINDOW;
+	       }
+       }
+
+       if (tcp->ctrl & htons(FIN)) {
+	       if (state == ESTABLISHED) {
+		       ctrl = FIN|ACK;
+	       } else if (state == FIN_WAIT_1 || state == FIN_WAIT_2) {
+		       ctrl = ACK;
+	       } else {
+		       ctrl = RST;
+	       }
+	       return (tcp_transmit(destip, srcsock, destsock,
+				    send_seq, recv_seq + 1, window, ctrl,
+				    sizeof(struct iphdr) +
+				    sizeof(struct tcphdr), buf) &&
+		       (state == ESTABLISHED ||
+			state == FIN_WAIT_1 || state == FIN_WAIT_2) &&
+		       !can_send);
+       }
+
+       if (state == CLOSED) {
+	       if (tcp->ctrl & htons(SYN)) {
+		       recv_seq = ntohl(tcp->seq) + 1;
+		       if (!(tcp->ctrl & htons(ACK))) {
+			       state = SYN_RCVD;
+			       ctrl = SYN|ACK|PSH;
+			       goto send_data;
+		       } else {
+			       state = ESTABLISHED;
+			       ctrl = PSH|ACK;
+		       }
+	       }
+       }
+
+       if (can_send || payload) {
+	       goto send_data;
+       }
+       goto recv_data;
+}
+#endif
+
+/**************************************************************************
 AWAIT_REPLY - Wait until we get a response for our request
 ************f**************************************************************/
 int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 {
 	unsigned long time, now;
 	struct	iphdr *ip;
-	unsigned iplen;
+	unsigned iplen = 0;
 	struct	udphdr *udp;
+	struct	tcphdr *tcp;
 	unsigned short ptype;
 	int result;
 
 	time = timeout + currticks();
 	/* The timeout check is done below.  The timeout is only checked if
-	 * there is no packet in the Rx queue.  This assumes that eth_poll()
+	 * there is no packet in the Rx queue.	This assumes that eth_poll()
 	 * needs a negligible amount of time.  
 	 */
 	for (;;) {
@@ -1065,12 +1359,30 @@ int await_reply(reply_t reply, int ival, void *ptr, long timeout)
 			if (ntohs(udp->len) > (ntohs(ip->len) - iplen))
 				continue;
 
-			if (udp->chksum && udpchksum(ip, udp)) {
+			if (udp->chksum && tcpudpchksum(ip)) {
 				printf("UDP checksum error\n");
 				continue;
 			}
 		}
-		result = reply(ival, ptr, ptype, ip, udp);
+		tcp = 0;
+#ifdef DOWNLOAD_PROTO_HTTP
+		if (ip && (ip->protocol == IP_TCP) &&
+		    (nic.packetlen >=
+		     ETH_HLEN + sizeof(struct iphdr) + sizeof(struct tcphdr))){
+			tcp = (struct tcphdr *)&nic.packet[ETH_HLEN +
+							 sizeof(struct iphdr)];
+			/* Make certain we have a reasonable packet length */
+			if (((ntohs(tcp->ctrl) >> 10) & 0x3C) >
+			    ntohs(ip->len) - (int)iplen)
+				continue;
+			if (tcpudpchksum(ip)) {
+				printf("TCP checksum error\n");
+				continue;
+			}
+
+		}
+#endif
+		result = reply(ival, ptr, ptype, ip, udp, tcp);
 		if (result > 0) {
 			return result;
 		}
@@ -1133,8 +1445,8 @@ DECODE_RFC1533 - Decodes RFC1533 header
 int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int eof)
 {
 	static unsigned char *extdata = NULL, *extend = NULL;
-	unsigned char        *extpath = NULL;
-	unsigned char        *endp;
+	unsigned char	     *extpath = NULL;
+	unsigned char	     *endp;
 	static unsigned char in_encapsulated_options = 0;
 
 #ifdef	REQUIRE_VCI_ETHERBOOT
