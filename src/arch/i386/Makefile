@@ -80,6 +80,9 @@ exeEXIT=	$(BIN)/exeprefix.exit.o
 liloPREFIX=	$(BIN)/liloprefix.o
 liloENTRY=	$(BIN)/liloprefix.entry.o
 liloEXIT=	$(BIN)/liloprefix.exit.o
+bImagePREFIX=	$(BIN)/bImageprefix.o
+bImageENTRY=	$(BIN)/bImageprefix.entry.o
+bImageEXIT=	$(BIN)/bImageprefix.exit.o
 pxePREFIX=	$(BIN)/pxeprefix.o
 pxeENTRY=	$(BIN)/pxeprefix.entry.o
 pxeEXIT=	$(BIN)/pxeprefix.exit.o
@@ -110,6 +113,8 @@ alldsks:	$(EB_DSKS)
 allzdsks:	$(EB_ZDSKS)
 alllilos:	$(EB_LILOS)
 allzlilos:	$(EB_ZLILOS)
+allbImages:	$(EB_BIMAGES)
+allbzImages:	$(EB_BZIMAGES)
 allpxes:	$(EB_PXES)
 allzpxes:	$(EB_ZPXES)
 allelfs:	$(EB_ELFS)
@@ -283,12 +288,24 @@ SUFFIXES +=	lilo zlilo
 $(BIN)/%.lilo.rt: $(BIN)/%.rt.o $(liloENTRY) $(liloEXIT) $(LDSCRIPT) $(MAKEDEPS)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(liloEXIT)
 
-#$(PERL) util/makelilo.pl $^ > $@
 $(BIN)/%.lilo: $(BIN)/%.lilo.prf
 	$(OBJCOPY) -O binary $< $@
 
 $(BIN)/%.zlilo: $(BIN)/%.lilo.zprf
 	$(OBJCOPY) -O binary $< $@
+
+# rules to make big linux boot protocol image
+SUFFIXES +=	bImage bzImage
+
+$(BIN)/%.bImage.rt: $(BIN)/%.rt.o $(liloENTRY) $(liloEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(liloEXIT)
+
+$(BIN)/%.bImage: $(BIN)/%.bImage.prf
+	$(OBJCOPY) -O binary $< $@
+
+$(BIN)/%.bzImage: $(BIN)/%.bImage.zprf
+	$(OBJCOPY) -O binary $< $@
+
 
 # rules to generate a PXE loadable image
 SUFFIXES +=	pxe zpxe
