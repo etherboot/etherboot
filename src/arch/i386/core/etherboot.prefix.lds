@@ -61,7 +61,7 @@ SECTIONS {
 	_compressed_copy = _edata + _prefix_size  - _compressed_size +
 		/* The amount to overflow _edata */
 		MAX( ((_edata - _text + 7) / 8) , 2016 ) + 32; 
-	ASSERT( ( _compressed_copy - _prefix_size ) < _end , "Cannot decompress in place" )
+	_assert = ASSERT( ( _compressed_copy - _prefix_size ) < _end , "Cannot decompress in place" ) ; 
 
 	decompress = DEFINED(decompress) ? decompress : 0;
 	/DISCARD/ : {
