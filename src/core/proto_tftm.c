@@ -111,6 +111,7 @@ int proto_tftm(struct tftm_info *info)
 	struct tftp_t *tr;
 	struct tftpreq_t tp;
 	unsigned long filesize;
+	char *map;
 
 
 	state.image = 0;
@@ -265,16 +266,17 @@ int proto_tftm(struct tftm_info *info)
 					state.total_packets = 1 + (filesize - (filesize % state.block_size)) / state.block_size;
 /*					if(!(filesize % state.block_size))
 						state.total_packets++; */
-					bitmap_len   = (state.total_packets + 1 + 7)/8;
+					bitmap_len   = (state.total_packets + 7)/8;
 					if(!state.image) {
 						state.bitmap = allot(bitmap_len);
 						state.image  = allot(filesize);
 					
-						if ((unsigned long)state.image < 1024*1024) {
+						if(( unsigned long)state.image < 1024*1024) {
 							printf("ALERT: tftp filesize to large for available memory\n");
 						return 0;
 						}
-						memset(state.bitmap, 0, bitmap_len);	
+						memset(state.bitmap, 0, bitmap_len);
+						printf("bitmap_len: %d", bitmap_len);
 					}
 					/* If I'm running over multicast join the multicast group */
 					join_group(IGMP_SERVER, info->multicast_ip.s_addr);
@@ -291,34 +293,49 @@ int proto_tftm(struct tftm_info *info)
 		} else if (tr->opcode == htons(TFTP_DATA)) {
 			unsigned long data_len;
 			unsigned char *data;
-			
+			struct udphdr *udp;
+			udp = (struct udphdr *)&nic.packet[ETH_HLEN + sizeof(struct iphdr)];
 			len = ntohs(tr->udp.len) - sizeof(struct udphdr) - 4;
-			
+			data = nic.packet + ETH_HLEN + sizeof ( struct iphdr ) + sizeof ( struct udphdr ) + 4;			
 			if (len > TFTM_MIN_PACKET)	/* shouldn't happen */
 				continue;	/* ignore it */
 			block = ntohs(tp.u.ack.block = tr->u.data.block);
 
+			if (block > state.total_packets) {
+				printf("ALERT: Invalid packet number\n");
+				continue;
+			}
+			
 			/* Compute the expected data length */
-			if (block != state.total_packets -1) {
+			if (block != state.total_packets) {
 				data_len = state.block_size;
 			} else {
 				data_len = filesize % state.block_size;
 			}
+			/* If the packet size is wrong drop the packet and then continue */
+			if (ntohs(udp->len) != (data_len + (data - (unsigned char*)udp))) {
+				printf("Block: %d", block);
+				printf("ALERT: udp packet is not the correct size\n");
+				continue;
+			}
+			if (nic.packetlen < data_len + (data - nic.packet)) {
+				printf("ALERT: Ethernet packet shorter than data_len\n");
+				continue;
+			}
+			
 
-			data = nic.packet + ETH_HLEN + sizeof ( struct iphdr ) + sizeof ( struct udphdr ) + 4;
 			
 			if (data_len > state.block_size) {
 				data_len = state.block_size;
 			}
-	
 			if (((state.bitmap[block >> 3] >> (block & 7)) & 1) == 0) {
 				/* Non duplicate packet */
 				state.bitmap[block >> 3] |= (1 << (block & 7));
-				memcpy(state.image + ((block-1) * state.block_size), data, data_len);
+				memcpy(state.image + ((block -1) * state.block_size), data, data_len);
 				state.received_packets++;
 			} else {
 
-					printf("<DUP>\n");
+/*					printf("<DUP>\n"); */
 			}
 /*			printf("R=%d, ", state.received_packets); */
 		/*	printf("%d", block); */
@@ -330,16 +347,28 @@ int proto_tftm(struct tftm_info *info)
 
 		if (state.received_packets <= state.total_packets)
 		{ 
-			int b=0;
-			
-			for(b=0; b< state.total_packets; b++){
-				if(state.bitmap[b] == 0) {
-				/*	printf("b = %d", b); */
+			unsigned long b;
+			unsigned long len;
+			unsigned long max;
+			int value;
+			int last;
+
+			/* Compute the last bit and store an inverted trailer */
+			max = state.total_packets;
+			value = ((state.bitmap[(max -1) >> 3] >> ((max -1) & 7) ) & 1);
+			value = !value;
+			state.bitmap[max >> 3] &= ~(1 << (max & 7));
+			state.bitmap[max >> 3] |= value << (max & 7);
+				
+			len = 0;
+			last = 0; /* Start with the received packets */
+			for(b = 0; b <= max; b++) {
+				value = (state.bitmap[b>>3] >> (b & 7)) & 1;
+				if(value == 1) {
 					tp.u.ack.block = htons(block);
 					break;
 				}
 			}
-
 		}
 		if(state.ismaster) {
 			tp.opcode = htons(TFTP_ACK);
@@ -348,8 +377,13 @@ int proto_tftm(struct tftm_info *info)
 				iport, oport, TFTP_MIN_PACKET, &tp);/* ack */
 		}
 /*		printf("T=%d", state.total_packets); */
-		if(state.received_packets >= state.total_packets) {
+		if(state.received_packets == state.total_packets) {
 			/* We are done get out */
+			tp.opcode = htons(TFTP_ACK);
+			tp.u.ack.block = htons(state.total_packets);
+			oport = ntohs(tr->udp.src);
+			udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
+				iport, oport, TFTP_MIN_PACKET, &tp);
 			forget(state.bitmap);
 			break;
 		}
