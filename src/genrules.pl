@@ -12,7 +12,7 @@ use File::Basename;
 
 use vars qw($curfam %drivers %pcient %isaent %buildent $arch $configfile @srcs);
 
-sub __gendep 
+sub __gendep ($$$)
 {
 	my ($file, $deps, $driver_dep) = @_;
 	foreach my $source (@$deps) {
@@ -45,7 +45,7 @@ sub __gendep
 		}
 		close(INFILE);
 		if (@collect_dep) {
-			__gendep($inc, \@collect_dep, $driver_dep);
+			&__gendep($inc, \@collect_dep, $driver_dep);
 		}
 	}
 }
