@@ -2318,3 +2318,6 @@ And don't complain to the kernel developers, it's nothing to do with
 them. If you must change the XCVR options on a board, please document it
 prominently on the board so that those who come after you won't
 encounter strange behaviour and complain to the kernel developers.
+Greg also supplied a patch to 3c90x.c to print a warning message.
+
+Released as Etherboot 5.0.6 (production)

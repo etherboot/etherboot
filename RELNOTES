@@ -1,13 +1,21 @@
 Etherboot 5.0.6
 
+E820 memory sizing support has been added by Eric Biederman. LinuxBIOS
+compatibility is much better now, with major changes submitted by Eric.
+
 Christopher Li has written the first Gigabit Ethernet driver, e1000.
 
-A couple more variants of existing NICs supported, i.e. the SiS900 and
-the Tulip.
-
-E820 memory sizing support has been added by Eric Biederman.
+A couple more variants of existing NICs supported, i.e. the SiS900,
+SiS630ET and the Tulip.
 
 Holtek HT80232 has been added to the list of NE2000 PCI clones.
+
+Gate A20 enabling and disabling may work better with modern BIOSes now.
+
+There is support for FreeBSD booting using a PXE style secondary loader.
+
+Please, please, take care with the XCVR options for the 3c90x. They
+affect operation with Linux drivers later.
 
 If you find that your PnP BIOS does not recognise the ROM image (not
 floppy image) as a PnP BIOS extension, it could be that it's not fully
