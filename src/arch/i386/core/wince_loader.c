@@ -1,4 +1,4 @@
-#define	LOAD_DEBUG	0
+#define LOAD_DEBUG	0
 
 static int get_x_header(unsigned char *data, unsigned long now);
 static void jump_2ep();
@@ -46,7 +46,7 @@ typedef struct _BOOT_ARGS{
 	unsigned char GreenMaskPosition;
 	unsigned char BlueMaskSize;
 	unsigned char BlueMaskPosition;
-}BOOT_ARGS;
+} BOOT_ARGS;
 
 BOOT_ARGS BootArgs;
 
@@ -54,10 +54,10 @@ static struct segment_info{
 	unsigned long addr;		// Section Address
 	unsigned long size;		// Section Size
 	unsigned long checksum;		// Section CheckSum
-}X;
+} X;
 
-#define CSIZE	(512*3)
-#define DSIZE  (CSIZE+12)
+#define PSIZE	(1500)			//Max Packet Size
+#define DSIZE  (PSIZE+12)
 static unsigned long dbuffer_available =0;
 static unsigned long not_loadin =0;
 static unsigned long d_now =0;
@@ -75,13 +75,12 @@ static os_download_t wince_probe(unsigned char *data, unsigned int len)
 	printf("(WINCE)");
 	return ce_loader;
 }
+
 static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 {
 	static unsigned char dbuffer[DSIZE];
 	int this_write = 0;
 	static int firsttime = 1;
-
-	/* FIXME handle non 512 byte packets! */
 
 	/*
 	 *	new packet in, we have to 
@@ -90,9 +89,6 @@ static sector_t ce_loader(unsigned char *data, unsigned int len, int eof)
 	 *	update...
 	 *	[2]  dbuffer_available
 	 */
-#if	LOAD_DEBUG
-	printf("len=%ld dbuffer_available=%ld\n", len, dbuffer_available);
-#endif	
 	memcpy( (dbuffer+dbuffer_available), data, len);	//[1]
 	dbuffer_available += len;	// [2]
 	len = 0;
@@ -203,14 +199,15 @@ static int get_x_header(unsigned char *dbuffer, unsigned long now)
 	X.size = *(unsigned long *)(dbuffer + now + sizeof(unsigned long));
 	X.checksum = *(unsigned long *)(dbuffer + now + sizeof(unsigned long)*2);
 
+	if (X.addr == 0)
+	{
+		entry = X.size;
+		done();
+		printf("Entry Point Address = [%lx] \n", entry);
+		jump_2ep();		
+	}
+
 	if (!prep_segment(X.addr, X.addr + X.size, X.addr + X.size, 0, 0)) {
-		if (X.addr == 0)
-		{
-			entry = X.size;
-			done();
-			printf("Entry Point Address = [%lx] \n", entry);
-			jump_2ep();		
-		}
 		longjmp(restart_etherboot, -2);
 	}
 
@@ -236,7 +233,6 @@ static int get_x_header(unsigned char *dbuffer, unsigned long now)
 	printf("\t not_loadin = %ld \n", not_loadin);
 #endif
 
-	
 	return now;
 }
 
