@@ -102,15 +102,11 @@ SRCS:=
 BOBJS:=
 
 
-GCC=		gcc
-CPP=		gcc -E -Wp,-Wall
-STRIP=		strip
-OBJCOPY=	objcopy
 MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	5
-EXTRAVERSION=   -pre1
+EXTRAVERSION=   -pre2
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -225,7 +221,7 @@ $(BIN)/linuxbios.o:	firmware/linuxbios/linuxbios.c include/etherboot.h include/d
 # Utilities
 
 $(BIN)/lzhuf:	util/lzhuf.c
-	$(GCC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -o $@ $<
+	$(HOST_CC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -o $@ $<
 
 # Roms file
 

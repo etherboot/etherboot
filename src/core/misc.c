@@ -303,7 +303,7 @@ putchar(int c)
 {
 	if (c == '\n')
 		putchar('\r');
-#ifdef	CONSOLE_CRT
+#ifdef	CONSOLE_FIRMWARE
 	console_putc(c);
 #endif
 #ifdef	CONSOLE_SERIAL
@@ -329,7 +329,7 @@ int getchar(void)
 		 * less CPU time in a VMware session.  */
 		cpu_nap();
 #endif	/* POWERSAVE */
-#ifdef	CONSOLE_CRT
+#ifdef	CONSOLE_FIRMWARE
 		if (console_ischar())
 			c = console_getc();
 #endif
@@ -345,7 +345,7 @@ int getchar(void)
 
 int iskey(void)
 {
-#ifdef	CONSOLE_CRT
+#ifdef	CONSOLE_FIRMWARE
 	if (console_ischar())
 		return 1;
 #endif

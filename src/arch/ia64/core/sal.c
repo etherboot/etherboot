@@ -149,6 +149,7 @@ int parse_sal_system_table(void *table)
 	if (checksum != 0) {
 		return 0;
 	}
+#if 0
 	printf("SALA: %hx SALB: %hx\n",
 		salp->sal_a_version,
 		salp->sal_b_version);
@@ -169,6 +170,7 @@ int parse_sal_system_table(void *table)
 		printf("%c", ch);
 	}
 	printf("\n");
+#endif
 	sal = salp;
 	pal_entry.entry = 0;
 	pal_entry.gp = 0;

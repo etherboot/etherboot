@@ -140,7 +140,7 @@ $(BIN)/liloprefix.bin:	$(BIN)/liloprefix.o
 # Utilities
 
 $(BIN)/nrv2b:	util/nrv2b.c
-	$(GCC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -DNDEBUG -DBITSIZE=32 -DENDIAN=0 -o $@ $<
+	$(HOST_CC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -DNDEBUG -DBITSIZE=32 -DENDIAN=0 -o $@ $<
 
 
 # Pattern Rules

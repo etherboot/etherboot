@@ -12,7 +12,7 @@ use File::Basename;
 
 use vars qw($curfam %drivers %pcient %isaent %buildent $arch $configfile @srcs);
 
-sub __gendep($$$) 
+sub __gendep 
 {
 	my ($file, $deps, $driver_dep) = @_;
 	foreach my $source (@$deps) {

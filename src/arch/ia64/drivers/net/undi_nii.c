@@ -1,11 +1,15 @@
-#include "etherboot.h"
 #include "efi/efi.h"
-#include "efi/efi_adapter.h"
+#include "etherboot.h"
+#include "isa.h"
 #include "dev.h"
 #include "nic.h"
 #include "timer.h"
 
-/* Definitions */
+#warning "Place the declaraction of __call someplace more appropriate\n"
+extern EFI_STATUS __call(void *,...);
+#warning "Place a declaration of lookup_efi_nic somewhere useful"
+EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(unsigned index);
+
 struct sw_undi {
 	uint8_t  signature[4];
 	uint8_t  len;
@@ -365,8 +369,6 @@ struct fptr {
 
 extern char __gp[];
 
-/* forward declarations */
-static struct efi_driver nic_driver;
 /* Variables */
 static unsigned undi_ifnum;
 static void *undi_entry_point;
@@ -561,6 +563,9 @@ static int get_init_info(struct cdb *cdb, struct db_init_info *info)
 	cdb->db_addr  = virt_to_phys(info);
 	return undi_call(cdb);
 }
+
+#if 0
+/* get_config_info crashes broadcoms pxe driver */
 static int get_config_info(struct cdb *cdb, struct db_config_info *info)
 {
 	memset(info, 0, sizeof(*info));
@@ -571,6 +576,7 @@ static int get_config_info(struct cdb *cdb, struct db_config_info *info)
 	cdb->db_addr  = virt_to_phys(info);
 	return undi_call(cdb);
 }
+#endif
 static int initialize(struct cdb *cdb, int media_detect,
 	struct cpb_initialize *cpb, struct db_initialize *db)
 {
@@ -855,7 +861,11 @@ static int nic_setup(struct dev *dev,
 	int media_detect;
 	unsigned filter, no_filter;
 	int i;
-	
+
+	/* Fail if I I'm not passed a valid nii */
+	if (!nii)
+		return 0;
+
 	/* Fail if this nit a SW UNDI interface */
 	if (nii->ID == 0)
 		return 0;
@@ -937,7 +947,7 @@ static int nic_setup(struct dev *dev,
 		return 0;
 	}
 #if 0
-	/* It appears the memory_used parameter is never set correctly */
+	/* It appears the memory_used parameter is never set correctly, ignore it */
 	if (db_initialize.memory_used > sizeof(buffer)) {
 		printf("NIC is using %d bytes I only have %ld bytes\n",
 			db_initialize.memory_used, sizeof(buffer));
@@ -948,8 +958,6 @@ static int nic_setup(struct dev *dev,
 		nic_disable(dev);
 		return 0;
 	}
-#endif
-#if 1
 	printf("NIC is using %d bytes\n",
 		db_initialize.memory_used);
 #endif
@@ -1003,25 +1011,10 @@ static int nic_setup(struct dev *dev,
 		nic_disable(dev);
 		return 0;
 	}
-
-#if 0
-{
-	struct db_config_info config_info;
-	result = get_config_info(&cdb, &config_info);
-	if (result) {
-		if ((config_info.pci.bus_type == UNDI_BUS_TYPE_PCI) ||
-			(config_info.pci.bus_type == UNDI_BUS_TYPE_PCC)) {
-			unsigned int vendor, deviceid;
-			vendor = config_info.pci.config[0] | 
-				(config_info.pci.config[1] << 8);
-			deviceid = config_info.pci.config[2] | 
-				(config_info.pci.config[3] << 8);
-			printf("ID: %hx:%hx\n", vendor, deviceid);
-		}
-		print_config_info(&config_info);
-	}
-}
-#endif
+	
+	/* It would be nice to call get_config_info so I could pass
+	 * the type of nic, but that crashes some efi drivers.
+	 */
 	/* Everything worked!  */
 	dev->disable  = nic_disable;
 	nic->poll     = nic_poll;
@@ -1033,47 +1026,23 @@ static int nic_setup(struct dev *dev,
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
-static int nic_probe(struct dev *dev, EFI_HANDLE handle)
+static int nic_probe(struct dev *dev, unsigned short *dummy __unused)
 {
-	static EFI_GUID simple_net_protocol = EFI_SIMPLE_NETWORK_PROTOCOL;
-	EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *nii;
-	EFI_SIMPLE_NETWORK *simple;
-	EFI_STATUS status;
-	void *that;
+	int index;
 
-	status = efi_handle_protocol(handle, &nic_driver.protocol, &that);
-	nii = that;
-
-	if ((status != EFI_SUCCESS) || (nii == 0))
-		return 0;
-
-	status = efi_handle_protocol(handle, &simple_net_protocol, &that);
-	if (status != EFI_SUCCESS)
-		that = 0;
-	simple = that;
-
-	/* If the simple network protocol is supported and it has
-	 * already been initialized shut it down.
-	 */
-	if (simple) {
-		if ((simple->Mode->State == EfiSimpleNetworkInitialized)) {
-			status = __call(simple->Shutdown, simple);
-			status = __call(simple->Stop, simple);
-		}
-		else if (simple->Mode->State == EfiSimpleNetworkStarted) {
-			status = __call(simple->Stop, simple);
-		}
+	index = dev->index + 1;
+	if (dev->how_probe == PROBE_NEXT) {
+		index++;
 	}
-
-	return nic_setup(dev, nii);
+	return nic_setup(dev, lookup_efi_nic(index));
 }
 
 
 
 
-static struct efi_driver nic_driver __efi_driver = {
+static struct isa_driver nic_driver __isa_driver = {
 	.type     = NIC_DRIVER,
 	.name     = "undi_nii",
 	.probe    = nic_probe,
-	.protocol = EFI_NETWORK_INTERFACE_IDENTIFIER_PROTOCOL
+	.ioaddrs  = 0,
 };

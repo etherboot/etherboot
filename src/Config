@@ -164,12 +164,13 @@
 #
 #	Console options:
 #
-#	-DCONSOLE_CRT
-#			Set for CRT console (default if nothing else is set).
+#	-DCONSOLE_FIRMWARE
+#			Set for firmware/BIOS provided (default if nothing else is set).
+#			Normally this is shows up on your CRT.
 #	-DCONSOLE_SERIAL
 #			Set for serial console.
 #	-DCONSOLE_DUAL
-#			Set for CRT and serial console, see comment at
+#			Set for FIRMWARE and serial console, see comment at
 #			-DANSIESC and -DGFX.
 #	-DCOMCONSOLE
 #			Set port, e.g. 0x3F8.
@@ -255,7 +256,7 @@ CFLAGS+=	-DBACKOFF_LIMIT=7 -DCONGESTED
 # More optional features
 # CFLAGS+=	-DCAN_BOOT_DISK -DTRY_FLOPPY_FIRST=4
 
-# For a serial console, which can run in parallel with CRT console
+# For a serial console, which can run in parallel with FIRMWARE console
 # CFLAGS+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
 
 # Enable tagged image, generic ELF, Multiboot ELF
@@ -280,15 +281,19 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 CFLAGS+=	-DRELOCATE
 
 # you should normally not need to change these
+HOST_CC=	gcc
+CPP=		gcc -E -Wp,-Wall
 RM=		rm -f
 TOUCH=		touch
+PERL=		/usr/bin/perl
 CC=		gcc
 AS=		as
 LD=		ld
 SIZE=		size
 AR=		ar
 RANLIB=		ranlib
-PERL=		/usr/bin/perl
+OBJCOPY=	objcopy
+
 
 # If you use egcs or gcc-2.8, using -Os may help to reduce the code size.
 # Otherwise use -O2 (under no circumstance use -O3 or above!).

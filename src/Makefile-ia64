@@ -10,6 +10,7 @@ LD=		ia64-linux-ld
 SIZE=		ia64-linux-size
 AR=		ia64-linux-ar
 RANLIB=		ia64-linux-ranlib
+OBJCOPY=	ia64-linux-objcopy
 
 MAKEDEPS+=Makefile-ia64
 BIN=bin-ia64

@@ -66,6 +66,7 @@ done:
 			continue;
 		case ANS_LOCAL:
 			order = BOOT_NOTHING;
+			*index = 0;
 			break;
 		case ANS_DEFAULT:
 			/* Preserve the default boot order */
@@ -73,14 +74,17 @@ done:
 		case ANS_NETWORK:
 			order = (BOOT_NIC     << (0*BOOT_BITS)) | 
 				(BOOT_NOTHING << (1*BOOT_BITS));
+			*index = 0;
 			break;
 		case ANS_DISK:
 			order = (BOOT_DISK    << (0*BOOT_BITS)) | 
 				(BOOT_NOTHING << (1*BOOT_BITS));
+			*index = 0;
 			break;
 		case ANS_FLOPPY:
 			order = (BOOT_FLOPPY  << (0*BOOT_BITS)) | 
 				(BOOT_NOTHING << (1*BOOT_BITS));
+			*index = 0;
 			break;
 		}
 		break;

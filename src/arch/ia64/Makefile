@@ -74,7 +74,7 @@ $(BIN)/__umodsi3.o:	arch/ia64/core/idiv32.S
 
 # Utilities
 $(BIN)/nrv2b:	util/nrv2b.c
-	$(GCC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -DNDEBUG -DBITSIZE=64 -DENDIAN=0 -o $@ $<
+	$(HOST_CC) -O2 -DENCODE -DDECODE -DMAIN -DVERBOSE -DNDEBUG -DBITSIZE=64 -DENDIAN=0 -o $@ $<
 
 # Pattern Rules
 

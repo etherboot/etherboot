@@ -4,6 +4,9 @@
 #include "sal.h"
 #include "pal.h"
 
+#warning "Place a declaration of lookup_efi_nic somewhere useful"
+EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(unsigned index);
+
 #warning "Place the declaraction of __call someplace more appropriate\n"
 extern EFI_STATUS __call(void *,...);
 
@@ -42,12 +45,14 @@ struct efi_info {
 };
 
 
-struct efi_info efi_info;
 unsigned long io_base;
 
 /* local globals */
+static struct efi_info efi_info;
 static EFI_HANDLE etherboot_handle;
 static EFI_BOOT_SERVICES *boot_services;
+static SIMPLE_TEXT_OUTPUT_INTERFACE *conout;
+static SIMPLE_INPUT_INTERFACE *conin;
 static void *mps_table;
 static void *acpi20_table;
 static void *smbios_table;
@@ -141,6 +146,8 @@ static void efi_exit_boot_services(struct efi_mem_map *map)
 	if (status != EFI_SUCCESS) {
 		printf("ExitBootServices failed: %lx\n", status);
 	}
+	conout = 0;
+	conin = 0;
 	boot_services = 0;
 }
 
@@ -172,10 +179,6 @@ static void efi_free_memory(struct efi_mem_map *map)
 			(end > virt_to_phys(_text)))
 			may_free = 0;
 
-#if 0 /* Efi isn't especially happy when I free myself */
-		if (desc->Type == EfiLoaderCode)
-			may_free = 0;
-#endif
 		/* Continue if it is not memory we want to free */
 		if (!may_free)
 			continue;
@@ -199,20 +202,92 @@ static void read_efi_mem_map(struct efi_mem_map *map)
 		printf("read_efi_mem_map failed: %lx\n", status);
 		map->map_size = 0;
 	}
-#if 0
-	if (map->descriptor_size != sizeof(map->map[0])) {
-		printf("descriptor_size %ld expected %ld\n",
-			efi_mem_descriptor_size, sizeof(efi_mem_map[0]));
-	}
-#endif
-#if 0
-	if (map->descriptor_version != EFI_MEMORY_DESCRIPTOR_VERSION) {
-		printf("descriptor_version %d expected %d\n",
-			map->descriptor_version, EFI_MEMORY_DESCRIPTOR_VERSION);
-	}
-#endif
+	/* map->descriptor_size should only grow larger */
+	/* map->descriptor_version should only increase and retain
+	 * a backward compatible format.
+	 */
 }
 
+#if 0
+static const char *efi_mem_type_name(uint32_t type)
+{
+	const char *type_name;
+	if (type == EfiReservedMemoryType)
+		type_name = "EfiReservedMemoryType     ";
+	else if (type == EfiLoaderCode)
+		type_name = "EfiLoaderCode             ";
+	else if (type == EfiLoaderData)
+		type_name = "EfiLoaderData             ";
+	else if (type == EfiBootServicesCode)
+		type_name = "EfiBootServicesCode       ";
+	else if (type == EfiBootServicesData)
+		type_name = "EfiBootServicesData       ";
+	else if (type == EfiRuntimeServicesCode)
+		type_name = "EfiRuntimeServicesCode    ";
+	else if (type == EfiRuntimeServicesData)
+		type_name = "EfiRuntimeServicesData    ";
+	else if (type == EfiConventionalMemory)
+		type_name = "EfiConventionalMemory     ";
+	else if (type == EfiUnusableMemory)
+		type_name = "EfiUnusableMemory         ";
+	else if (type == EfiACPIReclaimMemory)
+		type_name = "EfiACPIReclaimMemory      ";
+	else if (type == EfiACPIMemoryNVS)
+		type_name = "EfiACPIMemoryNVS          ";
+	else if (type == EfiMemoryMappedIO)
+		type_name = "EfiMemoryMappedIO         ";
+	else if (type == EfiMemoryMappedIOPortSpace)
+		type_name = "EfiMemoryMappedIOPortSpace";
+	else if (type == EfiPalCode)
+		type_name = "EfiPalCode                ";
+	else
+		type_name = "????                      ";
+	return type_name;
+}
+
+static void print_efi_mem_map(struct efi_mem_map *map)
+{
+	EFI_MEMORY_DESCRIPTOR *desc, *end;
+#define next_desc(desc, size) ((EFI_MEMORY_DESCRIPTOR *)(((char *)(desc)) + (size)))
+	end = next_desc(map->map, map->map_size);
+	for(desc = map->map; desc < end ; desc = next_desc(desc, map->descriptor_size)) {
+		const char *mem_type;
+		unsigned long start, end, virt, virt_end;
+		uint64_t attr;
+		mem_type = efi_mem_type_name(desc->Type);
+		start = desc->PhysicalStart;
+		end   = start + desc->NumberOfPages*EFI_PAGE_SIZE;
+		virt  = desc->VirtualStart;
+		virt_end = virt + desc->NumberOfPages*EFI_PAGE_SIZE;
+		attr = desc->Attribute;
+		printf(	"mem: %hhx %s @ %#lx-%#lx",
+			desc->Type, mem_type, start, end);
+		if (attr & EFI_MEMORY_UC)
+			printf("UC ");
+		if (attr & EFI_MEMORY_WC)
+			printf("WC ");
+		if (attr & EFI_MEMORY_WT)
+			printf("WT ");
+		if (attr & EFI_MEMORY_WB)
+			printf("WB ");
+		if (attr & EFI_MEMORY_UCE)
+			printf("UCE ");
+
+		if (attr & EFI_MEMORY_WP)
+			printf("WP ");
+		if (attr & EFI_MEMORY_RP)
+			printf("RP ");
+		if (attr & EFI_MEMORY_XP)
+			printf("XP ");
+		
+		if (attr & EFI_MEMORY_RUNTIME)
+			printf("RUNTIME ");
+
+		printf("\n");
+	}
+#undef next_desc
+}
+#endif
 
 static void efi_allocate_memory(struct efi_mem_map *map)
 {
@@ -316,9 +391,45 @@ static void set_io_base(struct efi_mem_map *map)
 #undef next_desc
 }
 
+#define MAX_EFI_DEVICES 32
+static void efi_stop_nics(void)
+{
+	static EFI_GUID simple_net_protocol = EFI_SIMPLE_NETWORK_PROTOCOL;
+	EFI_SIMPLE_NETWORK *simple;
+	EFI_STATUS status;
+	EFI_HANDLE handles[MAX_EFI_DEVICES];
+	EFI_HANDLE handle;
+	UINTN devices;
+	unsigned i;
+
+	if (!boot_services)
+		return;
+	
+	devices = sizeof(handles);
+	status = efi_locate_handle(
+		ByProtocol, &simple_net_protocol, 0, &devices, handles);
+	if (status != EFI_SUCCESS)
+		return;
+	devices /= sizeof(handles[0]);
+	for(i = 0; i < devices; i++) {
+		void *that;
+		handle = handles[i];
+		status = efi_handle_protocol(handle, &simple_net_protocol, &that);
+		if (status != EFI_SUCCESS)
+			continue;
+		simple = that;
+		if ((simple->Mode->State == EfiSimpleNetworkInitialized)) {
+			status = __call(simple->Shutdown, simple);
+			status = __call(simple->Stop, simple);
+		}
+		else if (simple->Mode->State == EfiSimpleNetworkStarted) {
+			status = __call(simple->Stop, simple);
+		}
+	}
+}
+
 static void efi_get_coninfo(struct console_info *info)
 {
-	SIMPLE_TEXT_OUTPUT_INTERFACE *conout;
 	EFI_STATUS status;
 	UINTN cols, rows;
 
@@ -329,8 +440,7 @@ static void efi_get_coninfo(struct console_info *info)
 	info->orig_y   = 0;
 
 	status = EFI_UNSUPPORTED;
-	if (boot_services) {
-		conout = efi_info.systab->ConOut;
+	if (conout) {
 		status = __call(conout->QueryMode, conout, conout->Mode->Mode, &cols, &rows);
 		if (status) {
 			printf("QueryMode Failed cannout get console parameters: %ld\n", status);
@@ -453,6 +563,8 @@ void arch_main(struct Elf_Bhdr *bhdr)
 #warning "FIXME see if there is a better test for boot services still being active "
 	printf("FIXME Develop a better test for boot services still being active\n");
 	if (!(efi_info.flags & READ_MEMMAP)) {
+		conout = efi_info.systab->ConOut;
+		conin  = efi_info.systab->ConIn;
 		boot_services = efi_info.systab->BootServices;
 	}
 
@@ -479,6 +591,9 @@ void arch_main(struct Elf_Bhdr *bhdr)
 	 * Nothing useful can be done if this fails, so ignore the return code.
 	 */
 	status = efi_set_watchdog_timer(0, 1, 0, 0);
+
+	/* Shutdown efi network drivers so efi doesn't get too confused */
+	efi_stop_nics();
 
 	if (efi_info.systab) {
 		static const EFI_GUID mps_table_guid = MPS_TABLE_GUID;
@@ -521,7 +636,7 @@ void arch_main(struct Elf_Bhdr *bhdr)
 	}
 }
 
-void arch_on_exit(int status)
+void arch_on_exit(int status __unused)
 {
 	if (!boot_services)
 		return;
@@ -542,23 +657,6 @@ void arch_relocate_to(unsigned long addr)
 	address = addr & ~(EFI_PAGE_SIZE -1);
 	end = (addr + (_end - _text) + EFI_PAGE_SIZE -1) & ~EFI_PAGE_SIZE;
 	pages = (end - address)/EFI_PAGE_SIZE;
-
-#if 0
-	printf("efi_relocate_to: %lx-%lx %ld pages\n",
-		address, end, pages);
-#endif
-#if 0
-	/* Update the LOADED_IMAGE_PROTOCOL structure */
-	if (etherboot_image) {
-		etherboot_image->ImageBase = (void *)address;
-		etherboot_image->ImageSize = end - address;
-
-#if 1
-		printf("efi etherboot @[%lx - %lx)\n",
-			address, end);
-#endif
-	}
-#endif
 
 	/* Reallocate the memory for the new copy of etherboot as LoaderCode */
 	status = efi_free_pages(address, pages);
@@ -622,6 +720,76 @@ void get_memsizes(void)
 #undef next_desc
 }
 
+
+EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(unsigned index)
+{
+	static EFI_GUID protocol = EFI_NETWORK_INTERFACE_IDENTIFIER_PROTOCOL;
+	EFI_HANDLE handles[MAX_EFI_DEVICES];
+	EFI_STATUS status;
+	UINTN devices;
+	void *that;
+
+	if (!boot_services)
+		return 0;
+	devices = sizeof(handles);
+	status = efi_locate_handle(
+		ByProtocol, &protocol, 0, &devices, handles);
+	if (status != EFI_SUCCESS)
+		return 0;
+	devices /= sizeof(handles[0]);
+	if (index >= devices)
+		return 0;
+	status = efi_handle_protocol(handles[index], &protocol, &that);
+	if (status != EFI_SUCCESS)
+		return 0;
+	return that;
+}
+
+#if defined(CONSOLE_FIRMWARE)
+void console_putc(int c)
+{
+	CHAR16 str[2];
+	if (!conout)
+		return;
+	str[0] = c;
+	str[1] = 0;
+	__call(conout->OutputString, conout, str);
+}
+
+static int efi_have_key = 0;
+static int efi_key;
+int console_ischar(void)
+{
+	EFI_STATUS status;
+	EFI_INPUT_KEY new_key;
+	if (!conin)
+		return 0;
+	if (efi_have_key) {
+		return 1;
+	}
+	status = __call(conin->ReadKeyStroke, conin, &new_key);
+	if (status == EFI_SUCCESS) {
+		if ((new_key.UnicodeChar >= 0) && (new_key.UnicodeChar < 0x7f)) {
+			efi_have_key = 1;
+			efi_key = new_key.UnicodeChar;
+		}
+		else if (new_key.ScanCode == 0x17) {
+			efi_have_key = 1;
+			efi_key = K_ESC;
+		}
+	}
+	return efi_have_key;
+}
+
+int console_getc(void)
+{
+	if (efi_have_key) {
+		efi_have_key = 0;
+	}
+
+	return efi_key;
+}
+#endif /* CONSOLE_FIRMWARE */
 
 #define NAME "Etherboot"
 #define FIRMWARE "EFI"
@@ -702,13 +870,6 @@ struct Elf_Bhdr *prepare_boot_params(void *header)
 		read_efi_mem_map(&efi_info.mem_map);
 		efi_exit_boot_services(&efi_info.mem_map);
 	}
-
-	/* read_efi_mem_map should come last. */
-	notes.nf5.n_namesz = sizeof(EB_PARAM_NOTE);
-	notes.nf5.n_descsz = sizeof(notes.nf5_map);
-	notes.nf5.n_type   = EB_IA64_MEMMAP;
-	CP(notes.nf5_name,   EB_PARAM_NOTE);
-	read_efi_mem_map(&notes.nf5_map);
 
 	memset(&notes, 0, sizeof(notes));
 	notes.hdr.b_signature = 0x0E1FB007;
@@ -799,6 +960,7 @@ struct Elf_Bhdr *prepare_boot_params(void *header)
 int elf_start(unsigned long machine __unused, unsigned long entry, unsigned long params)
 {
 	struct elf_notes *notes;
+	int result;
 	/* Since we can do both be polite and also pass the linux
 	 * ia64_boot_param table.
 	 */
@@ -826,11 +988,6 @@ int elf_start(unsigned long machine __unused, unsigned long entry, unsigned long
 		return -2;
 	}
 
-	#warning "Second pass at elf_start this is not the final version"
-	printf("FIXME: This is just the second pass at elf_start not the final version: %s:%d\n", 
-		__FILE__, __LINE__);
-
-
 	bp.command_line          = (unsigned long)&notes->nv5_cmdline;
 	bp.efi_systab            = notes->nf3_systab;
 	bp.efi_memmap            = (unsigned long)&notes->nf5_map.map;
@@ -848,13 +1005,12 @@ int elf_start(unsigned long machine __unused, unsigned long entry, unsigned long
 
 	asm volatile(
 		";;\n\t"
-		"mov r28=%1\n\t"
-		"mov out0=%2\n\t"
-		"br.call.sptk.few rp=%0\n\t"
-		:: "b"(entry), "r"(&bp) 
-		,"r"(params)
+		"mov r28=%2\n\t"
+		"mov out0=%3\n\t"
+		"br.call.sptk.few rp=%1\n\t"
+		"mov %0=r8\n\t"
+		: "=r" (result)
+		: "b"(entry), "r"(&bp),"r"(params)
 		);
-	printf("The kernel returned?? FIXME get it's return value....\n");
-#warning "FINISHME get the return value from the loaded image";
-	return -1;
+	return result;
 }

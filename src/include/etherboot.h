@@ -73,23 +73,26 @@ Author: Martin Renters
 #define DEFAULT_BOOTFILE_STRINGIFIED STRINGIFY_MACRO(DEFAULT_BOOTFILE)
 #endif
 
-/* Clean up console settings... mainly CONSOLE_CRT and CONSOLE_SERIAL are used
+/* Clean up console settings... mainly CONSOLE_FIRMWARE and CONSOLE_SERIAL are used
  * in the sources (except start.S and serial.S which cannot include
  * etherboot.h).  At least one of the CONSOLE_xxx has to be set, and
  * CONSOLE_DUAL sets both CONSOLE_CRT and CONSOLE_SERIAL.  If none is set,
  * CONSOLE_CRT is assumed.  */
+#ifdef CONSOLE_CRT
+#define CONSOLE_FIRMWARE
+#endif
 #ifdef	CONSOLE_DUAL
-#undef CONSOLE_CRT
-#define CONSOLE_CRT
+#undef CONSOLE_FIRMWARE
+#define CONSOLE_FIRMWARE
 #undef CONSOLE_SERIAL
 #define CONSOLE_SERIAL
 #endif
-#if	defined(CONSOLE_CRT) && defined(CONSOLE_SERIAL)
+#if	defined(CONSOLE_FIRMWARE) && defined(CONSOLE_SERIAL)
 #undef CONSOLE_DUAL
 #define CONSOLE_DUAL
 #endif
-#if	!defined(CONSOLE_CRT) && !defined(CONSOLE_SERIAL)
-#define CONSOLE_CRT
+#if	!defined(CONSOLE_FIRMWARE) && !defined(CONSOLE_SERIAL)
+#define CONSOLE_FIRMWARE
 #endif
 
 #if	!defined(DOWNLOAD_PROTO_TFTP) && !defined(DOWNLOAD_PROTO_NFS) && !defined(DOWNLOAD_PROTO_SLAM) && !defined(DOWNLOAD_PROTO_TFTM) && !defined(DOWNLOAD_PROTO_DISK)

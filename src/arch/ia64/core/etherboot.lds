@@ -28,9 +28,6 @@ SECTIONS {
 		*(.drivers.isa);
 		isa_drivers_end = . ;
 		. = ALIGN(16);
-		efi_drivers = . ;
-		*(.drivers.efi);
-		efi_drivers_end = . ;
 
 		. = ALIGN(16);
 		_rela = . ;
