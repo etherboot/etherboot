@@ -199,10 +199,6 @@
 #			But may not work for all CPUs.
 #	-DT503_AUI
 #			Use AUI by default on 3c503 cards.
-#	-DUSE_LOWMEM_BUFFER
-#			Define to put some buffers below 0x10000 which
-#			may interfere with other programs.
-#			(Don't use, deprecated.)
 #       -DRELOCATE
 #			After starting etherboot relocate to the top
 #			of memory.  This allows loading fairly arbitrary
