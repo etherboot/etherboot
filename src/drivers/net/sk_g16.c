@@ -777,7 +777,7 @@ static int SK_probe(struct dev *dev, unsigned short *probe_addrs)
 	}
 }
 
-int SK_probe1(struct nic *nic, short ioaddr1)
+int SK_probe1(struct nic *nic, short ioaddr1 __attribute__((unused)))
 {
     int i,j;                /* Counters */
     unsigned int rom_addr;  /* used to store RAM address used for POS_ADDR */
