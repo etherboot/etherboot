@@ -12,6 +12,14 @@
 #include "pxe_export.h"
 #include <stdarg.h>
 
+/* Overall PXE stack size
+ */
+static inline int pxe_stack_size ( void ) {
+	return sizeof(pxe_stack_t)
+		+ pxe_callback_interface_size
+		+ rm_callback_interface_size;
+}
+
 /* Utility routine: byte checksum
  */
 uint8_t byte_checksum ( void *address, size_t size ) {
@@ -24,6 +32,8 @@ uint8_t byte_checksum ( void *address, size_t size ) {
 }
 
 /* install_pxe_stack(): install PXE stack.
+ * 
+ * Use base = NULL for auto-allocation of base memory
  */
 pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxe_stack_t *pxe_stack;
@@ -34,6 +44,13 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	void (*pxenv_in_call_far)(void);
 	void *rm_callback_code;
 	void *end;
+
+	/* Allocate base memory if requested to do so
+	 */
+	if ( base == NULL ) {
+		base = allot_base_memory ( pxe_stack_size() );
+		if ( base == NULL ) return NULL;
+	}
 
 	/* Round address up to 16-byte physical alignment */
 	pxe_stack = (pxe_stack_t *)
@@ -126,8 +143,8 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 
 /* remove_pxe_stack(): remove PXE stack installed by install_pxe_stack()
  */
-void remove_pxe_stack ( pxe_stack_t *pxe_stack __unused ) {
-	
+void remove_pxe_stack ( pxe_stack_t *pxe_stack ) {
+	forget_base_memory ( pxe_stack, pxe_stack_size() );
 }
 
 #define XXX_REAL_MODE_SS (0x9000);
