@@ -25,11 +25,18 @@ struct disk
 	sector_t      sector;	        /* The first sector in the driver buffer  */
 	unsigned char *buffer;	        /* The data read from the drive */
 	void	      *priv;	        /* driver can hang private data here */
+
+	unsigned long disk_offset;
+	int           direction;
 };
 
+extern struct disk disk;
 extern int url_file(const char *name,
 	int (*fnc)(unsigned char *, unsigned int, unsigned int, int));
 
+extern int disk_probe(struct dev *dev);
+extern int disk_load_configuration(struct dev *dev);
+extern int disk_load(struct dev *dev);
 extern void disk_disable(void);
 
 

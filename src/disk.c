@@ -3,8 +3,44 @@
 
 #undef disk_disable
 
+static int dummy(void *unused __unused)
+{
+	return (0);
+}
+
 static unsigned char disk_buffer[DISK_BUFFER_SIZE];
-static struct disk disk;
+struct disk disk =
+{
+	{
+		0,				/* dev.disable */
+		{
+			DEV_ID_SIZE-1,
+			RFC1533_VENDOR_NIC_DEV_ID,
+			5,
+			PCI_BUS_TYPE,
+			0,
+			0
+		},				/* dev.devid */
+		0,				/* index */
+		0,				/* type */
+		PROBE_FIRST,			/* how_probe */
+		PROBE_NONE,			/* to_probe */
+		{},				/* state */
+	},
+	(int (*)(struct disk *, sector_t ))dummy,		/* read */
+	0 - 1, 		/* drive */
+	0,		/* hw_sector_size */
+	0,		/* sectors_per_read */
+	0,		/* bytes */
+	0,		/* sectors */
+	0, 		/* sector */
+	disk_buffer,	/* buffer */
+	0,		/* priv */
+	
+	0,		/* disk_offset */
+	0,		/* direction */
+};
+
 
 static int disk_read(
 	struct disk *disk, unsigned char *buffer, sector_t sector)
@@ -35,7 +71,6 @@ static int disk_read_sectors(
 	unsigned char *buffer,
 	sector_t base_sector, unsigned int sectors)
 {
-	sector_t start_sector = 0;
 	sector_t sector = 0;
 	unsigned long offset;
 	int result = 0;
@@ -97,26 +132,102 @@ static int load_image(
 			return 0;
 		}
 	}
+	return -1;
+}
+
+int disk_probe(struct dev *dev)
+{
+	struct disk *disk = (struct disk *)dev;
+	if (dev->how_probe == PROBE_NEXT) {
+		disk->drive += 1;
+	}
+	return probe(dev);
+}
+
+
+int disk_load_configuration(struct dev *dev)
+{
+	/* Start with the very simplest possible disk configuration */
+	struct disk *disk = (struct disk *)dev;
+	disk->direction = 1;
+	disk->disk_offset = 0;
+}
+
+int disk_load(struct dev *dev)
+{
+	struct disk *disk = (struct disk *)dev;
+	/* 16K == 8K in either direction from the start of the disk */
+	static unsigned char buffer[32*SECTOR_SIZE]; 
+	os_download_t os_download;
+	unsigned int offset;
+	unsigned int len;
+	unsigned int buf_sectors;
+	volatile sector_t block;
+	volatile int inc, increment;
+	int i;
+	int result;
+	jmpbuf real_restart;
+
+
+	printf("Searching for image...\n");
+	result = 0;
+	increment = (disk->direction < 0)?-1:1;
+	/* Load a buffer, and see if it contains the start of an image
+	 * we can boot from disk.
+	 */
+	len = sizeof(buffer);
+	buf_sectors = sizeof(buffer) / SECTOR_SIZE;
+	inc = increment;
+	block = (disk->disk_offset) >> 9;
+	if (buf_sectors/2 > block) {
+		block = (disk->sectors - (buf_sectors/2)) + block;
+	}
+	/* let probe buffer assume offset always needs to be incremented */
+	offset = (len/2 + ((disk->disk_offset) & 0x1ff)) - inc;
+
+	/* Catch longjmp so if this image fails to load, I start looking
+	 * for the next image where I left off looking for this image.
+	 */
+	memcpy(&real_restart, &restart_etherboot, sizeof(jmpbuf));
+	i = setjmp(restart_etherboot);
+	if ((i != 0) && (i != -2)) {
+		memcpy(&restart_etherboot, &real_restart, sizeof(jmpbuf));
+		longjmp(restart_etherboot, i);
+	}
+	/* Read the canidate sectors into the buffer */
+	if (disk_read_sectors(disk, buffer, block, buf_sectors) < 0) {
+		result = -1;
+		goto out;
+	}
+	if (inc == increment) {
+		os_download = probe_buffer(buffer, len, inc, offset, &offset);
+		if (os_download)
+			goto load_image;
+		inc = -inc;
+	}
+	os_download = probe_buffer(buffer, len, inc, offset, &offset);
+	if (!os_download) {
+		result = -1;
+		goto out;
+	}
+ load_image:
+	printf("Loading image...\n");
+	result = load_image(disk, buffer, buf_sectors, block, offset, os_download);
+ out:
+	memcpy(&restart_etherboot, &real_restart, sizeof(jmpbuf));
+	return result;
 }
 
 int url_file(const char *name,
 	int (*fnc)(unsigned char *, unsigned int, unsigned int, int))
 {
-	/* 16K == 8K in either direction from the start of the disk */
-	static unsigned char buffer[32*SECTOR_SIZE]; 
 	unsigned int drive;
-	int adapter;
-	os_download_t os_download;
-	unsigned int disk_offset, offset, len;
-	volatile int increment, inc;
-	int i;
-	volatile sector_t block;
-	sector_t buf_sectors;
+	unsigned long  disk_offset;
+	int direction;
 	int type;
-	jmpbuf real_restart;
 
 	disk_offset = 0;
-	increment = 1;
+	direction = 1;
 	if (memcmp(name, "disk", 4) == 0) {
 		type = DISK_DRIVER;
 		name += 4;
@@ -131,7 +242,7 @@ int url_file(const char *name,
 	}
 	drive = strtoul(name, &name, 10);
 	if ((name[0] == '+') || (name[0] == '-')) {
-		increment = (name[0] == '-')? -1 : 1;
+		direction = (name[0] == '-')? -1 : 1;
 		name++;
 		disk_offset = strtoul(name, &name, 10);
 	}
@@ -141,59 +252,21 @@ int url_file(const char *name,
 	}
 	memset(&disk, 0, sizeof(disk));
 	disk.buffer = disk_buffer;
-	disk.drive = 0 - 1;
-	adapter = -1;
+	disk.drive = 0;
+	disk.dev.how_probe = PROBE_FIRST;
+	disk.dev.type = type;
 	do {
 		disk_disable();
-		disk.drive += 1;
-		adapter = probe(adapter, &disk.dev, type);
-		if (adapter < 0) {
+		disk.dev.how_probe = disk_probe(&disk.dev);
+		if (disk.dev.how_probe == PROBE_FAILED) {
 			printf("Not that many drives\n");
 			return 0;
 		}
 	} while(disk.drive < drive);
+	disk.direction = direction;
+	disk.disk_offset = disk_offset;
 	
-	/* Load a buffer, and see if it contains the start of an image
-	 * we can boot from disk.
-	 */
-	len = sizeof(buffer);
-	buf_sectors = sizeof(buffer) / SECTOR_SIZE;
-	inc = increment;
-	block = disk_offset >> 9;
-	if (buf_sectors/2 > block) {
-		block = (disk.sectors - (buf_sectors/2)) + block;
-	}
-	/* let probe buffer assume offset always needs to be incremented */
-	offset = (len/2 + (disk_offset & 0x1ff)) - inc;
-
-	/* Catch longjmp so if this image fails to load, I start looking
-	 * for the next image where I left off looking for this image.
-	 */
-	memcpy(&real_restart, &restart_etherboot, sizeof(jmpbuf));
-	i = setjmp(restart_etherboot);
-	if ((i != 0) && (i != -2)) {
-		memcpy(&restart_etherboot, &real_restart, sizeof(jmpbuf));
-		longjmp(restart_etherboot, i);
-	}
-	/* Read the canidate sectors into the buffer */
-	if (disk_read_sectors(&disk, buffer, block, buf_sectors) < 0) {
-		return -1;
-	}
-	if (inc == increment) {
-		os_download = probe_buffer(buffer, len, inc, offset, &offset);
-		if (os_download)
-			goto load_image;
-		inc = -inc;
-	}
-	os_download = probe_buffer(buffer, len, inc, offset, &offset);
-	if (os_download)
-		goto load_image;
-
-	memcpy(&restart_etherboot, &real_restart, sizeof(jmpbuf));
-	return 0;
- load_image:
-	return load_image(&disk, buffer, buf_sectors, block, offset, os_download);
-
+	return disk_load(&disk.dev);
 }
 
 void disk_disable(void)

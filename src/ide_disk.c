@@ -710,7 +710,11 @@ static int ide_pci_probe(struct dev *dev, struct pci_device *pci)
 
 	adjust_pci_device(pci);
 	
-	for(index = dev->index; index < 4; index++) {
+	index = dev->index + 1;
+	if (dev->how_probe == PROBE_NEXT) {
+		index++;
+	}
+	for(; index < 4; index++) {
 		unsigned mask;
 		mask = (index < 2)? (1 << 0) : (1 << 2);
 		if ((pci->class & mask) == 0) {
@@ -735,15 +739,15 @@ static int ide_pci_probe(struct dev *dev, struct pci_device *pci)
 			controller.cmd_base  = cmd_base  & ~3;
 			controller.ctrl_base = ctrl_base & ~3;
 		}
-		if ((index & 1) == 0) {
+		if (((index & 1) == 0) || (dev->how_probe == PROBE_AWAKE)) {
 			if (init_controller(&controller, disk->drive, disk->buffer) < 0) {
 				/* nothing behind the controller */
 				continue;
 			}
 		}
-		info = &harddisk_info[dev->index & 1];
+		info = &harddisk_info[index & 1];
 		if (!info->drive_exists) {
-			/* unknown driver */
+			/* unknown drive */
 			continue;
 		}
 		disk->hw_sector_size   = IDE_SECTOR_SIZE;
@@ -846,7 +850,11 @@ static int ide_isa_probe(struct dev * dev, unsigned short *probe_addrs)
 	unsigned short addr;
 	struct harddisk_info *info;
 
-	for(index = dev->index; addr = probe_addrs[index >> 1]; index += 2) {
+	index = dev->index +1;
+	if (dev->how_probe == PROBE_NEXT) {
+		index++;
+	}
+	for(; (addr = probe_addrs[index >> 1]); index += 2) {
 		if ((index & 1) == 0) {
 			controller.cmd_base = addr;
 			controller.ctrl_base = addr + IDE_REG_EXTENDED_OFFSET;
@@ -862,7 +870,7 @@ static int ide_isa_probe(struct dev * dev, unsigned short *probe_addrs)
 		}
 		disk->sectors_per_read = 1;
 		disk->sectors = info->sectors;
-		dev->index = index;
+		dev->index   = index;
 		dev->disable = ide_disable;
 		disk->read   = ide_read;
 		disk->priv   = info;

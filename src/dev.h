@@ -33,8 +33,8 @@ struct pci_probe_state
 struct isa_probe_state
 {
 #ifdef CONFIG_ISA
-	struct isa_driver *driver;
-	int index;
+	const struct isa_driver *driver;
+	int advance;
 #else
 	int dummy;
 #endif
@@ -51,19 +51,32 @@ struct dev
 	void		(*disable)P((struct dev *));
 	struct dev_id	devid;	/* device ID string (sent to DHCP server) */
 	int		index;  /* Index of next device on this controller to probe */
-	int 		to_probe;
+	int		type;		/* Type of device I am probing for */
+	int		how_probe;	/* First, next or awake */
+	int 		to_probe;	/* Flavor of device I am probing */
 #define	PROBE_NONE 0
 #define PROBE_PCI  1
 #define PROBE_ISA  2
 	union probe_state state;
 };
 
-#define NIC_DRIVER    1
-#define BRIDGE_DRIVER 2
-#define DISK_DRIVER   3
-#define FLOPPY_DRIVER 4
+#define NIC_DRIVER    0
+#define DISK_DRIVER   1
+#define FLOPPY_DRIVER 2
+#define BRIDGE_DRIVER 1000
 
-extern int probe(int last_adapter, struct dev *dev, int type);
+#define PROBE_FIRST  (-1)
+#define PROBE_NEXT   0
+#define PROBE_AWAKE  1		/* After calling disable bring up the same device */
+
+/* The probe result codes are selected
+ * to allow them to be fed back into the probe
+ * routine and get a successful probe.
+ */
+#define PROBE_FAILED PROBE_FIRST
+#define PROBE_WORKED  PROBE_NEXT
+
+extern int probe(struct dev *dev);
 extern void disable(struct dev *dev);
 
 #endif /* DEV_H */

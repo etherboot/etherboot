@@ -4,6 +4,48 @@ MISC Support Routines
 
 #include "etherboot.h"
 
+
+/**************************************************************************
+IPCHKSUM - Checksum IP Header
+**************************************************************************/
+uint16_t ipchksum(void *p, int len)
+{
+	unsigned long sum = 0;
+	uint16_t *ip = p;
+	while (len > 1) {
+		len -= 2;
+		sum += *(ip++);
+		if (sum > 0xFFFF)
+			sum -= 0xFFFF;
+	}
+	if (len) {
+		uint8_t *ptr = (void *)ip;
+		sum += *ptr;
+		if (sum > 0xFFFF)
+			sum -= 0xFFFF;
+	}
+	return((~sum) & 0x0000FFFF);
+}
+
+
+
+/**************************************************************************
+RANDOM - compute a random number between 0 and 2147483647L or 2147483562?
+**************************************************************************/
+long random(void)
+{
+	static long seed = 0;
+	long q;
+	if (!seed) /* Initialize linear congruential generator */
+		seed = currticks() + *(long *)&arptable[ARP_CLIENT].node
+		       + ((short *)arptable[ARP_CLIENT].node)[2];
+	/* simplified version of the LCG given in Bruce Schneier's
+	   "Applied Cryptography" */
+	q = seed/53668;
+	if ((seed = 40014*(seed-53668*q) - 12211*q) < 0) seed += 2147483563L;
+	return seed;
+}
+
 /**************************************************************************
 SLEEP
 **************************************************************************/

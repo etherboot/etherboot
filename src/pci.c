@@ -383,7 +383,11 @@ static void scan_drivers(
 				(device == driver->ids[i].dev_id)) {
 
 				dev->driver = driver;
+#if 0
 				dev->name   = driver->ids[i].name;
+#else
+				dev->name   = driver->name;
+#endif
 				goto out;
 			}
 		}

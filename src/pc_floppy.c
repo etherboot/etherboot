@@ -1115,17 +1115,22 @@ static void floppy_fini(struct dev *dev)
 static int floppy_probe(struct dev *dev, unsigned short *probe_addrs)
 {
 	struct disk *disk = (struct disk *)dev;
-	unsigned short *addr;
+	unsigned short addr;
+	int index;
 
 	if (!probe_addrs || !*probe_addrs)
 		return 0;
-	for(addr = probe_addrs; *addr; addr++) {
+	index = dev->index +1;
+	if (dev->how_probe == PROBE_NEXT) {
+		index++;
+	}
+	for(; (addr = probe_addrs[index]); index++) {
 		/* FIXME handle multiple drives per controller */
 		/* FIXME test to see if I have a drive or a disk in
 		 * the driver during the probe routine.
 		 */
 		/* FIXME make this work under the normal bios */
-		FD_BASE = *addr;
+		FD_BASE = addr;
 		if (floppy_init() != 0) {
 			/* nothing at this address */
 			continue;
@@ -1134,6 +1139,7 @@ static int floppy_probe(struct dev *dev, unsigned short *probe_addrs)
 		disk->hw_sector_size   = SECTOR_SIZE;
 		disk->sectors_per_read = DISK_H1440_SECT;
 		disk->sectors          = DISK_H1440_HEAD*DISK_H1440_TRACK*DISK_H1440_SECT;
+		dev->index             = index;
 		dev->disable           = floppy_fini;
 		disk->read             = floppy_read;
 		return 1;

@@ -534,13 +534,7 @@ extern void nfs_umountall P((int));
 extern int url_slam P((const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)));
 
 /* config.c */
-extern struct nic nic;
-struct dev *dev;
 extern void print_config(void);
-extern int  eth_probe(int adapter);
-extern int  eth_poll(void);
-extern void eth_transmit(const char *d, unsigned int t, unsigned int s, const void *p);
-extern void eth_disable(void);
 
 /* heap.c */
 extern void init_heap(void);

@@ -167,7 +167,7 @@ W89C840FLAGS=	-DINCLUDE_W89C840
 
 SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
 SRCS+=	main.c pci.c osloader.c nfs.c pxe.c misc.c config.c relocate.c heap.c
-SRCS+=	floppy.c disk.c proto_slam.c proto_tftm.c 
+SRCS+=	floppy.c nic.c disk.c proto_slam.c proto_tftm.c 
 
 # ROM loaders: LZ version (prefix Z), PCI header version (prefix P)
 RLOADER=	bin/rloader.bin
@@ -185,7 +185,7 @@ BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/pxe.o bin32/misc.o
 BOBJS32+=	bin32/proto_slam.o bin32/proto_tftm.o
 BOBJS32+=	bin32/floppy.o
 BOBJS32+=	bin32/serial.o bin32/timer.o  bin32/relocate.o bin32/heap.o
-BOBJS32+=	bin32/disk.o
+BOBJS32+=	bin32/nic.o bin32/disk.o
 BLIB32=		bin32/bootlib.a 
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf bin/nrv2b
@@ -284,6 +284,8 @@ bin32/misc.o:		misc.c etherboot.h osdep.h
 bin32/relocate.o:	relocate.c etherboot.h osdep.h
 
 bin32/heap.o:		heap.c etherboot.h osdep.h
+
+bin32/nic.o:		nic.c nic.h etherboot.h osdep.h
 
 bin32/disk.o:		disk.c disk.h etherboot.h osdep.h
 
@@ -419,7 +421,7 @@ bin32/%.lzrom:	bin32/%.lzimg $(RLOADER) $(START16)
 
 
 # general rules for ELF images
-bin32/%.imgo:	bin32/%.imgo $(MAKEDEPS)
+bin32/%.imgo:	bin32/%.img $(MAKEDEPS)
 	ld -T img.lds -b binary $< -o $@
 
 bin32/%.lzimgo:	bin32/%.lzimg $(MAKEDEPS)
