@@ -15,6 +15,7 @@ DOBJS32	+= bin32/prism2_pci.o
 DOBJS32	+= bin32/prism2_plx.o
 DOBJS32	+= bin32/rtl8139.o
 DOBJS32	+= bin32/sis900.o
+DOBJS32	+= bin32/test-multi.o
 DOBJS32	+= bin32/tulip.o
 DOBJS32	+= bin32/via-rhine.o
 DOBJS32	+= bin32/w89c840.o
@@ -125,6 +126,7 @@ BINS32	+= bin32/rtl8139.rom bin32/rtl8139.lzrom
 BINS32	+= bin32/sis7016.rom bin32/sis7016.lzrom
 BINS32	+= bin32/sis900.rom bin32/sis900.lzrom
 BINS32	+= bin32/smc1211.rom bin32/smc1211.lzrom
+BINS32	+= bin32/test-multi.rom bin32/test-multi.lzrom
 BINS32	+= bin32/tulip.rom bin32/tulip.lzrom
 BINS32	+= bin32/via-rhine.rom bin32/via-rhine.lzrom
 BINS32	+= bin32/via-rhine-old.rom bin32/via-rhine-old.lzrom
@@ -359,6 +361,12 @@ bin32/tiara.o:	tiara.c $(MAKEDEPS) cards.h etherboot.h linux-asm-io.h linux-asm-
 
 bin32/config-tiara.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
 	$(CC32) $(CFLAGS32) -DINCLUDE_TIARA -o $@ -c $<
+
+bin32/test-multi.o:	bin32/prism2_plx.o bin32/rtl8139.o
+	$(LD32) -r -o $@ bin32/prism2_plx.o bin32/rtl8139.o
+
+bin32/config-test-multi.o:	config.c $(MAKEDEPS) osdep.h etherboot.h nic.h cards.h
+	$(CC32) $(CFLAGS32) -DINCLUDE_PRISM2_PLX -DINCLUDE_RTL8139 -DTRY_ALL_DEVICES -o $@ -c $<
 
 
 # Rules to build the ROM files
@@ -2162,6 +2170,26 @@ bin32/smc1211.ebi:	bin32/rtl8139.elf
 	cp bin32/rtl8139.elf $@
 	$(STRIP) -R .comment -R .note $@
 
+bin32/test-multi.rom:	bin32/test-multi.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
+bin32/test-multi.lzrom:	bin32/test-multi.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
+bin32/test-multi.pxe:	bin32/test-multi.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
+bin32/test-multi.lzpxe:	bin32/test-multi.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1260,0x3873 -i$(IDENT32) $@
+
+bin32/test-multi.ebi:	bin32/test-multi.elf
+	cp bin32/test-multi.elf $@
+	$(STRIP) -R .comment -R .note $@
+
 bin32/tulip.rom:	bin32/tulip.img $(PRLOADER)
 	cat $(PRLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
@@ -2584,6 +2612,17 @@ bin32/sis900.elf:	bin32/sis900.o bin32/config-sis900.o bin32/pci.o $(ELF_DEPS32)
 
 bin32/sis900.img:	bin32/sis900.o bin32/sis900.tmp bin32/config-sis900.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-sis900.o bin32/sis900.o bin32/pci.o $(LIBS32)
+
+bin32/test-multi.tmp:	bin32/test-multi.o bin32/config-test-multi.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-test-multi.o bin32/test-multi.o bin32/pci.o $(LIBS32)
+	@$(SIZE32) $@ | $(CHECKSIZE)
+
+bin32/test-multi.elf:	bin32/test-multi.o bin32/config-test-multi.o bin32/pci.o $(ELF_DEPS32)
+	$(LD32) $(LDFLAGS32) -o $@ $(ELF_START32) bin32/config-test-multi.o bin32/test-multi.o bin32/pci.o $(LIBS32)
+	@$(SIZE32) $@ | $(CHECKSIZE)
+
+bin32/test-multi.img:	bin32/test-multi.o bin32/test-multi.tmp bin32/config-test-multi.o bin32/pci.o $(STDDEPS32)
+	$(LD32) $(LDFLAGS32) $(LDBINARY32) -o $@ $(START32) bin32/config-test-multi.o bin32/test-multi.o bin32/pci.o $(LIBS32)
 
 bin32/tulip.tmp:	bin32/tulip.o bin32/config-tulip.o bin32/pci.o $(STDDEPS32)
 	$(LD32) $(LDFLAGS32) -o $@ $(START32) bin32/config-tulip.o bin32/tulip.o bin32/pci.o $(LIBS32)
