@@ -8,7 +8,7 @@
 #warning "Place the declaraction of __call someplace more appropriate\n"
 extern EFI_STATUS __call(void *,...);
 #warning "Place a declaration of lookup_efi_nic somewhere useful"
-EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(unsigned index);
+EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(int index);
 
 struct sw_undi {
 	uint8_t  signature[4];
@@ -893,11 +893,33 @@ static int nic_setup(struct dev *dev,
 	if (!result)
 		return 0;
 
-	/* If the device is already initialized, skip it */
+	/* See if the device is already initialized */
 	if ((cdb.stat_flags & CDB_STATFLAGS_GET_STATE_MASK) != 
-		CDB_STATFLAGS_GET_STATE_STOPPED)
-		return 0;
+		CDB_STATFLAGS_GET_STATE_STOPPED) {
+
+		/* If so attempt to stop it */
+		if ((cdb.stat_flags & CDB_STATFLAGS_GET_STATE_MASK) ==
+			CDB_STATFLAGS_GET_STATE_INITIALIZED) {
+			result = shutdown(&cdb);
+			result = stop(&cdb);
+		}
+		else if ((cdb.stat_flags & CDB_STATFLAGS_GET_STATE_MASK) ==
+			CDB_STATFLAGS_GET_STATE_STARTED) {
+			result = stop(&cdb);
+		}
+
+		/* See if it did stop */
+		result = get_state(&cdb);
+		if (!result)
+			return 0;
+
+		/* If it didn't stop give up */
+		if ((cdb.stat_flags & CDB_STATFLAGS_GET_STATE_MASK) != 
+			CDB_STATFLAGS_GET_STATE_STOPPED)
+			return 0;
 	
+	}
+
 	result = start(&cdb);
 	if (!result) {
 		printf("Device would not start: %x\n", cdb.stat_code);
@@ -1028,13 +1050,22 @@ PROBE - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 static int nic_probe(struct dev *dev, unsigned short *dummy __unused)
 {
+	EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *nii;
 	int index;
+	int result;
 
-	index = dev->index + 1;
-	if (dev->how_probe == PROBE_NEXT) {
-		index++;
+	index = dev->index+ 1;
+	if (dev->how_probe == PROBE_AWAKE) {
+		index--;
 	}
-	return nic_setup(dev, lookup_efi_nic(index));
+	for(result = 0; !result && (nii = lookup_efi_nic(index)); index++) {
+		result = nic_setup(dev, nii);
+		if (result) {
+			break;
+		}
+	}
+	dev->index = result ? index : -1;
+	return result;
 }
 
 

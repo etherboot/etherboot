@@ -849,10 +849,10 @@ static int ide_isa_probe(struct dev * dev, unsigned short *probe_addrs)
 	struct harddisk_info *info;
 
 	index = dev->index +1;
-	if (dev->how_probe == PROBE_NEXT) {
-		index++;
+	if (dev->how_probe == PROBE_AWAKE) {
+		index--;
 	}
-	for(; (addr = probe_addrs[index >> 1]); index += 2) {
+	for(; (index >= 0) && (addr = probe_addrs[index >> 1]); index += 2) {
 		if ((index & 1) == 0) {
 			controller.cmd_base = addr;
 			controller.ctrl_base = addr + IDE_REG_EXTENDED_OFFSET;
@@ -876,7 +876,7 @@ static int ide_isa_probe(struct dev * dev, unsigned short *probe_addrs)
 		return 1;
 	}
 	/* past all of the drives */
-	dev->index = 0;
+	dev->index = -1;
 	return 0;
 }
 

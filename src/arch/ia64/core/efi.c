@@ -5,7 +5,7 @@
 #include "pal.h"
 
 #warning "Place a declaration of lookup_efi_nic somewhere useful"
-EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(unsigned index);
+EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(int index);
 
 #warning "Place the declaraction of __call someplace more appropriate\n"
 extern EFI_STATUS __call(void *,...);
@@ -721,7 +721,7 @@ void get_memsizes(void)
 }
 
 
-EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(unsigned index)
+EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(int index)
 {
 	static EFI_GUID protocol = EFI_NETWORK_INTERFACE_IDENTIFIER_PROTOCOL;
 	EFI_HANDLE handles[MAX_EFI_DEVICES];
@@ -731,6 +731,9 @@ EFI_NETWORK_INTERFACE_IDENTIFIER_INTERFACE *lookup_efi_nic(unsigned index)
 
 	if (!boot_services)
 		return 0;
+	if (index < 0) {
+		return 0;
+	}
 	devices = sizeof(handles);
 	status = efi_locate_handle(
 		ByProtocol, &protocol, 0, &devices, handles);

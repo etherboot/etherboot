@@ -212,6 +212,7 @@ static int main_loop(int state)
 	static int i;
 
 	if (!initialized) {
+		initialized = 1;
 		console_init();
 		if (dev && (state >= 1) && (state <= 2)) {
 			dev->how_probe = PROBE_AWAKE;

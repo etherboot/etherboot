@@ -1110,10 +1110,10 @@ static int floppy_probe(struct dev *dev, unsigned short *probe_addrs)
 	if (!probe_addrs || !*probe_addrs)
 		return 0;
 	index = dev->index +1;
-	if (dev->how_probe == PROBE_NEXT) {
-		index++;
+	if (dev->how_probe == PROBE_AWAKE) {
+		index--;
 	}
-	for(; (addr = probe_addrs[index]); index++) {
+	for(; (index >= 0) && (addr = probe_addrs[index]); index++) {
 		/* FIXME handle multiple drives per controller */
 		/* FIXME test to see if I have a drive or a disk in
 		 * the driver during the probe routine.
@@ -1133,6 +1133,7 @@ static int floppy_probe(struct dev *dev, unsigned short *probe_addrs)
 		disk->read             = floppy_read;
 		return 1;
 	}
+	dev->index = -1;
 	return 0;
 }
 
