@@ -49,11 +49,11 @@
  * SEGDESC_t and SEGSEL_t.  These should be #defines to underlying
  * types.
  */
-#ifndef PXE_ARCH_H
-#include <pxe_arch.h>
+#ifndef PXE_TYPES_H
+#include <pxe_types.h>
 #endif
 
-/* Defaults in case pxe_arch.h did not define a type.  These are
+/* Defaults in case pxe_types.h did not define a type.  These are
  * placeholder structures just to make the code compile.
  */
 #ifndef SEGOFF16_t

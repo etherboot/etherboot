@@ -1,11 +1,12 @@
 /*
  * Architecture-specific portion of pxe.h for Etherboot
  *
- * See pxe.h for details.
+ * This file has to define the types SEGOFF16_t, SEGDESC_t and
+ * SEGSEL_t for use in other PXE structures.  See pxe.h for details.
  */
 
-#ifndef PXE_ARCH_H
-#define PXE_ARCH_H
+#ifndef PXE_TYPES_H
+#define PXE_TYPES_H
 
 /* SEGOFF16_t defined in separate header
  */
@@ -25,4 +26,4 @@ typedef struct {
 typedef	uint16_t I386_SEGSEL_t;
 #define SEGSEL_t I386_SEGSEL_t
 
-#endif /* PXE_ARCH_H */
+#endif /* PXE_TYPES_H */
