@@ -2808,3 +2808,5 @@ images compressed.
 up the build procedure in the process. The hardwired virtual RELOCADDR
 is no more, the virtual base is 0. He also added code to display which
 protocols are compiled into the image.
+
+Released as Etherboot 5.3.13 aka 5.4RC4 (development)
