@@ -180,10 +180,10 @@ notpnp:
 	movw	%ax, BOOT_INT_VEC+2
 	movw	$MAGIC, %ax		/* set magic word */
 	movw	%ax, SCRATCHVEC+4
-installed:
 #ifdef	DEBUG_ROMPREFIX
 	call	print_installed
 #endif
+installed:
 	popw	%ds
 	popw	%ax
 	movw	$0x20,%ax
@@ -337,7 +337,7 @@ print_bcv:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"Etherboot PNP BCV called\n"
+1:	.asciz	"ROM detected\n"
 
 print_bev:
 	pushw	%si
@@ -345,7 +345,7 @@ print_bev:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"Etherboot PNP BEV called\n"
+1:	.asciz	"booting\n"
 
 print_notpnp:
 	pushw	%si
@@ -353,7 +353,7 @@ print_notpnp:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"Non-PNP BIOS detected\n"
+1:	.asciz	": Non-PnP BIOS detected!\n"
 
 print_legacyentry:
 	pushw	%si
@@ -361,7 +361,7 @@ print_legacyentry:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"Etherboot legacy entry point called\n"
+1:	.asciz	"ROM using legacy boot mechanism\n"
 
 print_installed:
 	pushw	%si
@@ -369,7 +369,7 @@ print_installed:
 	call	print_message
 	popw	%si
 	ret
-1:	.ascii	"Etherboot hooked INT"
+1:	.ascii	"hooked boot via INT"
 #ifdef	BOOT_INT18H
 	.asciz	"18\n"
 #else
@@ -382,13 +382,17 @@ print_start_int:
 	call	print_message
 	popw	%si
 	ret
-1:	.asciz	"Etherboot hooked interrupt called\n"
+1:	.asciz	"booting via hooked interrupt\n"
 
 print_message:
 	pushal
 	pushw	%ds
 	pushw	%cs
 	popw	%ds
+	pushw	%si
+	movw	$3f-_prefix, %si
+	call	1f
+	popw	%si
 1:	lodsb
 	testb   %al, %al
 	je      2f
@@ -397,6 +401,7 @@ print_message:
 2:	popw	%ds
 	popal
 	ret
+3:	.asciz	"Etherboot "
 
 print_character:
 	movw    $0x0007, %bx            /* page 0, attribute 7 (normal) */
