@@ -222,10 +222,13 @@ run_etherboot:
 	pushw	$0
 	lret				/* "lcall payload" */
 return:	
-	mov	%cs,%ax			/* Restore SS (prefix may have been */
-	mov	%ax,%ss			/* relocated, stack is in prefix)   */
+	mov	%cs, %ax		/* Restore SS (prefix may have been */
+	mov	%ax, %ss		/* relocated, stack is in prefix)   */
 	push	%cs			/* Restore DS */
 	pop	%ds
+	call	print_hex_word		/* Print CS for diagnostics */
+	mov	$0x20, %al		/* ' ' */
+	call	print_character
 	pop	%di			/* PXE stack pointer to ES:DI */
 	pop	%es
 	cmpw	$PXE_STACK_MAGIC, %es:0(%di)  /* See if PXE stack intact */
