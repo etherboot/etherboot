@@ -31,14 +31,6 @@
 #define BOOT_INT_VEC	BOOT_INT*4
 #define SCRATCHVEC	0x300
 
-/* Offsets of words containing ROM's CS and size (in 512 byte blocks)
- * from start of floppy boot block at 0x7c00
- * Offsets must match those in etherboot.h
- */
-#define FLOPPY_SEGMENT	0x7c0
-#define ROM_SEGMENT	0x1fa
-#define ROM_LENGTH	0x1fc
-
 	.text
 	.code16
 	.arch i386
@@ -168,24 +160,6 @@ blockmove:
  * ROM) decompresses its payload to RELOC:0.
  */
 
-/* Save ROMs CS and length in floppy boot block */
-	xorw	%cx,%cx
-	movb	%cs:size-_start, %ch
-#if 1
-	/* Read the ROM_INFO for now, we can't do anything
-	 * productive with it, but it doesn't cost much and I
-	 * don't feel like removing it today.
-	 * --Eric Biederman 23 August 2002
-	 */
-	pushw	%ds			/* save DS */
-	movw	$FLOPPY_SEGMENT, %ax
-	movw	%ax,%ds
-	movw	%cs,%ax
-	movw	%ax, ROM_SEGMENT
-	movw	%cx, ROM_LENGTH
-	popw	%ds			/* restore DS */
-#endif
-
 	cld
 
 	/* copy payload to RELOC */
@@ -193,6 +167,8 @@ blockmove:
 	movw	$payload-_start, %si	/* offset of code image */
 	movw	%si,%bx
 	shrw	%bx
+	xorw	%cx,%cx
+	movb	%cs:size-_start, %ch
 	subw	%bx,%cx			/* calculate legth of payload */
 
 	movw	%ax,%es
