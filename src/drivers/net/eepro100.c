@@ -416,6 +416,33 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 #endif
 }
 
+/*
+ * Sometimes the receiver stops making progress.  This routine knows how to
+ * get it going again, without losing packets or being otherwise nasty like
+ * a chip reset would be.  Previously the driver had a whole sequence
+ * of if RxSuspended, if it's no buffers do one thing, if it's no resources,
+ * do another, etc.  But those things don't really matter.  Separate logic
+ * in the ISR provides for allocating buffers--the other half of operation
+ * is just making sure the receiver is active.  speedo_rx_soft_reset does that.
+ * This problem with the old, more involved algorithm is shown up under
+ * ping floods on the order of 60K packets/second on a 100Mbps fdx network.
+ */
+static void
+speedo_rx_soft_reset(void)
+{
+  wait_for_cmd_done(ioaddr + SCBCmd);
+	/*
+	* Put the hardware into a known state.
+	*/
+	outb(RX_ABORT, ioaddr + SCBCmd);
+
+	ACCESS(rxfd)rx_buf_addr = 0xffffffff;
+
+  wait_for_cmd_done(ioaddr + SCBCmd);
+
+	outb(RX_START, ioaddr + SCBCmd);
+}
+
 /* function: eepro100_poll / eth_poll
  * This recieves a packet from the network.
  *
@@ -430,8 +457,31 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 
 static int eepro100_poll(struct nic *nic)
 {
+  unsigned int status;
+  status = inw(ioaddr + SCBStatus);
+
 	if (!ACCESS(rxfd)status)
 		return 0;
+
+  /*
+   * The chip may have suspended reception for various reasons.
+   * Check for that, and re-prime it should this be the case.
+   */
+  switch ((status >> 2) & 0xf) {
+  case 0: /* Idle */
+    break;
+  case 1:	/* Suspended */
+  case 2:	/* No resources (RxFDs) */
+  case 9:	/* Suspended with no more RBDs */
+  case 10: /* No resources due to no RBDs */
+  case 12: /* Ready with no RBDs */
+    speedo_rx_soft_reset();
+    break;
+  case 3:  case 5:  case 6:  case 7:  case 8:
+  case 11:  case 13:  case 14:  case 15:
+    /* these are all reserved values */
+    break;
+  }
 
 	/* Ok. We got a packet. Now restart the reciever.... */
 	ACCESS(rxfd)status = 0;
