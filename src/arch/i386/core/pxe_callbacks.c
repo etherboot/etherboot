@@ -194,6 +194,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 void use_undi_ds_for_rm_stack ( uint16_t ds ) {
 	forget_real_mode_stack();
 	real_mode_stack = virt_to_phys ( VIRTUAL ( ds, 0 ) );
+	lock_real_mode_stack = 1;
 }
 
 /* Activate PXE stack (i.e. hook interrupt vectors).  The PXE stack
