@@ -439,7 +439,10 @@ foreach my $family (sort keys %pcient) {
 	\$(LDPREFIX) -o \$@ \$(PCIPREFIX) bin/$img--\$*.sym -b binary \$<
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom.zrom:	\$(BIN)/$img.zrom.prf.bin \$(BIN)/$img.rt1.bin
+ROMTYPE_$rom = PCI
+MAKEROM_ID_$rom = -p $ids
+
+\$(BIN)/$rom.XXXzrom:	\$(BIN)/$img.zrom.prf.bin \$(BIN)/$img.rt1.bin
 	cat \$^ > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 

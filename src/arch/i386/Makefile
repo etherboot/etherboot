@@ -44,7 +44,18 @@ SRCS+=	arch/i386/core/pxe_callbacks.c
 
 # ROM loaders: ISA and PCI versions
 ISAPREFIX=	$(BIN)/isaprefix.o
+ISAENTRY=	$(BIN)/isaprefix.entry.o
+ISAEXIT=	$(BIN)/isaprefix.exit.o
 PCIPREFIX=	$(BIN)/pciprefix.o
+PCIENTRY=	$(BIN)/pciprefix.entry.o
+PCIEXIT=	$(BIN)/pciprefix.exit.o
+# Variables xxx_ROMTYPE are defined by genrules.pl.  ROMENTRY and
+# ROMEXIT will evaluate to give the correct objects to use.
+ROMTYPE=PCI
+ROMENTRY=$(firstword $($(ROMTYPE_$*)ENTRY) $(ISAENTRY))
+ROMEXIT=$(firstword $($(ROMTYPE_$*)EXIT) $(ISAEXIT))
+
+
 
 FLOPPYPREFIX=	$(BIN)/floppyprefix.bin
 COMPREFIX=	$(BIN)/comprefix.bin
@@ -108,8 +119,12 @@ $(BIN)/isaprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 $(BIN)/pciprefix.o:	arch/i386/prefix/romprefix.S $(MAKEDEPS)
 	$(CPP) -DPCI_PNP_HEADER $(CFLAGS) $(LCONFIG) $< | $(AS) $(ASFLAGS) -o $@ 
 
-# Linker command for prepending ROM loaders
-LDPREFIX = $(LD) --accept-unknown-input-arch -T arch/i386/core/prefix.lds --oformat binary
+# Prefix splitters
+$(BIN)/%prefix.entry.o: $(BIN)/%prefix.o $(MAKEDEPS)
+	$(OBJCOPY) -R .text16 $< $@
+
+$(BIN)/%prefix.exit.o: $(BIN)/%prefix.o $(MAKEDEPS)
+	$(OBJCOPY) -R .prefix $< $@
 
 # Prefix objects
 PREFIXOBJS = $(BIN)/init.o
@@ -207,9 +222,14 @@ $(BIN)/%.bin:	$(BIN)/%.o
 
 
 
-$(BIN)/%.zrom.prtmp: $(PCIPREFIX) $(ZPREFIXOBJS) $(BIN)/%.rt2.zo $(BIN)/%.rt.o $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T arch/i386/core/etherboot.lds -o $@ \
-		$(PCIPREFIX) $(ZPREFIXOBJS) $(BIN)/$*.rt2.zo $(BIN)/$*.rt.o
+
+$(BIN)/%.rom.rt: $(BIN)/%.rt.o $(ISAEXIT) $(PCIEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -Ttext $(RELOCADDR) -o $@ \
+		$< $(ROMEXIT)
+
+$(BIN)/%.zrom.prtmp: $(ISAENTRY) $(PCIENTRY) $(ZPREFIXOBJS) $(BIN)/%.rom.rt2.zo $(BIN)/%.rt.o $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
+		$(ROMENTRY) $(ZPREFIXOBJS) $(BIN)/$*.rom.rt2.zo $(BIN)/$*.rt.o $(ROMEXIT)
 
 $(BIN)/%.prf: $(BIN)/%.prtmp $(MAKEDEPS)
 	$(OBJCOPY) -j .prefix $< $@
@@ -244,11 +264,11 @@ $(BIN)/%.zsym: $(BIN)/%.sym $(BIN)/%.ztmp.sym $(MAKEDEPS)
 SUFFIXES +=	rom zrom
 $(BIN)/%.rom: $(BIN)/%.bin $(ISAPREFIX)
 	$(LDPREFIX) -o $@ $(ISAPREFIX) bin/$*.sym -b binary $< 
-	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT) $@
+	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) $(MAKEROM_ID_$*) -i$(IDENT) $@
 
-$(BIN)/%.zrom: $(BIN)/%.zbin $(ISAPREFIX)
-	$(LDPREFIX) -o $@ $(ISAPREFIX) bin/$*.sym -b binary $< 
-	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT) $@
+$(BIN)/%.zrom: $(BIN)/%.zrom.prf.bin $(BIN)/%.rom.rt1.bin
+	cat $^ > $@
+	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) $(MAKEROM_ID_$*) -i$(IDENT) $@
 
 # general rules for ELF images
 SUFFIXES +=	elf zelf

@@ -274,10 +274,6 @@ $(BIN)/etherboot-pci.o: $(PCIOBJS)
 # general rules for generating runtime (rt) files
 $(BIN)/%.rt.o:  $(BIN)/%.o $(START) $(BIN)/config.o $(LIBS) $(STDDEPS) $(MAKEDEPS)
 	$(LD) -r $(START) $(BIN)/config.o $< $(LIBS) -o $@
-
-$(BIN)/%.rt: $(BIN)/%.rt.o arch/$(ARCH)/core/etherboot.lds $(MAKEDEPS)
-	$(LD) $(LDFLAGS) --section-start .prefix=$(RELOCADDR) -Ttext $(RELOCADDR) -T arch/$(ARCH)/core/etherboot.lds \
-		-o $@ $<
 	@$(SIZE) $@ | $(CHECKSIZE)
 
 $(BIN)/%.rt.bin: $(BIN)/%.rt $(MAKEDEPS)
@@ -287,7 +283,7 @@ $(BIN)/%.rt1.bin: $(BIN)/%.rt $(MAKEDEPS)
 	$(OBJCOPY) -O binary -j .text.nocompress $< $@
 
 $(BIN)/%.rt2.bin: $(BIN)/%.rt $(MAKEDEPS)
-	$(OBJCOPY) -O binary -R .text.nocompress $< $@
+	$(OBJCOPY) -O binary -R .prefix -R .text.nocompress $< $@
 
 # Rules for generating symbol files
 
