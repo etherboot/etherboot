@@ -6,204 +6,302 @@
 #define ROM_SEGMENT	0x1fa
 #define ROM_LENGTH	0x1fc
 
+#define PXENV_STOP_BASE		0x76
+#define PXENV_UNLOAD_STACK	0x70
 #define PXENV_UNDI_SHUTDOWN	0x05
 #define	PXENV_STOP_UNDI		0x15
-#define PXENV_UNLOAD_STACK	0x70
+
 	.text
 	.code16
 	.org 0
 	.globl _start
+/*****************************************************************************
+ * Entry point:	set cs, ds, bp, print welcome message
+ *****************************************************************************
+ */	
 _start:
-	jmp	$FLOPPY_SEGMENT, $n-_start
-n:
+	jmp	$FLOPPY_SEGMENT, $code_start-_start
+10:	.ascii	"PXE->EB "
+20:
+code_start:
 	movw	%sp, %bp
-
 	push	%cs
 	pop	%ds
-	
+	movw	$10b-_start, %si
+	movw	$20b-10b, %cx
+	call	print_message
+
 #ifndef PXELOADER_KEEP_ALL
-		
-	movw	$hellomsgend-hellomsg, %cx
-	movw	$hellomsg-_start, %si
-	movw	$0x0007, %bx			/* page 0, attribute 7 (normal) */
-	movb	$0x0e, %ah			/* write char, tty mode */
-prloop_hellomsg: 
-	lodsb
-	int	$0x10
-	loop	prloop_hellomsg
-	
-	jmp	pxefind
-hellomsg:
-	.ascii	"PXE loader for etherboot"
-	.ascii	"\r\n"
-hellomsgend: 
-pxe_undi_shutdown_pkt:
-	.word	0
-pxe_stop_undi_pkt:
-	.word   0
-pxe_unload_stack_pkt:
-	.word	0
-	.word	0,0,0,0,0
-PXEEntry:
-	.word	0,0
-pxefind:
+
+/*****************************************************************************
+ * Detect type of PXE available (!PXE, PXENV+ or none)
+ *****************************************************************************
+ */
+detect_pxe:
 	les	4(%bp), %di		/* !PXE structure */
 	cmpl	$0x45585021, %es:(%di)	/* '!PXE' signature */
-	je	have_pxe
-	movl	$0x202b564e, pxemsg2-_start /* 'NV+ ' */
+	je	detected_pxe
 	mov	$0x5650, %ax
 	int	$0x1a
-	jc	no_pxe
+	jc	detected_none
 	cmp	$0x564e, %ax
-	jne	no_pxe
-
+	jne	detected_none
 	cmpl	$0x4e455850, %es:(%bx)	/* 'PXEN' signature */
-	jne	no_pxe
+	jne	detected_none
 	cmpw	$0x2b56, %es:4(%bx)	/* 'V+' signature */
-	jne	no_pxe
-	mov	%bx, %cs:PXEEntry  -_start /* save them in case we use PXENV+ */
-	mov	%es, %cs:PXEEntry+2-_start
+	jne	detected_none
 	cmpw	$0x201, %es:6(%bx)	/* API version 2.1 or higher */
-	jae	get_pxe			/* otherwise use PXENV+ */
-use_pxenv:
-	push	%bx
-	push	%es
-	les	%es:0x0a(%bx), %di
-	mov	%di, %cs:PXEEntry  -_start
-	mov	%es, %cs:PXEEntry+2-_start
-	push	%ds
-	pop	%es
-	mov	$pxe_undi_shutdown_pkt - _start, %di
-	mov	$PXENV_UNDI_SHUTDOWN, %bx
-	lcall	*%cs:(PXEEntry-_start)
-	mov	$pxe_unload_stack_pkt - _start, %di
-	mov	$PXENV_UNLOAD_STACK, %bx
-	lcall	*%cs:(PXEEntry-_start)
-	pop	%es                      /* now adjust avail mem */
-	pop	%di
-#ifndef PXELOADER_KEEP_UNDI
-	mov	%es:0x26(%di), %bx	/* UNDICodeSize */
-#endif	
-	mov	%es:0x24(%di), %ax      /* UNDICodeSeg */
-	cmp	%es:0x20(%di), %ax      /* UNDIDataSeg */
-#ifndef PXELOADER_KEEP_UNDI
-	jnc	pxe_setmem
-#else
-	jc	pxe_setmem
-#endif
-	mov	%es:0x20(%di), %ax	/* UNDIDataSeg */
-#ifndef PXELOADER_KEEP_UNDI
-	mov	%es:0x22(%di), %bx	/* UNDIDataSize */
-#endif
-	jmp	pxe_setmem
-get_pxe:
+	jb	detected_pxenv		/* otherwise use PXENV+ */
 	les	%es:0x28(%bx), %di
 	cmpl	$0x45585021, %es:(%di)	/* '!PXE' signature */
-	jne	no_pxe
-	jmp	have_pxe
-/*	mov	%cs:PXEEntry+2-_start, %bx restore PXENV+ */
-/*	mov	%bx, %es
-	mov	%cs:PXEEntry  -_start, %bx
-	jmp	use_pxenv */
-have_pxe:
+	je	detected_pxe
+detected_none:	
+	movw	$10f-_start, %si
+	movw	$20f-10f, %cx
+	call	print_message
+	jmp	finished
+10:	.ascii	"No PXE"
+20:
+
+10:	.ascii	"!PXE "
+20:
+detected_pxe:	/* es:di points to !PXE structure */
+	push	%es
+	push	%di
+	push	%es:0x30(%di)		/* UNDI code segment */
+	push	%es:0x36(%di)		/* UNDI code size */
+	push	%es:0x28(%di)		/* UNDI data segment */
+	push	%es:0x2e(%di)		/* UNDI data size */
+	les	%es:0x10(%di), %di	/* Entry point to %es:%di */
+	movw	$10b-_start, %si
+	movw	$20b-10b, %cx
+	jmp	pxe_setup_done
+
+10:	.ascii	"PXENV+ "
+20:
+detected_pxenv: /* es:bx points to PXENV+ structure */
+	push	%es
+	push	%bx
+	push	%es:0x24(%bx)		/* UNDI code segment */
+	push	%es:0x26(%bx)		/* UNDI code size */
+	push	%es:0x20(%bx)		/* UNDI data segment */
+	push	%es:0x22(%bx)		/* UNDI data size */
+	les	%es:0x0a(%bx), %di	/* Entry point to %es:%di */
+	movw	$10b-_start, %si
+	movw	$20b-10b, %cx
+
+pxe_setup_done:
+	mov	%es, pxe_entry_segment - _start
+	mov	%di, pxe_entry_offset - _start
+	pop	%ax
+	mov	%ax, undi_data_size - _start
+	pop	%ax
+	mov	%ax, undi_data_segment - _start
+	pop	%ax
+	mov	%ax, undi_code_size - _start
+	pop	%ax
+	mov	%ax, undi_code_segment - _start
+	call	print_message
+	pop	%di
+	pop	%es	/* Exit with %es:%di containing structure address */
+
+/*****************************************************************************
+ * Print information about located structure
+ *****************************************************************************
+ */
+print_structure_information:
+	call	print_segoff	/* %es:%di contains address of structure */
+	les	%ds:(pxe_entry_segoff - _start), %di
+	call	print_segoff
+	les	%ds:(undi_code_segoff - _start), %di
+	call	print_segoff
+	les	%ds:(undi_data_segoff - _start), %di
+	call	print_segoff
+	
+/*****************************************************************************
+ * Unload PXE base code and UNDI driver
+ *****************************************************************************
+ */
+unload_pxe:
+	mov	$PXENV_STOP_BASE, %bx
+	call	pxe_call
+	mov	$PXENV_UNLOAD_STACK, %bx
+	call	pxe_call
+	mov	$PXENV_UNDI_SHUTDOWN, %bx
+	call	pxe_call
+	mov	$PXENV_STOP_UNDI, %bx
+	call	pxe_call
+	/* On exit, zero flag is set iff all calls were successful */
+		
+/*****************************************************************************
+ * Free base memory
+ *****************************************************************************
+ */
+free_base_mem:
+	mov	$0x40, %cx		/* Set up %fs for access to 40:13 */
+	mov	%cx, %fs
+
+	jnz	do_not_free_base_mem	/* Using zero flag from unload_pxe */
+
+	mov	undi_code_segment - _start, %bx
+	mov	undi_data_segment - _start, %cx
+	mov	undi_code_size - _start, %ax
+	cmp	%bx, %cx
+	jb	1f
+	mov	%cx, %bx
+	mov	undi_data_size - _start, %ax
+1:	add	$0x0f, %ax		/* Round up to next segment */
+	shr	$4, %ax
+	add	%bx, %ax		/* Highest segment address into %ax */
+	add	$(1024 / 16 - 1), %ax	/* Round up to next kb */
+	shr	$6, %ax			/* New free basemem size in %ax */
+	mov	%fs:(0x13), %bx		/* Old free base memory in %bx */
+	mov	%ax, %fs:(0x13)		/* Store new free base memory size */
+
+	/* Note that zero_mem_loop will also zero out our stack, so make
+	 * sure the stack is empty at this point.
+	 */
+	mov	%ax, %dx
+	sub	%bx, %dx		/* numberof kb to zero in %dx */
+	shl	$6, %bx			/* Segment address into %bx */
+zero_mem_loop:
+	mov	%bx, %es		/* kB boundary into %es:00 */
+	xor	%ax, %ax
+	xor	%di, %di
+	mov	$0x400, %cx
+	rep	stosb			/* fill kB with zeroes */
+	add	$(1024 / 16), %bx
+	dec	%dx
+	jnz	zero_mem_loop
+
+do_not_free_base_mem:
+	mov	%fs:(0x13), %ax		/* Free base memory in %ax */
+	call	print_hex_word		/* Print free base memory */
+
+#endif /* PXELOADER_KEEP_ALL */
+
+/*****************************************************************************
+ * Exit point
+ *****************************************************************************
+ */	
+finished:
+	mov	$0x0d, %al		/* '\r' */
+	call	print_character
+	mov	$0x0a, %al		/* '\n' */
+	call	print_character
+	ljmp	$FLOPPY_SEGMENT + (512/16), $0
+
+/*****************************************************************************
+ * Subroutine: print character in %al (with LF -> LF,CR translation)
+ *****************************************************************************
+ */
+print_character:
+	movw	$0x0007, %bx		/* page 0, attribute 7 (normal) */
+	movb	$0x0e, %ah		/* write char, tty mode */
+	int	$0x10
+	ret
+	
+/*****************************************************************************
+ * Subroutine: print hex word in %ax
+ *****************************************************************************
+ */
+print_hex_word:
+	mov	$4, %cx
+1:
+	push	%ax
+	shr	$12, %ax
+	/* Courtesy of Norbert Juffa <norbert.juffa@amd.com> */
+	cmp	$10, %al	
+	sbb	$0x69, %al
+	das
+	call	print_character
+	pop	%ax
+	shl	$4, %ax
+	loop	1b
+	ret
+	
+/*****************************************************************************
+ * Subroutine: print segment:offset address in %es:%di
+ *****************************************************************************
+ */
+print_segoff:
 	push	%di
 	push	%es
-	les	%es:0x10(%di), %di
-	mov	%di, %cs:PXEEntry  -_start
-	mov	%es, %cs:PXEEntry+2-_start
-
-	pushw	%cs
-	pushw	$pxe_undi_shutdown_pkt - _start
-	pushw	$PXENV_UNDI_SHUTDOWN
-	lcall	*%cs:(PXEEntry-_start)
-	add	$6, %sp
-	pushw	%cs
-	pushw	$pxe_stop_undi_pkt
-	pushw	$PXENV_STOP_UNDI
-	lcall	*%cs:(PXEEntry-_start)
-	add	$6,%sp
-	pushw   %cs
-	pushw	$pxe_unload_stack_pkt - _start
-	pushw	$PXENV_UNLOAD_STACK
-	lcall	*%cs:(PXEEntry-_start)
-	add	$6, %sp
-
-	pop	%es
-	pop	%di
-#ifndef PXELOADER_KEEP_UNDI
-	mov	%es:0x36(%di), %bx	 /* UNDICode.Seg_Size */
-#endif
-	mov	%es:0x30(%di), %ax	 /* UNDICode.Seg_Addr */
-	cmp	%es:0x28(%di), %ax	 /* UNDIData.Seg_Addr */
-#ifndef PXELOADER_KEEP_UNDI
-	jnc	pxe_setmem
-#else
-	jc	pxe_setmem
-#endif
-	mov	%es:0x28(%di), %ax	 /* UNDIData.Seg_Addr */
-#ifndef PXELOADER_KEEP_UNDI
-	mov	%es:0x2e(%di), %bx	 /* UNDIData.Seg_Size */
-#endif
+	pop	%ax
+	call	print_hex_word
+	movb	$0x3a,%al			/* ':' */
+	call	print_character
+	pop	%ax
+	call	print_hex_word
+	mov	$0x20, %al			/* ' ' */
+	call	print_character
+	ret
 	
-pxe_setmem:
-#ifndef PXELOADER_KEEP_UNDI
-	mov	$4, %cl
-	shr	%cl, %bx
-	add	%bx, %ax
-#endif
-	mov	$6, %cl
-	shr	%cl, %ax                /* adjust to KB */
-	mov	$0x40, %cx
-	mov	%cx, %es
-	mov	%ax, %es:(0x13)		/* size in memory into (0x413) */
+/*****************************************************************************
+ * Subroutine: print a message starting at %si for length %cx
+ *****************************************************************************
+ */	
+print_message:
+10: 	lodsb
+	call	print_character
+	loop	10b
+	ret
 
+/*****************************************************************************
+ * Make a PXE API call.  Works with either !PXE or PXENV+ API.
+ * Opcode in %bx.  pxe_parameter_structure always used.
+ * Returns status code (not exit code) in %bx and prints it.
+ * ORs status code with overall status code in pxe_overall_status, returns
+ * with zero flag set iff all PXE API calls have been successful.
+ *****************************************************************************
+ */
+pxe_call:
+	/* Set up registers for PXENV+ API.  %bx already set up */
 	push	%ds
 	pop	%es
+	mov	$pxe_parameter_structure - _start, %di
+	/* Set up stack for !PXE API */
+	pushw   %cs
+	pushw	%di
+	pushw	%bx
+	/* Make the API call */
+	lcall	*(pxe_entry_segoff - _start)
+	/* Reset the stack */
+	add	$6, %sp
+	mov	pxe_parameter_structure - _start, %ax
+	push	%ax
+	call	print_hex_word
+	mov	$0x20, %ax		/* ' ' */
+	call	print_character
+	pop	%bx
+	or	%bx, pxe_overall_status - _start
+	ret
 
-	/* print amount of available low memory (<1MB)*/
-	/* \begin{hacked assembly} */
-	mov	%ax, %bx
-	shr	$8, %ax
-	add	$0x30, %al
-	mov	%al, pxeKmsg-_start+2
-	mov	%bl, %al
-	shr	$4, %al
-	cmp	$10, %al	/* These three lines written by Norbert Juffa <norbert.juffa@amd.com> */
-	sbb	$0x69, %al
-	das
-	mov	%al, pxeKmsg-_start+3
-	mov	%bl, %al
-	and	$0x0f, %al
-	cmp	$10, %al
-	sbb	$0x69, %al
-	das
-	mov	%al, pxeKmsg-_start+4
-	movw	$0x0a0d, pxemsg-_start   /* "\r\n" */
-	/* \end{hacked assembly} */
+/*****************************************************************************
+ * PXE data structures
+ *****************************************************************************
+ */
 
-	movw	$pxeKmsg-_start, %si
-	movw	$pxemsgend-pxeKmsg, %cx
-	jmp	pxe_print
-#endif /* PXELOADER_KEEP_ALL */
-no_pxe:
-	movw	$pxemsg-_start, %si
-	movw	$pxemsgend-pxemsg, %cx
-pxe_print:
-	movw	$0x0007, %bx			/* page 0, attribute 7 (normal) */
-	movb	$0x0e, %ah			/* write char, tty mode */
-prloop_pxemsg: 
-	lodsb
-	int	$0x10
-	loop	prloop_pxemsg
+pxe_overall_status:	.word 0
 
-	ljmp	$FLOPPY_SEGMENT + (512/16), $0
-pxeKmsg:
-	.ascii	"0x123K low memory"
-pxemsg:
-	.ascii	"No PXE"
-pxemsg2:
-	.ascii	"    unloaded\r\n"
-pxemsgend:
+pxe_entry_segoff:
+pxe_entry_offset:	.word 0
+pxe_entry_segment:	.word 0
+
+undi_code_segoff:
+undi_code_size:		.word 0
+undi_code_segment:	.word 0
+
+undi_data_segoff:
+undi_data_size:		.word 0
+undi_data_segment:	.word 0
+
+pxe_parameter_structure:
+	.word	0
+	.word	0,0,0,0,0
+
+end_of_pxeloader:
+
 	.org	ROM_SEGMENT
 	.word	0
 	.word	0
