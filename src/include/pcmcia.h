@@ -13,6 +13,7 @@ typedef u_short		ioaddr_t;
 extern int sockets;
 
 #define	MAXPCCSOCKS	8
+#define	MAXPCCCONFIGS	8
 
 typedef	enum ebpdriver_t	{ I82365, SOMEDRIVER						} ebpdriver_t;
 typedef enum interface_func_t	{ INIT, SHUTDOWN, MAPATTRMEM, UNMAPATTRMEM, SELECTCONFIG	} interface_func_t;
@@ -35,15 +36,23 @@ struct	pccsock_t {
 	int		configoffset;
 	int		possibleconfignum;
 	int		stringoffset;
-	int		stringlength;
+	u_int		stringlength;
+	int		rmask0;
 };
 
 extern struct	pccsock_t	pccsock[MAXPCCSOCKS];
 extern u_int	pccsocks;
 
+struct	pcc_config_t {
+	u_char	index;
+	u_char	irq;
+	int	iowin;
+	int	iolen;
+};
 
-int	i82365_interfacer(interface_func_t,int,int,int,int);
 
+int	i82365_interfacer(interface_func_t,int,int,int,void *);
+void	sleepticks(int);
 
 #define	EINVAL	22
 

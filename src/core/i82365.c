@@ -28,6 +28,7 @@
  *	please contact me by e-mail: anselm (AT) hoffmeister (DOT) be   *THANKS*
  */
 #include "../include/pcmcia.h"
+#include "../include/pcmcia-opts.h"
 #include "../include/i82365.h"
 
 #ifndef CONFIG_ISA
@@ -96,22 +97,23 @@ typedef struct socket_info_t {
     } state;
 } socket_info_t;
 
-static socket_info_t socket[8];
+//static socket_info_t socket[8];
 
 int	i365_base = 0x3e0; // Default in Linux kernel
 int	cycle_time = 120; // External clock time in ns, 120ns =~ 8.33 MHz
 int	mydriverid = 0;
 
 void	phex ( unsigned char c );
-static int to_cycles(int ns)
+/*static int to_cycles(int ns)
 {
     return ns/cycle_time;
 }
-
-static int to_ns(int cycles)
+*/
+/*static int to_ns(int cycles)
 {
     return cycle_time*cycles;
 }
+*/
 
 static u_char i365_get(u_short sock, u_short reg)
 {
@@ -145,10 +147,14 @@ void	add_socket_i365(u_short port, int psock, int type) {
 	pccsock[pccsocks].type = type;
 	pccsock[pccsocks].flags = pcic[type].flags;
 	pccsock[pccsocks].drivernum = mydriverid;
+	pccsock[pccsocks].configoffset = -1;
 	// Find out if a card in inside that socket
 	pccsock[pccsocks].status = (( 12 == (i365_get(pccsocks,I365_STATUS)&12) )  ?  HASCARD : EMPTY );
 	// *TODO* check if that's all
-	printf ( "Found a PCMCIA socket (i82365) at io %x, type '%s'\n", port, pcic[type].name );
+	if ( 0 == (psock & 1) ) {
+		printf ( "Found a PCMCIA controller (i82365) at io %x, type '%s'\n", port, pcic[type].name );
+		//	pccsock[pccsocks].status == HASCARD? "holds card":"empty" );
+	}
 	pccsocks++;
 	return;
 }
@@ -166,7 +172,7 @@ void	i365_bclr(u_short sock, u_short reg, u_char mask) {
 }
 
 
-static void i365_bflip(u_short sock, u_short reg, u_char mask, int b)
+/*static void i365_bflip(u_short sock, u_short reg, u_char mask, int b)
 {
     u_char d = i365_get(sock, reg);
     if (b)
@@ -175,7 +181,9 @@ static void i365_bflip(u_short sock, u_short reg, u_char mask, int b)
         d &= ~mask;
     i365_set(sock, reg, d);
 }
+*/
 
+/*
 static u_short i365_get_pair(u_short sock, u_short reg)
 {
     u_short a, b;
@@ -183,13 +191,15 @@ static u_short i365_get_pair(u_short sock, u_short reg)
     b = i365_get(sock, reg+1);
     return (a + (b<<8));
 }
+*/
 
+/*
 static void i365_set_pair(u_short sock, u_short reg, u_short data)
 {
     i365_set(sock, reg, data & 0xff);
     i365_set(sock, reg+1, data >> 8);
 }
-
+*/
 int	identify_i365 ( u_short port, u_short sock ) {
 	u_char val;
 	int type = -1;
@@ -240,8 +250,8 @@ int	identify_i365 ( u_short port, u_short sock ) {
 
 int	init_i82365(void) {
 	int	i, j, sock, k, ns, id;
-	unsigned int ui,uj;
-	unsigned char * upc;
+	//unsigned int ui,uj;
+	//unsigned char * upc;
 	ioaddr_t port;
 	int	i82365s = 0;
 	// Change from kernel: No irq init, no check_region, no isapnp support
@@ -323,7 +333,7 @@ int	deinit_i82365(void) {
 	return 0;
 }
 
-static int i365_get_status(u_short sock, u_int *value)
+/*static int i365_get_status(u_short sock, u_int *value)
 {
     u_int status;
 
@@ -356,9 +366,10 @@ static int i365_get_status(u_short sock, u_int *value)
 
     printf("i82365: GetStatus(%d) = %#4.4x\n", sock, *value);
     return 0;
-} /* i365_get_status */
+} //i365_get_status
+*/
 
-static int i365_set_socket(u_short sock, socket_state_t *state)
+/*static int i365_set_socket(u_short sock, socket_state_t *state)
 {
     socket_info_t *t = &socket[sock];
     u_char reg;
@@ -368,10 +379,10 @@ static int i365_set_socket(u_short sock, socket_state_t *state)
           state->Vcc, state->Vpp, state->io_irq, state->csc_mask);
 printf ("\nERROR:UNIMPLEMENTED\n" );
 return 0;
-    /* First set global controller options */
+    // First set global controller options 
     // set_bridge_state(sock); *TODO* check: need this here?
 
-    /* IO card, RESET flag, IO interrupt */
+    // IO card, RESET flag, IO interrupt 
     reg = t->intr;
     if (state->io_irq != t->cap.pci_irq) reg |= state->io_irq;
     reg |= (state->flags & SS_RESET) ? 0 : I365_PC_RESET;
@@ -444,14 +455,14 @@ return 0;
     if (reg != i365_get(sock, I365_POWER))
         i365_set(sock, I365_POWER, reg);
 
-    /* Chipset-specific functions */
+    // Chipset-specific functions 
     if (t->flags & IS_CIRRUS) {
-        /* Speaker control */
+        // Speaker control 
         i365_bflip(sock, PD67_MISC_CTL_1, PD67_MC1_SPKR_ENA,
                    state->flags & SS_SPKR_ENA);
     }
 
-    /* Card status change interrupt mask */
+    // Card status change interrupt mask 
     reg = t->cs_irq << 4;
     if (state->csc_mask & SS_DETECT) reg |= I365_CSC_DETECT;
     if (state->flags & SS_IOCARD) {
@@ -465,9 +476,10 @@ return 0;
     i365_get(sock, I365_CSC);
 
     return 0;
-} /* i365_set_socket */
+} // i365_set_socket 
+*/
 
-static int i365_get_io_map(u_short sock, struct pccard_io_map *io)
+/*static int i365_get_io_map(u_short sock, struct pccard_io_map *io)
 {
     u_char map, ioctl, addr;
 	printf ( "GETIOMAP unimplemented\n" ); return 0;
@@ -486,11 +498,12 @@ static int i365_get_io_map(u_short sock, struct pccard_io_map *io)
           "%#4.4x-%#4.4x\n", sock, map, io->flags, io->speed,
           io->start, io->stop);
     return 0;
-} /* i365_get_io_map */
+} // i365_get_io_map 
+*/
 
 /*====================================================================*/
 
-static int i365_set_io_map(u_short sock, struct pccard_io_map *io)
+/*static int i365_set_io_map(u_short sock, struct pccard_io_map *io)
 {
     u_char map, ioctl;
 
@@ -500,9 +513,10 @@ static int i365_set_io_map(u_short sock, struct pccard_io_map *io)
 printf ( "UNIMPLEMENTED\n" );
 	return 0;
     map = io->map;
-    if ((map > 1) || (io->start > 0xffff) || (io->stop > 0xffff) ||
+    //if ((map > 1) || (io->start > 0xffff) || (io->stop > 0xffff) ||
+    if ((map > 1) ||
         (io->stop < io->start)) return -EINVAL;
-    /* Turn off the window before changing anything */
+    // Turn off the window before changing anything 
     if (i365_get(sock, I365_ADDRWIN) & I365_ENA_IO(map))
         i365_bclr(sock, I365_ADDRWIN, I365_ENA_IO(map));
     i365_set_pair(sock, I365_IO(map)+I365_W_START, io->start);
@@ -513,12 +527,14 @@ printf ( "UNIMPLEMENTED\n" );
     if (io->flags & MAP_16BIT) ioctl |= I365_IOCTL_16BIT(map);
     if (io->flags & MAP_AUTOSZ) ioctl |= I365_IOCTL_IOCS16(map);
     i365_set(sock, I365_IOCTL, ioctl);
-    /* Turn on the window if necessary */
+    // Turn on the window if necessary 
     if (io->flags & MAP_ACTIVE)
         i365_bset(sock, I365_ADDRWIN, I365_ENA_IO(map));
     return 0;
-} /* i365_set_io_map */
+} // i365_set_io_map 
+*/
 
+/*
 static int i365_set_mem_map(u_short sock, struct pccard_mem_map *mem)
 {
     u_short base, i;
@@ -538,7 +554,7 @@ printf ( "UNIMPLEMENTED\n" );
         ((mem->sys_start > 0xffffff) || (mem->sys_stop > 0xffffff)))
         return -EINVAL;
 
-    /* Turn off the window before changing anything */
+    // Turn off the window before changing anything 
     if (i365_get(sock, I365_ADDRWIN) & I365_ENA_MEM(map))
         i365_bclr(sock, I365_ADDRWIN, I365_ENA_MEM(map));
 
@@ -562,33 +578,36 @@ printf ( "UNIMPLEMENTED\n" );
     if (mem->flags & MAP_ATTRIB) i |= I365_MEM_REG;
     i365_set_pair(sock, base+I365_W_OFF, i);
 
-    /* Turn on the window if necessary */
+    // Turn on the window if necessary 
     if (mem->flags & MAP_ACTIVE)
         i365_bset(sock, I365_ADDRWIN, I365_ENA_MEM(map));
     return 0;
-} /* i365_set_mem_map */
+} // i365_set_mem_map 
+*/
 
 
-int	i82365_interfacer ( interface_func_t func, int sockno, int par1, int par2, int par3 ) {
-	int	i, j, k;
-	u_int	ui;
+int	i82365_interfacer ( interface_func_t func, int sockno, int par1, int par2, void* par3 ) {
+	//int	i, j, k;
+	//u_int	ui;
 	u_char *upc;
+	struct pcc_config_t * pccc;
 	switch ( func ) {
 	  case	INIT:
 		mydriverid = par1;
 		return	init_i82365();
 	  case	SHUTDOWN:
+		i365_set(sockno, I365_ADDRWIN, i365_get(sockno, I365_ADDRWIN) & 0x20 );
+		i365_set(sockno, I365_INTCTL, 0x05 );
+		sleepticks(2);
+		i365_set(sockno,I365_INTCTL, 0x45 ); //no-reset, memory-card
 		break;
 	  case	MAPATTRMEM:
 		i365_set(sockno,I365_POWER, 0xb1 );
 		i365_set(sockno, I365_INTCTL, 0x05 );
 		sleepticks(2);
-		//printf ( "Press <key> to init card memory access for socket %d\n", sockno ); getchar();
 		i365_set(sockno,I365_INTCTL, 0x45 ); //no-reset, memory-card
 		i365_set(sockno, I365_ADDRWIN, i365_get(sockno, I365_ADDRWIN) & 0x20 );
 		//i365_bclr(sockno, I365_ADDRWIN, 1 );
-//		printf ( (i365_get(sockno,I365_STATUS) & 0x40) ? "poweron ": "poweroff " );
-//		printf ( (i365_get(sockno,I365_GENCTL) & 1) ? "3,3V " : "5V " );
 		i365_set(sockno, I365_MEM(0)+0, ( par1 >> 12 )& 0xff ); //start
 		i365_set(sockno, I365_MEM(0)+1, ( par1 >> 20 ) & 0x0f );
 		i365_set(sockno, I365_MEM(0)+2, ((par1 + par2 - 1 ) >> 12 ) & 0xff ); //end
@@ -602,7 +621,24 @@ int	i82365_interfacer ( interface_func_t func, int sockno, int par1, int par2, i
 		i365_set(sockno, I365_ADDRWIN, i365_get(sockno, I365_ADDRWIN) & 0x20 );
 		i365_set(sockno,I365_INTCTL, 0x45 ); //no-reset, memory-card
 		break;
-	  case	SELECTCONFIG:
+	  case	SELECTCONFIG:	// Params: par1: config number; par3 config pointer pointer
+		if ( 0 > pccsock[sockno].configoffset ) return 1;
+		if ( NULL == (pccc = par3 ) ) return 2;
+		// write config number to 
+		upc = ioremap ( MAP_ATTRMEM_TO, MAP_ATTRMEM_LEN );
+		if ( pccsock[sockno].configoffset > MAP_ATTRMEM_LEN ) return 3;
+		if ( ( par1 & 0x7fffffc0 ) ) return 4;
+		if ( pccc->index != par1 ) return 5;
+		upc[pccsock[sockno].configoffset] = ( upc[pccsock[sockno].configoffset] & 0xc0 ) | ( par1 & 0x3f );
+		i365_set(sockno, I365_IOCTL, (i365_get(sockno, I365_IOCTL) & 0xfe) | 0x20 );	// 16bit autosize
+		i365_set(sockno, I365_IO(0)+0, pccc->iowin & 0xff);
+		i365_set(sockno, I365_IO(0)+1, (pccc->iowin >> 8) & 0xff);
+		i365_set(sockno, I365_IO(0)+2, (pccc->iowin+pccc->iolen - 1) & 0xff);
+		i365_set(sockno, I365_IO(0)+3, ((pccc->iowin+pccc->iolen- 1) >> 8) & 0xff);
+		// Disable mem mapping
+		i365_bclr(sockno, I365_ADDRWIN, 1);
+		i365_set(sockno, I365_INTCTL, 0x65);
+		i365_bset(sockno, I365_ADDRWIN,0x40);
 		break;
 	  default:
 		return	-1; // ERROR: Unknown function called

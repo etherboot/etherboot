@@ -12,11 +12,11 @@
 
 	#define PCMCIA_SHUTDOWN		(_yes_)
 	#define	MAP_ATTRMEM_TO		0xd0000
-	#define	MAP_ATTRMEM_LEN		0x01000
+	#define	MAP_ATTRMEM_LEN		0x02000
 
 	#define	PDEBUG			3
 	// The higher the more output you get, 0..3
-
+	// Not fully implemented though, but for the future...
 
 	#undef _yes_
 	#undef _no_
