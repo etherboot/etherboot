@@ -2641,3 +2641,6 @@ Released as Etherboot 5.2.4 (production)
 ISA .o files for etherboot-pci.
 
 + Doug Ambrisko fixed bugs in the FreeBSD loader.
+
++ Anders Nystrom provided a tiny via-rhine patch
+

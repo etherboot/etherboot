@@ -1185,7 +1185,7 @@ rhine_transmit (struct nic *nic,
     while (s < ETH_ZLEN)
 	*((char *) tp->tx_buffs[entry] + ETH_HLEN + (s++)) = 0;
 
-    tp->tx_ring[entry].tx_ctrl.bits.tx_buf_size = ETH_HLEN + s;
+    tp->tx_ring[entry].tx_ctrl.bits.tx_buf_size = s;
 
     tp->tx_ring[entry].tx_status.bits.own_bit = 1;
 
