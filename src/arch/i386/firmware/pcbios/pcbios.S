@@ -579,7 +579,7 @@ __undi_call:
 TRIVIAL_IRQ_HANDLER - simple IRQ handler that just increments a counter
 **************************************************************************/
 	.globl	_trivial_irq_handler
-	.globl	_trivial_irq_triggered
+	.globl	_trivial_irq_trigger_count
 	.globl	_trivial_irq_chain_to
 	.globl	_trivial_irq_chain
 	.code16
@@ -587,10 +587,10 @@ _trivial_irq_handler:
 	pushw	%bx
 	call	1f		/* Position-independent access to */
 1:	popw	%bx		/* irq_triggered.		  */
-	incw	%cs:(_trivial_irq_triggered-1b)(%bx)
+	incw	%cs:(_trivial_irq_trigger_count-1b)(%bx)
 	popw	%bx
 	iret
-_trivial_irq_triggered:	.word	0
+_trivial_irq_trigger_count:	.word	0
 _trivial_irq_chain_to:	.long	0
 _trivial_irq_chain:	.byte	0
 	.code32
