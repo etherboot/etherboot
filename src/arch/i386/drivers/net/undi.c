@@ -67,6 +67,20 @@ void pxe_dump ( void ) {
 		 undi.pxe->BC_Code.Seg_Addr, undi.pxe->BC_Code.Seg_Size );
 }
 
+/* Debug macros
+ */
+
+#ifdef TRACE_UNDI
+#define DBG(...) printf ( __VA_ARGS__ )
+#else
+#define DBG(...)
+#endif
+
+#define UNDI_STATUS(pxs) ( (pxs)->Status == PXENV_EXIT_SUCCESS ? \
+			      "SUCCESS" : \
+			      ( (pxs)->Status == PXENV_EXIT_FAILURE ? \
+				"FAILURE" : "UNKNOWN" ) )
+
 /**************************************************************************
  * Base memory scanning functions
  **************************************************************************/
@@ -382,6 +396,8 @@ int undi_loader ( void ) {
  */
 
 int eb_pxenv_start_undi ( void ) {
+	int success = 0;
+
 	/* AX contains PCI bus:devfn (PCI specification) */
 	undi.pxs->start_undi.ax = ( undi.pci.bus << 8 ) | undi.pci.devfn;
 	/* BX and DX set to 0xffff for non-ISAPnP devices
@@ -395,53 +411,91 @@ int eb_pxenv_start_undi ( void ) {
 	undi.pxs->start_undi.es = 0xf000;
 	undi.pxs->start_undi.di = virt_to_phys ( undi.pnp_bios ) - 0xf0000;
 
-	if ( ! undi_call ( PXENV_START_UNDI ) ) return 0;
-	undi.prestarted = 1;
-	return 1;
+	DBG ( "PXENV_START_UNDI => AX=%hx BX=%hx DX=%hx ES:DI=%hx:%hx\n",
+	      undi.pxs->start_undi.ax,
+	      undi.pxs->start_undi.bx, undi.pxs->start_undi.dx,
+	      undi.pxs->start_undi.es, undi.pxs->start_undi.di );
+	success = undi_call ( PXENV_START_UNDI );
+	DBG ( "PXENV_START_UNDI <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	if ( success ) undi.prestarted = 1;
+	return success;
 }
 
 int eb_pxenv_undi_startup ( void )	{
-	if ( ! undi_call ( PXENV_UNDI_STARTUP ) ) return 0;
-	undi.started = 1;
-	return 1;
+	int success = 0;
+
+	DBG ( "PXENV_UNDI_STARTUP => (void)\n" );
+	success = undi_call ( PXENV_UNDI_STARTUP );
+	DBG ( "PXENV_UNDI_STARTUP <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	if ( success ) undi.started = 1;
+	return success;
 }
 
-int eb_pxenv_undi_cleanup ( void ) { return undi_call ( PXENV_UNDI_CLEANUP ); }
+int eb_pxenv_undi_cleanup ( void ) {
+	int success = 0;
+
+	DBG ( "PXENV_UNDI_CLEANUP => (void)\n" );
+	success = undi_call ( PXENV_UNDI_CLEANUP );
+	DBG ( "PXENV_UNDI_CLEANUP <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	return success;
+}
 
 int eb_pxenv_undi_initialize ( void ) {
+	int success = 0;
+
 	undi.pxs->undi_initialize.ProtocolIni = 0;
 	memset ( &undi.pxs->undi_initialize.reserved, 0,
 		 sizeof ( undi.pxs->undi_initialize.reserved ) );
-	if ( ! undi_call ( PXENV_UNDI_INITIALIZE ) ) return 0;
-	undi.initialized = 1;
-	return 1;
+	DBG ( "PXENV_UNDI_INITIALIZE => ProtocolIni=%x\n" );
+	success = undi_call ( PXENV_UNDI_INITIALIZE );
+	DBG ( "PXENV_UNDI_INITIALIZE <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	if ( success ) undi.initialized = 1;
+	return success;
 }
 
 int eb_pxenv_undi_shutdown ( void ) {
-	if ( ! undi_call ( PXENV_UNDI_SHUTDOWN ) ) return 0;
-	undi.initialized = 0;
-	undi.started = 0;
-	return 1;
+	int success = 0;
+
+	DBG ( "PXENV_UNDI_SHUTDOWN => (void)\n" );
+	success = undi_call ( PXENV_UNDI_SHUTDOWN );
+	DBG ( "PXENV_UNDI_SHUTDOWN <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	if ( success ) {
+		undi.initialized = 0;
+		undi.started = 0;
+	}
+	return success;
 }
 
 int eb_pxenv_undi_open ( void ) {
+	int success = 0;
+
 	undi.pxs->undi_open.OpenFlag = 0;
 	undi.pxs->undi_open.PktFilter = FLTR_DIRECTED | FLTR_BRDCST;
 	
 	/* Multicast support not yet implemented */
 	undi.pxs->undi_open.R_Mcast_Buf.MCastAddrCount = 0;
-	if ( ! undi_call ( PXENV_UNDI_OPEN ) ) return 0;
-	undi.opened = 1;
-	return 1;	
+	DBG ( "PXENV_UNDI_OPEN => OpenFlag=%hx PktFilter=%hx "
+	      "MCastAddrCount=%hx\n",
+	      undi.pxs->undi_open.OpenFlag, undi.pxs->undi_open.PktFilter,
+	      undi.pxs->undi_open.R_Mcast_Buf.MCastAddrCount );
+	success = undi_call ( PXENV_UNDI_OPEN );
+	DBG ( "PXENV_UNDI_OPEN <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	if ( success ) undi.opened = 1;
+	return success;	
 }
 
 int eb_pxenv_undi_close ( void ) {
-	if ( ! undi_call ( PXENV_UNDI_CLOSE ) ) return 0;
-	undi.opened = 0;
-	return 1;
+	int success = 0;
+
+	DBG ( "PXENV_UNDI_CLOSE => (void)\n" );
+	success = undi_call ( PXENV_UNDI_CLOSE );
+	DBG ( "PXENV_UNDI_CLOSE <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	if ( success ) undi.opened = 0;
+	return success;
 }
 
 int eb_pxenv_undi_transmit_packet ( void ) {
+	int success = 0;
 	static const uint8_t broadcast[] = { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF };
 
 	/* XMitFlag selects unicast / broadcast */
@@ -469,7 +523,23 @@ int eb_pxenv_undi_transmit_packet ( void ) {
 	/* Use only the "immediate" part of the TBD */
 	undi.xmit_data->tbd.DataBlkCount = 0;
 	
-	return undi_call ( PXENV_UNDI_TRANSMIT );
+	DBG ( "PXENV_UNDI_TRANSMIT_PACKET => Protocol=%hx XmitFlag=%hx ...\n"
+	      "... DestAddr=%hx:%hx TBD=%hx:%hx ...\n",
+	      undi.pxs->undi_transmit.Protocol,
+	      undi.pxs->undi_transmit.XmitFlag,
+	      undi.pxs->undi_transmit.DestAddr.segment,
+	      undi.pxs->undi_transmit.DestAddr.offset,
+	      undi.pxs->undi_transmit.TBD.segment,
+	      undi.pxs->undi_transmit.TBD.offset );
+	DBG ( "... TBD { ImmedLength=%hx Xmit=%hx:%hx DataBlkCount=%hx }\n",
+	      undi.xmit_data->tbd.ImmedLength,
+	      undi.xmit_data->tbd.Xmit.segment,
+	      undi.xmit_data->tbd.Xmit.offset,
+	      undi.xmit_data->tbd.DataBlkCount );
+	success = undi_call ( PXENV_UNDI_TRANSMIT );
+	DBG ( "PXENV_UNDI_TRANSMIT_PACKET <= Status=%s\n",
+	      UNDI_STATUS(undi.pxs) );
+	return success;
 }
 
 int eb_pxenv_undi_set_station_address ( void ) {
@@ -478,37 +548,100 @@ int eb_pxenv_undi_set_station_address ( void ) {
 	 * permanent value anyway, so it's a useless call (although we
 	 * make it because PXE spec says we should).
 	 */
+	DBG ( "PXENV_UNDI_SET_STATION_ADDRESS => "
+	      "StationAddress=%!\n",
+	      undi.pxs->undi_set_station_address.StationAddress );
 	undi_call_silent ( PXENV_UNDI_SET_STATION_ADDRESS );
+	DBG ( "PXENV_UNDI_SET_STATION_ADDRESS <= Status=%s\n",
+	      UNDI_STATUS(undi.pxs) );
 	return 1;
 }
 
 int eb_pxenv_undi_get_information ( void ) {
+	int success = 0;
 	memset ( undi.pxs, 0, sizeof ( undi.pxs ) );
-	return undi_call ( PXENV_UNDI_GET_INFORMATION );
+	DBG ( "PXENV_UNDI_GET_INFORMATION => (void)\n" );
+	success = undi_call ( PXENV_UNDI_GET_INFORMATION );
+	DBG ( "PXENV_UNDI_GET_INFORMATION <= Status=%s "
+	      "BaseIO=%hx IntNumber=%hx ...\n"
+	      "... MaxTranUnit=%hx HwType=%hx HwAddrlen=%hx ...\n"
+	      "... CurrentNodeAddress=%! PermNodeAddress=%! ...\n"
+	      "... ROMAddress=%hx RxBufCt=%hx TxBufCt=%hx\n",
+	      UNDI_STATUS(undi.pxs),
+	      undi.pxs->undi_get_information.BaseIo,
+	      undi.pxs->undi_get_information.IntNumber,
+	      undi.pxs->undi_get_information.MaxTranUnit,
+	      undi.pxs->undi_get_information.HwType,
+	      undi.pxs->undi_get_information.HwAddrLen,
+	      undi.pxs->undi_get_information.CurrentNodeAddress,
+	      undi.pxs->undi_get_information.PermNodeAddress,
+	      undi.pxs->undi_get_information.ROMAddress,
+	      undi.pxs->undi_get_information.RxBufCt,
+	      undi.pxs->undi_get_information.TxBufCt );
+	return success;
 }
 
 int eb_pxenv_undi_get_iface_info ( void ) {
-	return undi_call ( PXENV_UNDI_GET_IFACE_INFO );
+	int success = 0;
+
+	DBG ( "PXENV_UNDI_GET_IFACE_INFO => (void)\n" );
+	success = undi_call ( PXENV_UNDI_GET_IFACE_INFO );
+	DBG ( "PXENV_UNDI_GET_IFACE_INFO <= Status=%s IfaceType=%s ...\n"
+	      "... LinkSpeed=%x ServiceFlags=%x\n",
+	      UNDI_STATUS(undi.pxs),
+	      undi.pxs->undi_get_iface_info.IfaceType,
+	      undi.pxs->undi_get_iface_info.LinkSpeed,
+	      undi.pxs->undi_get_iface_info.ServiceFlags );
+	return success;
 }
 
 int eb_pxenv_undi_isr ( void ) {
-	return undi_call ( PXENV_UNDI_ISR );
+	int success = 0;
+
+	DBG ( "PXENV_UNDI_ISR => FuncFlag=%hx\n",
+	      undi.pxs->undi_isr.FuncFlag );	
+	success = undi_call ( PXENV_UNDI_ISR );
+	DBG ( "PXENV_UNDI_ISR <= Status=%s FuncFlag=%hx BufferLength=%hx ...\n"
+	      "... FrameLength=%hx FrameHeaderLength=%hx Frame=%hx:%hx "
+	      "ProtType=%hhx ...\n... PktType=%hhx\n",
+	      UNDI_STATUS(undi.pxs), undi.pxs->undi_isr.FuncFlag,
+	      undi.pxs->undi_isr.BufferLength,
+	      undi.pxs->undi_isr.FrameLength,
+	      undi.pxs->undi_isr.FrameHeaderLength,
+	      undi.pxs->undi_isr.Frame.segment,
+	      undi.pxs->undi_isr.Frame.offset,
+	      undi.pxs->undi_isr.ProtType,
+	      undi.pxs->undi_isr.PktType );
+	return success;
 }
 
 int eb_pxenv_stop_undi ( void ) {
-	if ( ! undi_call ( PXENV_STOP_UNDI ) ) return 0;
-	undi.prestarted = 0;
-	return 1;
+	int success = 0;
+
+	DBG ( "PXENV_STOP_UNDI => (void)\n" );
+	success = undi_call ( PXENV_STOP_UNDI );
+	DBG ( "PXENV_STOP_UNDI <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	if ( success ) undi.prestarted = 0;
+	return success;
 }
 
 int eb_pxenv_unload_stack ( void ) {
-	memset ( undi.pxs, 0, sizeof ( undi.pxs ) );	
-	if ( ! undi_call ( PXENV_UNLOAD_STACK ) ) return 0;
-	return 1;
+	int success = 0;
+
+	memset ( undi.pxs, 0, sizeof ( undi.pxs ) );
+	DBG ( "PXENV_UNLOAD_STACK => (void)\n" );
+	success = undi_call ( PXENV_UNLOAD_STACK );
+	DBG ( "PXENV_UNLOAD_STACK <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	return success;
 }
 
 int eb_pxenv_stop_base ( void ) {
-	return undi_call ( PXENV_STOP_BASE );
+	int success = 0;
+
+	DBG ( "PXENV_STOP_BASE => (void)\n" );
+	success = undi_call ( PXENV_STOP_BASE );
+	DBG ( "PXENV_STOP_BASE <= Status=%s\n", UNDI_STATUS(undi.pxs) );
+	return success;
 }
 
 /* Unload UNDI base code (if any present) and free memory.
