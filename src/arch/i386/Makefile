@@ -76,8 +76,9 @@ $(BIN)/i386_timer.o:	arch/i386/core/i386_timer.c include/timer.h include/etherbo
 # Assembly files
 $(BIN)/start32.o:	arch/i386/core/start32.S
 $(BIN)/start16.o:	arch/i386/core/start16.S
-$(BIN)/unhuf.o:		arch/i386/util/unhuf.S
-$(BIN)/unnrv2b.o:		arch/i386/util/unnrv2b.S
+$(BIN)/unhuf.o:		arch/i386/prefix/unhuf.S
+$(BIN)/unnrv2b.o:	arch/i386/prefix/unnrv2b.S
+$(BIN)/memsizes.o:	arch/i386/firmware/pcbios/memsizes.c
 $(BIN)/pcbios.o:	arch/i386/firmware/pcbios/pcbios.S
 $(BIN)/liloprefix.o:	arch/i386/prefix/liloprefix.S
 $(BIN)/elfprefix.o:	arch/i386/prefix/elfprefix.S
@@ -136,18 +137,21 @@ $(BIN)/nrv2b:	util/nrv2b.c
 
 # Pattern Rules
 
-# General for compiling assembly source files
+# General for compiling/assembly source files
+
+$(BIN)/%.o:	arch/i386/core/%.c $(MAKEDEPS)
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(BIN)/%.o:	arch/i386/core/%.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) -Ui386 -D ASSEMBLY $< | $(AS) $(ASFLAGS) -o $@
+
+$(BIN)/%.o:	arch/i386/firmware/pcbios/%.c $(MAKEDEPS)
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(BIN)/%.o:	arch/i386/firmware/pcbios/%.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) -Ui386 -D ASSEMBLY $< | $(AS) $(ASFLAGS) -o $@
 
 $(BIN)/%.o:	arch/i386/prefix/%.S $(MAKEDEPS)
-	$(CPP) $(CFLAGS) -Ui386 -D ASSEMBLY $< | $(AS) $(ASFLAGS) -o $@
-
-$(BIN)/%.o:	arch/i386/util/%.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) -Ui386 -D ASSEMBLY $< | $(AS) $(ASFLAGS) -o $@
 
 # general rule for 16bit .o, may be overridden

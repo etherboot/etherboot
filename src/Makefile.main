@@ -250,6 +250,7 @@ $(BIN)/lzhuf:	util/lzhuf.c
 # Roms file
 
 $(BIN)/Roms:	NIC genrules.pl
+	mkdir -p $(@D)
 	$(PERL) ./genrules.pl $(ARCH) NIC > $@
 
 # Pattern Rules
@@ -260,9 +261,6 @@ $(BIN)/%.o:	core/%.c $(MAKEDEPS)
 
 $(BIN)/%.s:	core/%.c $(MAKEDEPS)
 	$(CC) $(CFLAGS) -S -o $@ -c $<
-
-$(BIN)/%.o:	arch/$(ARCH)/core/%.c $(MAKEDEPS)
-	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(BIN)/%.o:	drivers/disk/%.c $(MAKEDEPS)
 	$(CC) $(CFLAGS) -o $@ -c $<
