@@ -51,7 +51,7 @@ void get_memsizes(void)
 }
 #endif
 	/* Allocate the real mode stack */
-	real_mode_stack = (meminfo.basememsize << 10);
+	adjust_real_mode_stack ();
 }
 
 #endif /* PCBIOS */
