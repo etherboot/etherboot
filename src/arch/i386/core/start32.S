@@ -206,14 +206,14 @@ _in_call_far:
 		
 	/* Check for EB_SKIP_OPCODE */
 	pushfl
-	testl	$EB_SKIP_OPCODE, 8(%esp)
+	testl	$EB_SKIP_OPCODE, 12(%esp)
 	jnz	1f
 	/* Normal return */
 	popfl
 	lret
 1:	/* Return and skip opcode */
 	popfl
-	lret	$2
+	lret	$4
 	
 #if defined(RELOCATE)
 /**************************************************************************
