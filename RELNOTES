@@ -1,4 +1,9 @@
-Etherboot 5.2.5 (Release Date 2004/07/18)
+Etherboot 5.2.6 (Release Date ?)
+
+To generate ISO images you will to get need syslinux and/or isolinux
+separately. Google for them. If you have a very old BIOS and .liso 
+images don't work you may wish to try adding the -s option of syslinux 
+as a last resort.
 
 This release (probably one of the last in the 5.2 stream) is mostly a 
 cleanup and maintenance release.  Most of the changes correct bugs 
