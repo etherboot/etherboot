@@ -20,6 +20,8 @@
 /*********************************************************************/
 
 /*
+  28 Dec 2002	ken_yap@users.sourceforge.net (Ken Yap)
+     Put in virt_to_bus calls to allow Etherboot relocation.
 
   06 Apr 2001	ken_yap@users.sourceforge.net (Ken Yap)
      Following email from Hyun-Joon Cha, added a disable routine, otherwise
@@ -310,7 +312,7 @@ static void rtl_reset(struct nic* nic)
 #ifdef	DEBUG_RX
 	printf("rx ring address is %X\n",(unsigned long)rx_ring);
 #endif
-	outl((unsigned long)rx_ring, ioaddr + RxBuf);
+	outl((unsigned long)virt_to_bus(rx_ring), ioaddr + RxBuf);
 
 	/* Start the chip's Tx and Rx process. */
 	outl(0, ioaddr + RxMissed);
@@ -349,7 +351,7 @@ static void rtl_transmit(struct nic *nic, const char *destaddr,
 		tx_buffer[len++] = '\0';
 	}
 
-	outl((unsigned long)tx_buffer, ioaddr + TxAddr0 + cur_tx*4);
+	outl((unsigned long)virt_to_bus(tx_buffer), ioaddr + TxAddr0 + cur_tx*4);
 	outl(((TX_FIFO_THRESH<<11) & 0x003f0000) | len,
 		ioaddr + TxStatus0 + cur_tx*4);
 

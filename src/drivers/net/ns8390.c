@@ -16,6 +16,7 @@ Author: Martin Renters
   the proper functioning of this software, nor do the authors assume any
   responsibility for damages incurred with its use.
 
+Relocation support added by Ken Yap (ken_yap@users.sourceforge.net) 28/12/02
 3c503 support added by Bill Paul (wpaul@ctr.columbia.edu) on 11/15/94
 SMC8416 support added by Bill Paul (wpaul@ctr.columbia.edu) on 12/25/94
 3c503 PIO support added by Jim Hague (jim.hague@acm.org) on 2/17/98
@@ -617,10 +618,10 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 			eth_memsize = MEM_16384;
 	}
 	if ((c & WD_SOFTCONFIG) && (!(eth_flags & FLAG_790))) {
-		eth_bmem = (0x80000 |
-		 ((inb(eth_asic_base + WD_MSR) & 0x3F) << 13));
+		eth_bmem = phys_to_virt((0x80000 |
+		 ((inb(eth_asic_base + WD_MSR) & 0x3F) << 13)));
 	} else
-		eth_bmem = WD_DEFAULT_MEM;
+		eth_bmem = phys_to_virt(WD_DEFAULT_MEM);
 	if (brd->id == TYPE_SMC8216T || brd->id == TYPE_SMC8216C) {
 		*((unsigned int *)(eth_bmem + 8192)) = (unsigned int)0;
 		if (*((unsigned int *)(eth_bmem + 8192))) {
@@ -644,15 +645,15 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 		outb(WD_MSR_MENB, eth_asic_base+WD_MSR);
 		outb((inb(eth_asic_base+0x04) |
 			0x80), eth_asic_base+0x04);
-		outb((((unsigned)eth_bmem >> 13) & 0x0F) |
-			(((unsigned)eth_bmem >> 11) & 0x40) |
+		outb((((unsigned)virt_to_bus(eth_bmem) >> 13) & 0x0F) |
+			(((unsigned)virt_to_bus(eth_bmem) >> 11) & 0x40) |
 			(inb(eth_asic_base+0x0B) & 0xB0), eth_asic_base+0x0B);
 		outb((inb(eth_asic_base+0x04) &
 			~0x80), eth_asic_base+0x04);
 #endif
 	} else {
 		printf(", memory %#hx, addr %!\n", eth_bmem, nic->node_addr);
-		outb((((unsigned)eth_bmem >> 13) & 0x3F) | 0x40, eth_asic_base+WD_MSR);
+		outb((((unsigned)virt_to_bus(eth_bmem) >> 13) & 0x3F) | 0x40, eth_asic_base+WD_MSR);
 	}
 	if (eth_flags & FLAG_16BIT) {
 		if (eth_flags & FLAG_790) {
@@ -737,6 +738,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 				default:
 					continue;	/* nope */
 				}
+			eth_bmem = phys_to_virt(eth_bmem);
 			break;
 		}
 
