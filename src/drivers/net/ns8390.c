@@ -393,7 +393,9 @@ static void ns8390_transmit(
 	unsigned int s,			/* size */
 	const char *p)			/* Packet */
 {
+#if defined(INCLUDE_3C503) || (defined(INCLUDE_WD) && ! defined(WD_790_PIO))
 	Address		eth_vmem = bus_to_virt(eth_bmem);
+#endif
 #ifdef	INCLUDE_3C503
         if (!(eth_flags & FLAG_PIO)) {
                 memcpy((char *)eth_vmem, d, ETH_ALEN);	/* dst */
@@ -935,7 +937,7 @@ static struct isa_driver wd_driver __isa_driver = {
 };
 #endif
 
-#ifdef	INCLUDE_3c503
+#ifdef	INCLUDE_3C503
 static struct isa_driver t503_driver __isa_driver = {
 	.type    = NIC_DRIVER,
 	.name    = "3C503",
