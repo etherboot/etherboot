@@ -79,13 +79,10 @@ CFLAGS+=	-DPCBIOS
 # Options to make a version of Etherboot that will work under linuxBIOS.
 #CFLAGS+= -DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE 
 
-
-# These options affect the loader that is prepended to the Etherboot image
 # These options affect the loader that is prepended to the Etherboot image
 LCONFIG+=	-DMOVEROM
 # LCONFIG+=	-DBBS_BUT_NOT_PNP_COMPLIANT
 # LCONFIG+=	-DBOOT_INT18H
-
 
 CFLAGS+= -fstrength-reduce -fomit-frame-pointer -mcpu=i386
 # Squeeze the code in as little space as possible.
