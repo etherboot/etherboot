@@ -782,7 +782,7 @@ static int bootp(void)
 	/* Append machine_info to end, in encapsulated option */
 	bp_vend = ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcpdiscover;
 	memcpy(bp_vend, dhcp_machine_info, DHCP_MACHINE_INFO_SIZE);
-	bp_vend += sizeof DHCP_MACHINE_INFO_SIZE;
+	bp_vend += DHCP_MACHINE_INFO_SIZE;
 	*bp_vend++ = RFC1533_END;
 #endif	/* NO_DHCP_SUPPORT */
 
