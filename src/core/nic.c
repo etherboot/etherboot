@@ -872,7 +872,7 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 		return 0;
 #ifndef	DEFAULT_BOOTFILE
 	if (bootpreply->bp_file[0] == '\0') {
-		printf("F?");	/* No filename in offer */
+		printf("No filename in DHCP packet\n");	/* No filename in offer */
 		return 0;
 	}
 #endif

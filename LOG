@@ -2752,3 +2752,7 @@ images may be broken.
 + Start of a .exe prefix which should allow payloads > 64kB.
 
 Released as Etherboot 5.3.11 aka 5.4RC2 (development)
+
++ Fixed 961507 Not so nice 'F?' message when no file name received
+
+
