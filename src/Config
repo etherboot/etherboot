@@ -250,6 +250,10 @@
 #			After starting etherboot relocate to the top
 #			of memory.  This allows loading fairly arbitrary
 #			rom images.  This doesn't work with all drivers yet.
+#	-DIGNORE_E820_MAP
+#			Ignore the memory map returned by the E820 BIOS
+#			call.  May be necessary on some buggy BIOSes.
+#
 #	BUS options:
 #	
 #	-DCONFIG_PCI

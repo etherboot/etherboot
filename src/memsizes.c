@@ -15,7 +15,11 @@ void get_memsizes(void)
 	int i;
 	meminfo.basememsize = basememsize();
 	meminfo.memsize = memsize();
+#ifndef IGNORE_E820_MAP
 	meminfo.map_count = meme820(meminfo.map, E820MAX);
+#else
+	meminfo.map_count = 0;
+#endif
 	if (meminfo.map_count == 0) {
 		/* If we don't have an e820 memory map fake it */
 		meminfo.map_count = 2;
@@ -40,6 +44,7 @@ void get_memsizes(void)
 			(unsigned long)(r_end >> 32),
 			(unsigned long)r_end,
 			meminfo.map[i].type);
+		sleep(1); /* No way to see 32 entries on a standard 80x25 screen... */
 	}
 #endif
 	/* Allocate the real mode stack */
