@@ -2709,3 +2709,6 @@ based on the Linux fealnx driver
 
 + Paolo Salvan experimented with using isolinux for non-emulation
 images and contributed the first cut at the code for geniso.
+
++ Small patch to support 3Com tulip version from Jacek Kalinski
+
