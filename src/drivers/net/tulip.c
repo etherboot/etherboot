@@ -229,6 +229,8 @@ static struct pci_id_info pci_id_tbl[] = {
       TULIP_IOTYPE, 0x80, DC21140 },
     { "Macronix mxic-98715 (EN1217)", { 0x12171113, 0xffffffff, 0, 0, 0, 0 },
       TULIP_IOTYPE, 256, MX98715 },
+    { "3Com 3cSOHO100B-TX (ADMtek Centuar)", { 0x930010b7, 0xffffffff, 0, 0, 0, 0 },
+      TULIP_IOTYPE, TULIP_SIZE, COMET },
     { 0, { 0, 0, 0, 0, 0, 0 }, 0, 0, 0 },
 };
 
@@ -258,7 +260,7 @@ static struct tulip_chip_table {
     { "ASIX AX88141", HAS_MII | HAS_MEDIA_TABLE | CSR12_IN_SROM | MC_HASH_ONLY 
       | IS_ASIX },
     { "Lite-On PNIC-II", HAS_MII | HAS_NWAY | HAS_8023X },
-    { "ADMtek Comet", MC_HASH_ONLY },
+    { "ADMtek Comet", HAS_MII | MC_HASH_ONLY },
     { "Compex 9881 PMAC",       HAS_MII | HAS_MEDIA_TABLE | CSR12_IN_SROM },
     { "Intel DS21145 Tulip", HAS_MII | HAS_MEDIA_TABLE | ALWAYS_CHECK_MII 
       | HAS_PWRDWN | HAS_NWAY },
