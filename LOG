@@ -2053,3 +2053,86 @@ Etherboot messages start at beginning of line.
 + More improvements to contrib/mkffwnb.
 
 Released as Etherboot 5.0.2 (production)
+
++ Added missing rules in genrules.pl for .pxe and .lzpxe images.
+
++ Peter Lister unified pxeloader.S into loader.S. pxeloader.S not
+required now. Also fixed .lzpxe.
+
++ Added missing int i; declaration in try_floppy_first().
+
++ Load %edx with dev just before calling xstart in floppy.c:bootdisk()
+so that %dl will have device number, just like entry from BIOS.
+
++ Merged in Eric Biederman's patches to build .ebi images that run under
+LinuxBIOS. To make an image, edit Config to enable the EBI options (and
+disable TAGGED_IMAGE), then make bin32/driver.ebi, where driver is the
+name of a supported PCI NIC.
+
+Released as Etherboot 5.1.1 (development)
+
++ In loader.S change .fill 0x18-(.-_start) to .org 0x18. Might help
+people having errors assembling it.
+
++ Do Jong Gwan found a 3Com 980 with PCI ID 0x9805. Added to config.c
+and NIC. Added for good measure 0x7646 which is listed as 3CSOHO100-TX
+in Linux kernel 3c59x.c.
+
++ Add a rule to the Makefile to check for gcc 2.96, which is buggy, and
+tell the user to use kgcc instead if found.
+
++ Till Straumann added long-needed code to warn when fragmented packets
+seen (encountered on a wireless link) and to do UDP packet checksumming.
+
++ A trio of patches from Klaus Espenlaub, to fix a lance ring pointer
+error in lance.c, to fix a format error in the multiboot call in
+osloader.c and a patch to enable powersaving while waiting (good for
+compute clusters and VMware), this one requiring the new option
+-DPOWERSAVE in compiles.
+
++ While we are adding compile options, -DFLOPPY has been renamed to
+-DCAN_BOOT_DISK as FLOPPY has been a misnomer ever since the ability to
+boot /dev/hdX and /dev/sdX was added.
+
++ Spurred by correspondence from Till Straumann and Klaus Espenlaub,
+hacked printf to not require a buffer. Now printf output can be
+arbitrarily long as it no longer needs a buffer to assemble the
+characters before sending to putchar; it outputs on the spot for
+non-format chars and %s items, and at the end of the item for non-%s
+items.
+
++ DRIVER AND EXTENSION WRITERS NOTE! (s)printf formats have been changed
+to be a subset of those in glibc to reduce confusion. The changes are %x
+-> %hX, %b -> %hhX, and %I -> %@. Lower case x formats are also
+available now. The only variances from glibc are %@ for dotted quad IP
+addresses (formerly %I; %I is now used), %! for 6 byte Ethernet
+addresses, and that printf returns void. Thanks to Klaus Espenlaub for
+assistance on this, after adding the %! format, he cleaned up all of the
+Ethernet address display code in the drivers.
+
++ More cleanup patches from Klaus Espenlaub (he's better than lint,
+people who have used Bell Labs Unix will know what lint is). Changes
+noted here for posterity.
+
+3c509.c: consistent non-use of # modifier for debugging output
+3c595.c: consistent non-use of # modifier for debugging output
+3c90x.c: use optimal %x variant, PCI bus/function numbers are always small
+Config: Replace a TAB by two spaces inside the descriptions
+eepro100.c: 6->ETH_ALEN, PCI bus/function numbers are always small
+floppy.c: optimal %x variant
+genrules.pl: consistent use of TAB characters
+i82586.c: the ENET address printing patch for the EXOS205 got lost somehow....
+main.c: cleanup of the UDP_CHECKSUM comment some editor messed up, make the
+    assembly fragment use the normal formatting, fix the register assignment
+    specification for the %bx register to use the "b" constraint instead of
+    "bx" - the x makes no sense...
+natsemi.c: %X case fix...
+ns8390.c: optimal %x variant
+pci.c: fix bad Linux port (most messages truncated the hex values)
+sis900.c: a value read with inl() should probably(!) be printed with %X
+start32.S: move around the #endifs a little
+timer.c: fix space/tab characters
+via-rhine.c: all values "printed" inside the comments are 32 bit integers
+wd89c840.c: PCI bus/function numbers are always small
+
+Released as Etherboot 5.0.3 (production)

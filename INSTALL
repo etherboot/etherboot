@@ -34,4 +34,5 @@ links from the Distribution section may not work.
 Etherboot was built using gcc 2.95.2 and binutils 2.10.0.33 from SuSE
 7.1, but earlier versions of gcc and binutils may work. The version of
 as used must recognise the code16 and code32 directives. gas 2.9.5 or
-later is required.
+later is required. It also compiles under gcc 3.0 and gas 2.11, but
+mimimal testing has been done.
