@@ -260,7 +260,7 @@ void TLan_ResetLists(struct nic *nic __unused)
 
 	priv->cur_rx = 0;
 	priv->rx_buf_sz = (TLAN_MAX_FRAME_SIZE);
-	priv->rx_head_desc = &rx_ring[0];
+//	priv->rx_head_desc = &rx_ring[0];
 
 	/* Initialize all the Rx descriptors */
 	for (i = 0; i < TLAN_NUM_RX_LISTS; i++) {
