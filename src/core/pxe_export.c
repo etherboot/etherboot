@@ -739,7 +739,8 @@ PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
 	ENSURE_READY ( tftp_open );
 
 	/* Change server address if different */
-	if ( tftp_open->ServerIPAddress!=arptable[ARP_SERVER].ipaddr.s_addr ) {
+	if ( tftp_open->ServerIPAddress && 
+	     tftp_open->ServerIPAddress!=arptable[ARP_SERVER].ipaddr.s_addr ) {
 		memset(arptable[ARP_SERVER].node, 0, ETH_ALEN ); /* kill arp */
 		arptable[ARP_SERVER].ipaddr.s_addr=tftp_open->ServerIPAddress;
 	}
@@ -870,7 +871,8 @@ PXENV_EXIT_t pxenv_udp_open ( t_PXENV_UDP_OPEN *udp_open ) {
 	DBG ( "PXENV_UDP_OPEN" );
 	ENSURE_READY ( udp_open );
 
-	if ( udp_open->src_ip != arptable[ARP_CLIENT].ipaddr.s_addr ) {
+	if ( udp_open->src_ip &&
+	     udp_open->src_ip != arptable[ARP_CLIENT].ipaddr.s_addr ) {
 		/* Overwrite our IP address */
 		DBG ( " with new IP %@", udp_open->src_ip );
 		arptable[ARP_CLIENT].ipaddr.s_addr = udp_open->src_ip;
