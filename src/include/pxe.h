@@ -903,6 +903,7 @@ typedef enum {
 /* Data structures installed as part of a PXE stack.  Architectures
  * will have extra information to append to the end of this.
  */
+#define PXE_TFTP_MAGIC_COOKIE ( ( 'P'<<24 ) | ( 'x'<<16 ) | ( 'T'<<8 ) | 'f' )
 typedef struct {
 	pxe_t		pxe	__attribute__ ((aligned(16)));
 	pxenv_t		pxenv	__attribute__ ((aligned(16)));
@@ -910,6 +911,11 @@ typedef struct {
 	union {
 		BOOTPLAYER	cached_info;
 		char		packet[ETH_FRAME_LEN];
+		struct {
+			uint32_t magic_cookie;
+			unsigned int len;
+			char data[TFTP_MAX_PACKET];
+		} tftpdata;
 	};
 	struct {}	arch_data __attribute__ ((aligned(16)));
 } pxe_stack_t;

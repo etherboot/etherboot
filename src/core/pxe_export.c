@@ -725,35 +725,83 @@ PXENV_EXIT_t pxenv_stop_undi ( t_PXENV_STOP_UNDI *stop_undi ) {
 
 /* PXENV_TFTP_OPEN
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_tftp_open ( t_PXENV_TFTP_OPEN *tftp_open ) {
+	struct tftpreq_info_t request;
+	struct tftpblk_info_t block;
+
 	DBG ( "PXENV_TFTP_OPEN" );
-	/* ENSURE_READY ( tftp_open ); */
-	tftp_open->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( tftp_open );
+
+	/* Change server address if different */
+	if ( tftp_open->ServerIPAddress!=arptable[ARP_SERVER].ipaddr.s_addr ) {
+		memset(arptable[ARP_SERVER].node, 0, ETH_ALEN ); /* kill arp */
+		arptable[ARP_SERVER].ipaddr.s_addr=tftp_open->ServerIPAddress;
+	}
+	/* Ignore gateway address; we can route properly */
+	/* Fill in request structure */
+	request.name = tftp_open->FileName;
+	request.port = ntohs(tftp_open->TFTPPort);
+	request.blksize = tftp_open->PacketSize;
+	if ( !request.blksize ) request.blksize = TFTP_DEFAULTSIZE_PACKET;
+	/* Make request and get first packet */
+	if ( !tftp_block ( &request, &block ) ) {
+		tftp_open->Status = PXENV_STATUS_TFTP_FILE_NOT_FOUND;
+		return PXENV_EXIT_FAILURE;
+	}
+	/* Fill in PacketSize */
+	tftp_open->PacketSize = request.blksize;
+	/* Store first block for later retrieval by TFTP_READ */
+	pxe_stack->tftpdata.magic_cookie = PXE_TFTP_MAGIC_COOKIE;
+	pxe_stack->tftpdata.len = block.len;
+	memcpy ( pxe_stack->tftpdata.data, block.data, block.len );
+
+	tftp_open->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_TFTP_CLOSE
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_tftp_close ( t_PXENV_TFTP_CLOSE *tftp_close ) {
 	DBG ( "PXENV_TFTP_CLOSE" );
-	/* ENSURE_READY ( tftp_close ); */
-	tftp_close->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( tftp_close );
+	tftp_close->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_TFTP_READ
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
+	struct tftpblk_info_t block;
+
 	DBG ( "PXENV_TFTP_READ" );
-	/* ENSURE_READY ( tftp_read ); */
-	tftp_read->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( tftp_read );
+
+	/* Do we have a block pending */
+	if ( pxe_stack->tftpdata.magic_cookie == PXE_TFTP_MAGIC_COOKIE ) {
+		block.data = pxe_stack->tftpdata.data;
+		block.len = pxe_stack->tftpdata.len;
+		block.block = 1; /* Will be the first block */
+		pxe_stack->tftpdata.magic_cookie = 0;
+	} else {
+		if ( !tftp_block ( NULL, &block ) ) {
+			tftp_read->Status = PXENV_STATUS_TFTP_FILE_NOT_FOUND;
+			return PXENV_EXIT_FAILURE;
+		}
+	}
+
+	/* Return data */
+	tftp_read->PacketNumber = block.block;
+	tftp_read->BufferSize = block.len;
+	memcpy ( SEGOFF16_TO_PTR(tftp_read->Buffer), block.data, block.len );
+	
+	tftp_read->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_TFTP_READ_FILE
