@@ -155,11 +155,19 @@ PnP:
 	.word 0x0000			/* static resource information vector */
 #endif	/* PCI_PNP_HEADER */
 
+/*
+ *	Explicitly specify DI is wrt ES to avoid problems with some BIOSes
+ *	Discovered by Eric Biederman
+ *	In addition, some BIOSes don't point DI to the string $PnP so
+ *	we need another #define to take care of that.
+ */
 over: 
-	cmpw	$'$'+'P'*256,(%di)
+#ifndef	PNP_BUT_NOT_BBS_COMPLIANT
+	cmpw	$'$'+'P'*256,%es:0(%di)
 	jne	notpnp
-	cmpw	$'n'+'P'*256,2(%di)
+	cmpw	$'n'+'P'*256,%es:2(%di)
 	jne	notpnp
+#endif	/* PNP_BUT_NOT_BBS_COMPLIANT */
 	movw	$0x20,%ax
 	lret
 notpnp:

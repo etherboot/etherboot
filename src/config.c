@@ -114,6 +114,8 @@ static struct pci_device	pci_nic_list[] = {
 #ifdef	INCLUDE_RTL8139
 	{ PCI_VENDOR_ID_REALTEK,	PCI_DEVICE_ID_REALTEK_8139,
 		"Realtek 8139", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_DLINK,		PCI_DEVICE_ID_DFE530TXP,
+                "DFE530TXP", 0, 0, 0, 0},
         { PCI_VENDOR_ID_SMC_1211,       PCI_DEVICE_ID_SMC_1211,
                 "SMC EZ10/100", 0, 0, 0, 0},
 #endif

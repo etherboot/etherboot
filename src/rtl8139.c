@@ -191,6 +191,11 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 	/* There are enough "RTL8139" strings on the console already, so
 	 * be brief and concentrate on the interesting pieces of info... */
 	printf(" - ");
+	/*
+	   This bit below is not necessary at all since the pci.c subsystem
+	   is supposed to find the NIC, but I will leave it in since it
+           hardly will ever execute this test.
+	*/
 	if (probeaddrs == 0 || probeaddrs[0] == 0) {
 		printf("\nERROR: no probeaddrs given, using pci_device\n");
 		for (p = pci; p->vendor; p++) {
