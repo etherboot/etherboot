@@ -49,6 +49,9 @@ void * allot_base_memory ( size_t size ) {
 		 size_kb, *fbms );
 #endif
 
+	/* Free up any unused memory before we start */
+	free_unused_base_memory();
+
 	/* Check available base memory */
 	if ( size_kb > *fbms ) { return NULL; }
 
@@ -93,10 +96,23 @@ void forget_base_memory ( void *ptr, size_t size ) {
 	
 	if ( ( ptr == NULL ) || ( size == 0 ) ) { return; }
 
-	/* Mark this block as free */
+	/* Mark this block as unused */
 	free_block = ( free_base_memory_block_t * ) ptr;
 	free_block->magic = FREE_BLOCK_MAGIC;
 	free_block->size_kb = size_kb;
+
+	/* Free up unused base memory */
+	free_unused_base_memory();
+}
+
+/* Do the actual freeing of memory.  This is split out from
+ * forget_base_memory() so that it may be called separately.  It
+ * should be called whenever base memory is deallocated by an external
+ * entity (if we can detect that it has done so) so that we get the
+ * chance to free up our own blocks.
+ */
+void free_unused_base_memory ( void ) {
+	free_base_memory_block_t *free_block = NULL;
 
 	/* Try to release memory back to the BIOS.  Free all
 	 * consecutive blocks marked as free.
