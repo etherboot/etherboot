@@ -1,6 +1,6 @@
-#include "etherboot.h"
+#ifndef	NORELOCATE
 
-#if defined(RELOCATE)
+#include "etherboot.h"
 
 /* by Eric Biederman */
 
@@ -100,4 +100,4 @@ void relocate(void)
 	}
 }
 
-#endif /* RELOCATE */
+#endif /* NORELOCATE */

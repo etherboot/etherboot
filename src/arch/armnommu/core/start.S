@@ -159,7 +159,7 @@ SP_SVC:
 
 
 
-#if defined(RELOCATE)
+#ifndef	NORELOCATE
 /**************************************************************************
 RELOCATE_TO - relocate etherboot to the specified address
 **************************************************************************/

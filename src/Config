@@ -412,9 +412,10 @@ CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
 # CFLAGS+= -DBUILD_SERIAL
 # CFLAGS+= -DBUILD_SERIAL -DBUILD_ID=\"testing\"
 
-# Relocate etherboot to just below 4GB.
-# A couple of drivers do not work with relocation, notably lance.
-#CFLAGS+=	-DRELOCATE
+# Do not relocate
+# core/relocate.c should really be moved to an arch specific directory
+# but this is here for archs that don't support relocation
+# CFLAGS+=	-DNORELOCATE
 
 # you should normally not need to change these
 HOST_CC=	gcc
