@@ -15,7 +15,7 @@ SHOW_MOTD - display the message of the day
 **************************************************************************/
 void show_motd(void)
 {
-	char *ptr;
+	unsigned char *ptr;
 	int  i,j,k = 0;
 
 	for (i = 0; i < RFC1533_VENDOR_NUMOFMOTD; i++) if (motd[i]) {
@@ -33,9 +33,9 @@ void show_motd(void)
 static const char *const clrline = "                                                                               ";
 #endif
 
-static int getoptvalue(char **ptr, int *len, int *rc)
+static int getoptvalue(unsigned char **ptr, int *len, int *rc)
 {
-	char *tmp,*old;
+	unsigned char *tmp,*old;
 	int  i,l;
 
 	for (tmp = *ptr, l = *len; *tmp != '='; tmp++, l--);
@@ -54,7 +54,7 @@ static int getoptvalue(char **ptr, int *len, int *rc)
 /**************************************************************************
 PARSE_MENUOPTS - parse menu options and set control variables
 **************************************************************************/
-void parse_menuopts(char *opt, int len)
+void parse_menuopts(unsigned char *opt, int len)
 {
 	/* This code assumes that "bootpd" terminates the control string
 	   with a '\000' character */
@@ -78,8 +78,8 @@ GETPARMS - get user provided parameters
 #ifdef	USRPARMS
 static int getparms(void)
 {
-	char *ptr = end_of_rfc1533+2;
-	int  ch,i = 0, max = (char *)&(BOOTP_DATA_ADDR->bootp_extension[MAX_BOOTP_EXTLEN]) - ptr - 1;
+	unsigned char *ptr = end_of_rfc1533+2;
+	int  ch,i = 0, max = (unsigned char *)&(BOOTP_DATA_ADDR->bootp_extension[MAX_BOOTP_EXTLEN]) - ptr - 1;
 
 	if (!end_of_rfc1533 || max < 0)
 		return(0);
@@ -133,7 +133,7 @@ restart:
 GETHEX - compute one hex byte
 **************************************************************************/
 #ifdef	PASSWD
-static int gethex(char *dat)
+static int gethex(unsigned char *dat)
 {
 	int  i,j;
 
@@ -153,7 +153,7 @@ SELECTIMAGE - interactively ask the user for the boot image
    temporary variables for storing intermediate results. This might
    help GCC... */
 
-void selectImage(char *imagelist[])
+void selectImage(unsigned char *imagelist[])
 {
 #ifdef	USRPARMS
 	int flag_parms = 1;
@@ -162,7 +162,7 @@ void selectImage(char *imagelist[])
 #ifdef	PASSWD
 	int flag_image = 1;
 #endif
-	char *e,*s,*d,*p;
+	unsigned char *e,*s,*d,*p;
 	int  i,j,k,m,len;
 	unsigned long tmo;
 	in_addr ip;

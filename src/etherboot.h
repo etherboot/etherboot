@@ -527,8 +527,8 @@ extern void eth_disable(void);
 
 /* bootmenu.c */
 extern void show_motd P((void));
-extern void parse_menuopts P((char *,int));
-extern void selectImage P((char **));
+extern void parse_menuopts P((unsigned char *,int));
+extern void selectImage P((unsigned char **));
 
 /* osloader.c */
 #if	defined(AOUT_IMAGE) || defined(ELF_IMAGE)
