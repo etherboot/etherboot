@@ -4,8 +4,8 @@
 *.bin
 *.img
 *.zimg
-*.fi
-*.zfi
+*.dsk
+*.zdsk
 gcccheck
 nrv2b
 Roms
