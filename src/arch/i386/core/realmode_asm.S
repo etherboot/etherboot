@@ -20,7 +20,7 @@
 
 	.text
 	.arch i386
-	.section ".text16"
+	.section ".text16", "ax", @progbits
 	.code16
 	
 	.equ	CR0_PE,1
