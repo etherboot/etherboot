@@ -55,6 +55,7 @@ sub send_ack_retry ($$$$$) {
 RETRY:
 	while ($maxretries-- > 0) {
 		&$sendfunc;
+		# not quite right, shouldn't wait for ack if last block
 		my $rin = '';
 		my $rout = '';
 		vec($rin, fileno($sockh), 1) = 1;
@@ -119,6 +120,7 @@ sub send_file ($$) {
 	my $blockno = 1;
 	my $data;
 	do {
+		$blockno &= 0xffff;
 		$data = substr($$contentref, ($blockno - 1) * $bsize, $bsize);
 		# syslog('info', "Block $blockno length " . length($data));
 		log_and_exit('Abort received or retransmit limit reached, exiting')
