@@ -37,11 +37,12 @@ char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 extern char		pxeemu_nbp_active;
 #endif	/* FREEBSD_PXEBOOT */
 
-static inline unsigned long ask_boot(void)
+static inline unsigned long ask_boot(unsigned *index)
 {
 	unsigned long order = DEFAULT_BOOT_ORDER;
+	*index = DEFAULT_BOOT_INDEX;
 #ifdef LINUXBIOS
-	order = get_boot_order(order);
+	order = get_boot_order(order, index);
 #endif
 #if defined(ASK_BOOT) && ASK_BOOT > 0
 	while(1) {
@@ -195,6 +196,7 @@ static int main_loop(int state)
 	 * and predictable.
 	 */
 	static unsigned long order;
+	static unsigned boot_index;
 	static struct dev * dev = 0;
 	static struct class_operations *ops;
 	static void *heap_base;
@@ -234,7 +236,7 @@ static int main_loop(int state)
 		dev = 0;
 
 		/* We just called setjmp ... */
-		order = ask_boot();
+		order = ask_boot(&boot_index);
 		try_floppy_first();
 		break;
 	}
@@ -269,6 +271,7 @@ static int main_loop(int state)
 			dev->how_probe = PROBE_FIRST;
 			dev->type = type;
 			dev->failsafe = failsafe;
+			dev->type_index = 0;
 		} else {
 			/* Advance to the next device of the same type */
 			dev->how_probe = PROBE_NEXT;
@@ -282,7 +285,11 @@ static int main_loop(int state)
 		if (dev->how_probe == PROBE_FAILED) {
 			dev = 0;
 			state = 4;
-		} else {
+		} else if (boot_index && (i == 0) && (boot_index != dev->type_index)) {
+			printf("Wrong index\n");
+			state = 4;
+		}
+		else {
 			state = 2;
 		}
 		break;

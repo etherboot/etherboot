@@ -57,7 +57,7 @@ struct elf_notes {
 	char     nv5_cmdline[SZ("")];
 };
 
-#define ELF_NOTE_COUNT  (3 + 4)
+#define ELF_NOTE_COUNT  (3 + 5)
 
 static struct elf_notes notes;
 struct Elf_Bhdr *prepare_boot_params(void *header)

@@ -52,6 +52,7 @@ struct dev
 	int		how_probe;	/* First, next or awake */
 	int 		to_probe;	/* Flavor of device I am probing */
 	int		failsafe;	/* Failsafe probe requested */
+	int		type_index;	/* Index of this device (within type) */
 #define	PROBE_NONE 0
 #define PROBE_PCI  1
 #define PROBE_ISA  2

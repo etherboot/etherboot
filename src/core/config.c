@@ -98,6 +98,9 @@ static int pci_probe(struct dev *dev, char *type_name)
 			continue;
 		}
 #endif
+		if (dev->how_probe != PROBE_AWAKE) {
+			dev->type_index++;
+		}
 		dev->devid.bus_type = PCI_BUS_TYPE;
 		dev->devid.vendor_id = htons(state->dev.vendor);
 		dev->devid.device_id = htons(state->dev.dev_id);
@@ -144,6 +147,9 @@ static int isa_probe(struct dev *dev, char *type_name)
 		if (state->driver->type != dev->type)
 			continue;
 
+		if (dev->how_probe != PROBE_AWAKE) {
+			dev->type_index++;
+		}
 		printf("[%s]", state->driver->name);
 		dev->devid.bus_type = ISA_BUS_TYPE;
 		/* FIXME how do I handle dev->index + PROBE_AGAIN?? */

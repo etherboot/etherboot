@@ -7,6 +7,7 @@
 struct meminfo meminfo;
 static int lb_failsafe = 1;
 static unsigned lb_boot[MAX_BOOT_ENTRIES];
+static unsigned lb_boot_index;
 static struct cmos_entries lb_countdown;
 static struct cmos_checksum lb_checksum;
 
@@ -216,8 +217,14 @@ static void read_linuxbios_values(struct meminfo *info,
 					lb_failsafe = cmos_read(entry->bit, entry->length) == 0;
 					continue;
 				}
+				/* Find where the boot countdown is */
 				if (memcmp(entry->name, "boot_countdown", 15) == 0) {
 					lb_countdown =  *entry;
+					continue;
+				}
+				/* Find the default boot index */
+				if (memcmp(entry->name, "boot_index", 11) == 0) {
+					lb_boot_index = cmos_read(entry->bit, entry->length);
 					continue;
 				}
 				/* Now filter for the boot order options */
@@ -337,7 +344,7 @@ void get_memsizes(void)
 	
 }
 
-unsigned long get_boot_order(unsigned long order)
+unsigned long get_boot_order(unsigned long order, unsigned *index)
 {
 	static int again;
 	static int checksum_valid;
@@ -368,6 +375,7 @@ unsigned long get_boot_order(unsigned long order)
 		order &= ~(BOOT_MASK << (i * BOOT_BITS));
 		order |= (boot << (i*BOOT_BITS));
 	}
+	*index = lb_boot_index;
 	return order;
 }
 #endif /* LINUXBIOS */

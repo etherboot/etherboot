@@ -23,6 +23,7 @@ struct disk disk =
 		PROBE_FIRST,			/* how_probe */
 		PROBE_NONE,			/* to_probe */
 		0,				/* failsafe */
+		0,				/* type_index */
 		{},				/* state */
 	},
 	(int (*)(struct disk *, sector_t ))dummy,		/* read */

@@ -23,6 +23,12 @@
 #			(alternatives: BOOT_NIC, BOOT_DISK,
 #			 BOOT_FLOPPY, BOOT_NOTHING)
 #			See etherboot.h for prompt and answer strings.
+#	-DBOOT_INDEX    The device to boot from 0 == any device.
+#			1 == The first nic found.
+#			2 == The second nic found
+#			...
+#			BOOT_INDEX only applies to the BOOT_FIRST.  BOOT_SECOND 
+#			and BOOT_THIRD search through all of the boot devices.
 #	-DBAR_PROGRESS
 #			Use rotating bar instead of sequential dots
 #			to indicate an IP packet transmitted.
@@ -222,6 +228,7 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # If you would like to attempt to boot from other devices as well as the network.
 # CFLAGS+=	-DBOOT_SECOND=BOOT_DISK
 # CFLAGS+=	-DBOOT_THIRD=BOTO_FLOPPY
+# CFLAGS+=	-DBOOT_INDEX=0
 
 # If you prefer the old style rotating bar progress display
 # CFLAGS+=	-DBAR_PROGRESS

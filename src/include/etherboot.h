@@ -35,6 +35,12 @@ Author: Martin Renters
 	(BOOT_NOTHING << (3*BOOT_BITS)) | \
 	0)
 
+#ifdef BOOT_INDEX
+#define DEFAULT_BOOT_INDEX BOOT_INDEX
+#else
+#define DEFAULT_BOOT_INDEX 0
+#endif
+
 #if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE)
 #define	TAGGED_IMAGE		/* choose at least one */
 #endif
@@ -644,7 +650,7 @@ struct meminfo {
 } PACKED;
 extern struct meminfo meminfo;
 extern void get_memsizes(void);
-extern unsigned long get_boot_order(unsigned long);
+extern unsigned long get_boot_order(unsigned long order, unsigned *index);
 #ifdef RELOCATE
 extern void relocate(void);
 extern void relocate_to(unsigned long phys_dest);

@@ -158,6 +158,7 @@ struct nic	nic =
 		PROBE_FIRST,			/* how_pobe */
 		PROBE_NONE,			/* to_probe */
 		0,				/* failsafe */
+		0,				/* type_index */
 		{},				/* state */
 	},
 	(int (*)(struct nic *))dummy,		/* poll */
