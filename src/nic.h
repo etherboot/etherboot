@@ -8,6 +8,19 @@
 #ifndef	NIC_H
 #define NIC_H
 
+struct nic_id
+{
+	uint8_t		len;
+	uint8_t		bus_type;
+#define	PCI_BUS_TYPE	1
+#define	ISA_BUS_TYPE	2
+	uint16_t	vendor_id;
+	uint16_t	device_id;
+};
+
+/* Dont use sizeof, that will include the padding */
+#define	NIC_ID_SIZE	6
+
 /*
  *	Structure returned from eth_probe and passed to other driver
  *	functions.
@@ -25,7 +38,7 @@ struct nic
 	unsigned char	*node_addr;
 	char		*packet;
 	unsigned int	packetlen;
-	char		devid[NIC_DEVID_MAX_LEN];  /* NIC device ID string (sent to DHCP server) */
+	struct nic_id	devid;	/* NIC device ID string (sent to DHCP server) */
 	void		*priv_data;	/* driver can hang private data here */
 };
 

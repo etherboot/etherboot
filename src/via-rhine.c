@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /* rhine.c:Fast Ethernet driver for Linux. */
 /*
 	Adapted 09-jan-2000 by Paolo Marini (paolom@prisma-eng.it)

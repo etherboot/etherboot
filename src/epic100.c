@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /* epic100.c: A SMC 83c170 EPIC/100 fast ethernet driver for Etherboot */
 
 #define LINUX_OUT_MACROS

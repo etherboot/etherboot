@@ -279,8 +279,6 @@ Author: Martin Renters
 #define AWAIT_UDP	6
 #endif
 
-#define NIC_DEVID_MAX_LEN 20
-
 /* Helper macros used to identify when DHCP options are valid/invalid in/outside of encapsulation */
 #define NON_ENCAP_OPT in_encapsulated_options == 0 &&
 #ifdef ALLOW_ONLY_ENCAPSULATED
@@ -566,12 +564,12 @@ extern int os_download P((unsigned int, unsigned char *,unsigned int));
 extern void twiddle P((void));
 extern void sleep P((int secs));
 extern void interruptible_sleep P((int secs));
-extern int strcasecmp P((char *a, char *b));
+extern int strcasecmp P((const char *a, const char *b));
 extern char *substr P((char *a, char *b));
-extern int getdec P((char **));
+extern int getdec P((const char **));
 extern void printf P((const char *, ...));
 extern int sprintf P((char *, const char *, ...));
-extern int inet_aton P((char *p, in_addr *i));
+extern int inet_aton P((const char *p, in_addr *i));
 #ifdef PCBIOS
 extern void gateA20_set P((void));
 extern void gateA20_unset P((void));

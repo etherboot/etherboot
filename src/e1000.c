@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /**************************************************************************
 Etherboot -  BOOTP/TFTP Bootstrap Program
 Inter Pro 1000 for Etherboot

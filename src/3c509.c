@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /**************************************************************************
 ETHERBOOT -  BOOTP/TFTP Bootstrap Program
 
@@ -606,6 +609,9 @@ struct nic *t509_probe(struct nic *nic, unsigned short *probe_addrs)
 	nic->poll = t509_poll;
 	nic->transmit = t509_transmit;
 	nic->disable = t509_disable;
+	/* Based on PnP ISA map */
+	nic->devid.vendor_id = htons(0x10b7);
+	nic->devid.device_id = htons(0x80f7);
 	return nic;
 no3c509:
 	printf("(probe fail)");

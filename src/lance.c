@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /**************************************************************************
 Etherboot -  BOOTP/TFTP Bootstrap Program
 LANCE NIC driver for Etherboot
@@ -554,6 +557,14 @@ struct nic *ni6510_probe(struct nic *nic, unsigned short *probe_addrs)
 		nic->poll = lance_poll;
 		nic->transmit = lance_transmit;
 		nic->disable = lance_disable;
+		/* Based on PnP ISA map */
+		nic->devid.vendor_id = htons(0x1022);
+#ifdef	INCLUDE_NE2100
+		nic->devid.device_id = htons(0x80d8);
+#endif
+#ifdef	INCLUDE_NI6510
+		nic->devid.device_id = htons(0x8113);
+#endif
 		return nic;
 	}
 

@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /* rtl8139.c - etherboot driver for the Realtek 8139 chipset
 
   ported from the linux driver written by Donald Becker

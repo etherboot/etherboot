@@ -62,7 +62,7 @@ void twiddle(void)
 /**************************************************************************
 STRCASECMP (not entirely correct, but this will do for our purposes)
 **************************************************************************/
-int strcasecmp(char *a, char *b)
+int strcasecmp(const char *a, const char *b)
 {
 	while (*a && *b && (*a & ~0x20) == (*b & ~0x20)) {a++; b++; }
 	return((*a & ~0x20) - (*b & ~0x20));
@@ -201,8 +201,9 @@ void printf(const char *fmt, ...)
 /**************************************************************************
 INET_ATON - Convert an ascii x.x.x.x to binary form
 **************************************************************************/
-int inet_aton(char *p, in_addr *i)
+int inet_aton(const char *start, in_addr *i)
 {
+	const char *p = start;
 	unsigned long ip = 0;
 	int val;
 	if (((val = getdec(&p)) < 0) || (val > 255)) return(0);
@@ -219,14 +220,14 @@ int inet_aton(char *p, in_addr *i)
 	ip = (ip << 8) | val;
 	if (((val = getdec(&p)) < 0) || (val > 255)) return(0);
 	i->s_addr = htonl((ip << 8) | val);
-	return(1);
+	return p - start;
 }
 
 #endif	/* IMAGE_MENU */
 
-int getdec(char **ptr)
+int getdec(const char **ptr)
 {
-	char *p = *ptr;
+	const char *p = *ptr;
 	int ret=0;
 	if ((*p < '0') || (*p > '9')) return(-1);
 	while ((*p >= '0') && (*p <= '9')) {

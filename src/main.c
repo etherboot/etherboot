@@ -146,7 +146,7 @@ static int bootp(void);
 static int rarp(void);
 static void load_configuration(void);
 static void load(void);
-static int downloadkernel(unsigned char *data, int block, int len, int eof);
+static int load_block(unsigned char *data, int block, int len, int eof);
 static unsigned short ipchksum(unsigned short *ip, int len);
 static unsigned short udpchksum(struct iphdr *packet);
 #ifdef FREEBSD_PXEEMU
@@ -315,7 +315,7 @@ int main(void)
 LOADKERNEL - Try to load kernel image
 **************************************************************************/
 #ifndef	CAN_BOOT_DISK
-#define loadkernel(s) download((s), downloadkernel)
+#define loadkernel(s) download((s), load_block)
 #else
 static int loadkernel(const char *fname)
 {
@@ -339,7 +339,7 @@ static int loadkernel(const char *fname)
 		return(bootdisk(dev,part));
 	}
 nodisk:
-	return download(fname, downloadkernel);
+	return download(fname, load_block);
 }
 #endif
 
@@ -500,9 +500,9 @@ xmit:
 }
 
 /**************************************************************************
-DOWNLOADKERNEL - Try to load file
+LOAD_BLOCK
 **************************************************************************/
-static int downloadkernel(unsigned char *data, int block, int len, int eof)
+static int load_block(unsigned char *data, int block, int len, int eof)
 {
 #ifdef	FREEBSD_PXEEMU
 	static char *pxeemu_nbp_addr = (char *) 0x7C00;
@@ -688,7 +688,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 		}
 
 		if (tr->opcode == ntohs(TFTP_OACK)) {
-			char *p = tr->u.oack.data, *e;
+			const char *p = tr->u.oack.data, *e;
 
 			if (prevblock)		/* shouldn't happen */
 				continue;	/* ignore it */
@@ -841,7 +841,6 @@ static int bootp(void)
 
 	for (retry = 0; retry < MAX_BOOTP_RETRIES; ) {
 		long timeout;
-		unsigned char etherboot_encap_len;
 
 		/* Clear out the Rx queue first.  It contains nothing of
 		 * interest, except possibly ARP requests from the DHCP/TFTP
@@ -866,16 +865,16 @@ static int bootp(void)
 				return(1);
 			dhcp_reply = 0;
 			memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
-			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
-			etherboot_encap_len = sprintf(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest + 2,
-						      "%c%c%s", RFC1533_VENDOR_NIC_DEV_ID, strlen(nic.devid), nic.devid);
-			*(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest) = RFC1533_VENDOR_ETHERBOOT_ENCAP;
-			TAG_LEN(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest) = etherboot_encap_len;
-			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest + etherboot_encap_len + 2, rfc1533_end, sizeof rfc1533_end);
 			/* Beware: the magic numbers 9 and 15 depend on
 			   the layout of dhcprequest */
 			memcpy(ip.bp.bp_vend + 9, &dhcp_server, sizeof(in_addr));
 			memcpy(ip.bp.bp_vend + 15, &dhcp_addr, sizeof(in_addr));
+			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
+			/* Append NIC IDs to end, in encapsulated option */
+			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest] = RFC1533_VENDOR_ETHERBOOT_ENCAP;
+			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 1] = NIC_ID_SIZE + 1;
+			ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 2] = RFC1533_VENDOR_NIC_DEV_ID;
+			memcpy(&ip.bp.bp_vend[sizeof rfc1533_cookie + sizeof dhcprequest + 3], &nic.devid, NIC_ID_SIZE);
 			for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
 				udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,
 					sizeof(struct bootpip_t), &ip);

@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /*
  * 3c90x.c -- This file implements the 3c90x driver for etherboot.  Written
  * by Greg Beeley, Greg.Beeley@LightSys.org.  Modified by Steve Smith,

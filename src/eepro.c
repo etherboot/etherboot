@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /**************************************************************************
 Etherboot -  BOOTP/TFTP Bootstrap Program
 Intel EEPRO/10 NIC driver for Etherboot
@@ -582,5 +585,8 @@ struct nic *eepro_probe(struct nic *nic, unsigned short *probe_addrs)
 	nic->poll = eepro_poll;
 	nic->transmit = eepro_transmit;
 	nic->disable = eepro_disable;
+	/* Based on PnP ISA map */
+	nic->devid.vendor_id = htons(0x8086);
+	nic->devid.device_id = htons(0x828a);
 	return (nic);
 }

@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
 /*
 * 3c595.c -- 3COM 3C595 Fast Etherlink III PCI driver for etherboot
 *

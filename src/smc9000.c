@@ -1,3 +1,6 @@
+#ifdef ALLMULTI
+#error multicast support is not yet implemented
+#endif
  /*------------------------------------------------------------------------
  * smc9000.c
  * This is a Etherboot driver for SMC's 9000 series of Ethernet cards.
@@ -505,7 +508,9 @@ struct nic *smc9000_probe(struct nic *nic, unsigned short *probe_addrs)
    nic->poll = smc9000_poll;
    nic->transmit = smc9000_transmit;
    nic->disable = smc9000_disable;
-
+   /* Based on PnP ISA map */
+   nic->devid.vendor_id = htons(0x10b8);
+   nic->devid.device_id = htons(0x8228);
 
    return nic;
 
