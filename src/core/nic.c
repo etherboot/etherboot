@@ -886,7 +886,6 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 		dhcp_addr.s_addr = bootpreply->bp_yiaddr.s_addr;
 #endif	/* NO_DHCP_SUPPORT */
 		netmask = default_netmask();
-#ifdef PXE_EXPORT
 		/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
 		memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
 		decode_rfc1533(BOOTP_DATA_ADDR->bootp_reply.bp_vend, 0,
@@ -896,6 +895,7 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 			       DHCP_OPT_LEN + MAX_BOOTP_EXTLEN, 
 #endif	/* NO_DHCP_SUPPORT */
 			       1);
+#ifdef PXE_EXPORT
 	} else {
 		/* Offer without an IP address - use as ProxyDHCP server */
 		arptable[ARP_PROXYDHCP].ipaddr.s_addr = bootpreply->bp_siaddr.s_addr;
