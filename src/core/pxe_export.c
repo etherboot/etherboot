@@ -694,18 +694,23 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 			} else {
 				undi_isr->PktType = XMT_DESTADDR;
 			}
+			break;
 		} else {
-			DBG ( " DONE" );
-			/* Re-enable interrupts */
-			eth_irq ( ENABLE );
-			undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_DONE;
+			/* No break - fall through to IN_GET_NEXT */
 		}
-		break;
 	case PXENV_UNDI_ISR_IN_GET_NEXT :
 		/* We only ever return one frame at a time */
 		DBG ( " GET_NEXT DONE" );
 		/* Re-enable interrupts */
 		eth_irq ( ENABLE );
+		/* Force an interrupt if there's a packet still
+		 * waiting, since we only handle one packet per
+		 * interrupt.
+		 */
+		if ( eth_poll ( 0 ) ) {
+			DBG ( " (RETRIGGER)" );
+			eth_irq ( FORCE );
+		}
 		undi_isr->FuncFlag = PXENV_UNDI_ISR_OUT_DONE;
 		break;
 	default :
