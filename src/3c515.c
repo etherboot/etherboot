@@ -37,11 +37,13 @@
 * v0.10	4-17-2002	TJL	Initial implementation.
 * v0.11 4-17-2002       TJL     Cleanup of the code
 * v0.12 4-26-2002       TJL     Added ISA Plug and Play for Non-PNP Bioses
+* v0.13 6-10-2002       TJL     Fixed ISA_PNP MAC Address problem
+*
 */
 
-/*
-#define ISA_PNP
-*/
+
+/*#define ISA_PNP */
+/*#define EDEBUG1*/
 
 /* to get some global routines like printf */
 #include "etherboot.h"
@@ -712,9 +714,18 @@ corkscrew_probe1(int ioaddr, int irq, int product_index, struct nic *nic)
 		break;
 	}
 	eeprom[i] = inw(ioaddr + Wn0EepromData);
+#ifdef EDEBUG1
+	printf("Value %d: %hX        ", i, eeprom[i]);
+#endif
 	checksum ^= eeprom[i];
+#ifdef ISA_PNP
+	phys_addr[0] = htons(eeprom[11]);
+	phys_addr[1] = htons(eeprom[12]);
+	phys_addr[2] = htons(eeprom[13]);
+#else
 	if (i < 3)
 	    phys_addr[i] = htons(eeprom[i]);
+#endif
     }
     checksum = (checksum ^ (checksum >> 8)) & 0xff;
     if (checksum != 0x00)
@@ -1080,7 +1091,7 @@ static int isapnp_isolate_rdp_select(void)
     send_key();
     /* Control: reset CSN and conditionally everything else too */
     CONFIGCONTROL;
-    WRITE_DATA(CONFIG_RESET_CSN | CONFIG_WAIT_FOR_KEY);
+    WRITE_DATA((CONFIG_RESET_CSN | CONFIG_WAIT_FOR_KEY));
     udelay(10);
 
     send_key();
