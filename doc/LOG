@@ -1,0 +1,12 @@
+Base version from Etherboot 5.0.0
+
++ Split off documentation into separate package in anticipation of
+production/development series split. Moved previous LOG to top level.
+
+Released as Etherboot-doc 5.0.1
+
++ Added stuff in userman about .pxe images, using "non authoritative"
+declaration in dhcpd.conf (ISC DHCPD) to work well with existing DHCP
+servers, and a few more acknowledgements.
+
+Released as Etherboot-doc 5.0.2
