@@ -49,3 +49,7 @@ need to set up a suitable pty).
 Packet forwarding/masquerading - document what must be set up.
 
 DHCPD configured to hand out lease for virtual NIC.
+
+Mention possibility of using RFB as the display device - in
+conjunction with the serial console, gives you a test facility that
+can be accessed remotely.
