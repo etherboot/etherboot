@@ -618,10 +618,10 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 			eth_memsize = MEM_16384;
 	}
 	if ((c & WD_SOFTCONFIG) && (!(eth_flags & FLAG_790))) {
-		eth_bmem = phys_to_virt((0x80000 |
+		eth_bmem = bus_to_virt((0x80000 |
 		 ((inb(eth_asic_base + WD_MSR) & 0x3F) << 13)));
 	} else
-		eth_bmem = phys_to_virt(WD_DEFAULT_MEM);
+		eth_bmem = bus_to_virt(WD_DEFAULT_MEM);
 	if (brd->id == TYPE_SMC8216T || brd->id == TYPE_SMC8216C) {
 		*((unsigned int *)(eth_bmem + 8192)) = (unsigned int)0;
 		if (*((unsigned int *)(eth_bmem + 8192))) {
@@ -738,7 +738,7 @@ static int eth_probe (struct dev *dev, unsigned short *probe_addrs)
 				default:
 					continue;	/* nope */
 				}
-			eth_bmem = phys_to_virt(eth_bmem);
+			eth_bmem = bus_to_virt(eth_bmem);
 			break;
 		}
 
