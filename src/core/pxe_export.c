@@ -399,7 +399,7 @@ PXENV_EXIT_t pxenv_undi_transmit ( t_PXENV_UNDI_TRANSMIT *undi_transmit ) {
 
 /* PXENV_UNDI_SET_MCAST_ADDRESS
  *
- * Status: stub
+ * Status: stub (no PXE multicast support)
  */
 PXENV_EXIT_t pxenv_undi_set_mcast_address ( t_PXENV_UNDI_SET_MCAST_ADDRESS
 					    *undi_set_mcast_address ) {
@@ -436,7 +436,8 @@ PXENV_EXIT_t pxenv_undi_set_station_address ( t_PXENV_UNDI_SET_STATION_ADDRESS
 
 /* PXENV_UNDI_SET_PACKET_FILTER
  *
- * Status: stub
+ * Status: won't implement (would require driver API changes for no
+ * real benefit)
  */
 PXENV_EXIT_t pxenv_undi_set_packet_filter ( t_PXENV_UNDI_SET_PACKET_FILTER
 					    *undi_set_packet_filter ) {
@@ -482,7 +483,8 @@ PXENV_EXIT_t pxenv_undi_get_information ( t_PXENV_UNDI_GET_INFORMATION
 
 /* PXENV_UNDI_GET_STATISTICS
  *
- * Status: stub
+ * Status: won't implement (would require driver API changes for no
+ * real benefit)
  */
 PXENV_EXIT_t pxenv_undi_get_statistics ( t_PXENV_UNDI_GET_STATISTICS
 					 *undi_get_statistics ) {
@@ -494,7 +496,8 @@ PXENV_EXIT_t pxenv_undi_get_statistics ( t_PXENV_UNDI_GET_STATISTICS
 
 /* PXENV_UNDI_CLEAR_STATISTICS
  *
- * Status: stub
+ * Status: won't implement (would require driver API changes for no
+ * real benefit)
  */
 PXENV_EXIT_t pxenv_undi_clear_statistics ( t_PXENV_UNDI_CLEAR_STATISTICS
 					   *undi_clear_statistics ) {
@@ -506,7 +509,8 @@ PXENV_EXIT_t pxenv_undi_clear_statistics ( t_PXENV_UNDI_CLEAR_STATISTICS
 
 /* PXENV_UNDI_INITIATE_DIAGS
  *
- * Status: stub
+ * Status: won't implement (would require driver API changes for no
+ * real benefit)
  */
 PXENV_EXIT_t pxenv_undi_initiate_diags ( t_PXENV_UNDI_INITIATE_DIAGS
 					 *undi_initiate_diags ) {
@@ -532,7 +536,7 @@ PXENV_EXIT_t pxenv_undi_force_interrupt ( t_PXENV_UNDI_FORCE_INTERRUPT
 
 /* PXENV_UNDI_GET_MCAST_ADDRESS
  *
- * Status: stub
+ * Status: stub (no PXE multicast support)
  */
 PXENV_EXIT_t pxenv_undi_get_mcast_address ( t_PXENV_UNDI_GET_MCAST_ADDRESS
 					    *undi_get_mcast_address ) {
@@ -1174,7 +1178,7 @@ PXENV_EXIT_t pxenv_restart_tftp ( t_PXENV_RESTART_TFTP *restart_tftp ) {
 
 /* PXENV_START_BASE
  *
- * Status: stub
+ * Status: won't implement (requires major structural changes)
  */
 PXENV_EXIT_t pxenv_start_base ( t_PXENV_START_BASE *start_base ) {
 	DBG ( "PXENV_START_BASE" );
@@ -1185,18 +1189,23 @@ PXENV_EXIT_t pxenv_start_base ( t_PXENV_START_BASE *start_base ) {
 
 /* PXENV_STOP_BASE
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_stop_base ( t_PXENV_STOP_BASE *stop_base ) {
 	DBG ( "PXENV_STOP_BASE" );
-	/* ENSURE_READY ( stop_base ); */
+
+	/* The only time we will be called is when the NBP is trying
+	 * to shut down the PXE stack.  There's nothing we need to do
+	 * in this call.
+	 */
+
 	stop_base->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_LOADER
  *
- * Status: stub
+ * Status: working
  *
  * NOTE: This is not a genuine PXE API call; the loader has a separate
  * entry point.  However, to simplify the mapping of the PXE API to
