@@ -8,8 +8,11 @@
 #ifndef	NIC_H
 #define NIC_H
 
+/* Need to check the packing of this struct if Etherboot is ported */
 struct nic_id
 {
+	uint8_t		encap_len;
+	uint8_t		tag;
 	uint8_t		len;
 	uint8_t		bus_type;
 #define	PCI_BUS_TYPE	1
@@ -19,7 +22,7 @@ struct nic_id
 };
 
 /* Dont use sizeof, that will include the padding */
-#define	NIC_ID_SIZE	6
+#define	NIC_ID_SIZE	8
 
 /*
  *	Structure returned from eth_probe and passed to other driver
