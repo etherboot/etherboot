@@ -98,31 +98,36 @@ void forget_base_memory ( void *ptr, size_t size ) {
 	free_block->magic = FREE_BLOCK_MAGIC;
 	free_block->size_kb = size_kb;
 
-	/* See if we're able to start releasing memory back to the BIOS */
-	if ( phys_to_virt ( *fbms << 10 ) == free_block ) {
-		/* Free all consecutive blocks marked as free */
-		while ( free_block->magic == FREE_BLOCK_MAGIC ) {
-			/* Return memory to BIOS */
-			*fbms += free_block->size_kb;
-#if DEBUG_BASEMEM
-			printf ( "Freed %d kB base memory, %d kB now free\n",
-				 free_block->size_kb, *fbms );
-
-			/* Zero out freed block.  We do this in case
-			 * the block contained any structures that
-			 * might be located by scanning through
-			 * memory.
-			 */
-			memset ( free_block, 0, free_block->size_kb << 10 );
-#endif			
-
-			/* Stop processing if we're all the way up to 640K */
-			if ( *fbms == BASE_MEMORY_MAX ) break;
-			
-			/* Calculate address of next potential free block */
-			free_block = ( free_base_memory_block_t * )
-				phys_to_virt ( *fbms << 10 );
+	/* Try to release memory back to the BIOS.  Free all
+	 * consecutive blocks marked as free.
+	 */
+	while ( 1 ) {
+		/* Calculate address of next potential free block */
+		free_block = ( free_base_memory_block_t * )
+			phys_to_virt ( *fbms << 10 );
+		
+		/* Stop processing if we're all the way up to 640K or
+		 * if this is not a free block
+		 */
+		if ( ( *fbms == BASE_MEMORY_MAX ) ||
+		     ( free_block->magic != FREE_BLOCK_MAGIC ) ) {
+			break;
 		}
+
+		/* Return memory to BIOS */
+		*fbms += free_block->size_kb;
+
+#if DEBUG_BASEMEM
+		printf ( "Freed %d kB base memory, %d kB now free\n",
+			 free_block->size_kb, *fbms );
+		
+		/* Zero out freed block.  We do this in case
+		 * the block contained any structures that
+		 * might be located by scanning through
+		 * memory.
+		 */
+		memset ( free_block, 0, free_block->size_kb << 10 );
+#endif			
 	}
 
 	/* Adjust real mode stack pointer */
