@@ -161,8 +161,11 @@ typedef struct wlan_80211hdr
  * Function prototypes
  */
 
+#if (WLAN_HOSTIF == WLAN_PLX)
 static int prism2_find_plx ( hfa384x_t *hw, struct pci_device *p );
+#elif (WLAN_HOSTIF == WLAN_PCI)
 static int prism2_find_pci ( hfa384x_t *hw, struct pci_device *p );
+#endif
 
 /*
  * Hardware-level hfa384x functions
@@ -377,7 +380,6 @@ static int hfa384x_copy_to_bap(hfa384x_t *hw, UINT16 id, UINT16 offset,
   int result = 0;
   UINT8	*d = (UINT8*)buf;
   UINT16 i;
-  UINT16 reg;
   UINT16 savereg;
 
   /* Prepare BAP */
@@ -472,6 +474,7 @@ static int hfa384x_drvr_getconfig(hfa384x_t *hw, UINT16 rid, void *buf, UINT16 l
  * Returns: 
  *	0		success
  */
+#if 0 /* Not actually used anywhere */
 static int hfa384x_drvr_getconfig16(hfa384x_t *hw, UINT16 rid, void *val)
 {
   int result = 0;
@@ -481,6 +484,8 @@ static int hfa384x_drvr_getconfig16(hfa384x_t *hw, UINT16 rid, void *val)
   }
   return result;
 }
+#endif
+#if 0 /* Not actually used anywhere */
 static int hfa384x_drvr_getconfig32(hfa384x_t *hw, UINT16 rid, void *val)
 {
   int result = 0;
@@ -490,6 +495,7 @@ static int hfa384x_drvr_getconfig32(hfa384x_t *hw, UINT16 rid, void *val)
   }
   return result;
 }
+#endif
 
 /*
  * Performs the sequence necessary to write a config/info item.
@@ -546,12 +552,14 @@ static int hfa384x_drvr_setconfig16(hfa384x_t *hw, UINT16 rid, UINT16 *val)
   value = host2hfa384x_16(*val);
   return hfa384x_drvr_setconfig(hw, rid, &value, sizeof(UINT16));
 }
+#if 0 /* Not actually used anywhere */
 static int hfa384x_drvr_setconfig32(hfa384x_t *hw, UINT16 rid, UINT32 *val)
 {
   UINT32 value;
   value = host2hfa384x_32(*val);
   return hfa384x_drvr_setconfig(hw, rid, &value, sizeof(UINT32));
 }
+#endif
 
 /*
  * Wait for an event, with specified checking interval and timeout.
@@ -735,7 +743,6 @@ static int prism2_pci_probe(struct dev *dev, struct pci_device *p)
   struct nic *nic = (struct nic *)dev;
   hfa384x_t *hw = &hw_global;
   int result;
-  UINT16 reg;
   UINT16 tmp16 = 0;
   UINT16 infofid;
   hfa384x_InfFrame_t inf;
@@ -835,6 +842,7 @@ static int prism2_pci_probe(struct dev *dev, struct pci_device *p)
   return 1;
 }
 
+#if (WLAN_HOSTIF == WLAN_PLX)
 /*
  * Find PLX card.  Prints out information strings from PCMCIA CIS as visual
  * confirmation of presence of card.
@@ -892,7 +900,9 @@ static int prism2_find_plx ( hfa384x_t *hw, struct pci_device *p )
   ((unsigned char *)bus_to_virt(attr_mem))[COR_OFFSET] = COR_VALUE; /* Write COR to enable PC card */
   return found;
 }
+#endif /* WLAN_PLX */
 
+#if (WLAN_HOSTIF == WLAN_PCI)
 /*
  * Find PCI card.
  *
@@ -912,6 +922,7 @@ static int prism2_find_pci ( hfa384x_t *hw, struct pci_device *p )
   printf ( "Prism2.5 has registers at %#x\n", membase );
   return 1;
 }
+#endif /* WLAN_PCI */
 
 #if (WLAN_HOSTIF == WLAN_PLX)
 static struct pci_id prism2_plx_nics[] = {
