@@ -34,6 +34,8 @@
 *    REVISION HISTORY:
 *    ================
 *    v1.0	07-08-2003	timlegge	Initial not quite working version
+*
+*    Indent Options: indent -kr -i8
 ***************************************************************************/
 
 /*
@@ -42,12 +44,12 @@
 #include <linux/netdevice.h>
 */
 
-typedef	unsigned char 	u8;
-typedef	signed char 	s8;
-typedef	unsigned short 	u16;
-typedef	signed short 	s16;
-typedef	unsigned int 	u32;
-typedef	signed int 	s32;
+typedef unsigned char u8;
+typedef signed char s8;
+typedef unsigned short u16;
+typedef signed short s16;
+typedef unsigned int u32;
+typedef signed int s32;
 	/*****************************************************************
 	 * TLan Definitions
 	 *
@@ -73,8 +75,8 @@ typedef	signed int 	s32;
 #define TLAN_DEBUG_LIST		0x0008
 #define TLAN_DEBUG_PROBE	0x0010
 
-#define TX_TIMEOUT		(10*HZ)	 /* We need time for auto-neg */
-#define MAX_TLAN_BOARDS		8	 /* Max number of boards installed at a time */
+#define TX_TIMEOUT		(10*HZ)	/* We need time for auto-neg */
+#define MAX_TLAN_BOARDS		8	/* Max number of boards installed at a time */
 
 
 	/*****************************************************************
@@ -99,11 +101,11 @@ typedef	signed int 	s32;
 #endif
 
 typedef struct tlan_adapter_entry {
-	u16	vendorId;
-	u16	deviceId;
-	char	*deviceLabel;
-	u32	flags;
-	u16	addrOfs;
+	u16 vendorId;
+	u16 deviceId;
+	char *deviceLabel;
+	u32 flags;
+	u16 addrOfs;
 } TLanAdapterEntry;
 
 #define TLAN_ADAPTER_NONE		0x00000000
@@ -127,17 +129,17 @@ typedef struct tlan_adapter_entry {
 	 *
 	 ****************************************************************/
 
-#define EISA_ID      0xc80   /* EISA ID Registers */
-#define EISA_ID0     0xc80   /* EISA ID Register 0 */
-#define EISA_ID1     0xc81   /* EISA ID Register 1 */
-#define EISA_ID2     0xc82   /* EISA ID Register 2 */
-#define EISA_ID3     0xc83   /* EISA ID Register 3 */
-#define EISA_CR      0xc84   /* EISA Control Register */
-#define EISA_REG0    0xc88   /* EISA Configuration Register 0 */
-#define EISA_REG1    0xc89   /* EISA Configuration Register 1 */
-#define EISA_REG2    0xc8a   /* EISA Configuration Register 2 */
-#define EISA_REG3    0xc8f   /* EISA Configuration Register 3 */
-#define EISA_APROM   0xc90   /* Ethernet Address PROM */
+#define EISA_ID      0xc80	/* EISA ID Registers */
+#define EISA_ID0     0xc80	/* EISA ID Register 0 */
+#define EISA_ID1     0xc81	/* EISA ID Register 1 */
+#define EISA_ID2     0xc82	/* EISA ID Register 2 */
+#define EISA_ID3     0xc83	/* EISA ID Register 3 */
+#define EISA_CR      0xc84	/* EISA Control Register */
+#define EISA_REG0    0xc88	/* EISA Configuration Register 0 */
+#define EISA_REG1    0xc89	/* EISA Configuration Register 1 */
+#define EISA_REG2    0xc8a	/* EISA Configuration Register 2 */
+#define EISA_REG3    0xc8f	/* EISA Configuration Register 3 */
+#define EISA_APROM   0xc90	/* Ethernet Address PROM */
 
 
 
@@ -404,7 +406,7 @@ inline u8 TLan_DioRead8(u16 base_addr, u16 internal_addr)
 	outw(internal_addr, base_addr + TLAN_DIO_ADR);
 	return (inb((base_addr + TLAN_DIO_DATA) + (internal_addr & 0x3)));
 
-} /* TLan_DioRead8 */
+}				/* TLan_DioRead8 */
 
 
 
@@ -414,7 +416,7 @@ inline u16 TLan_DioRead16(u16 base_addr, u16 internal_addr)
 	outw(internal_addr, base_addr + TLAN_DIO_ADR);
 	return (inw((base_addr + TLAN_DIO_DATA) + (internal_addr & 0x2)));
 
-} /* TLan_DioRead16 */
+}				/* TLan_DioRead16 */
 
 
 
@@ -424,7 +426,7 @@ inline u32 TLan_DioRead32(u16 base_addr, u16 internal_addr)
 	outw(internal_addr, base_addr + TLAN_DIO_ADR);
 	return (inl(base_addr + TLAN_DIO_DATA));
 
-} /* TLan_DioRead32 */
+}				/* TLan_DioRead32 */
 
 
 
@@ -488,42 +490,55 @@ inline void TLan_SetBit(u8 bit, u16 port)
 #ifdef I_LIKE_A_FAST_HASH_FUNCTION
 /* given 6 bytes, view them as 8 6-bit numbers and return the XOR of those */
 /* the code below is about seven times as fast as the original code */
-inline u32 TLan_HashFunc( u8 *a )
+inline u32 TLan_HashFunc(u8 * a)
 {
-        u8     hash;
+	u8 hash;
 
-        hash = (a[0]^a[3]);             /* & 077 */
-        hash ^= ((a[0]^a[3])>>6);       /* & 003 */
-        hash ^= ((a[1]^a[4])<<2);       /* & 074 */
-        hash ^= ((a[1]^a[4])>>4);       /* & 017 */
-        hash ^= ((a[2]^a[5])<<4);       /* & 060 */
-        hash ^= ((a[2]^a[5])>>2);       /* & 077 */
+	hash = (a[0] ^ a[3]);	/* & 077 */
+	hash ^= ((a[0] ^ a[3]) >> 6);	/* & 003 */
+	hash ^= ((a[1] ^ a[4]) << 2);	/* & 074 */
+	hash ^= ((a[1] ^ a[4]) >> 4);	/* & 017 */
+	hash ^= ((a[2] ^ a[5]) << 4);	/* & 060 */
+	hash ^= ((a[2] ^ a[5]) >> 2);	/* & 077 */
 
-        return (hash & 077);
+	return (hash & 077);
 }
 
-#else /* original code */
+#else				/* original code */
 
-inline	u32	xor( u32 a, u32 b )
+inline u32 xor(u32 a, u32 b)
 {
-	return ( ( a && ! b ) || ( ! a && b ) );
+	return ((a && !b) || (!a && b));
 }
+
 #define XOR8( a, b, c, d, e, f, g, h )	xor( a, xor( b, xor( c, xor( d, xor( e, xor( f, xor( g, h ) ) ) ) ) ) )
 #define DA( a, bit )					( ( (u8) a[bit/8] ) & ( (u8) ( 1 << bit%8 ) ) )
 
-inline u32 TLan_HashFunc( u8 *a )
+inline u32 TLan_HashFunc(u8 * a)
 {
-	u32	hash;
+	u32 hash;
 
-	hash  = XOR8( DA(a,0), DA(a, 6), DA(a,12), DA(a,18), DA(a,24), DA(a,30), DA(a,36), DA(a,42) );
-	hash |= XOR8( DA(a,1), DA(a, 7), DA(a,13), DA(a,19), DA(a,25), DA(a,31), DA(a,37), DA(a,43) ) << 1;
-	hash |= XOR8( DA(a,2), DA(a, 8), DA(a,14), DA(a,20), DA(a,26), DA(a,32), DA(a,38), DA(a,44) ) << 2;
-	hash |= XOR8( DA(a,3), DA(a, 9), DA(a,15), DA(a,21), DA(a,27), DA(a,33), DA(a,39), DA(a,45) ) << 3;
-	hash |= XOR8( DA(a,4), DA(a,10), DA(a,16), DA(a,22), DA(a,28), DA(a,34), DA(a,40), DA(a,46) ) << 4;
-	hash |= XOR8( DA(a,5), DA(a,11), DA(a,17), DA(a,23), DA(a,29), DA(a,35), DA(a,41), DA(a,47) ) << 5;
+	hash =
+	    XOR8(DA(a, 0), DA(a, 6), DA(a, 12), DA(a, 18), DA(a, 24),
+		 DA(a, 30), DA(a, 36), DA(a, 42));
+	hash |=
+	    XOR8(DA(a, 1), DA(a, 7), DA(a, 13), DA(a, 19), DA(a, 25),
+		 DA(a, 31), DA(a, 37), DA(a, 43)) << 1;
+	hash |=
+	    XOR8(DA(a, 2), DA(a, 8), DA(a, 14), DA(a, 20), DA(a, 26),
+		 DA(a, 32), DA(a, 38), DA(a, 44)) << 2;
+	hash |=
+	    XOR8(DA(a, 3), DA(a, 9), DA(a, 15), DA(a, 21), DA(a, 27),
+		 DA(a, 33), DA(a, 39), DA(a, 45)) << 3;
+	hash |=
+	    XOR8(DA(a, 4), DA(a, 10), DA(a, 16), DA(a, 22), DA(a, 28),
+		 DA(a, 34), DA(a, 40), DA(a, 46)) << 4;
+	hash |=
+	    XOR8(DA(a, 5), DA(a, 11), DA(a, 17), DA(a, 23), DA(a, 29),
+		 DA(a, 35), DA(a, 41), DA(a, 47)) << 5;
 
 	return hash;
 
 }
 
-#endif /* I_LIKE_A_FAST_HASH_FUNCTION */
+#endif				/* I_LIKE_A_FAST_HASH_FUNCTION */
