@@ -84,25 +84,26 @@ int hunt_pnp_bios ( void ) {
 
 int hunt_pixie ( void ) {
 	static uint32_t ptr = 0;
+	pxe_t *pxe = NULL;
 
 	printf ( "Hunting for pixies..." );
 	if ( ptr == 0 ) ptr = 0xa0000;
 	while ( ptr > 0x10000 ) {
 		ptr -= 16;
-		undi.pxe = (pxe_t *) phys_to_virt ( ptr );
-		if ( memcmp ( undi.pxe->Signature, "!PXE", 4 ) == 0 ) {
+		pxe = (pxe_t *) phys_to_virt ( ptr );
+		if ( memcmp ( pxe->Signature, "!PXE", 4 ) == 0 ) {
 			printf ( "found !PXE at %x...", ptr );
-			if ( checksum ( undi.pxe, sizeof(pxe_t) ) != 0 ) {
+			if ( checksum ( pxe, sizeof(pxe_t) ) != 0 ) {
 				printf ( "invalid checksum\n..." );
 				continue;
 			}
 			printf ( "ok\n" );
+			undi.pxe = pxe;
 			return 1;
 		}
 	}
 	printf ( "none found\n" );
 	ptr = 0;
-	undi.pxe = NULL;
 	return 0;
 }
 
@@ -283,6 +284,8 @@ int undi_call ( uint16_t opcode ) {
  */
 
 int undi_loader ( void ) {
+	pxe_t *pxe = NULL;
+
 	/* AX contains PCI bus:devfn (PCI specification) */
 	undi.pxs->loader.ax = ( undi.pci.bus << 8 ) | undi.pci.devfn;
 	/* BX and DX set to 0xffff for non-ISAPnP devices
@@ -321,19 +324,19 @@ int undi_loader ( void ) {
 	/* Do the API call to install the loader */
 	if ( ! undi_call_loader () ) return 0;
 
-	undi.pxe = VIRTUAL( undi.pxs->loader.undi_cs,
-			    undi.pxs->loader.pxe_off );
+	pxe = VIRTUAL( undi.pxs->loader.undi_cs, undi.pxs->loader.pxe_off );
 	printf ( "UNDI driver created a pixie at %hx:%hx...",
 		 undi.pxs->loader.undi_cs, undi.pxs->loader.pxe_off );
-	if ( memcmp ( undi.pxe->Signature, "!PXE", 4 ) != 0 ) {
+	if ( memcmp ( pxe->Signature, "!PXE", 4 ) != 0 ) {
 		printf ( "invalid signature\n" );
 		return 0;
 	}
-	if ( checksum ( undi.pxe, sizeof(pxe_t) ) != 0 ) {
+	if ( checksum ( pxe, sizeof(pxe_t) ) != 0 ) {
 		printf ( "invalid checksum\n" );
 		return 0;
 	}
 	printf ( "ok\n" );
+	undi.pxe = pxe;
 	printf ( "API %hx:%hx St %hx:%hx UD %hx:%hx UC %hx:%hx "
 		 "BD %hx:%hx BC %hx:%hx\n",
 		 undi.pxe->EntryPointSP.segment, undi.pxe->EntryPointSP.offset,
@@ -582,6 +585,8 @@ int undi_full_shutdown ( void ) {
 		undi.driver_data = NULL;
 		undi.driver_data_size = 0;
 	}
+	/* !PXE structure now gone; memory freed */
+	undi.pxe = NULL;
 	return 1;
 }
 
@@ -746,7 +751,6 @@ int hunt_pixies_and_undi_roms ( void ) {
 			return 1;
 		}
 		undi_full_shutdown(); /* Free any allocated memory */
-		undi.pxe = NULL;
 	}
 	hunt_type = HUNT_FOR_PIXIES;
 	return 0;
