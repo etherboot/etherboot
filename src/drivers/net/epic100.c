@@ -1,8 +1,6 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /* epic100.c: A SMC 83c170 EPIC/100 fast ethernet driver for Etherboot */
 
+/* 05/06/2003	timlegge	Fixed relocation and implemented Multicast */
 #define LINUX_OUT_MACROS
 
 #include "etherboot.h"
@@ -10,6 +8,10 @@
 #include "nic.h"
 #include "timer.h"
 #include "epic100.h"
+
+/* Condensed operations for readability */
+#define virt_to_le32desc(addr)	cpu_to_le32(virt_to_bus(addr))
+#define le32desc_to_virt(addr)	bus_to_virt(le32_to_cpu(addr))
 
 #define TX_RING_SIZE	2	/* use at least 2 buffers for TX */
 #define RX_RING_SIZE	2
@@ -26,23 +28,18 @@
 
 /* The EPIC100 Rx and Tx buffer descriptors. */
 struct epic_rx_desc {
-    unsigned short status;
-    unsigned short rxlength;
-    unsigned long  bufaddr;
-    unsigned short buflength;
-    unsigned short control;
-    unsigned long  next;
+    unsigned long status;
+    unsigned long bufaddr;
+    unsigned long buflength;
+    unsigned long next;
 };
-
 /* description of the tx descriptors control bits commonly used */
 #define TD_STDFLAGS	TD_LASTDESC
 
 struct epic_tx_desc {
-    unsigned short status;
-    unsigned short txlength;
-    unsigned long  bufaddr;
-    unsigned short buflength;
-    unsigned short control;
+    unsigned long status;
+    unsigned long bufaddr;
+    unsigned long buflength;
     unsigned long  next;
 };
 
@@ -71,6 +68,7 @@ static int	test   ;
 static int	mmctl  ;
 static int	mmdata ;
 static int	lan0   ;
+static int	mc0    ;
 static int	rxcon  ;
 static int	txcon  ;
 static int	prcdar ;
@@ -82,10 +80,12 @@ static unsigned int	cur_rx, cur_tx;		/* The next free ring entry */
 static unsigned short	eeprom[64];
 #endif
 static signed char	phys[4];		/* MII device addresses. */
-static struct epic_rx_desc	rx_ring[RX_RING_SIZE];
-static struct epic_tx_desc	tx_ring[TX_RING_SIZE];
-static char		rx_packet[PKT_BUF_SZ * RX_RING_SIZE];
-static char		tx_packet[PKT_BUF_SZ * TX_RING_SIZE];
+static struct epic_rx_desc	rx_ring[RX_RING_SIZE]
+	__attribute__ ((aligned(4)));
+static struct epic_tx_desc	tx_ring[TX_RING_SIZE]
+	__attribute__ ((aligned(4)));
+static unsigned char	 	rx_packet[PKT_BUF_SZ * RX_RING_SIZE];
+static unsigned char		tx_packet[PKT_BUF_SZ * TX_RING_SIZE];
 
 /***********************************************************************/
 /*                    Externally visible functions                     */
@@ -120,6 +120,7 @@ epic100_probe(struct dev *dev, struct pci_device *pci)
     mmctl   = ioaddr + MMCTL;		/* MII Management Interface Control */
     mmdata  = ioaddr + MMDATA;		/* MII Management Interface Data */
     lan0    = ioaddr + LAN0;		/* MAC address. (0x40-0x48) */
+    mc0     = ioaddr + MC0; 		/* Multicast Control */
     rxcon   = ioaddr + RXCON;		/* Receive Control */
     txcon   = ioaddr + TXCON;		/* Transmit Control */
     prcdar  = ioaddr + PRCDAR;		/* PCI Receive Current Descr Address */
@@ -203,7 +204,18 @@ epic100_probe(struct dev *dev, struct pci_device *pci)
     return 1;
 }
 
-    static void
+static void set_rx_mode(void)
+{
+	unsigned char mc_filter[8];
+	int i;
+	memset(mc_filter, 0xff, sizeof(mc_filter));
+	outl(0x0C, rxcon);
+	for(i = 0; i < 4; i++)
+		outw(((unsigned short *)mc_filter)[i], mc0 + i*4);
+	return;
+}
+	
+   static void
 epic100_open(void)
 {
     int mii_reg5;
@@ -230,11 +242,11 @@ epic100_open(void)
     outl(tmp, txcon);
 
     /* Give adress of RX and TX ring to the chip */
-    outl(virt_to_bus(&rx_ring), prcdar);
-    outl(virt_to_bus(&tx_ring), ptcdar);
+    outl(virt_to_le32desc(&rx_ring), prcdar);
+    outl(virt_to_le32desc(&tx_ring), ptcdar);
 
     /* Start the chip's Rx process: receive unicast and broadcast */
-    outl(0x04, rxcon);
+    set_rx_mode();
     outl(CR_START_RX | CR_QUEUE_RX, command);
 
     putchar('\n');
@@ -245,34 +257,30 @@ epic100_open(void)
 epic100_init_ring(void)
 {
     int i;
-    char* p;
 
     cur_rx = cur_tx = 0;
 
-    p = &rx_packet[0];
     for (i = 0; i < RX_RING_SIZE; i++) {
-	rx_ring[i].status    = RRING_OWN;	/* Owned by Epic chip */
-	rx_ring[i].buflength = PKT_BUF_SZ;
-	rx_ring[i].bufaddr   = virt_to_bus(p + (PKT_BUF_SZ * i));
-	rx_ring[i].control   = 0;
-	rx_ring[i].next      = virt_to_bus(&(rx_ring[i + 1]) );
+	rx_ring[i].status    = cpu_to_le32(RRING_OWN);	/* Owned by Epic chip */
+	rx_ring[i].buflength = cpu_to_le32(PKT_BUF_SZ);
+	rx_ring[i].bufaddr   = virt_to_bus(&rx_packet[i * PKT_BUF_SZ]);
+	rx_ring[i].next      = virt_to_le32desc(&rx_ring[i + 1]) ;
     }
     /* Mark the last entry as wrapping the ring. */
-    rx_ring[i-1].next = virt_to_bus(&rx_ring[0]);
+    rx_ring[i-1].next = virt_to_le32desc(&rx_ring[0]);
 
     /*
      *The Tx buffer descriptor is filled in as needed,
      * but we do need to clear the ownership bit.
      */
-    p = &tx_packet[0];
 
     for (i = 0; i < TX_RING_SIZE; i++) {
-	tx_ring[i].status  = 0;			/* Owned by CPU */
-	tx_ring[i].bufaddr = virt_to_bus(p + (PKT_BUF_SZ * i));
-	tx_ring[i].control = TD_STDFLAGS;
-	tx_ring[i].next    = virt_to_bus(&(tx_ring[i + 1]) );
+	tx_ring[i].status  = 0x0000;			/* Owned by CPU */
+    	tx_ring[i].buflength = 0x0000 | cpu_to_le32(TD_STDFLAGS << 16);
+	tx_ring[i].bufaddr = virt_to_bus(&tx_packet[i * PKT_BUF_SZ]);
+	tx_ring[i].next    = virt_to_le32desc(&tx_ring[i + 1]);
     }
-    tx_ring[i-1].next = virt_to_bus(&tx_ring[0]);
+	tx_ring[i-1].next    = virt_to_le32desc(&tx_ring[0]);
 }
 
 /* function: epic100_transmit
@@ -289,7 +297,7 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
 		 unsigned int len, const char *data)
 {
     unsigned short nstype;
-    char* txp;
+    unsigned char *txp;
     int entry;
 
     /* Calculate the next Tx descriptor entry. */
@@ -303,7 +311,7 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
 	return;
     }
 
-    txp = (char*)tx_ring[entry].bufaddr;
+    txp = tx_packet + (entry * PKT_BUF_SZ);
 
     memcpy(txp, destaddr, ETH_ALEN);
     memcpy(txp + ETH_ALEN, nic->node_addr, ETH_ALEN);
@@ -312,26 +320,29 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
     memcpy(txp + ETH_HLEN, data, len);
 
     len += ETH_HLEN;
-
+	len &= 0x0FFF;
+	while(len < ETH_ZLEN)
+		txp[len++] = '\0';
     /*
      * Caution: the write order is important here,
      * set the base address with the "ownership"
      * bits last.
      */
-    tx_ring[entry].txlength  = (len >= 60 ? len : 60);
-    tx_ring[entry].buflength = len;
-    tx_ring[entry].status    = TRING_OWN;	/* Pass ownership to the chip. */
+    
+    tx_ring[entry].buflength |= cpu_to_le32(len);
+    tx_ring[entry].status = cpu_to_le32(len << 16) | 
+	    cpu_to_le32(TRING_OWN);	/* Pass ownership to the chip. */
 
     cur_tx++;
 
     /* Trigger an immediate transmit demand. */
-    outl(CR_QUEUE_TX, command);
-
+    outl(CR_QUEUE_TX, command); 
+    
     load_timer2(10*TICKS_PER_MS);         /* timeout 10 ms for transmit */
-    while ((tx_ring[entry].status & TRING_OWN) && timer2_running())
+    while ((le32_to_cpu(tx_ring[entry].status) & (TRING_OWN)) && timer2_running())
 	/* Wait */;
 
-    if ((tx_ring[entry].status & TRING_OWN) != 0)
+    if ((le32_to_cpu(tx_ring[entry].status) & TRING_OWN) != 0)
 	printf("Oops, transmitter timeout, status=%hX\n",
 	    tx_ring[entry].status);
 }
@@ -352,14 +363,14 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
 epic100_poll(struct nic *nic)
 {
     int entry;
-    int status;
     int retcode;
-
+    int status;
     entry = cur_rx % RX_RING_SIZE;
 
-    if ((status = rx_ring[entry].status & RRING_OWN) == RRING_OWN)
+    if ((rx_ring[entry].status & cpu_to_le32(RRING_OWN)) == RRING_OWN)
 	return (0);
 
+    status = le32_to_cpu(rx_ring[entry].status);
     /* We own the next entry, it's a new packet. Send it up. */
 
 #if	(EPIC_DEBUG > 4)
@@ -376,8 +387,8 @@ epic100_poll(struct nic *nic)
 	retcode = 0;
     } else {
 	/* Omit the four octet CRC from the length. */
-	nic->packetlen = rx_ring[entry].rxlength - 4;
-	memcpy(nic->packet, (char*)rx_ring[entry].bufaddr, nic->packetlen);
+	nic->packetlen = le32_to_cpu((rx_ring[entry].buflength))- 4;
+	memcpy(nic->packet, &rx_packet[entry * PKT_BUF_SZ], nic->packetlen);
 	retcode = 1;
     }
 
@@ -388,7 +399,7 @@ epic100_poll(struct nic *nic)
     rx_ring[entry].status = RRING_OWN;
 
     /* Restart Receiver */
-    outl(CR_START_RX | CR_QUEUE_RX, command);
+    outl(CR_START_RX | CR_QUEUE_RX, command); 
 
     return retcode;
 }
