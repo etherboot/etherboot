@@ -204,25 +204,6 @@ typedef struct undi {
 	struct pci_device	pci;
 } undi_t;
 
-/* Macros for converting from virtual to segment:offset addresses,
- * when we don't actually care which of the many isomorphic results we
- * get.
- */
-#define DEBUG_SEGMENT 0
-#if DEBUG_SEGMENT
-uint16_t SEGMENT ( const void *ptr ) {
-	uint32_t phys = virt_to_phys ( ptr );
-	if ( phys > 0xfffff ) {
-		printf ( "FATAL ERROR: segment address out of range\n" );
-	}
-	return phys >> 4;
-}
-#else
-#define SEGMENT(x) ( virt_to_phys ( x ) >> 4 )
-#endif
-#define OFFSET(x) ( virt_to_phys ( x ) & 0xf )
-#define VIRTUAL(x,y) ( phys_to_virt ( ( ( x ) << 4 ) + ( y ) ) )
-
 /* Constants
  */
 
