@@ -1,3 +1,8 @@
+/*
+ * mini-slamd
+ * (c) 2002 Eric Biederman
+ */
+
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
