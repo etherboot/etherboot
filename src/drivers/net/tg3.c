@@ -38,8 +38,11 @@ struct tg3 tg3;
  */
 #define TG3_RX_RING_SIZE		512
 #define TG3_DEF_RX_RING_PENDING		20	/* RX_RING_PENDING seems to be o.k. at 20 and 200 */
-#define TG3_RX_RCB_RING_SIZE		1024
-#define TG3_TX_RING_SIZE		512
+#define TG3_RX_RCB_RING_SIZE	1024
+
+/*	(GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5705 ? \
+	 512 : 1024) */
+ #define TG3_TX_RING_SIZE		512
 #define TG3_DEF_TX_RING_PENDING		(TG3_TX_RING_SIZE - 1)
 
 #define TG3_RX_RING_BYTES	(sizeof(struct tg3_rx_buffer_desc) * TG3_RX_RING_SIZE)
@@ -155,7 +158,7 @@ static void tg3_switch_clocks(struct tg3 *tp)
 	tp->pci_clock_ctrl = clock_ctrl;
 	
 	if ((GET_ASIC_REV(tp->pci_chip_rev_id) != ASIC_REV_5705) &&
-		(orig_clock_ctrl & CLOCK_CTRL_44MHZ_CORE)) {
+		(orig_clock_ctrl & CLOCK_CTRL_44MHZ_CORE)!=0) {
 		tw32_carefully(TG3PCI_CLOCK_CTRL, 
 			clock_ctrl | (CLOCK_CTRL_44MHZ_CORE | CLOCK_CTRL_ALTCLK));
 		tw32_carefully(TG3PCI_CLOCK_CTRL, 
@@ -1511,19 +1514,20 @@ static void tg3_chip_reset(struct tg3 *tp)
 {
 	uint32_t val;
 
-
-	/* Force NVRAM to settle.
-	 * This deals with a chip bug which can result in EEPROM
-	 * corruption.
-	 */
-	if (tp->tg3_flags & TG3_FLAG_NVRAM) {
-		int i;
-
-		tw32(NVRAM_SWARB, SWARB_REQ_SET1);
-		for (i = 0; i < 100000; i++) {
-			if (tr32(NVRAM_SWARB) & SWARB_GNT1)
-				break;
-			udelay(10);
+	if (!(tp->tg3_flags2 & TG3_FLG2_SUN_5704)) {
+		/* Force NVRAM to settle.
+		 * This deals with a chip bug which can result in EEPROM
+		 * corruption.
+		 */
+		if (tp->tg3_flags & TG3_FLAG_NVRAM) {
+			int i;
+	
+			tw32(NVRAM_SWARB, SWARB_REQ_SET1);
+			for (i = 0; i < 100000; i++) {
+				if (tr32(NVRAM_SWARB) & SWARB_GNT1)
+					break;
+				udelay(10);
+			}
 		}
 	}
 	/* In Etherboot we don't need to worry about the 5701
@@ -1609,7 +1613,8 @@ static int tg3_restart_fw(struct tg3 *tp, uint32_t state)
 			break;
 		udelay(10);
 	}
-	if (i >= 100000) {
+	if (i >= 100000 &&
+		    !(tp->tg3_flags2 & TG3_FLG2_SUN_5704)) {
 		printf("Firmware will not restart magic=%x\n",
 			val);
 		return -ENODEV;
@@ -1825,42 +1830,51 @@ static int tg3_setup_hw(struct tg3 *tp)
 		tp->grc_mode | 
 		(GRC_MODE_IRQ_ON_MAC_ATTN | GRC_MODE_HOST_STACKUP));
 
-	{
-		static const uint32_t table[] = {
-			/* Setup the timer prescalar register.  Clock is always 66Mhz. */
-			GRC_MISC_CFG, (65 << GRC_MISC_CFG_PRESCALAR_SHIFT),
-			
-			/* Initialize MBUF/DESC pool. */
-			BUFMGR_MB_POOL_ADDR, NIC_SRAM_MBUF_POOL_BASE,
-			BUFMGR_DMA_DESC_POOL_ADDR, NIC_SRAM_DMA_DESC_POOL_BASE,
-			BUFMGR_DMA_DESC_POOL_SIZE, NIC_SRAM_DMA_DESC_POOL_SIZE,
-			
-			BUFMGR_MB_RDMA_LOW_WATER,  DEFAULT_MB_RDMA_LOW_WATER,
-			BUFMGR_MB_MACRX_LOW_WATER, DEFAULT_MB_MACRX_LOW_WATER,
-			BUFMGR_MB_HIGH_WATER,      DEFAULT_MB_HIGH_WATER,
-			
-			BUFMGR_DMA_LOW_WATER,  DEFAULT_DMA_LOW_WATER,
-			BUFMGR_DMA_HIGH_WATER, DEFAULT_DMA_HIGH_WATER,
-			
-			BUFMGR_MODE, BUFMGR_MODE_ENABLE | BUFMGR_MODE_ATTN_ENABLE,
-			
-		};
+	/* Setup the timer prescalar register.  Clock is always 66Mhz. */
+	tw32(GRC_MISC_CFG,
+	     (65 << GRC_MISC_CFG_PRESCALAR_SHIFT));
+
+	/* Initialize MBUF/DESC pool. */
+	if (GET_ASIC_REV(tp->pci_chip_rev_id) != ASIC_REV_5705) {
+		tw32(BUFMGR_MB_POOL_ADDR, NIC_SRAM_MBUF_POOL_BASE);
 		if (GET_ASIC_REV(tp->pci_chip_rev_id) == ASIC_REV_5704)
 			tw32(BUFMGR_MB_POOL_SIZE, NIC_SRAM_MBUF_POOL_SIZE64);
 		else
 			tw32(BUFMGR_MB_POOL_SIZE, NIC_SRAM_MBUF_POOL_SIZE96);
-		
-		TG3_WRITE_SETTINGS(table);
-		for (i = 0; i < 2000; i++) {
-			if (tr32(BUFMGR_MODE) & BUFMGR_MODE_ENABLE)
-				break;
-			udelay(10);
-		}
-		if (i >= 2000) {
-			printf("tg3_setup_hw cannot enable BUFMGR\n");
-			return -ENODEV;
-		}
+		tw32(BUFMGR_DMA_DESC_POOL_ADDR, NIC_SRAM_DMA_DESC_POOL_BASE);
+		tw32(BUFMGR_DMA_DESC_POOL_SIZE, NIC_SRAM_DMA_DESC_POOL_SIZE);
 	}
+	if (!(tp->tg3_flags & TG3_FLAG_JUMBO_ENABLE)) {
+		tw32(BUFMGR_MB_RDMA_LOW_WATER,
+		     tp->bufmgr_config.mbuf_read_dma_low_water);
+		tw32(BUFMGR_MB_MACRX_LOW_WATER,
+		     tp->bufmgr_config.mbuf_mac_rx_low_water);
+		tw32(BUFMGR_MB_HIGH_WATER,
+		     tp->bufmgr_config.mbuf_high_water);
+	} else {
+		tw32(BUFMGR_MB_RDMA_LOW_WATER,
+		     tp->bufmgr_config.mbuf_read_dma_low_water_jumbo);
+		tw32(BUFMGR_MB_MACRX_LOW_WATER,
+		     tp->bufmgr_config.mbuf_mac_rx_low_water_jumbo);
+		tw32(BUFMGR_MB_HIGH_WATER,
+		     tp->bufmgr_config.mbuf_high_water_jumbo);
+	}
+	tw32(BUFMGR_DMA_LOW_WATER,
+	     tp->bufmgr_config.dma_low_water);
+	tw32(BUFMGR_DMA_HIGH_WATER,
+	     tp->bufmgr_config.dma_high_water);
+
+	tw32(BUFMGR_MODE, BUFMGR_MODE_ENABLE | BUFMGR_MODE_ATTN_ENABLE);
+	for (i = 0; i < 2000; i++) {
+		if (tr32(BUFMGR_MODE) & BUFMGR_MODE_ENABLE)
+			break;
+		udelay(10);
+	}
+	if (i >= 2000) {
+		printf("tg3_setup_hw cannot enable BUFMGR\n");
+		return -ENODEV;
+	}
+
 	tw32(FTQ_RESET, 0xffffffff);
 	tw32(FTQ_RESET, 0x00000000);
 	for (i = 0; i < 2000; i++) {
@@ -2139,7 +2153,9 @@ static int tg3_setup_hw(struct tg3 *tp)
 
 	tw32(MAC_LED_CTRL, 0);
 	tw32(MAC_MI_STAT, MAC_MI_STAT_LNKSTAT_ATTN_ENAB);
-	tw32_carefully(MAC_RX_MODE, RX_MODE_RESET);
+	if (tp->phy_id == PHY_ID_SERDES) {
+		tw32_carefully(MAC_RX_MODE, RX_MODE_RESET);
+	}
 	tp->rx_mode |= RX_MODE_KEEP_VLAN_TAG; /* drop tagged vlan packets */
 	tw32_carefully(MAC_RX_MODE, tp->rx_mode);
 
