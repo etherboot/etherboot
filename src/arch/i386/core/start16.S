@@ -124,8 +124,8 @@ exec_moved:
  *****************************************************************************
  */
 	popl	%esi			/* Return address */
-	mov	%ss,%bx			/* %es:di = prefix stack address   */
-	mov	%bx,%es			/* (*after* pop of return address) */
+	mov	%ss, %bx		/* %es:di = prefix stack address   */
+	mov	%bx, %es		/* (*after* pop of return address) */
 	movw	%sp, %di
 	movw	$offset__stack_pgh, %bx	/* Set up Etherboot stack */
 	addw	%ax, %bx
@@ -138,6 +138,7 @@ exec_moved:
 	pushw	%di
 	pushf				/* Save the original interrupt state */
 	pushw	%ax			/* Pad stack to 32-bit alignment */
+	/* %ax still contains image target segment address */
 
 /*****************************************************************************
  * Calculate image target and prefix code physical addresses, store on stack
@@ -176,7 +177,7 @@ exec_moved:
 	/* Compute the offset I am running at.
 	 */
 	movl	%cs, %ebx 
-	shll	$4, %ebx
+	shll	$4, %ebx		/* %ebx = offset for start16 symbols */
 
 	/* Switch to 32bit protected mode.
 	 */
@@ -200,8 +201,7 @@ exec_moved:
 	 * may not be writable/
 	 */
 	pushl	$CODE_SEG
-	movl	%ebx, %eax
-	addl	$(code32_start - _start), %eax
+	ADDR32 leal (code32_start-_start)(%ebx), %eax
 	pushl	%eax	
 	DATA32 lret /* DATA32 needed, because we're still in 16-bit mode */
 
@@ -231,8 +231,7 @@ code32_start:
  */
 	popl	%edi		/* Image target physical address */
 	pushl	%edi
-	movl	$(payload-_start), %esi
-	addl	%ebx, %esi	/* Image source physical address */
+	leal	(payload-_start)(%ebx), %esi /* Image source physical addr */
 	movl	$payload__size, %ecx /* Payload size (not image size) */
 	addl	%ecx, %edi	/* Start at last byte (length - 1) */
 	decl	%edi
@@ -242,6 +241,8 @@ code32_start:
 	rep movsb
 	cld
 	popl	%edi		/* Restore image target physical address */
+	leal	decompressor_uncompressed(%edi), %ebx
+	subl	$runtime__text, %ebx /* %ebx = offset for runtime symbols */
 
 /*****************************************************************************
  * Copy prefix to storage area within Etherboot image.
@@ -249,10 +250,17 @@ code32_start:
  */
 	popl	%esi		/* Prefix source physical address */
 	pushl	%edi
-	addl	$offset__prefix_copy, %edi /* Prefix copy physical address */
-	mov	$runtime__prefix_copy_size, %ecx /* Prefix copy size */
+	leal	runtime__prefix_copy(%ebx), %edi /* Prefix copy phys. addr. */
+	leal	runtime__eprefix_copy(%ebx), %ecx
+	subl	%edi, %ecx	/* Prefix copy size */
 	rep movsb		/* Forward copy of prefix */
 	popl	%edi		/* Restore image target physical address */
+
+/*****************************************************************************
+ * Record base memory used by Etherboot image
+ *****************************************************************************
+ */
+	movl	%edi, runtime_image_basemem(%ebx)
 
 /*****************************************************************************
  * Jump to start of the image (i.e. the decompressor, or start32 if

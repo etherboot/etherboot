@@ -46,11 +46,6 @@ SECTIONS {
 	runtime__stack_size = runtime__estack - runtime__stack ;
 	offset__stack = runtime__stack + offset_adjust ;
 
-	/* Calculations for the prefix copy
-	 */
-	runtime__prefix_copy_size = runtime__eprefix_copy - runtime__prefix_copy ;
-	offset__prefix_copy = runtime__prefix_copy + offset_adjust;
-
 	/* Some symbols will be larger than 16 bits but guaranteed to
 	 * be multiples of 16.  We calculate them in paragraphs and
 	 * export these symbols which can be used in 16-bit code

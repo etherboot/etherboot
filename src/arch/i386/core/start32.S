@@ -1079,6 +1079,9 @@ _estack:
 _prefix_copy:
 	.space 512
 _eprefix_copy:	
+	.globl image_basemem
+image_basemem:
+	.long 0
 #endif
 #ifdef CONFIG_X86_64
 	.section ".bss"
