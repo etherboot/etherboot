@@ -24,7 +24,7 @@ PRINTF and friends
 		%s	- string
 		%@	- Internet address in ddd.ddd.ddd.ddd notation
 		%!	- Ethernet address in xx:xx:xx:xx:xx:xx notation
-	Note: width specification not supported
+	Note: width specification ignored
 **************************************************************************/
 static int vsprintf(char *buf, const char *fmt, va_list args)
 {
