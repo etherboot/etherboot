@@ -75,11 +75,13 @@ use IO::Select;
 use File::Spec::Functions qw ( :ALL );
 use Getopt::Long;
 use Pod::Usage;
+use POSIX qw ( :termios_h );
 use strict;
 use warnings;
 
 my $o;
 my $restore_file = {};
+my $restore_termios;
 use constant BLOCKSIZE => 8192;
 
 ##############################################################################
@@ -141,6 +143,20 @@ sub patch_bochsrc {
   # Modify file
   open my $old, "<$backup" or die "Could not open $backup: $!\n";
   open my $new, ">$active" or die "Could not open $active: $!\n";
+  print $new <<"EOF";
+##################################################
+#
+# This file has been modified by serial-console.
+#
+# Do not modify this file; it will be erased when
+# serial-console (pid $$) exits and will be
+# replaced with the backup copy held in
+# $backup.
+#
+##################################################
+
+
+EOF
   my $patched;
   while ( my $line = <$old> ) {
     if ( $line =~ /^\s*\#?\s*com1:\s*\S/ ) {
@@ -158,6 +174,20 @@ sub patch_bochsrc {
   close $new;
 
   return $backup;
+}
+
+##############################################################################
+#
+# Attach/detach message printing and terminal settings
+
+sub bochs_attached {
+  print STDERR "Bochs attached.\n\n\n"
+      if $o->{verbosity} >= 1;
+}
+
+sub bochs_detached {
+  print STDERR "\n\nWaiting for bochs to attach...\n"
+      if $o->{verbosity} >= 1;
 }
 
 ##############################################################################
@@ -183,6 +213,18 @@ if ( $o->{log} ) {
   open $log, ">$o->{log}" or die "Could not open $o->{log}: $!\n";
 }
 
+# Set up terminal
+my $termios;
+if ( -t STDIN ) {
+  $termios = POSIX::Termios->new;
+  $restore_termios = POSIX::Termios->new;
+  $termios->getattr ( fileno(STDIN) );
+  $restore_termios->getattr ( fileno(STDIN) );
+  $termios->setlflag ( $termios->getlflag &
+		       ~(ICANON) & ~(ECHO) );
+  $termios->setattr ( fileno(STDIN), TCSANOW );
+}
+
 # Modify bochsrc file
 $restore_file = { $o->{rcfile} =>
 		  patch_bochsrc ( $o->{rcfile}, $pty->ttyname ) }
@@ -195,7 +237,6 @@ while ( 1 ) {
   my %can_read = map { $_ => 1 }
   		     $select->can_read ( $attached ? undef : 1 );
   if ( $can_read{\*STDIN} ) {
-#    print STDERR "Reading from STDIN\n";
     sysread ( STDIN, my $data, BLOCKSIZE )
 	or die "Cannot read from STDIN: $!\n";
     $pty->syswrite ( $data );
@@ -203,19 +244,19 @@ while ( 1 ) {
   if ( $can_read{$pty} ) {
     if ( $pty->sysread ( my $data, BLOCKSIZE ) ) {
       # Actual data available
+      bochs_attached() if $attached == 0;
+      $attached = 1;
       syswrite ( STDOUT, $data );
       $log->syswrite ( $data ) if $log;
     } else {
       # No data available but select() says we can read.  This almost
       # certainly indicates that nothing is attached to the slave.
-      print STDERR "\n\nWaiting for bochs to attach...\n"
-	  if $o->{verbosity} >= 1 && $attached == 1;
+      bochs_detached() if $attached == 1;
       $attached = 0;
       sleep ( 1 );
     }
   } else {
-    print STDERR "Bochs attached.\n\n\n"
-	if $o->{verbosity} >= 1 && $attached == 0;
+    bochs_attached() if $attached == 0;
     $attached = 1;
   }
 }
@@ -225,5 +266,9 @@ END {
   if ( ( my $orig_file, my $backup_file ) = %$restore_file ) {
     unlink $orig_file;
     rename $backup_file, $orig_file;
+  }
+  # Restore terminal settings if applicable
+  if ( $restore_termios ) {
+    $restore_termios->setattr ( fileno(STDIN), TCSANOW );
   }
 }
