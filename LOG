@@ -2753,6 +2753,16 @@ images may be broken.
 
 Released as Etherboot 5.3.11 aka 5.4RC2 (development)
 
++ Left out in last release's LOG: accepted patch from Jan Kiszka
+fixing default TFTP blocksize.
+
++ Patch from Jan Kiszka for for multiple receive buffers in eepro100
+driver.
+
 + Fixed 961507 Not so nice 'F?' message when no file name received
 
++ Small fixes to e1000 and via-rhine drivers.
 
++ New mtd80x.c driver.
+
+Released as Etherboot 5.3.12 aka 5.4RC3 (development)
