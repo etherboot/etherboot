@@ -184,6 +184,8 @@
 #			Set for serial console.
 #	-DCONSOLE_DUAL
 #			Both of the above
+#	-DCONSOLE_DIRECT_VGA
+#			Set for direct VGA console (only for x86).
 #	-DCOMCONSOLE
 #			Set port, e.g. 0x3F8.
 #	-DCONSPEED

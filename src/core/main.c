@@ -114,6 +114,9 @@ static void console_init(void)
 #ifdef	CONSOLE_SERIAL
 	(void)serial_init();
 #endif
+#ifdef 	CONSOLE_DIRECT_VGA
+       	video_init();
+#endif
 }
 
 static void console_fini(void)

@@ -31,6 +31,7 @@ SRCS+=	arch/i386/core/pci_io.c
 SRCS+=	arch/i386/core/i386_timer.c
 SRCS+=	arch/i386/core/elf.c
 SRCS+=	arch/i386/core/cpu.c
+SRCS+=	arch/i386/core/video_subr.c
 
 # ROM loaders: PCI header version (prefix P)
 RLOADER=	$(BIN)/rloader.bin
@@ -89,7 +90,7 @@ allcoms:	$(BUILD_COMS)
 alllilos:	$(BUILD_LILOS)
 
 BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
-BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o
+BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
 
 # Prepended loaders
 $(BIN)/rloader.bin:	$(BIN)/rloader.o

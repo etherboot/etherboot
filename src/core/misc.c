@@ -303,7 +303,7 @@ putchar(int c)
 {
 	if (c == '\n')
 		putchar('\r');
-#ifdef	CONSOLE_FIRMWARE
+#if	defined(CONSOLE_FIRMWARE) || defined(CONSOLE_DIRECT_VGA)
 	console_putc(c);
 #endif
 #ifdef	CONSOLE_SERIAL
