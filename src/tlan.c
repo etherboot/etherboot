@@ -601,7 +601,7 @@ static void refill_rx(struct nic *nic __unused)
 
 }
 
- #define EBDEBUG  
+/* #define EBDEBUG  */
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
@@ -705,6 +705,7 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 			    virt_to_le32desc(tail_list);
 			if (priv->eoc)
 				outl(TLAN_HC_GO, BASE + TLAN_HOST_CMD);
+				priv->eoc = 0;
 		} else {
 #ifdef EBDEBUG
 			printf("Fix this \n");
@@ -725,7 +726,10 @@ static void tlan_transmit(struct nic *nic, const char *d,	/* Destination */
 	host_int = inw(BASE + TLAN_HOST_INT);
 	printf("INT2-0x%hX\n", host_int);
 #endif
-
+	/* Revision 48 for 5.0 seems to require this delay
+	 * its minor so do it for everything */
+	udelay(5);
+	
 	to = currticks() + TX_TIME_OUT;
 	while ((tail_list->cStat == TLAN_CSTAT_READY) && currticks() < to);
 
