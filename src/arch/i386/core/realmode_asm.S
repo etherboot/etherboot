@@ -363,6 +363,12 @@ _prot_to_real:
 	/* Return to caller in real-mode */
 	lret
 
+#ifdef FLATTEN_REAL_MODE
+#define RM_LIMIT_16_19__AVL__SIZE__GRANULARITY 0x8f
+#else
+#define RM_LIMIT_16_19__AVL__SIZE__GRANULARITY 0x00
+#endif
+
 p2r_gdt:
 p2r_gdtarg:
 p2r_gdt_limit:		.word p2r_gdt_end - p2r_gdt - 1
@@ -371,11 +377,11 @@ p2r_gdt_padding:	.word 0
 p2r_rmcs:
 	/* 16 bit real mode code segment */
 	.word	0xffff,(0&0xffff)
-	.byte	(0>>16),0x9b,0x00,(0>>24)
+	.byte	(0>>16),0x9b,RM_LIMIT_16_19__AVL__SIZE__GRANULARITY,(0>>24)
 p2r_rmds:
 	/* 16 bit real mode data segment */
 	.word	0xffff,(0&0xffff)
-	.byte	(0>>16),0x93,0x00,(0>>24)
+	.byte	(0>>16),0x93,RM_LIMIT_16_19__AVL__SIZE__GRANULARITY,(0>>24)
 p2r_gdt_end:
 
 	/* This is the end of the trampoline prefix code.  When used

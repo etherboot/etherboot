@@ -76,6 +76,13 @@
 #			call.  May be necessary on some buggy BIOSes.
 #	-DT503_AUI
 #			Use AUI by default on 3c503 cards.
+#	-DFLATTEN_REAL_MODE
+# 			Use 4GB segment limits when calling out to or
+#			returning to real-mode code.  This is necessary to
+#			work around some buggy code (e.g. OpenBSD's pxeboot)
+#			that uses flat real-mode without being sufficiently
+#			paranoid about the volatility of its segment limits.
+
 #
 # @/OptionDescription@
 
@@ -95,6 +102,9 @@ CFLAGS+=	-DPCBIOS
 # Produce code that will work inside the Bochs emulator.  The pnic
 # driver is probably the best one to try.
 # CFLAGS+=	-DCONFIG_PCI_DIRECT
+
+# Produce code that will work with OpenBSD's pxeboot
+# CFLAGS+=	-DFLATTEN_REAL_MODE
 
 CFLAGS+= -fstrength-reduce -fomit-frame-pointer -march=i386
 # Squeeze the code in as little space as possible.
