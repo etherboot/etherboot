@@ -113,6 +113,14 @@ typedef struct undi_rom_id {
 	uint16_t	code_size;
 } PACKED undi_rom_id_t;
 
+/* Nontrivial IRQ handler structure */
+typedef struct {
+	segoff_t		entry;
+	uint16_t		count;
+	t_PXENV_UNDI_ISR	undi_isr;
+	char			code[0];
+} undi_irq_handler_t;
+
 /* Storage buffers that we need in base memory.  We collect these into
  * a single structure to make allocation simpler.
  */
@@ -126,7 +134,11 @@ typedef struct undi_base_mem_data {
 	pxenv_structure_t	pxs;
 	undi_base_mem_xmit_data_t xmit_data;
 	char			xmit_buffer[ETH_FRAME_LEN];
-	char			irq_handler[0]; /* Must be last in structure */
+	/* Must be last in structure and paragraph-aligned */
+	union {
+		char			irq_handler[0];
+		undi_irq_handler_t	nontrivial_irq_handler;
+	}  __attribute__ ((aligned(16)));
 } undi_base_mem_data_t;
 
 /* Macros and data structures used when freeing bits of base memory
