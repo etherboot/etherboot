@@ -20,6 +20,8 @@
 #undef	NOT_AT_0x9xxxx
 #if	(RELOC & 0xF0000) != 0x90000
 #define NOT_AT_0x9xxxx
+#define	MAX_SP	((RELOC & 0xF0000) + 0x10000 - RELOC)
+/* e.g. RELOC = 0x84000, MAX_SP = 0x90000 - 0x84000 = 0xC000 */
 #endif
 
 /* If the Makefile does not provide configuration options, then set
@@ -196,9 +198,18 @@ blockmove:
  */
 	xorw	%cx,%cx
 	movb	%cs:size-_start, %ch
+
+/* Save ROMs CS and length in floppy boot block */
+	pushw	%ds			/* save DS */
+	movw	$FLOPPY_SEGMENT, %ax
+	movw	%ax,%ds
+	movw	%cs,%ax
+	movw	%ax, ROM_SEGMENT
+	movw	%cx, ROM_LENGTH
+	popw	%ds			/* restore DS */
+
 #if	!defined(ZLOADER) || defined(MOVEROM)
 	cld
-	movw	%cx,%dx			/* save length (no stack yet!) */
 #ifdef	ZLOADER /* copy full ROM contents to RAM to improve execution speed */
 	movw	$MOVEROM>>4, %ax
 	xorw	%si,%si			/* si = 0 */
@@ -212,20 +223,12 @@ blockmove:
 	movw	%ax,%es
 	xorw	%di,%di			/* di = 0 */
 	rep movsw	%cs:(%si),%es:(%di)
-	movw	%dx,%cx			/* reload length */
 
 #ifdef	ZLOADER
 	jmp	$MOVEROM>>4, $moved	/* reload cs:ip to execute from RAM */
 moved: 
 #endif
 #endif
-
-/* Save ROMs CS and length in floppy boot block */
-	movw	$FLOPPY_SEGMENT, %ax
-	movw	%ax,%ds
-	movw	%cs,%ax
-	movw	%ax, ROM_SEGMENT
-	movw	%cx, ROM_LENGTH
 
 /* Change segment registers and stack */
 	movw	$RELOC>>4, %bx		/* new ss */
@@ -236,9 +239,10 @@ moved:
 #else
 	movw	%bx,%ds			/* new ds */
 #endif
-/* if we are not at 0x9xxxx, then don't use INT12 to set stack */
 #ifdef	NOT_AT_0x9xxxx
-	movw	$0x0000, %ax		/* use maximum stack pointer */
+/* if we are not at 0x9xxxx, then don't use INT12 to set stack,
+   instead, set stack at top of 64k band */
+	movw	$MAX_SP, %ax
 #else
 	int	$0x12			/* get conventional memory size in KB */
 	movb	$6, %cl
@@ -255,9 +259,9 @@ rev:	js	rev			/* segment is too short, just crash */
  */
 stackok: 
 #endif
-#endif	/* NOT_AT_0x9xxxx */
 	movb	$4, %cl			/* ax *= 16 */
 	shlw	%cl,%ax			/* new sp */
+#endif	/* NOT_AT_0x9xxxx */
 	popw	%dx			/* pop PnP marker */
 	movw	%bx,%ss
 	movw	%ax,%sp

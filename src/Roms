@@ -55,9 +55,6 @@ BINS32	+= bin32/3c905c-tpo.rom bin32/3c905c-tpo.lzrom
 BINS32	+= bin32/82559er.rom bin32/82559er.lzrom
 BINS32	+= bin32/82562em.rom bin32/82562em.lzrom
 BINS32	+= bin32/82c168.rom bin32/82c168.lzrom
-BINS32	+= bin32/98713.rom bin32/98713.lzrom
-BINS32	+= bin32/98715.rom bin32/98715.lzrom
-BINS32	+= bin32/98725.rom bin32/98725.lzrom
 BINS32	+= bin32/amdhomepna.rom bin32/amdhomepna.lzrom
 BINS32	+= bin32/an981.rom bin32/an981.lzrom
 BINS32	+= bin32/ax88140.rom bin32/ax88140.lzrom
@@ -88,6 +85,9 @@ BINS32	+= bin32/kne110tx.rom bin32/kne110tx.lzrom
 BINS32	+= bin32/ktiet32p2.rom bin32/ktiet32p2.lzrom
 BINS32	+= bin32/lancepci.rom bin32/lancepci.lzrom
 BINS32	+= bin32/lc82c115.rom bin32/lc82c115.lzrom
+BINS32	+= bin32/mx98713.rom bin32/mx98713.lzrom
+BINS32	+= bin32/mx98715.rom bin32/mx98715.lzrom
+BINS32	+= bin32/mx98725.rom bin32/mx98725.lzrom
 BINS32	+= bin32/mxic-98715.rom bin32/mxic-98715.lzrom
 BINS32	+= bin32/nv5000sc.rom bin32/nv5000sc.lzrom
 BINS32	+= bin32/otulip.rom bin32/otulip.lzrom
@@ -98,6 +98,7 @@ BINS32	+= bin32/rtl8139.rom bin32/rtl8139.lzrom
 BINS32	+= bin32/sis7016.rom bin32/sis7016.lzrom
 BINS32	+= bin32/sis900.rom bin32/sis900.lzrom
 BINS32	+= bin32/smc1211.rom bin32/smc1211.lzrom
+BINS32	+= bin32/tulip.rom bin32/tulip.lzrom
 BINS32	+= bin32/via-rhine.rom bin32/via-rhine.lzrom
 BINS32	+= bin32/via-rhine-old.rom bin32/via-rhine-old.lzrom
 BINS32	+= bin32/winbond840.rom bin32/winbond840.lzrom
@@ -504,30 +505,6 @@ bin32/82c168.lzrom:	bin32/tulip.huf $(PRZLOADER)
 	cat $(PRZLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -p 0x11ad,0x0002 -i$(IDENT32) $@
 
-bin32/98713.rom:	bin32/tulip.img $(PRLOADER)
-	cat $(PRLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
-
-bin32/98713.lzrom:	bin32/tulip.huf $(PRZLOADER)
-	cat $(PRZLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
-
-bin32/98715.rom:	bin32/tulip.img $(PRLOADER)
-	cat $(PRLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
-
-bin32/98715.lzrom:	bin32/tulip.huf $(PRZLOADER)
-	cat $(PRZLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
-
-bin32/98725.rom:	bin32/tulip.img $(PRLOADER)
-	cat $(PRLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
-
-bin32/98725.lzrom:	bin32/tulip.huf $(PRZLOADER)
-	cat $(PRZLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
-
 bin32/amdhomepna.rom:	bin32/lance.img $(PRLOADER)
 	cat $(PRLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -p 0x1022,0x2001 -i$(IDENT32) $@
@@ -768,6 +745,30 @@ bin32/lc82c115.lzrom:	bin32/tulip.huf $(PRZLOADER)
 	cat $(PRZLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -p 0x11ad,0xc115 -i$(IDENT32) $@
 
+bin32/mx98713.rom:	bin32/tulip.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
+
+bin32/mx98713.lzrom:	bin32/tulip.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0512 -i$(IDENT32) $@
+
+bin32/mx98715.rom:	bin32/tulip.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
+
+bin32/mx98715.lzrom:	bin32/tulip.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
+
+bin32/mx98725.rom:	bin32/tulip.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
+
+bin32/mx98725.lzrom:	bin32/tulip.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x10d9,0x0531 -i$(IDENT32) $@
+
 bin32/mxic-98715.rom:	bin32/tulip.img $(PRLOADER)
 	cat $(PRLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -p 0x1113,0x1217 -i$(IDENT32) $@
@@ -847,6 +848,14 @@ bin32/smc1211.rom:	bin32/rtl8139.img $(PRLOADER)
 bin32/smc1211.lzrom:	bin32/rtl8139.huf $(PRZLOADER)
 	cat $(PRZLOADER) $< > $@
 	bin/makerom $(MAKEROM_$*) -p 0x1112,0x1211 -i$(IDENT32) $@
+
+bin32/tulip.rom:	bin32/tulip.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
+
+bin32/tulip.lzrom:	bin32/tulip.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1011,0x0002 -i$(IDENT32) $@
 
 bin32/via-rhine.rom:	bin32/via-rhine.img $(PRLOADER)
 	cat $(PRLOADER) $< > $@

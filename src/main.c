@@ -337,7 +337,7 @@ retry:
 		const char	*kernel;
 
 		kernel = KERNEL_BUF[0] != '\0' ? KERNEL_BUF : DEFAULT_BOOTFILE;
-		printf("Loading %s ", kernel);
+		printf("Loading %I:%s ", arptable[ARP_SERVER].ipaddr, kernel);
 		while (!loadkernel(kernel)) {
 			printf("Unable to load file.\n");
 			sleep(2);	/* lay off server for a while */
@@ -680,7 +680,7 @@ static int rarp(void)
 	}
 
 	if (retry < MAX_ARP_RETRIES) {
-		(void)sprintf(KERNEL_BUF, "/tftpboot/kernel.%I", arptable[ARP_CLIENT].ipaddr);
+		(void)sprintf(KERNEL_BUF, DEFAULT_KERNELPATH, arptable[ARP_CLIENT].ipaddr);
 
 		return (1);
 	}

@@ -22,6 +22,14 @@ Author: Martin Renters
 
 #define ESC		'\033'
 
+/*  Edit this to change the path to hostspecific kernel image
+    kernel.<client_ip_address> in RARP boot */
+#ifndef	DEFAULT_KERNELPATH
+#define	DEFAULT_KERNELPATH	"/tftpboot/kernel.%I"
+#endif
+
+/* Edit this to change the default fallback kernel image.
+   This is used if bootp/dhcp-server doesn't provide the kernel path */
 #ifndef	DEFAULT_BOOTFILE
 #define DEFAULT_BOOTFILE	"/tftpboot/kernel"
 #endif
@@ -439,6 +447,12 @@ struct rom_info {
 	unsigned short	rom_segment;
 	unsigned short	rom_length;
 };
+
+extern inline int rom_address_ok(struct rom_info *rom, int assigned_rom_segment)
+{
+	return (assigned_rom_segment < 0xC000
+		|| assigned_rom_segment == rom->rom_segment);
+}
 
 /* Define a type for use by setjmp and longjmp */
 typedef	struct {

@@ -1,11 +1,24 @@
-Etherboot 5.0.0
+Etherboot 5.0.1
 
 This is a production release. Some important notes have been retained
 from the 4.7 development series. Please read the documentation for more
 details.
 
+The documentation is now distributed separately. This is to make it
+easier to do parallel development of production and development
+releases.
+
 mknbi is now distributed separately from Etherboot to allow independent
 development.
+
+Relocation of Etherboot to 0x84000 works now which may be useful to
+those booting from Disk-On-Chip (I have not tested it with DOC, only
+from floppy) or similar device which takes over locations in the 0x9xxxx
+band.  You will also need to specify --relocseg=0x8000 to mknbi (version
+1.2-1 and greater) when building the boot image. Also if your DOC
+occupies 0x90000-0x901FF, you need to use kernels 2.4 or higher, which
+use setup protocol 0x0202 or greater and do not need to relocate the
+boot block to 0x90000 when running setup.S.
 
 Etherboot should make PnP ROMs properly now. A long-standing bug in the
 headers has been tracked down. However some faulty old BIOSes are out

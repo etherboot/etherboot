@@ -87,7 +87,7 @@ CPP=		gcc -E
 OBJCOPY=	objcopy
 VERSION_MAJOR=	5
 VERSION_MINOR=	0
-VERSION_PATCH=	0
+VERSION_PATCH=	1
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -369,7 +369,7 @@ clean:
 
 tarball:
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
-	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS etherboot-$(VERSION))
+	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude doc etherboot-$(VERSION))
 	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
 	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
 

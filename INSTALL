@@ -5,12 +5,18 @@ now distributed separately from the Etherboot web site
 http://etherboot.sourceforge.net/  Mknbi is not needed for booting
 FreeBSD.
 
+The documentation tarballs should be extracted in the top directory (the
+one you are reading this INSTALL document from). A top directory called
+doc will be created. This way the links from index.html will work
+properly.
+
 If you don't want to install development tools, but have access to the
 Web, you can get ROM images made on demand from http://rom-o-matic.net/
 
 More likely if you are unfamiliar with Etherboot you should read the
 documentation starting with index.html if you have a Web browser, or
-doc/text/userman.txt if you just have a plain text terminal.
+doc/text/userman.txt (after installing the documentation tarball) if you
+just have a plain text terminal.
 
 Also read RELNOTES for any additional recent information.
 

@@ -85,6 +85,7 @@ ne2100		lance
 # Racal-Interlan NI6510 (Lance based)
 ni6510		lance
 # Base driver for Tulip clones
+tulip		tulip		0x1011,0x0002
 dc21040		tulip		0x1011,0x0002
 # Tulip+
 dc21041		tulip		0x1011,0x0014
@@ -99,9 +100,9 @@ kne110tx	tulip		0x11ad,0x0002
 # Linksys LNE100TX and other NICs Tulip clones
 lc82c115	tulip		0x11ad,0xc115
 # Macronix 987x5 Tulip clones
-98713		tulip		0x10d9,0x0512
-98715		tulip		0x10d9,0x0531
-98725		tulip		0x10d9,0x0531
+mx98713		tulip		0x10d9,0x0512
+mx98715		tulip		0x10d9,0x0531
+mx98725		tulip		0x10d9,0x0531
 # Another Macronix clone?
 mxic-98715	tulip		0x1113,0x1217
 # ADMtek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy

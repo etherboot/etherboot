@@ -1020,7 +1020,7 @@ int os_download(unsigned int block, unsigned char *data, unsigned int len)
 			printf("(NBI)... ");
 			image_type = Tagged;
 			/* Zero all context info */
-			memset(&tctx.img, 0, sizeof(tctx.img));
+			memset(&tctx, 0, sizeof(tctx));
 			/* Copy first 4 longwords */
 			memcpy(&tctx.img, data, sizeof(tctx.img));
 			/* Memory location where we are supposed to save it */

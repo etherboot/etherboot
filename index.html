@@ -121,6 +121,11 @@ debugging.
 <p>The <a href="http://etherboot.sourceforge.net/">online and most
 recent version</a> of this page.</p>
 
+<p><em>If you are viewing this document from a local directory and some
+of the following links do not work, check that you have extracted the
+documentation tarball in a subdirectory of the top directory called
+<tt>doc</tt>.</em></p>
+
 <ul>
 <li>A <a href="doc/html/diskless.html">somewhat dated tutorial
 introduction to Etherboot</a>, originally slides from a talk given to
@@ -141,8 +146,7 @@ href="http://www.ltsp.org/">LTSP project</a>.</li>
 <li>For developers, the <a href="doc/html/devman.html">developer
 manual</a></li>
 
-<li>A <a href="doc/maint/LOG">log of the changes, by
-version</a></li>
+<li>A <a href="LOG">log of the changes, by version</a></li>
 
 <li>A <a href="http://etherboot.sourceforge.net/todo.html">wishlist of things
 to do</a></li>
@@ -170,9 +174,6 @@ running programs from ramdisk</a> (Etherboot 4.6 and earlier)</li>
 
 <li><a href="doc/html/COPYING_compressor.html">Distribution
 conditions for the compression code</a></li>
-
-<li>The <a href="http://etherboot.sourceforge.net/etherboot-5.0.0.lsm">
-current Linux Software Map entry for Etherboot</a></li>
 </ul>
 
 <h3><a name="NICdb">Hardware Compatibility Database</a></h3>
@@ -183,234 +184,8 @@ filling in information you have.</p>
 
 <h2><a name="Distribution">Source distribution</a></h2>
 
-<p>Please use the <a
-href="http://sourceforge.net/project/?group_id=4233">Sourceforge Etherboot
-Project page</a> to report problems, discuss the software, etc.</p>
-
-<p>You are encouraged to use <a
-href="http://download.sourceforge.net/etherboot/">http://download.sourceforge.net/etherboot/</a>
-to fetch production releases.</p>
-
-Etherboot development releases:
-
-<table border cols="5" summary="Etherboot development releases">
-
-<tr>
-<td>Version</td>
-<td>Release date</td>
-<td>.tar.gz</td>
-<td>.tar.bz2</td>
-<td>Patch</td>
-</tr>
-
-</table>
-
-<br>
-
-Etherboot production releases:
-
-<table border cols="5" summary="Etherboot production releases">
-
-<tr>
-<td>Version</td>
-<td>Release date</td>
-<td>.tar.gz</td>
-<td>.tar.bz2</td>
-<td>Patch</td>
-</tr>
-
-<tr>
-<td>5.0.0</td>
-<td>2001-04-26</td>
-<td><a href="etherboot-5.0.0.tar.gz">etherboot-5.0.0.tar.gz</a></td>
-<td><a href="etherboot-5.0.0.tar.bz2">etherboot-5.0.0.tar.bz2</a></td>
-<td></td>
-</tr>
-
-<tr>
-<td>4.6.12</td>
-<td>2000-11-30</td>
-<td><a href="etherboot-4.6.12.tar.gz">etherboot-4.6.12.tar.gz</a></td>
-<td><a href="etherboot-4.6.12.tar.bz2">etherboot-4.6.12.tar.bz2</a></td>
-<td></td>
-</tr>
-
-<tr>
-<td>4.4.5</td>
-<td>2000-03-15</td>
-<td><a href="etherboot-4.4.5.tar.gz">etherboot-4.4.5.tar.gz</a></td>
-<td><a href="etherboot-4.4.5.tar.bz2">etherboot-4.4.5.tar.bz2</a></td>
-<td></td>
-</tr>
-
-<tr>
-<td>4.2.13</td>
-<td>1999-12-21</td>
-<td><a href="etherboot-4.2.13.tar.gz">etherboot-4.2.13.tar.gz</a></td>
-<td><a href="etherboot-4.2.13.tar.bz2">etherboot-4.2.13.tar.bz2</a></td>
-<td></td>
-</tr>
-
-<tr>
-<td>4.0</td>
-<td></td>
-<td><a href="etherboot-4.0.tar.gz">etherboot-4.0.tar.gz</a></td>
-<td><a href="etherboot-4.0.tar.bz2">etherboot-4.0.tar.bz2</a></td>
-</tr>
-</table>
-
-<p>You can make and download your customised ROM images from <a
-href="http://rom-o-matic.net/">Rom-o-matic</a>, courtesy of thinguin.org.</p>
-
-<p>The mknbi utilities are distributed in a separate package.</p>
-
-Source distribution
-
-<table border cols="4" summary="Mknbi utilities">
-
-<tr>
-<td>Version</td>
-<td>Release date</td>
-<td>.tar.gz</td>
-<td>Patch</td>
-</tr>
-
-<tr>
-<td>1.2-0</td>
-<td>2001-04-08</td>
-<td><a href="mknbi-1.2.tar.gz">
-mknbi-1.2.tar.gz</a></td>
-<td></td>
-</tr>
-
-<tr>
-<td>1.1-1</td>
-<td>2001-03-11</td>
-<td><a href="mknbi-1.1.tar.gz">
-mknbi-1.1.tar.gz</a></td>
-<td></td>
-</tr>
-
-<tr>
-<td>1.0-6</td>
-<td>2000-11-29</td>
-<td><a href="mknbi-1.0.tar.gz">
-mknbi-1.0.tar.gz</a></td>
-<td></td>
-</tr>
-
-</table>
-
-<br>
-
-RPM packages
-
-<table border cols="4" summary="Mknbi utilities, RPM packages">
-
-<tr>
-<td>Version</td>
-<td>Release date</td>
-<td>.rpm</td>
-<td>.src.rpm</td>
-</tr>
-
-<tr>
-<td>1.2-0</td>
-<td>2001-04-08</td>
-<td><a href="mknbi-1.2-0.noarch.rpm">mknbi-1.2-0.noarch.rpm</a></td>
-<td><a href="mknbi-1.2-0.src.rpm">mknbi-1.2-0.src.rpm</a></td>
-</tr>
-
-<tr>
-<td>1.1-1</td>
-<td>2001-03-11</td>
-<td><a href="mknbi-1.1-1.noarch.rpm">mknbi-1.1-1.noarch.rpm</a></td>
-<td><a href="mknbi-1.1-1.src.rpm">mknbi-1.1-1.src.rpm</a></td>
-</tr>
-
-<tr>
-<td>1.1-0</td>
-<td>2001-02-08</td>
-<td><a href="mknbi-1.1-0.noarch.rpm">mknbi-1.1-0.noarch.rpm</a></td>
-<td><a href="mknbi-1.1-0.src.rpm">mknbi-1.1-0.src.rpm</a></td>
-</tr>
-
-<tr>
-<td>1.0-6</td>
-<td>2000-11-29</td>
-<td><a href="mknbi-1.0-6.noarch.rpm">mknbi-1.0-6.noarch.rpm</a></td>
-<td><a href="mknbi-1.0-6.src.rpm">mknbi-1.0-6.src.rpm</a></td>
-</tr>
-
-</table>
-
-<br>
-
-Debian packages
-
-<table border cols="6" summary="Mknbi utilities, DEB packages">
-
-<tr>
-<td>Version</td>
-<td>Release date</td>
-<td>.deb</td>
-<td>.tar.gz</td>
-<td>.dsc</td>
-<td>.changes</td>
-</tr>
-
-<tr>
-<td>1.2-0</td>
-<td>2001-04-08</td>
-<td><a href="mknbi_1.2-0_all.deb">mknbi_1.2-0_all.deb</a></td>
-<td><a href="mknbi_1.2-0.tar.gz">mknbi_1.2-0.tar.gz</a></td>
-<td><a href="mknbi_1.2-0.dsc">mknbi_1.2-0.dsc</a></td>
-<td><a href="mknbi_1.2-0_i386.changes">mknbi_1.2-0_i386.changes</a></td>
-</tr>
-
-<tr>
-<td>1.1-1</td>
-<td>2001-03-11</td>
-<td><a href="mknbi_1.1-1_all.deb">mknbi_1.1-1_all.deb</a></td>
-<td><a href="mknbi_1.1-1.tar.gz">mknbi_1.1-1.tar.gz</a></td>
-<td><a href="mknbi_1.1-1.dsc">mknbi_1.1-1.dsc</a></td>
-<td><a href="mknbi_1.1-1_i386.changes">mknbi_1.1-1_i386.changes</a></td>
-</tr>
-
-<tr>
-<td>1.1-0</td>
-<td>2001-02-08</td>
-<td><a href="mknbi_1.1-0_all.deb">mknbi_1.1-0_all.deb</a></td>
-<td><a href="mknbi_1.1-0.tar.gz">mknbi_1.1-0.tar.gz</a></td>
-<td><a href="mknbi_1.1-0.dsc">mknbi_1.1-0.dsc</a></td>
-<td><a href="mknbi_1.1-0_i386.changes">mknbi_1.1-0_i386.changes</a></td>
-</tr>
-
-<tr>
-<td>1.0-6</td>
-<td>2000-11-29</td>
-<td><a href="mknbi_1.0-6_all.deb">mknbi_1.0-6_all.deb</a></td>
-<td><a href="mknbi_1.0-6.tar.gz">mknbi_1.0-6.tar.gz</a></td>
-<td><a href="mknbi_1.0-6.dsc">mknbi_1.0-6.dsc</a></td>
-<td><a href="mknbi_1.0-6_i386.changes">mknbi_1.0-6_i386.changes</a></td>
-</tr>
-
-</table>
-
-<ul>
-
-<li>The old mknbi tools from netboot-0.8.1
-are now distributed as <a href="mini-netboot-0.8.1.tar.gz">a separate
-package</a>.</li>
-
-<li>The Flashcard directory from Netboot is now <a
-href="FlashCard.tar.gz">a separate package</a>.</li>
-
-<li>A tiny non-spooling printer daemon for Linux hosts,
-especially diskless ones. Here's the <a href=
-"http://etherboot.sourceforge.net/p910nd/">source</a>.</li>
-
-</ul>
+<p>Download from <a
+href="http://etherboot.sourceforge.net/distribution.html">here</a>.
 
 <h2><a name="Contributing">Contributing to Etherboot</a></h2>
 
@@ -494,7 +269,7 @@ or products mentioned by the Etherboot project.
 
 <hr>Comments to <a href="mailto:ken_yap@users.sourceforge.net">Ken Yap</a>. 
 
-<p><em>Last modified 2001-04-26</em></p>
+<p><em>Last modified 2001-05-04</em></p>
 
 <hr>
 
