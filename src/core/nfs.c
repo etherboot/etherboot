@@ -176,6 +176,13 @@ static void nfs_printerror(int err)
 	case NFSERR_ACCES:
 		printf("Permission denied\n");
 		break;
+	case NFSERR_ISDIR:
+		printf("Directory given where filename expected\n");
+		break;
+	case NFSERR_INVAL:
+		printf("Invalid filehandle\n");
+		break; // INVAL is not defined in NFSv2, some NFS-servers
+		// seem to use it in answers to v2 nevertheless.
 	case 9998:
 		printf("low-level RPC failure (parameter decoding problem?)\n");
 		break;
@@ -304,7 +311,7 @@ static int nfs_readlink(int server, int port, char *fh, char *path, char *nfh,
 	buf.u.call.rpcvers = htonl(2);	/* use RPC version 2 */
 	buf.u.call.prog = htonl(PROG_NFS);
 	buf.u.call.vers = htonl(2);	/* nfsd is version 2 */
-	buf.u.call.proc = htonl(5); // 5 =^= READLINK (NFS v2, v3)
+	buf.u.call.proc = htonl(NFS_READLINK);
 	p = rpc_add_credentials((long *)buf.u.call.data);
 	memcpy(p, nfh, NFS_FHSIZE);
 	p += (NFS_FHSIZE / 4);
@@ -548,22 +555,17 @@ int nfs(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int
 	len = NFS_READ_SIZE;	/* first request is always full size */
 	do {
 		err = nfs_read(ARP_SERVER, nfs_port, filefh, offs, len, sport);
-                if ((err <= -21)&&(err >= -22) && (offs == 0)) {
+                if ((err <= -NFSERR_ISDIR)&&(err >= -NFSERR_INVAL) && (offs == 0)) {
 			// An error occured. NFS servers tend to sending
 			// errors 21 / 22 when symlink instead of real file
 			// is requested. So check if it's a symlink!
 			block = nfs_readlink(ARP_SERVER, nfs_port, dirfh, dirname,
 			                filefh, sport);
 			if ( 0 == block ) {
-			printf("\nLoading symlink:%s ..",dirname);
+				printf("\nLoading symlink:%s ..",dirname);
 				return nfs ( dirname, fnc );
 			}
-			printf ( "read error: " );
-			if ( err == -21 ) {
-				printf ( "is a directory\n" );
-			} else {
-				printf ( "is not a symlink\n" );
-			}
+			nfs_printerror(err);
 			nfs_umountall(ARP_SERVER);
 			return 0;
 		}
