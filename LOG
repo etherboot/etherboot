@@ -2656,9 +2656,11 @@ ISA .o files for etherboot-pci.
 
 + Fixed typo in vsprint 
 
-+ Acknowledge NXTV (http://www.nxtv.com/) who funded the developement of the National Semiconductor ns83820 gigabit driver in the last release
++ Acknowledge NXTV (http://www.nxtv.com/) who funded the developement of the 
+National Semiconductor ns83820 gigabit driver in the last release
 
-+ Timothy Legge cleaned up the pcnet32, r8169 and sundance drivers and standardize output and conditionalized isapnp
++ Timothy Legge cleaned up the pcnet32, r8169 and sundance drivers and 
+standardize output and conditionalized isapnp
 
 + Timothy Legge added mii.h from Linux
 
@@ -2683,4 +2685,6 @@ James Pearson, Georg Baum and Marty Connor for help resolving this issue.
 
 + Update to lance.c chip_table from Helge Wagner
 
++ Backport of the 5.3 Link Aggregation Control Protocol implementation
+ provided by Eric Biederman
 
