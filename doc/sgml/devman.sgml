@@ -5,7 +5,7 @@
 <title>Etherboot Developers Manual
 <author>Ken Yap,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/
-<date>v5.0.0, 26 April 2001
+<date>v5.0.1, 4 May 2001
 
 <abstract>
 This document explains the internals of the Etherboot package.  The
@@ -37,6 +37,8 @@ documentation.
 <p>
 
 <descrip>
+
+<tag/5.0.1 2001-05-04/ Released as Etherboot-doc 5.0.1.
 
 <tag/5.0.0 2001-04-26/ Released with Etherboot 5.0.0.
 

@@ -1,3 +1,8 @@
+This tarball should be extracted inside the top directory of an
+Etherboot distribution and will create a subdirectory called doc.  This
+is so that the references to the files src/NIC and src/Config will work
+when rebuilding the documentation.
+
 All these files, except for the ones in maint are derived from the
 masters in the sgml directory. So please edit those.
 

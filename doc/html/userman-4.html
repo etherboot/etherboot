@@ -68,7 +68,7 @@ typically like this:
 <HR>
 <P>(See an important note regarding IP autoconfig in kernels in the 2.2
 series 2.2.18 and after under the section --ip= in the 
-<A HREF="mknbi.html">mknbi-linux documentation</A>).  Then put the
+<A HREF="mknbi.html">mknbi-linux documentation</A>.)  Then put the
 tagged image in where the tftp daemon expects to find it, in this
 example /tftpdir. Make sure it is world-readable because typically the
 tftp daemon runs as an unprivileged user. It is recommended that you set
@@ -122,10 +122,9 @@ NFS mounting.
 <P>
 <P>
 <P>Recent kernels in the 2.2 series can autoconfigure using DHCP thanks to
-code by Chip Salzenberg. It is not clear if this has or will be ported
-to 2.4 kernels because DHCP autoconfig is a really a userland issue.
-Otherwise the kernel will do a bootp request to find the IP address for
-mounting the NFS filesystem.
+code by Chip Salzenberg. It also can use DHCP in 2.4 kernels starting
+from 2.4.4 thanks to Eric Biederman.  Otherwise the kernel will do a
+bootp request to find the IP address for mounting the NFS filesystem.
 <P>
 <P>
 <P>You may also wish to investigate the --rootdir=rom option in 

@@ -1,6 +1,6 @@
   Etherboot Developers Manual
   Ken Yap, <ken_yap@users.sourceforge.net>
-  v5.0.0, 26 April 2001
+  v5.0.1, 4 May 2001
 
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
@@ -77,6 +77,10 @@
 
 
 
+     55..00..11 22000011--0055--0044
+        Released as Etherboot-doc 5.0.1.
+
+
      55..00..00 22000011--0044--2266
         Released with Etherboot 5.0.0.
 
@@ -121,6 +125,9 @@
 
   All trademarks mentioned in this document belong to their respective
   owners.
+
+
+
 
 
   11..66..  AAcckknnoowwlleeddggeemmeennttss aanndd TThhaannkkss
@@ -188,6 +195,7 @@
      0xC8000 and 0xEE000, although some main BIOSes scan outside these
      limits.
 
+
   +o  The first two bytes of the ROM must be 55 AA hex.
 
   +o  The third byte of the ROM should contain the number of bytes in the
@@ -254,7 +262,6 @@
   2. For legacy ROMs, the Etherboot code hooks itself to interrupt 0x19
      and returns control to the main BIOS. For PnP ROMs the Etherboot
      code indicates that it is a bootable device.
-
   3. The main BIOS finishes initialising other devices and boots the
      operating system by calling interrupt 0x19.
 
@@ -262,6 +269,7 @@
 
   5. It initialises the network hardware so that it is ready to send and
      receive packets.
+
   6. It sends a Boot Protocol (BOOTP
      <http://www.ietf.org/rfc/rfc951.txt>) or Dynamic Host Configuration
      Protocol (DHCP <http://www.ietf.org/rfc/rfc2131.txt>) broadcast
@@ -325,7 +333,6 @@
   segment (setup.S from the Linux kernel sources).  This is filled in
   with the final location of the RAM disk after it has been moved to the
   top of memory.
-
 
 
   33..22..  TToo ccoommpprreessss oorr nnoott ttoo ccoommpprreessss,, tthhaatt iiss tthhee qquueessttiioonn
@@ -394,6 +401,7 @@
   final execution location and jumps to it.
 
 
+
   If you have understood by now that the loader must be written as PIC
   and in assembler, give youself a pat on the back.
 
@@ -457,9 +465,6 @@
   stack.
 
 
-
-
-
   44..  TThhee aarrcchhiitteeccttuurree ooff EEtthheerrbboooott
 
 
@@ -520,9 +525,9 @@
 
 
 
+
   The files pci.h and pci.c provide a PCI initialisation subsystem that
   is executed for PCI adapters.
-
 
 
 
@@ -652,6 +657,7 @@
      a compressed ROM, so the loader is przloader.  This is prepended to
      the binary image to generate a ROM image.
 
+
   +o  makerom is run over this ROM image to pad it to the size of a
      standard EPROM. (8 kB, 16 kB, 32 kB, etc.) The PCI IDs are written
      into the image into the PnP structure at the right spots. A string
@@ -714,6 +720,7 @@
   me that did not already have a boot ROM capability was the x86
   platform.  (Sparcs and Alphas already have network booting capability
   in their boot ROMs.)
+
 
 
 
@@ -780,6 +787,7 @@
   down.  Needless to say, you need a unit of the adapter you are trying
   to write a driver for. You should gather all the documentation you can
   find for the hardware, from the manufacturer and other sources.
+
 
 
   77..22..  BBaacckkggrroouunndd iinnffoorrmmaattiioonn
@@ -855,6 +863,8 @@
      right speed (10Mb, 100Mb) if the hardware does not autosense and
      set it.  It also includes setting up any memory buffers needed by
      the hardware, along with any necessary pointers.
+
+
 
      Note that you should program the receiver registers to allow
      broadcast Ethernet packets to be received.  This is needed because
@@ -976,7 +986,6 @@
   need more than one transmit buffer. You do not need to use the most
   efficient method of data transfer. You do not need to implement
   multicasting. You do not need to implement statistics counting.
-
 
 
   Generally speaking, the probe routine is relatively easy to translate
@@ -1124,15 +1133,6 @@
   April 2000, Etherboot has been hosted at Sourceforge
   <http://sourceforge.net/>. Sourceforge has provided superb facilities
   for hosting community Open Source development.
-
-
-
-
-
-
-
-
-
 
 
 

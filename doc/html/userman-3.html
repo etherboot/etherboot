@@ -40,6 +40,28 @@ commands, where you replace x by the patchlevel number:
         bunzip2 &lt; etherboot-5.0.x.tar.bz2 | tar xvf -
 </PRE>
 <HR>
+<P>If the documentation tarball was provided separately, then in addition
+do this:
+<P>
+<P>
+<P>
+<HR>
+<PRE>
+        cd etherboot-5.0.x
+</PRE>
+<HR>
+<P>followed by one of the following:
+<P>
+<HR>
+<PRE>
+        tar zxvf ../etherboot-doc-5.0.x.tar.gz
+        tar Ixvf ../etherboot-doc-5.0.x.tar.bz2
+        gunzip &lt; ../etherboot-doc-5.0.x.tar.gz | tar xvf -
+        bunzip2 &lt; ../etherboot-doc-5.0.x.tar.bz2 | tar xvf -
+</PRE>
+<HR>
+<P>which will extract the documentation in a subdirectory of the Etherboot
+top directory.
 <P>
 <H2><A NAME="ss3.3">3.3 Compiling the ROM images</A>
 </H2>
@@ -305,8 +327,8 @@ just try it and destroy your disk data.
 <P>When you boot with this floppy it will load the Etherboot ROM image from
 floppy and execute it. If you chose the correct ROM image, it should be
 able to detect your card. To get the bootrom to acquire an IP address
-and load the intended code, you need to set up bootp, tftp and NFS
-services, which we will discuss next.
+and load the intended code, you need to set up bootp or DHCP, tftp and
+NFS services, which we will discuss next.
 <P>
 <P>
 <P>We suggest you continue to use floppy booting until you have completed

@@ -1,7 +1,7 @@
   Etherboot User Manual
   Ken Yap and Markus Gutschke, <ken_yap@users.source-
   forge.net>, <markus+etherboot@gutschke.com>
-  v5.0.0, 26 April 2001
+  v5.0.1, 4 May 2001
 
   This User Manual explains how to install, configure and use the Ether-
   boot package.  The instructions here apply to version 5.0 of Ether-
@@ -155,6 +155,10 @@
 
 
 
+     55..00..11 22000011--0055--0044
+        Released as Etherboot-doc 5.0.1.
+
+
      55..00..00 22000011--0044--2266
         Released with Etherboot 5.0.0.
 
@@ -194,6 +198,7 @@
      academic purposes: Write to the author and ask. These restrictions
      are here to protect us as authors, not to restrict you as learners
      and educators.
+
 
 
   All trademarks mentioned in this document belong to their respective
@@ -257,7 +262,6 @@
   distribute those changes too with binary distributions.
 
 
-
   The GPL applies to the whole package but portions may be used under
   other licenses. See the section on ``source copyrights'' for details,
   file by file. Please support Open Source by joining the community and
@@ -277,17 +281,13 @@
   22..33..  WWhhaatt hhaarrddwwaarree iiss ssuuppppoorrtteedd??
 
 
-  The following is the current NIC configuration file as of 2001-04-25.
+  The following is the current NIC configuration file as of 2001-05-04.
 
   Even if your NIC does not appear in the list, it may still be
   supported if the chip is one of those supported.  Many OEMs use chips
   from foundries. An exhaustive list of brand names is impossible.  The
   best strategy is to read the number on the LAN controller chip on the
   board.
-
-
-
-
 
 
 
@@ -416,6 +416,7 @@
   # Racal-Interlan NI6510 (Lance based)
   ni6510          lance
   # Base driver for Tulip clones
+  tulip           tulip           0x1011,0x0002
   dc21040         tulip           0x1011,0x0002
   # Tulip+
   dc21041         tulip           0x1011,0x0014
@@ -430,9 +431,9 @@
   # Linksys LNE100TX and other NICs Tulip clones
   lc82c115        tulip           0x11ad,0xc115
   # Macronix 987x5 Tulip clones
-  98713           tulip           0x10d9,0x0512
-  98715           tulip           0x10d9,0x0531
-  98725           tulip           0x10d9,0x0531
+  mx98713         tulip           0x10d9,0x0512
+  mx98715         tulip           0x10d9,0x0531
+  mx98725         tulip           0x10d9,0x0531
   # Another Macronix clone?
   mxic-98715      tulip           0x1113,0x1217
   # ADMtek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
@@ -524,6 +525,7 @@
 
 
 
+
   All Etherboot drivers are autoprobing, which means they attempt to
   detect the hardware addresses at which the card is installed. It's
   fairly easy to write a driver if you know C and are familiar with
@@ -590,8 +592,6 @@
   Unpack the distribution using gunzip and tar, using one of the
   following commands, where you replace x by the patchlevel number:
 
-
-
   ______________________________________________________________________
           tar zxvf etherboot-5.0.x.tar.gz
           tar Ixvf etherboot-5.0.x.tar.bz2
@@ -600,6 +600,33 @@
   ______________________________________________________________________
 
 
+
+  If the documentation tarball was provided separately, then in addition
+  do this:
+
+
+
+
+  ______________________________________________________________________
+          cd etherboot-5.0.x
+  ______________________________________________________________________
+
+
+
+  followed by one of the following:
+
+
+  ______________________________________________________________________
+          tar zxvf ../etherboot-doc-5.0.x.tar.gz
+          tar Ixvf ../etherboot-doc-5.0.x.tar.bz2
+          gunzip < ../etherboot-doc-5.0.x.tar.gz | tar xvf -
+          bunzip2 < ../etherboot-doc-5.0.x.tar.bz2 | tar xvf -
+  ______________________________________________________________________
+
+
+
+  which will extract the documentation in a subdirectory of the
+  Etherboot top directory.
 
 
   33..33..  CCoommppiilliinngg tthhee RROOMM iimmaaggeess
@@ -629,33 +656,6 @@
 
 
   Here is a description of the options available:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   ______________________________________________________________________
@@ -902,8 +902,8 @@
   When you boot with this floppy it will load the Etherboot ROM image
   from floppy and execute it. If you chose the correct ROM image, it
   should be able to detect your card. To get the bootrom to acquire an
-  IP address and load the intended code, you need to set up bootp, tftp
-  and NFS services, which we will discuss next.
+  IP address and load the intended code, you need to set up bootp or
+  DHCP, tftp and NFS services, which we will discuss next.
 
 
 
@@ -1021,7 +1021,7 @@
 
   (See an important note regarding IP autoconfig in kernels in the 2.2
   series 2.2.18 and after under the section --ip= in the mknbi-linux
-  documentation <mknbi.html>).  Then put the tagged image in where the
+  documentation <mknbi.html>.)  Then put the tagged image in where the
   tftp daemon expects to find it, in this example /tftpdir. Make sure it
   is world-readable because typically the tftp daemon runs as an
   unprivileged user. It is recommended that you set a path explicitly
@@ -1089,10 +1089,10 @@
 
 
   Recent kernels in the 2.2 series can autoconfigure using DHCP thanks
-  to code by Chip Salzenberg. It is not clear if this has or will be
-  ported to 2.4 kernels because DHCP autoconfig is a really a userland
-  issue.  Otherwise the kernel will do a bootp request to find the IP
-  address for mounting the NFS filesystem.
+  to code by Chip Salzenberg. It also can use DHCP in 2.4 kernels
+  starting from 2.4.4 thanks to Eric Biederman.  Otherwise the kernel
+  will do a bootp request to find the IP address for mounting the NFS
+  filesystem.
 
 
 

@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/,
 <tt/&lt;markus+etherboot@gutschke.com&gt;/
-<date>v5.0.0, 26 April 2001
+<date>v5.0.1, 4 May 2001
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -40,6 +40,8 @@ documentation.
 <p>
 
 <descrip>
+
+<tag/5.0.1 2001-05-04/ Released as Etherboot-doc 5.0.1.
 
 <tag/5.0.0 2001-04-26/ Released with Etherboot 5.0.0.
 
@@ -167,7 +169,7 @@ listed on the Etherboot home page.</it>
 
 <p>
 
-The following is the current NIC configuration file as of 2001-04-25.
+The following is the current NIC configuration file as of 2001-05-04.
 
 Even if your NIC does not appear in the list, it may still be supported
 if the chip is one of those supported.  Many OEMs use chips from
@@ -262,6 +264,7 @@ ne2100		lance
 # Racal-Interlan NI6510 (Lance based)
 ni6510		lance
 # Base driver for Tulip clones
+tulip		tulip		0x1011,0x0002
 dc21040		tulip		0x1011,0x0002
 # Tulip+
 dc21041		tulip		0x1011,0x0014
@@ -276,9 +279,9 @@ kne110tx	tulip		0x11ad,0x0002
 # Linksys LNE100TX and other NICs Tulip clones
 lc82c115	tulip		0x11ad,0xc115
 # Macronix 987x5 Tulip clones
-98713		tulip		0x10d9,0x0512
-98715		tulip		0x10d9,0x0531
-98725		tulip		0x10d9,0x0531
+mx98713		tulip		0x10d9,0x0512
+mx98715		tulip		0x10d9,0x0531
+mx98725		tulip		0x10d9,0x0531
 # Another Macronix clone?
 mxic-98715	tulip		0x1113,0x1217
 # ADMtek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
@@ -443,6 +446,27 @@ commands, where you replace x by the patchlevel number:
 	gunzip < etherboot-5.0.x.tar.gz | tar xvf -
 	bunzip2 < etherboot-5.0.x.tar.bz2 | tar xvf -
 </code>
+
+If the documentation tarball was provided separately, then in addition
+do this:
+
+<p>
+
+<code>
+	cd etherboot-5.0.x
+</code>
+
+followed by one of the following:
+
+<code>
+	tar zxvf ../etherboot-doc-5.0.x.tar.gz
+	tar Ixvf ../etherboot-doc-5.0.x.tar.bz2
+	gunzip < ../etherboot-doc-5.0.x.tar.gz | tar xvf -
+	bunzip2 < ../etherboot-doc-5.0.x.tar.bz2 | tar xvf -
+</code>
+
+which will extract the documentation in a subdirectory of the Etherboot
+top directory.
 
 <sect1>Compiling the ROM images
 
@@ -711,8 +735,8 @@ just try it and destroy your disk data.
 When you boot with this floppy it will load the Etherboot ROM image from
 floppy and execute it. If you chose the correct ROM image, it should be
 able to detect your card. To get the bootrom to acquire an IP address
-and load the intended code, you need to set up bootp, tftp and NFS
-services, which we will discuss next.
+and load the intended code, you need to set up bootp or DHCP, tftp and
+NFS services, which we will discuss next.
 
 <p>
 
@@ -821,7 +845,7 @@ typically like this:
 
 (See an important note regarding IP autoconfig in kernels in the 2.2
 series 2.2.18 and after under the section --ip= in the <url
-name="mknbi-linux documentation" url="mknbi.html">).  Then put the
+name="mknbi-linux documentation" url="mknbi.html">.)  Then put the
 tagged image in where the tftp daemon expects to find it, in this
 example /tftpdir. Make sure it is world-readable because typically the
 tftp daemon runs as an unprivileged user. It is recommended that you set
@@ -876,10 +900,9 @@ NFS mounting.
 <p>
 
 Recent kernels in the 2.2 series can autoconfigure using DHCP thanks to
-code by Chip Salzenberg. It is not clear if this has or will be ported
-to 2.4 kernels because DHCP autoconfig is a really a userland issue.
-Otherwise the kernel will do a bootp request to find the IP address for
-mounting the NFS filesystem.
+code by Chip Salzenberg. It also can use DHCP in 2.4 kernels starting
+from 2.4.4 thanks to Eric Biederman.  Otherwise the kernel will do a
+bootp request to find the IP address for mounting the NFS filesystem.
 
 <p>
 

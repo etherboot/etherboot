@@ -13,7 +13,8 @@ Contents
 <HR>
 <H1>VendorTag extensions</H1>
 
-<H2>Markus Gutschke, <CODE>gutschk@math.uni-muenster.de</CODE></H2>1 July 1997
+<H2>Markus Gutschke, <CODE>gutschk@math.uni-muenster.de</CODE> with minor
+changes by Ken Yap, <CODE>ken_yap@users.sourceforge.net</CODE></H2>28 April 2001
 <P><HR>
 <EM>This document describes the format and semantics of the VendorTags</EM>
 <HR>
@@ -446,16 +447,34 @@ filename portion of the menu options to eliminate needless repetition.
         # default file to boot, common append options, default menu selection
 and timeout
         filename "/tftpboot/thinlinux/1.0-alpha-025/3c59x-ide.ram0";
-        option T129 "ramdisk_size=16000 vga=6";
-        option T160 "timeout=10:default=192";
-        option T184 "^[['/tftpboot/thinlinux/1.0-alpha-025/motd'#";
+        option option-129 "ramdisk_size=16000 vga=6";
+        option option-160 "timeout=10:default=192";
+        option option-184 "^[['/tftpboot/thinlinux/1.0-alpha-025/motd'#";
 
         # menu selections, specify filename or "-" to use default filename
 specified above
-        option T192 "test1:::-:::nfs=xterm";
-        option T193 "test2:::-:::nfs=shell";
-        option T194 "test3:::-:::nfs=other";
+        option option-192 "test1:::-:::nfs=xterm";
+        option option-193 "test2:::-:::nfs=shell";
+        option option-194 "test3:::-:::nfs=other";
     }
+</PRE>
+<HR>
+<P>
+<P>
+<P>For ISC DHCPD 3.0 Beta 2 Patchlevel 18 and above the syntax above is no
+longer accepted and a new syntax is in operation according to this note
+in the Changelog:
+<P>
+<HR>
+<PRE>
+Use unparsable names for unknown options. WARNING: this will break any
+configuration files that use the option-nnn convention. If you want to
+continue to use this convention for some options, please be sure to
+write a definition, like this:
+
+option option-nnn code nnn = string;
+
+You can use a descriptive name instead of option-nnn if you like.
 </PRE>
 <HR>
 <P>

@@ -1,3 +1,5 @@
+VERSION=	5.0.1
+
 DOCFILES+=	16 COPYING COPYING_compressor userman devman atnetboot compressor
 DOCFILES+=	diskless freebsd old-README security spec sshterminal vendortags
 HTMLDOC=	$(patsubst %,html/%.html,$(DOCFILES))
@@ -34,6 +36,10 @@ sgml/Options:	../src/Config
 	sed -e '1,/<OptionDescription>/d' -e '/<\/OptionDescription>/,$$d' \
 		-e 's/^#	//' -e 's/^# *//' ../src/Config > sgml/Options
 
+tarball:
+	(cd ..; tar cf /tmp/etherboot-doc-$(VERSION).tar doc)
+	bzip2 -9 < /tmp/etherboot-doc-$(VERSION).tar > /tmp/etherboot-doc-$(VERSION).tar.bz2
+	gzip -9 < /tmp/etherboot-doc-$(VERSION).tar > /tmp/etherboot-doc-$(VERSION).tar.gz
+
 clean:
 	rm -f html/*.html text/*.txt dvi/*.dvi ps/*.ps sgml/*.tex
-
