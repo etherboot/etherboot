@@ -49,7 +49,7 @@ phdr2_p_paddr:	.long	LOAD_ADDR
 phdr2_p_filesz:	.long	_verbatim_size
 phdr2_p_memsz:	.long	_image_size
 phdr2_p_flags:	.long	PF_R | PF_W | PF_X
-phdr2_p_align:	.long	0
+phdr2_p_align:	.long	16
 
 elf_program_header_end:
 

@@ -42,6 +42,7 @@ static struct ebinfo		loaderinfo = {
 
 static int prep_segment(unsigned long start, unsigned long mid, unsigned long end,
 	unsigned long istart, unsigned long iend);
+static unsigned long find_segment(unsigned long size, unsigned long align);
 static sector_t dead_download ( unsigned char *data, unsigned int len, int eof);
 static void done(int do_cleanup);
 
@@ -217,6 +218,53 @@ static int prep_segment(unsigned long start, unsigned long mid, unsigned long en
 		memset(phys_to_virt(mid), 0, end - mid);
 	}
 	return 1;
+}
+
+static unsigned long find_segment(unsigned long size, unsigned long align)
+{
+	unsigned i;
+	/* Verify I have a power of 2 alignment */
+	if (align & (align - 1)) {
+		return ULONG_MAX;
+	}
+	for(i = 0; i < meminfo.map_count; i++) {
+		unsigned long r_start, r_end;
+		if (meminfo.map[i].type != E820_RAM)
+			continue;
+		if ((meminfo.map[i].addr + meminfo.map[i].size) > ULONG_MAX) {
+			continue;
+		}
+		r_start = meminfo.map[i].addr;
+		r_end = r_start + meminfo.map[i].size;
+		/* Don't allow the segment to overlap etherboot */
+		if ((r_end > virt_to_phys(_text)) && (r_start < virt_to_phys(_text))) {
+			r_end = virt_to_phys(_text);
+		}
+		if ((r_start > virt_to_phys(_text)) && (r_start < virt_to_phys(_end))) {
+			r_start = virt_to_phys(_end);
+		}
+		/* Don't allow the segment to overlap the heap */
+		if ((r_end > heap_ptr) && (r_start < heap_ptr)) {
+			r_end = heap_ptr;
+		}
+		if ((r_start > heap_ptr) && (r_start < heap_bot)) {
+			r_start = heap_ptr;
+		}
+#ifdef PCBIOS
+		if ((r_end > get_free_base_memory())  && (r_start < get_free_base_memory())) {
+			r_end = get_free_base_memory();
+		}
+		if ((r_start > get_free_base_memory()) && (r_start < 0xa0000)) {
+			r_start = get_free_base_memory();
+		}
+#endif
+		r_start = (r_start + align - 1) & ~(align - 1);
+		if ((r_end >= r_start) && ((r_end - r_start) >= size)) {
+			return r_start;
+		}
+	}
+	/* I did not find anything :( */
+	return ULONG_MAX;
 }
 
 /**************************************************************************

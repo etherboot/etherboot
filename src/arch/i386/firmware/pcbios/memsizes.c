@@ -114,6 +114,7 @@ int meme820 ( struct e820entry *buf, int count ) {
 
 void get_memsizes(void)
 {
+	unsigned i;
 	meminfo.basememsize = basememsize();
 	meminfo.memsize = memsize();
 #ifndef IGNORE_E820_MAP
@@ -130,6 +131,19 @@ void get_memsizes(void)
 		meminfo.map[1].addr = 1024*1024;
 		meminfo.map[1].size = meminfo.memsize << 10;
 		meminfo.map[1].type = E820_RAM;
+	}
+	/* Scrub the e820 map */
+	for(i = 0; i < meminfo.map_count; i++) {
+		if (meminfo.map[i].type != E820_RAM) {
+			continue;
+		}
+		/* Ensure we don't stomp the interrupt table */
+		if (meminfo.map[i].addr < 1024) {
+			unsigned long delta;
+			delta = 1024 - meminfo.map[i].addr;
+			meminfo.map[i].addr += delta;
+			meminfo.map[i].size -= delta;
+		}
 	}
 #if MEMSIZES_DEBUG
 {

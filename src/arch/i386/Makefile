@@ -23,6 +23,8 @@ SRCS+=	arch/i386/firmware/pcbios/e820mangler.S
 SRCS+=	arch/i386/prefix/liloprefix.S
 SRCS+=	arch/i386/prefix/elfprefix.S
 SRCS+=	arch/i386/prefix/lmelf_prefix.S
+SRCS+=	arch/i386/prefix/elf_dprefix.S
+SRCS+=	arch/i386/prefix/lmelf_dprefix.S
 SRCS+=	arch/i386/prefix/comprefix.S
 SRCS+=	arch/i386/prefix/exeprefix.S
 SRCS+=	arch/i386/prefix/pxeprefix.S
@@ -82,6 +84,12 @@ ELFEXIT=	$(BIN)/elfprefix.exit.o
 LMELFPREFIX=	$(BIN)/lmelf_prefix.o
 LMELFENTRY=	$(BIN)/lmelf_prefix.entry.o
 LMELFEXIT=	$(BIN)/lmelf_prefix.exit.o
+ELFDPREFIX=	$(BIN)/elf_dprefix.o
+ELFDENTRY=	$(BIN)/elf_dprefix.entry.o
+ELFDEXIT=	$(BIN)/elf_dprefix.exit.o
+LMELFDPREFIX=	$(BIN)/lmelf_dprefix.o
+LMELFDENTRY=	$(BIN)/lmelf_dprefix.entry.o
+LMELFDEXIT=	$(BIN)/lmelf_dprefix.exit.o
 
 include		$(BIN)/Roms
 
@@ -98,6 +106,10 @@ allelfs:	$(EB_ELFS)
 allzelfs:	$(EB_ELFS)
 alllmelfs:	$(EB_LMELFS)
 alllmzelfs:	$(EB_LMZELFS)
+allelfds:	$(EB_ELFDS)
+allzelfds:	$(EB_ELFDS)
+alllmelfds:	$(EB_LMELFDS)
+alllmzelfds:	$(EB_LMZELFDS)
 allcoms:	$(EB_COMS)
 allexes:	$(EB_EXES)
 allisos:	$(EB_ISOS)
@@ -226,6 +238,42 @@ $(BIN)/%.lmelf: $(BIN)/%.lmelf.prf.bin $(BIN)/%.lmelf.rt.bin
 	cat $^ > $@
 
 $(BIN)/%.zlmelf: $(BIN)/%.zlmelf.prf.bin $(BIN)/%.lmelf.rt1.bin $(BIN)/%.lmelf.rt2.zbin
+	cat $^ > $@
+
+# general rules for ELF dynamic images
+SUFFIXES +=	elfd zelfd
+$(BIN)/%.elfd.rt: $(BIN)/%.rt.o $(ELFDEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(ELFDEXIT)
+
+$(BIN)/%.elfd.prf: $(BIN)/%.rt.o $(ELFDENTRY) $(ELFDEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(ELFDENTRY) $(PREFIXOBJS) $< $(ELFDEXIT)
+
+$(BIN)/%.zelfd.prf: $(BIN)/%.rt.o $(ELFDENTRY) $(ELFDEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
+		$(ELFDENTRY) $(ZPREFIXOBJS) $< $(ELFDEXIT)
+
+$(BIN)/%.elfd: $(BIN)/%.elfd.prf.bin $(BIN)/%.elfd.rt.bin
+	cat $^ > $@
+
+$(BIN)/%.zelfd: $(BIN)/%.zelfd.prf.bin $(BIN)/%.elfd.rt1.bin $(BIN)/%.elfd.rt2.zbin
+	cat $^ > $@
+
+# general rules for Long Mode ELF dynamic images
+SUFFIXES +=	lmelfd zlmelfd
+$(BIN)/%.lmelfd.rt: $(BIN)/%.rt.o $(LMELFDEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(LMELFDEXIT)
+
+$(BIN)/%.lmelfd.prf: $(BIN)/%.rt.o $(LMELFDENTRY) $(LMELFDEXIT) $(PREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LMELFDENTRY) $(PREFIXOBJS) $< $(LMELFDEXIT)
+
+$(BIN)/%.zlmelfd.prf: $(BIN)/%.rt.o $(LMELFDENTRY) $(LMELFDEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) --defsym "_zfile_size=`$(ZFILELEN) $(BIN)/$*.raw.rt2.zbin`" -T $(LDSCRIPT) -o $@ \
+		$(LMELFDENTRY) $(ZPREFIXOBJS) $< $(LMELFDEXIT)
+
+$(BIN)/%.lmelfd: $(BIN)/%.lmelfd.prf.bin $(BIN)/%.lmelfd.rt.bin
+	cat $^ > $@
+
+$(BIN)/%.zlmelfd: $(BIN)/%.zlmelfd.prf.bin $(BIN)/%.lmelfd.rt1.bin $(BIN)/%.lmelfd.rt2.zbin
 	cat $^ > $@
 
 # rules to generate a DOS loadable .com executable

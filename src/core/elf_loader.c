@@ -150,7 +150,8 @@ static inline os_download_t elf32_probe(unsigned char *data, unsigned int len)
 		(estate.e.elf32.e_ident[EI_CLASS] != ELFCLASS32) ||
 		(estate.e.elf32.e_ident[EI_DATA] != ELFDATA_CURRENT) ||
 		(estate.e.elf32.e_ident[EI_VERSION] != EV_CURRENT) ||
-		(estate.e.elf32.e_type != ET_EXEC) ||
+		(	(estate.e.elf32.e_type != ET_EXEC) &&
+			(estate.e.elf32.e_type != ET_DYN)) ||
 		(estate.e.elf32.e_version != EV_CURRENT) ||
 		(estate.e.elf32.e_ehsize != sizeof(Elf32_Ehdr)) ||
 		(estate.e.elf32.e_phentsize != sizeof(Elf32_Phdr)) ||
@@ -171,6 +172,44 @@ static inline os_download_t elf32_probe(unsigned char *data, unsigned int len)
 		return dead_download;
 	}
 	memcpy(&estate.p.phdr32, data + estate.e.elf32.e_phoff, phdr_size);
+	if (estate.e.elf32.e_type == ET_DYN) {
+		Elf32_Addr min, max, base_addr, delta, align;
+		min = -1;
+		max = 0;
+		align = 1;
+		for(estate.segment = 0; estate.segment < estate.e.elf32.e_phnum; estate.segment++) {
+			Elf32_Addr val;
+			if (estate.p.phdr32[estate.segment].p_type != PT_LOAD)
+				continue;
+			val = estate.p.phdr32[estate.segment].p_paddr;
+			if (val < min) {
+				min = val;
+			}
+			val += estate.p.phdr32[estate.segment].p_memsz;
+			if (val > max) {
+				max = val;
+			}
+			if (estate.p.phdr32[estate.segment].p_align > align) {
+				align = estate.p.phdr32[estate.segment].p_align;
+			}
+		}
+		if (align & (align -1)) {
+			printf("ELF base address alignment is not a power of 2\n");
+			return dead_download;
+		}
+		base_addr = find_segment(max - min, align);
+		if (base_addr == ULONG_MAX) {
+			printf("ELF base address not available for size %ld\n", max - min);
+			return dead_download;
+		}
+		/* Compute the change in base address and fix up the addresses */
+		delta = base_addr - min;
+		for(estate.segment = 0; estate.segment < estate.e.elf32.e_phnum; estate.segment++) {
+			/* Change the base address of the object to load */
+			estate.p.phdr32[estate.segment].p_paddr += delta;
+		}
+		estate.e.elf32.e_entry += delta;
+	}
 #if ELF_NOTES
 	/* Load ELF notes from the image */
 	for(estate.segment = 0; estate.segment < estate.e.elf32.e_phnum; estate.segment++) {
@@ -367,7 +406,8 @@ static inline os_download_t elf64_probe(unsigned char *data, unsigned int len)
 		(estate.e.elf64.e_ident[EI_CLASS] != ELFCLASS64) ||
 		(estate.e.elf64.e_ident[EI_DATA] != ELFDATA_CURRENT) ||
 		(estate.e.elf64.e_ident[EI_VERSION] != EV_CURRENT) ||
-		(estate.e.elf64.e_type != ET_EXEC) ||
+		(	(estate.e.elf64.e_type != ET_EXEC) &&
+			(estate.e.elf64.e_type != ET_DYN)) ||
 		(estate.e.elf64.e_version != EV_CURRENT) ||
 		(estate.e.elf64.e_ehsize != sizeof(Elf64_Ehdr)) ||
 		(estate.e.elf64.e_phentsize != sizeof(Elf64_Phdr)) ||
@@ -389,6 +429,52 @@ static inline os_download_t elf64_probe(unsigned char *data, unsigned int len)
                 return dead_download;
 	}
 	memcpy(&estate.p.phdr64, data + estate.e.elf64.e_phoff, phdr_size);
+	if (estate.e.elf64.e_type == ET_DYN) {
+		Elf64_Addr min, max, base_addr, delta, align;
+		min = -1;
+		max = 0;
+		align = 1;
+		for(estate.segment = 0; estate.segment < estate.e.elf64.e_phnum; estate.segment++) {
+			Elf64_Addr val;
+			if (estate.p.phdr64[estate.segment].p_type != PT_LOAD)
+				continue;
+			val = estate.p.phdr64[estate.segment].p_paddr;
+			if (val < min) {
+				min = val;
+			}
+			val += estate.p.phdr64[estate.segment].p_memsz;
+			if (val > max) {
+				max = val;
+			}
+			if (estate.p.phdr64[estate.segment].p_align > align) {
+				align = estate.p.phdr64[estate.segment].p_align;
+			}
+		}
+		if (align > ULONG_MAX) {
+			printf("ELF base address alignment exceeds address space\n");
+			return dead_download;
+		}
+		if (align & (align -1)) {
+			printf("ELF base address alignment is not a power of 2\n");
+			return dead_download;
+		}
+		if ((max - min) > ULONG_MAX) {
+			printf("ELF size exceeds address space\n");
+			return dead_download;
+		}
+		base_addr = find_segment(max - min, align);
+		if (base_addr == ULONG_MAX) {
+			printf("ELF base address not available for size %ld\n", max - min);
+			return dead_download;
+		}
+		/* Compute the change in base address and fix up the addresses */
+		delta = base_addr - min;
+		for(estate.segment = 0; estate.segment < estate.e.elf64.e_phnum; estate.segment++) {
+			/* Change the base address of the object to load */
+			estate.p.phdr64[estate.segment].p_paddr += delta;
+		}
+		estate.e.elf64.e_entry += delta;
+	}
 #if ELF_NOTES
 	/* Load ELF notes from the image */
 	for(estate.segment = 0; estate.segment < estate.e.elf64.e_phnum; estate.segment++) {

@@ -30,6 +30,7 @@ typedef union {
 	void _append_end(name) ( void ); \
 	__asm__ ( ".section \".text16\"" ); \
 	__asm__ ( ".code16" ); \
+	__asm__ ( ".arch i386" ); \
 	__asm__ ( ".globl " #name ); \
 	__asm__ ( "\n" #name ":" );
 #define END_RM_FRAGMENT(name) \

@@ -26,7 +26,7 @@ static void work_around_gcc_bug ( void ) {
  * to be allocated.  This will happen before Etherboot is relocated to
  * high memory.
  */
-uint32_t real_mode_stack = 0;
+uint32_t real_mode_stack = 0x7c00; /* Pick a reasonable default */
 size_t real_mode_stack_size = RM_STACK_SIZE;
 int lock_real_mode_stack = 0;	/* Set to make stack immobile */
 

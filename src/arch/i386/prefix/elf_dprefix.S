@@ -3,13 +3,13 @@
 	.arch i386
 	.section ".prefix", "a", @progbits
 
-#define LOAD_ADDR 0x20000
+#define LOAD_ADDR 0x10000
 
 	/* ELF Header */
 	.globl elf_header
 elf_header:	
 e_ident:	.byte	0x7f, 'E', 'L', 'F', 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
-e_type:		.short	ET_EXEC
+e_type:		.short	ET_DYN
 e_machine:	.short	EM_386
 e_version:	.long	1
 e_entry:	.long	LOAD_ADDR + _start - elf_header

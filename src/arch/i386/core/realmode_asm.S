@@ -20,6 +20,17 @@
 	
 	.equ	CR0_PE,1
 
+#ifdef	GAS291
+#define DATA32 data32;
+#define ADDR32 addr32;
+#define	LJMPI(x)	ljmp	x
+#else
+#define DATA32 data32
+#define ADDR32 addr32
+/* newer GAS295 require #define	LJMPI(x)	ljmp	*x */
+#define	LJMPI(x)	ljmp	x
+#endif
+
 /****************************************************************************
  * REAL-MODE CALLBACK INTERFACE
  *
@@ -286,6 +297,13 @@ _prot_to_real:
 	movl	%eax, %ebx
 	shrl	$4, %ebx
 	movw	%bx, (P2R_OFFSET_RETADDR+2)(%esp)
+	/* First real mode address */
+	movl	%eax, %ebx
+	shrl	$4, %ebx
+	pushw	%bx
+	leal	3f(%ebp), %ebx
+	subl	%eax, %ebx
+	pushw	%bx
 	/* Continuation address */
 	pushl	$(p2r_rmcs - p2r_gdt)
 	leal	2f(%ebp), %ebx
@@ -299,7 +317,7 @@ _prot_to_real:
 	/* Calculate SS base address: set GDT data segment, retain to
 	 * use for adjusting %esp.
 	 */
-	movzwl	(8+P2R_OFFSET_SS)(%esp), %eax	/* Set ss base address */
+	movzwl	(12+P2R_OFFSET_SS)(%esp), %eax	/* Set ss base address */
 	shll	$4, %eax
 	movw	%ax, (p2r_rmds+2)(%ebp)
 	movl	%eax, %ebx
@@ -324,6 +342,12 @@ _prot_to_real:
 	movl	%cr0, %ebx
 	andb	$0!CR0_PE, %bl
 	movl	%ebx, %cr0
+
+	/* Make intersegment jmp to flush the processor pipeline
+	 * and reload %cs:%eip (to clear upper 16 bits of %eip).
+	 */
+	lret
+3:		
 	
 	/* Load real-mode segment value to %ss.  %sp already OK */
 	shrl	$4, %eax
@@ -336,7 +360,7 @@ _prot_to_real:
 
 	/* Return to caller in real-mode */
 	lret
-	
+
 p2r_gdt:
 p2r_gdtarg:
 p2r_gdt_limit:		.word p2r_gdt_end - p2r_gdt - 1
@@ -382,7 +406,7 @@ prot_to_real_prefix_size:
  */
 
 	.globl _real_to_prot_suffix
-	.code16		
+	.code16
 _real_to_prot_suffix:
 
 	/* Switch to protected mode */
@@ -426,76 +450,84 @@ _real_to_prot_suffix:
 
 #define R2P_PRESERVE ( 12 )
 #define R2P_OFFSET_RETADDR ( R2P_PRESERVE )
-#define R2P_OFFSET_RETADDR_E ( R2P_OFFSET_RETADDR + 8 )
-#define R2P_OFFSET_ORIG_RETADDR_E ( R2P_OFFSET_RETADDR_E )
-#define R2P_OFFSET_ORIG_RETADDR ( R2P_OFFSET_RETADDR_E - 2 )
-#define R2P_INSERT_LENGTH ( R2P_OFFSET_ORIG_RETADDR - R2P_OFFSET_RETADDR )
+#define R2P_OFFSET_ORIG_RETADDR ( R2P_OFFSET_RETADDR + 2 )
 	
 	.globl _real_to_prot
 	.code16		
 _real_to_prot:
-	/* Allow space for 32-bit far return address */
-	subw	$R2P_INSERT_LENGTH, %sp
-	
+	/* Disable interrupts */
+	cli
+	/* zero extend the return address */
+	pushw	$0
+
 	/* Preserve registers */
 	pushl	%ebp
 	pushl	%ebx
 	pushl	%eax
 
 	/* Convert 16-bit real-mode near return address to
-	 * 32-bit pmode physical far return address
+	 * 32-bit pmode physical near return address
 	 */
 	movw	%sp, %bp
-	xorl	%eax, %eax
+	xorl	%ebx, %ebx
 	push	%cs
-	popw	%ax
-	shll	$4, %eax
-	movzwl	R2P_OFFSET_ORIG_RETADDR(%bp), %ebx
-	addl	%eax, %ebx
-	movl	%ebx, (R2P_OFFSET_RETADDR+0)(%bp)
-	movl	$(r2p_pmcs-r2p_gdt), %ebx
-	movl	%ebx, (R2P_OFFSET_RETADDR+4)(%bp)
+	popw	%bx
+	movw	%bx, %ds
+	shll	$4, %ebx
+	movzwl	R2P_OFFSET_ORIG_RETADDR(%bp), %eax
+	addl	%ebx, %eax
+	movl	%eax, (R2P_OFFSET_RETADDR)(%bp)
 
 	/* Set up GDT */
+	xorl	%ebp, %ebp
 	call	1f
 1:	popw	%bp
-	leal	(r2p_gdt-1b)(%bp), %ebx	/* %cs:ebx = %cs:bx = &(r2p_gdt) */
-	addl	%eax, %ebx		/* %eax = &r2p_gdt (physical) */
-	movl	%ebx, %cs:(r2p_gdt-1b+2)(%bp) /* Set phys. addr. in r2p_gdt */
+	leal	(r2p_gdt-1b)(%bp), %eax	/* %ds:ebx = %ds:bx = &(r2p_gdt) */
+	addl	%ebx, %eax		/* %eax = &r2p_gdt (physical) */
+	movl	%eax, %ds:(r2p_gdt-1b+2)(%bp) /* Set phys. addr. in r2p_gdt */
 
+	/* Compute the first protected mode physical address */
+	leal	(2f-1b)(%bp), %eax
+	addl	%ebx, %eax
+	movl	%eax, %ds:(r2p_paddr-1b)(%bp)
+		
 	/* Calculate new %esp */
-	xorl	%eax, %eax
+	xorl	%ebx, %ebx
 	push	%ss
-	popw	%ax
-	shll	$4, %eax
-	movzwl	%sp, %ebx
-	addl	%ebx, %eax		/* %eax = new %esp */
+	popw	%bx
+	shll	$4, %ebx
+	movzwl	%sp, %eax
+	addl	%eax, %ebx		/* %ebx = new %esp */
 	
 	/* Load GDT */
-	cli				/* Disable interrupts */
-	lgdt	%cs:(r2p_gdt-1b)(%bp)	/* Load GDT */
+	DATA32 lgdt (r2p_gdt-1b)(%bp)	/* Load GDT */
 
 	/* Switch to protected mode */
-	movl	%cr0, %ebx
-	orb	$CR0_PE, %bl
-	movl	%ebx, %cr0
+	movl	%cr0, %eax
+	orb	$CR0_PE, %al
+	movl	%eax, %cr0
 
+	/* flush prefetch queue, and reload %cs:%eip */
+	DATA32 ljmp (r2p_paddr-1b)(%bp)
+	.code32
+2:
+	
 	/* Load segment registers, adjust %esp */
-	movw	$(r2p_pmds-r2p_gdt), %bx
-	movw	%bx, %ss
-	movl	%eax, %esp
-	movw	%bx, %ds
-	movw	%bx, %es
-	movw	%bx, %fs
-	movw	%bx, %gs
+	movw	$(r2p_pmds-r2p_gdt), %ax
+	movw	%ax, %ss
+	movl	%ebx, %esp
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %fs
+	movw	%ax, %gs
 
 	/* Restore registers */
 	popl	%eax
 	popl	%ebx
 	popl	%ebp
 
-	/* Switch to flat physical addresses and return to caller */
-	DATA32 lret
+	/* return to caller */
+	ret
 
 r2p_gdt:
 	.word	r2p_gdt_end - r2p_gdt - 1	/* limit */
@@ -510,6 +542,11 @@ r2p_pmds:
 	.word	0xffff,0
 	.byte	0,0x93,0xcf,0
 r2p_gdt_end:
+
+r2p_paddr:
+	.long 2b
+	.word r2p_pmcs - r2p_gdt, 0
+
 
 	/* This is the end of the trampoline suffix code.
 	 */

@@ -48,7 +48,9 @@ static unsigned int off;
 static void elf_freebsd_probe(void)
 {
 	image_type = Elf;
-	if (estate.e.elf32.e_entry & 0xf0000000) {
+	if (	(estate.e.elf32.e_entry & 0xf0000000) && 
+		(estate.e.elf32.e_type == ET_EXEC))
+	{
 		image_type = Elf_FreeBSD;
 		printf("/FreeBSD");
 		off = -(estate.e.elf32.e_entry & 0xff000000);
