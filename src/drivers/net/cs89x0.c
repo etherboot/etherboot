@@ -71,7 +71,11 @@
 #include "isa.h"
 #include "cs89x0.h"
 
+#ifndef EMBEDDED
 static unsigned short	eth_nic_base;
+#else
+static unsigned long	eth_nic_base;
+#endif
 static unsigned long    eth_mem_start;
 static unsigned short   eth_irq;
 static unsigned short   eth_cs_type;	/* one of: CS8900, CS8920, CS8920M  */
@@ -449,11 +453,15 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 #ifdef	CS_SCAN
 		CS_SCAN,
 #else	/* use "conservative" default values for autoprobing */
+#ifndef EMBEDDED
 		0x300,0x320,0x340,0x200,0x220,0x240,
 		0x260,0x280,0x2a0,0x2c0,0x2e0,
 	/* if that did not work, then be more aggressive */
 		0x301,0x321,0x341,0x201,0x221,0x241,
 		0x261,0x281,0x2a1,0x2c1,0x2e1,
+#else
+		0x01000300,
+#endif
 #endif
 		0};
 
@@ -487,7 +495,7 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 		       eth_cs_type==CS8920M?"M":"",
 		       cs_revision,
 		       eth_nic_base);
-
+#ifndef EMBEDDED 
 		/* First check to see if an EEPROM is attached*/
 		if ((readreg(PP_SelfST) & EEPROM_PRESENT) == 0) {
 			printf("\ncs: no EEPROM...\n");
@@ -546,7 +554,19 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 			nic->node_addr[i] = ((unsigned char *)eeprom_buff)[i];
 		}
 		printf("%!\n", nic->node_addr);
+#endif
+#ifdef EMBEDDED
+		/* Retrieve and print the ethernet address. */
+		{
+		unsigned char MAC_HW_ADDR[6]={MAC_HW_ADDR_DRV};
+		memcpy(nic->node_addr, MAC_HW_ADDR, 6);
+		}
+		printf("\n%!\n", nic->node_addr);
 
+	    eth_adapter_cnf = A_CNF_10B_T | A_CNF_MEDIA_10B_T;
+		eth_auto_neg_cnf = EE_AUTO_NEG_ENABLE | IMM_BIT;
+#endif
+#ifndef EMBEDDED 
 		/* Set the LineCTL quintuplet based on adapter
 		   configuration read from EEPROM */
 		if ((eth_adapter_cnf & A_CNF_EXTND_10B_2) &&
@@ -575,7 +595,7 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 			outw(PP_ChipID, eth_nic_base + ADD_PORT);
 			continue;
 		}
-
+#endif
 		/* Initialize the card for probing of the attached media */
 		cs89x0_reset(nic);
 
@@ -645,6 +665,13 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 			 SERIAL_TX_ON);
 
 		break;
+#ifdef EMBEDDED
+		error:
+			writereg(PP_LineCTL, readreg(PP_LineCTL) &
+				 ~(SERIAL_TX_ON | SERIAL_RX_ON));
+			outw(PP_ChipID, eth_nic_base + ADD_PORT);
+			continue;
+#endif
 	}
 
 	if (ioaddr == 0)

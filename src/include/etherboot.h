@@ -23,7 +23,7 @@
 #define DEFAULT_BOOT_INDEX 0
 #endif
 
-#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE)
+#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE) && !defined(COFF_IMAGE)
 #define	TAGGED_IMAGE		/* choose at least one */
 #endif
 
