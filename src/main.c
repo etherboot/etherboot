@@ -44,7 +44,7 @@ int defparams_max = 0;
 #endif
 
 #ifdef	MOTD
-char *motd[RFC1533_VENDOR_NUMOFMOTD];
+unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
 #endif
 
 #ifdef	IMAGE_FREEBSD
@@ -82,11 +82,11 @@ static const unsigned char dhcprequest [] = {
 	/* request parameters */
 	RFC2132_PARAM_LIST,
 #ifdef	IMAGE_FREEBSD
+	/* 5 standard + 7 vendortags + 8 motd + 16 menu items */
+	5 + 7 + 8 + 16,
+#else
 	/* 5 standard + 6 vendortags + 8 motd + 16 menu items */
 	5 + 6 + 8 + 16,
-#else
-	/* 5 standard + 5 vendortags + 8 motd + 16 menu items */
-	5 + 5 + 8 + 16,
 #endif
 	/* Standard parameters */
 	RFC1533_NETMASK, RFC1533_GATEWAY,
@@ -96,6 +96,7 @@ static const unsigned char dhcprequest [] = {
 	RFC1533_VENDOR_MAGIC,
 	RFC1533_VENDOR_ADDPARM,
 	RFC1533_VENDOR_ETHDEV,
+	RFC1533_VENDOR_ETHERBOOT_ENCAP,
 #ifdef	IMAGE_FREEBSD
 	RFC1533_VENDOR_HOWTO,
 	/*
@@ -145,7 +146,7 @@ static int bootp(void);
 static int rarp(void);
 static void load_configuration(void);
 static void load(void);
-static int downloadkernel(unsigned char *data, int block, int len, int eof);
+static int handleblock(unsigned char *data, int block, int len, int eof);
 static unsigned short ipchksum(unsigned short *ip, int len);
 static unsigned short udpchksum(struct iphdr *packet);
 #ifdef FREEBSD_PXEEMU
@@ -314,7 +315,7 @@ int main(void)
 LOADKERNEL - Try to load kernel image
 **************************************************************************/
 #ifndef	CAN_BOOT_DISK
-#define loadkernel(s) download((s), downloadkernel)
+#define loadkernel(s) download((s), handleblock)
 #else
 static int loadkernel(const char *fname)
 {
@@ -338,7 +339,7 @@ static int loadkernel(const char *fname)
 		return(bootdisk(dev,part));
 	}
 nodisk:
-	return download(fname, downloadkernel);
+	return download(fname, handleblock);
 }
 #endif
 
@@ -501,7 +502,7 @@ xmit:
 /**************************************************************************
 DOWNLOADKERNEL - Try to load file
 **************************************************************************/
-static int downloadkernel(unsigned char *data, int block, int len, int eof)
+static int handleblock(unsigned char *data, int block, int len, int eof)
 {
 #ifdef	FREEBSD_PXEEMU
 	static char *pxeemu_nbp_addr = (char *) 0x7C00;
@@ -840,6 +841,7 @@ static int bootp(void)
 
 	for (retry = 0; retry < MAX_BOOTP_RETRIES; ) {
 		long timeout;
+		unsigned char etherboot_encap_len;
 
 		/* Clear out the Rx queue first.  It contains nothing of
 		 * interest, except possibly ARP requests from the DHCP/TFTP
@@ -865,7 +867,11 @@ static int bootp(void)
 			dhcp_reply = 0;
 			memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
 			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcprequest, sizeof dhcprequest);
-			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest, rfc1533_end, sizeof rfc1533_end);
+			etherboot_encap_len = sprintf(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest + 2,
+						      "%c%c%s", RFC1533_VENDOR_NIC_DEV_ID, strlen(nic.devid), nic.devid);
+			*(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest) = RFC1533_VENDOR_ETHERBOOT_ENCAP;
+			TAG_LEN(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest) = etherboot_encap_len;
+			memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest + etherboot_encap_len + 2, rfc1533_end, sizeof rfc1533_end);
 			/* Beware: the magic numbers 9 and 15 depend on
 			   the layout of dhcprequest */
 			memcpy(ip.bp.bp_vend + 9, &dhcp_server, sizeof(in_addr));
@@ -1158,6 +1164,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 	static unsigned char *extdata = NULL, *extend = NULL;
 	unsigned char        *extpath = NULL;
 	unsigned char        *endp;
+	static unsigned char in_encapsulated_options = 0;
 
 #ifdef	REQUIRE_VCI_ETHERBOOT
 	vci_etherboot = 0;
@@ -1194,6 +1201,9 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			return(0); /* no RFC 1533 header found */
 		p += 4;
 		endp = p + len;
+	} else if (block == -1) {
+		/* Encapsulated option block */
+		endp = p + len;
 	} else {
 		if (block == 1) {
 			if (memcmp(p, rfc1533_cookie, 4))
@@ -1222,9 +1232,9 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			end_of_rfc1533 = endp = p;
 			continue;
 		}
-		else if (c == RFC1533_NETMASK)
+		else if (NON_ENCAP_OPT c == RFC1533_NETMASK)
 			memcpy(&netmask, p+2, sizeof(in_addr));
-		else if (c == RFC1533_GATEWAY) {
+		else if (NON_ENCAP_OPT c == RFC1533_GATEWAY) {
 			/* This is a little simplistic, but it will
 			   usually be sufficient.
 			   Take only the first entry */
@@ -1235,32 +1245,37 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 			extpath = p;
 #ifndef	NO_DHCP_SUPPORT
 #ifdef	REQUIRE_VCI_ETHERBOOT
-		else if (c == RFC1533_VENDOR) {
+		else if (NON_ENCAP_OPT c == RFC1533_VENDOR) {
 			vci_etherboot = find_vci_etherboot(p+1);
 #ifdef	MDEBUG
 			printf("vci_etherboot %d\n", vci_etherboot);
 #endif
 		}
 #endif	/* REQUIRE_VCI_ETHERBOOT */
-		else if (c == RFC2132_MSG_TYPE)
+		else if (NON_ENCAP_OPT c == RFC2132_MSG_TYPE)
 			dhcp_reply=*(p+2);
-		else if (c == RFC2132_SRV_ID)
+		else if (NON_ENCAP_OPT c == RFC2132_SRV_ID)
 			memcpy(&dhcp_server, p+2, sizeof(in_addr));
 #endif	/* NO_DHCP_SUPPORT */
-		else if (c == RFC1533_HOSTNAME) {
+		else if (NON_ENCAP_OPT c == RFC1533_HOSTNAME) {
 			hostname = p + 2;
 			hostnamelen = *(p + 1);
 		}
-		else if (c == RFC1533_VENDOR_MAGIC
+		else if (ENCAP_OPT c == RFC1533_VENDOR_MAGIC
 			 && TAG_LEN(p) >= 6 &&
 			  !memcmp(p+2,vendorext_magic,4) &&
 			  p[6] == RFC1533_VENDOR_MAJOR
 			)
 			vendorext_isvalid++;
+		else if (NON_ENCAP_OPT c == RFC1533_VENDOR_ETHERBOOT_ENCAP) {
+			in_encapsulated_options = 1;
+			decode_rfc1533(p+2, -1, TAG_LEN(p), 1);
+			in_encapsulated_options = 0;
+		}
 #ifdef	IMAGE_FREEBSD
-		else if (c == RFC1533_VENDOR_HOWTO)
+		else if (ENCAP_OPT c == RFC1533_VENDOR_HOWTO)
 			freebsd_howto = ((p[2]*256+p[3])*256+p[4])*256+p[5];
-		else if (c == RFC1533_VENDOR_KERNEL_ENV){
+		else if (ENCAP_OPT c == RFC1533_VENDOR_KERNEL_ENV){
 			if(*(p + 1) < sizeof(freebsd_kernel_env)){
 				memcpy(freebsd_kernel_env,p+2,*(p+1));
 			}else{
@@ -1269,16 +1284,16 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 		}
 #endif
 #ifdef	IMAGE_MENU
-		else if (c == RFC1533_VENDOR_MNUOPTS)
+		else if (ENCAP_OPT c == RFC1533_VENDOR_MNUOPTS)
 			parse_menuopts(p+2, TAG_LEN(p));
-		else if (c >= RFC1533_VENDOR_IMG &&
+		else if (ENCAP_OPT c >= RFC1533_VENDOR_IMG &&
 			 c<RFC1533_VENDOR_IMG+RFC1533_VENDOR_NUMOFIMG) {
 			imagelist[c - RFC1533_VENDOR_IMG] = p;
 			useimagemenu++;
 		}
 #endif
 #ifdef	MOTD
-		else if (c >= RFC1533_VENDOR_MOTD &&
+		else if (ENCAP_OPT c >= RFC1533_VENDOR_MOTD &&
 			 c < RFC1533_VENDOR_MOTD +
 			 RFC1533_VENDOR_NUMOFMOTD)
 			motd[c - RFC1533_VENDOR_MOTD] = p;
@@ -1295,7 +1310,7 @@ int decode_rfc1533(unsigned char *p, int block, int len, int eof)
 		p += TAG_LEN(p) + 2;
 	}
 	extdata = extend = endp;
-	if (block == 0 && extpath != NULL) {
+	if (block <= 0 && extpath != NULL) {
 		char fname[64];
 		memcpy(fname, extpath+2, TAG_LEN(extpath));
 		fname[(int)TAG_LEN(extpath)] = '\0';

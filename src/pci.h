@@ -59,6 +59,9 @@
 #ifndef	PCI_BASE_ADDRESS_IO_MASK
 #define	PCI_BASE_ADDRESS_IO_MASK       (~0x03)
 #endif
+#ifndef	PCI_BASE_ADDRESS_MEM_MASK
+#define	PCI_BASE_ADDRESS_MEM_MASK       (~0x0f)
+#endif
 #define	PCI_BASE_ADDRESS_SPACE_IO	0x01
 #define	PCI_ROM_ADDRESS		0x30	/* 32 bits */
 #define	PCI_ROM_ADDRESS_ENABLE	0x01	/* Write 1 to enable ROM,
@@ -132,6 +135,7 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_INTEL_82559ER	0x1209
 #define PCI_DEVICE_ID_INTEL_ID1029	0x1029
 #define PCI_DEVICE_ID_INTEL_ID1030	0x1030
+#define PCI_DEVICE_ID_INTEL_ID1038	0x1038
 #define PCI_DEVICE_ID_INTEL_82562	0x2449
 #define PCI_DEVICE_ID_INTEL_82542        	0x1000
 #define PCI_DEVICE_ID_INTEL_82543GC_FIBER  	0x1001
@@ -179,6 +183,10 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define PCI_DEVICE_ID_OLICOM_OC2183	0x0013
 #define PCI_DEVICE_ID_OLICOM_OC2326	0x0014
 #define PCI_DEVICE_ID_OLICOM_OC6151	0x0021
+#define PCI_VENDOR_ID_NETGEAR		0x1385
+#define PCI_DEVICE_ID_NETGEAR_MA301	0x4100
+#define PCI_VENDOR_ID_HARRIS        	0x1260
+#define PCI_DEVICE_ID_HARRIS_PRISM2	0x3873
 
 struct pci_id {
 	unsigned short vendor, dev_id;
@@ -188,9 +196,9 @@ struct pci_id {
 struct pci_device {
 	unsigned short	vendor, dev_id;
 	const char	*name;
-	/* membase and ioaddr are silly and depricated */
-	unsigned int	membase;
+	/* ioaddr is silly and deprecated */
 	unsigned int	ioaddr;
+	unsigned int	addr1;
 	unsigned char	devfn;
 	unsigned char	bus;
 	struct pci_id *	probe_id;

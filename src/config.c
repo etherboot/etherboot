@@ -9,7 +9,7 @@
 #include	"nic.h"
 
 #undef	INCLUDE_PCI
-#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN)
+#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN) || defined(INCLUDE_PRISM2_PLX) || defined(INCLUDE_PRISM2_PCI)
 	/* || others later */
 #define	INCLUDE_PCI
 #include	"pci.h"
@@ -112,19 +112,23 @@ static struct pci_id eepro100_nics[] = {
 		"Intel Corporation 82559 InBusiness 10/100" },
 	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82562,
 		"Intel EtherExpressPro100 82562EM" },
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_ID1038,
+		"Intel(R) PRO/100 VM Network Connection" },
+	{ PCI_VENDOR_ID_INTEL,		0x1039,
+		"Intel PRO100 VE 82562ET" },
 };
 #endif
 #ifdef INCLUDE_E1000
 static struct pci_id e1000_nics[] = {
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82542,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82542,
                "Intel EtherExpressPro1000" },
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82543GC_FIBER,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82543GC_FIBER,
                "Intel EtherExpressPro1000 82543GC Fiber" },
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82543GC_COPPER,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82543GC_COPPER,
                "Intel EtherExpressPro1000 82543GC Copper" },
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82544EI_COPPER,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82544EI_COPPER,
                "Intel EtherExpressPro1000 82544EI Copper" },
-       { PCI_VENDOR_ID_INTEL,          PCI_DEVICE_ID_INTEL_82544GC_CREB,
+	{ PCI_VENDOR_ID_INTEL,		PCI_DEVICE_ID_INTEL_82544GC_CREB,
                "Intel EtherExpressPro1000 82544GC Creb" },
 };
 #endif
@@ -193,7 +197,7 @@ static struct pci_id tulip_nics[] = {
 		"ADMtek Centaur-P" },
 	{ PCI_VENDOR_ID_ADMTEK, 0x0981,
 		"ADMtek AN981 Comet" },
-	{ PCI_VENDOR_ID_MACRONIX, 0x1216,
+	{ PCI_VENDOR_ID_SMC_1211, 0x1216,
 		"ADMTek AN983 Comet" },
         { 0x125B, 0x1400,
 		"ASIX AX88140"},
@@ -257,6 +261,20 @@ static struct pci_id tlan_nics[] = {
 };
 #endif
 
+#ifdef	INCLUDE_PRISM2_PLX
+static struct pci_id prism2_plx_nics[] = {
+	{ PCI_VENDOR_ID_NETGEAR,	PCI_DEVICE_ID_NETGEAR_MA301,
+	  "Netgear MA301" },
+};
+#endif
+
+#ifdef	INCLUDE_PRISM2_PCI
+static struct pci_id prism2_pci_nics[] = {
+	{ PCI_VENDOR_ID_HARRIS,		PCI_DEVICE_ID_HARRIS_PRISM2,
+	  "Harris Semiconductor Prism2.5 clone" },
+};
+#endif
+
 /* other PCI NICs go here */
 #endif	/* INCLUDE_*PCI */
 
@@ -310,6 +328,9 @@ static const struct dispatch_table	NIC[] =
 #endif
 #ifdef	INCLUDE_3C529
 	{ "3C5x9", t529_probe, 0 },
+#endif
+#ifdef  INCLUDE_3C515
+	{ "3C515", t515_probe, 0 },
 #endif
 #ifdef	INCLUDE_3C595
 	PCI_NIC("3C595", t595_probe, t595_nics),
@@ -387,6 +408,12 @@ static const struct dispatch_table	NIC[] =
 #ifdef	INCLUDE_TLAN
 	PCI_NIC( "Olicom 2326", tlan_probe, tlan_nics),
 #endif
+#ifdef	INCLUDE_PRISM2_PLX
+	PCI_NIC( "Prism2_PLX", prism2_plx_probe, prism2_plx_nics),
+#endif
+#ifdef	INCLUDE_PRISM2_PCI
+	PCI_NIC( "Prism2_PCI", prism2_pci_probe, prism2_pci_nics),
+#endif
 	/* this entry must always be last to mark the end of list */
 #ifdef INCLUDE_PCI
 	{ 0, 0, 0, 0 }
@@ -421,6 +448,7 @@ struct nic	nic =
 	arptable[ARP_CLIENT].node,	/* node_addr */
 	packet,			/* packet */
 	0,			/* packetlen */
+	"",			/* devid */
 	0,			/* priv_data */
 };
 
@@ -492,9 +520,11 @@ int eth_probe(int last_adapter)
 #endif
 		pci_ioaddrs[0] = dev.ioaddr;
 		pci_ioaddrs[1] = 0;
+		sprintf(nic.devid, "PCI:%hx:%hx", dev.vendor, dev.dev_id);
 		if ((*t->eth_probe)(&nic, &pci_ioaddrs, &dev))
 			return (0);
 #else
+		sprintf(nic.devid, "ISA:%s", t->nic_name); /* What numbers might we use for ISA NICs? */
 		if ((*t->eth_probe)(&nic, t->probe_ioaddrs))
 			return (0);
 #endif	/* INCLUDE_PCI */

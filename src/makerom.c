@@ -219,6 +219,7 @@ int main(int argc, char **argv)
 		/* we only fill in the low byte, this limits us to ROMs of
 		   255 * 512 bytes = 127.5kB or so */
 		rom[pci_hdr_offset+PCI_SIZE_OFF] = rom[2];
+		rom[pci_hdr_offset+PCI_SIZE_OFF+1] = 0;
 		if (pci_vendor_id != 0)
 		{
 			rom[pci_hdr_offset+PCI_VEND_ID_OFF] = pci_vendor_id & 0xff;

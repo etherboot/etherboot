@@ -108,16 +108,13 @@ Author: Martin Renters
    The confusion between 60/64 and 1514/1518 arose because the NS8390
    counts the 4 byte frame checksum in the incoming packet, but not
    in the outgoing packet. 60/1514 are the correct numbers for most
-   if not all of the other NIC controllers. I will be retiring the
-   64/1518 defines in the lead-up to 5.0.
+   if not all of the other NIC controllers.
 */
 
 #define ETH_ALEN		6	/* Size of Ethernet address */
 #define ETH_HLEN		14	/* Size of ethernet header */
 #define	ETH_ZLEN		60	/* Minimum packet */
-/*#define ETH_MIN_PACKET		64*/
 #define	ETH_FRAME_LEN		1514	/* Maximum packet */
-/*#define ETH_MAX_PACKET		1518*/
 #ifndef	ETH_MAX_MTU
 #define	ETH_MAX_MTU		(ETH_FRAME_LEN-ETH_HLEN)
 #endif
@@ -227,7 +224,9 @@ Author: Martin Renters
 #define RFC1533_VENDOR_HOWTO    132
 #define RFC1533_VENDOR_KERNEL_ENV    133
 #endif
+#define RFC1533_VENDOR_ETHERBOOT_ENCAP 150
 #define RFC1533_VENDOR_MNUOPTS	160
+#define RFC1533_VENDOR_NIC_DEV_ID 175
 #define RFC1533_VENDOR_SELECTION 176
 #define RFC1533_VENDOR_MOTD	184
 #define RFC1533_VENDOR_NUMOFMOTD 8
@@ -265,6 +264,16 @@ Author: Martin Renters
 #define AWAIT_QDRAIN	5	/* drain queue, process ARP requests */
 #ifdef FREEBSD_PXEEMU
 #define AWAIT_UDP	6
+#endif
+
+#define NIC_DEVID_MAX_LEN 20
+
+/* Helper macros used to identify when DHCP options are valid/invalid in/outside of encapsulation */
+#define NON_ENCAP_OPT in_encapsulated_options == 0 &&
+#ifdef ALLOW_ONLY_ENCAPSULATED
+#define ENCAP_OPT in_encapsulated_options == 1 &&
+#else
+#define ENCAP_OPT
 #endif
 
 typedef struct {
@@ -515,8 +524,8 @@ extern void eth_disable(void);
 
 /* bootmenu.c */
 extern void show_motd P((void));
-extern void parse_menuopts P((char *,int));
-extern void selectImage P((char **));
+extern void parse_menuopts P((unsigned char *,int));
+extern void selectImage P((unsigned char **));
 
 /* osloader.c */
 #if	defined(AOUT_IMAGE) || defined(ELF_IMAGE)
@@ -617,7 +626,7 @@ extern unsigned char *defparams;
 extern int defparams_max;
 #endif
 #ifdef	MOTD
-extern char *motd[RFC1533_VENDOR_NUMOFMOTD];
+extern unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
 #endif
 extern struct bootpd_t bootp_data;
 #define	BOOTP_DATA_ADDR	(&bootp_data)

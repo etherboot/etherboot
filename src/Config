@@ -72,6 +72,12 @@
 #			Require an encapsulated Vendor Class Identifier
 #			of "Etherboot" in the DHCP reply
 #			Requires DHCP support.
+#	-DALLOW_ONLY_ENCAPSULATED
+#			Ignore Etherboot-specific options that are not within
+#			the Etherboot encapsulated options field.  This option
+#			should be enabled unless you have a legacy DHCP server
+#			configuration from the bad old days before the use of
+#			encapsulated Etherboot options.
 #
 #	Boot tuning parameters:
 #
@@ -249,7 +255,8 @@ CFLAGS32+=	-DPCBIOS
 CFLAGS32+=	-DASK_BOOT=3 -DANS_DEFAULT=ANS_NETWORK
 # If you prefer the old style rotating bar progress display
 # CFLAGS32+=	-DBAR_PROGRESS
-CFLAGS32+=	-DMOTD -DIMAGE_MENU
+# MOTD and Image Menu are no longer the default, use mk{elf,nbi}-menu instead
+# CFLAGS32+=	-DMOTD -DIMAGE_MENU
 
 # Enabling this makes the boot ROM require a Vendor Class Identifier
 # of "Etherboot" in the Vendor Encapsulated Options
@@ -257,6 +264,13 @@ CFLAGS32+=	-DMOTD -DIMAGE_MENU
 # we want to give out addresses to us, but it will prevent Etherboot
 # from getting an IP lease until you have configured DHCPD correctly
 # CFLAGS32+=	-DREQUIRE_VCI_ETHERBOOT
+
+# Enabling this causes Etherboot to ignore Etherboot-specific options
+# that are not within an Etherboot encapsulated options field.
+# This option should be enabled unless you have a legacy DHCP server
+# configuration from the bad old days before the use of
+# encapsulated Etherboot options.
+# CFLAGS32+=	-DALLOW_ONLY_ENCAPSULATED
 
 # Limit the delay on packet loss/congestion to a more bearable value. See
 # description above.  If unset, do not limit the delay between resend.

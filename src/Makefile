@@ -14,6 +14,10 @@
 #	  -DT503_SHMEM	- Use 3c503 shared memory mode (off by default)
 #	-DINCLUDE_WD	- Include Western Digital/SMC support
 #	-DWD_DEFAULT_MEM- Default memory location for WD/SMC cards
+#	-DWD_790_PIO    - Read/write to WD/SMC 790 cards in PIO mode (default
+#			  is to use shared memory) Try this if you get "Bogus
+#			  packet, ignoring" messages, common on ISA/PCI hybrid
+#			  systems.
 #	-DCOMPEX_RL2000_FIX
 #
 #	If you have a Compex RL2000 PCI 32-bit (11F6:1401),
@@ -98,6 +102,8 @@ GCC=		gcc
 CPP=		gcc -E -Wp,-Wall
 STRIP=		strip
 OBJCOPY=	objcopy
+# MAKEROM=	bin/makerom
+MAKEROM=	./makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	2
@@ -351,20 +357,20 @@ bin/%.bin:	bin/%.s
 # general rules for normal/compressed ROM images, may be overridden
 bin32/%.rom:	bin32/%.img $(RLOADER)
 	cat $(RLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
 
 bin32/%.lzrom:	bin32/%.huf $(RZLOADER)
 	cat $(RZLOADER) $< > $@
-	bin/makerom $(MAKEROM_$*) -i$(IDENT32) $@
+	$(MAKEROM) $(MAKEROM_$*) -i$(IDENT32) $@
 
 # general rules for normal/compressed PXE images, may be overridden
 bin32/%.pxe:	bin32/%.img $(PXELOADER)
 	cat $(PXELOADER) $< > $@
-	bin/makerom -x $@
+	$(MAKEROM) -x $@
 
 bin32/%.lzpxe:	bin32/%.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
-	bin/makerom -x $@
+	$(MAKEROM) -x $@
 
 
 # rules to write the .rom/.lzrom image onto a blank floppy

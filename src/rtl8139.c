@@ -217,6 +217,11 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 
 	rtl_reset(nic);
 
+	if (inb(ioaddr + MediaStatus) & MSRLinkFail) {
+		printf("Cable not connected or other link failure\n");
+		return(0);
+	}
+
 	nic->reset = rtl_reset;
 	nic->poll = rtl_poll;
 	nic->transmit = rtl_transmit;
