@@ -937,7 +937,11 @@ _estack:
 _start16_stack:
 	.space 128
 _estart16_stack:
-	/* Copy of the 16-bit prefix code that we may want to return to */
+	/* Copy of the 16-bit prefix code that we may want to return to.
+	 * This is placed in a ".prefix" section rather than ".bss" because
+	 * ".bss" is zeroed when Etherboot starts up, *after* the prefix
+	 * has been copied in by start16.
+	 */
 	.section ".prefix"
 	.globl _prefix_copy
 	.globl _eprefix_copy
