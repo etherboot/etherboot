@@ -5,7 +5,8 @@ LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES)
 
 BUILD_EFIS=	$(patsubst %.img, %.efi, $(IMGS)) $(patsubst %.img, %.nrv2befi, $(IMGS))
 
-START=	$(BIN)/start.o $(BIN)/efi_main.o $(BIN)/reloc.o 
+START=	$(BIN)/start.o $(BIN)/reloc.o 
+#START+=	$(BIN)/efi_main.o
 
 SRCS+=	arch/ia64/prefix/efi_prefix.S arch/ia64/prefix/unnrv2b.S
 SRCS+=	arch/ia64/core/__call.S 
@@ -32,7 +33,7 @@ include		$(BIN)/Roms
 allefis:	$(BUILD_EFIS)
 
 
-BOBJS+=		$(BIN)/acpi.o 
+#BOBJS+=		$(BIN)/acpi.o 
 BOBJS+=		$(BIN)/sal.o $(BIN)/pal.o
 BOBJS+=		$(BIN)/memset.o $(BIN)/memmove.o
 BOBJS+=		$(BIN)/setjmp.o $(BIN)/longjmp.o
@@ -91,6 +92,9 @@ $(BIN)/nrv2b:	util/nrv2b.c
 # Pattern Rules
 
 # General for compiling assembly source files
+$(BIN)/%.o:	arch/ia64/core/%.c $(MAKEDEPS)
+	$(CC) $(CFLAGS) -o $@ -c $<
+
 $(BIN)/%.o:	arch/ia64/prefix/%.S $(MAKEDEPS)
 	$(CPP) $(CFLAGS) -DASSEMBLY $< | $(AS) $(ASFLAGS) -o $@
 

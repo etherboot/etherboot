@@ -97,5 +97,3 @@ ifeq "$(shell uname -s)" "FreeBSD"
 CFLAGS+=	-DIMAGE_FREEBSD -DELF_IMAGE -DAOUT_IMAGE
 endif
 
-include Config
-

@@ -111,7 +111,7 @@ MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	4
-EXTRAVERSION=   pre2
+EXTRAVERSION=   pre3
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -183,7 +183,7 @@ ELF_DEPS=	$(ELF_START) $(BLIB)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
 # If you are confident that gcc 2.96 works for you, you can delete gcccheck
 # from the next line
-MAKEDEPS=	Makefile Makefile.main Config $(BIN)/Roms $(BIN)/gcccheck
+MAKEDEPS+=	Makefile Makefile.main Config $(BIN)/Roms $(BIN)/gcccheck
 MAKEDEPS+=	arch/$(ARCH)/Makefile arch/$(ARCH)/Config
 
 CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\

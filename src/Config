@@ -268,8 +268,13 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
-#CFLAGS+= -DFREEBSD_PXEEMU
+#CFLAGS+=	-DFREEBSD_PXEEMU
 
+# Relocate etherboot to just below 4GB.
+# While not all drivers work correctly before 5.2 is released we want
+# everything that is used to support relocation, so define this by
+# default to get more bug reports.
+CFLAGS+=	-DRELOCATE
 
 # you should normally not need to change these
 RM=		rm -f
@@ -292,5 +297,3 @@ LDBINARY=	--oformat binary	# flag for headerless binary
 
 # Location to place generated binaries, and files
 BIN=bin
-
-include Makefile.main
