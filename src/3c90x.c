@@ -50,9 +50,6 @@
  **/
 #define	XMIT_RETRIES	250
 
-#undef	virt_to_bus
-#define	virt_to_bus(x)	((unsigned long)x)
-
 /*** Register definitions for the 3c905 ***/
 enum Registers
     {

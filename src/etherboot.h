@@ -595,13 +595,39 @@ struct meminfo {
 };
 extern struct meminfo meminfo;
 extern void get_memsizes(void);
+#ifdef RELOCATE
+extern void relocate(void);
+extern void relocate_to(unsigned long phys_dest);
+#else
+#define relocate() do {} while(0)
+#endif
 
 extern void disk_init P((void));
 extern unsigned int disk_read P((int drv,int c,int h,int s,char *buf));
-extern void xstart P((unsigned long, unsigned long, char *));
-#ifdef	IMAGE_MULTIBOOT
-extern void xend P((void));
-#endif
+extern void xstart16 P((unsigned long, unsigned long, char *));
+struct os_entry_regs {
+	/* Be careful changing this structure
+	 * as it is used by assembly language code.
+	 */
+	uint32_t  edi; /*  0 */
+	uint32_t  esi; /*  4 */
+	uint32_t  ebp; /*  8 */
+	uint32_t  esp; /* 12 */
+	uint32_t  ebx; /* 16 */
+	uint32_t  edx; /* 20 */
+	uint32_t  ecx; /* 24 */
+	uint32_t  eax; /* 28 */
+	
+	uint32_t saved_ebp; /* 32 */
+	uint32_t saved_esi; /* 36 */
+	uint32_t saved_edi; /* 40 */
+	uint32_t saved_ebx; /* 44 */
+	uint32_t saved_eip; /* 48 */
+	uint32_t saved_esp; /* 52 */
+};
+extern struct os_entry_regs os_regs;
+extern void xstart32(unsigned long entry_point, ...);
+extern void xend32 P((void));
 extern unsigned long currticks P((void));
 extern int setjmp P((jmpbuf env));
 extern void longjmp P((jmpbuf env, int val));
@@ -650,7 +676,8 @@ extern struct nic nic;
 /* osloader.c */
 
 /* created by linker */
-extern char _start[], edata[], end[];
+extern char _text[], _etext[], _text16[], _etext16[], 
+	_data[], _edata[], _bss[], _ebss[], _end[];
 
 /*
  * Local variables:

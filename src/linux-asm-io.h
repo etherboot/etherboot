@@ -1,5 +1,47 @@
-#ifndef	_ASM_IO_H
-#define _ASM_IO_H
+#ifndef	ETHERBOOT_IO_H
+#define ETHERBOOT_IO_H
+
+
+/* Amount of relocation etherboot is experiencing */
+extern unsigned long virt_offset;
+
+/* Don't require identity mapped physical memory,
+ * osloader.c is the only valid user at the moment.
+ */
+static inline unsigned long virt_to_phys(volatile void *virt_addr)
+{
+	return ((unsigned long)virt_addr) + virt_offset;
+}
+
+static inline void *phys_to_virt(unsigned long phys_addr)
+{
+	return (void *)(phys_addr - virt_offset);
+}
+
+/* virt_to_bus converts an addresss inside of etherboot [_start, _end]
+ * into a memory access cards can use.
+ */
+#define virt_to_bus virt_to_phys
+
+
+/* bus_to_virt reverses virt_to_bus, the address must be output
+ * from virt_to_bus to be valid.  This function does not work on
+ * all bus addresses.
+ */
+#define bus_to_virt phys_to_virt
+
+/* ioremap converts a random 32bit bus address into something
+ * etherboot can access.
+ */
+static inline void *ioremap(unsigned long bus_addr, unsigned long length)
+{
+	return bus_to_virt(bus_addr);
+}
+/* iounmap cleans up anything ioremap had to setup */
+static inline void iounmap(void *virt_addr)
+{
+	return;
+}
 
 /*
  * This file contains the definitions for the x86 IO instructions
@@ -54,12 +96,6 @@
 #define memset_io(a,b,c)	memset((void *)(a),(b),(c))
 #define memcpy_fromio(a,b,c)	memcpy((a),(void *)(b),(c))
 #define memcpy_toio(a,b,c)	memcpy((void *)(a),(b),(c))
-
-/*
- * Again, i386 does not require mem IO specific function.
- */
-
-#define eth_io_copy_and_sum(a,b,c,d)	eth_copy_and_sum((a),(void *)(b),(c),(d))
 
 /*
  * Talk about misusing macros..
@@ -184,4 +220,4 @@ __OUTS(l)
 	__inlc_p(port) : \
 	__inl_p(port))
 
-#endif
+#endif /* ETHERBOOT_IO_H */

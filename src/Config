@@ -229,6 +229,10 @@
 #			Define to put some buffers below 0x10000 which
 #			may interfere with other programs.
 #			(Don't use, deprecated.)
+#       -DRELOCATE
+#			After starting etherboot relocate to the top
+#			of memory.  This allows loading fairly arbitrary
+#			rom images.  This doesn't work with all drivers yet.
 # </OptionDescription>
 
 # These default settings compile Etherboot with a small number of options.
@@ -304,6 +308,6 @@ CFLAGS32+=	-Os -ffreestanding -fstrength-reduce -fomit-frame-pointer -mcpu=i386
 CFLAGS32+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
 CFLAGS32+=	-Wall -W -Wno-format -Wno-unused
 ASFLAGS32=
-LDFLAGS32+=	-N -Ttext $(RELOCADDR) -e _start
+LDFLAGS32+=	-N -Ttext $(RELOCADDR) -T etherboot.lds
 LDBINARY32=	--oformat binary	# flag for headerless binary
 LIBC32=					# not needed

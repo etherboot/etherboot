@@ -196,7 +196,7 @@ int main(void)
 	static int adapter = -1;
 	int i;
 
-	for (p = edata; p < end; p++)
+	for (p = _bss; p < _ebss; p++)
 		*p = 0;	/* Zero BSS */
 
 #ifdef	CONSOLE_SERIAL
@@ -209,11 +209,12 @@ int main(void)
 
 	rom = *(struct rom_info *)ROM_INFO_LOCATION;
 	printf("ROM segment %#hx length %#hx reloc %#hx\n", rom.rom_segment,
-		rom.rom_length << 1, ((unsigned long)_start) >> 4);
+		rom.rom_length << 1, ((unsigned long)_text) >> 4);
 
 	gateA20_set();
 	print_config();
 	get_memsizes();
+	relocate();
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
 	   0:	retry booting bootp and tftp

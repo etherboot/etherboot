@@ -39,8 +39,6 @@ typedef   signed int   s32;
 #include "nic.h"
 #include "pci.h"
 
-#undef	virt_to_bus
-#define	virt_to_bus(x)          ((unsigned long)x)
 #define cpu_to_le32(val)        (val)
 #define le32_to_cpu(val)        (val)
 #define virt_to_le32desc(addr)  cpu_to_le32(virt_to_bus(addr))
@@ -129,6 +127,7 @@ int            i;
 int            duplex;
 int            tx_config;
 int            rx_config;
+uint32_t       ioaddr;
 unsigned char  macaddr[6];
 unsigned char  mactest;
 unsigned char  pci_bus = 0;
@@ -139,7 +138,8 @@ struct FA311_DEV* dev = &fa311_dev;
     memset(dev, 0, sizeof(*dev));
     dev->vendor = pci->vendor;
     dev->device = pci->dev_id;
-    dev->ioaddr = pci->addr1;
+    pcibios_read_config_dword(pci->bus, pci->devfn, PCI_BASE_ADDRESS_1, &ioaddr);
+    dev->ioaddr = ioaddr; /* FIXME use ioremap here... */
 
     /* Work around the dropped serial bit. */
     prev_eedata = eeprom_read(dev->ioaddr, 6);

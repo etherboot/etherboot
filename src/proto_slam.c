@@ -449,9 +449,14 @@ static int proto_slam(struct slam_info *info)
 		arptable[ARP_SERVER].ipaddr.s_addr = info->server_ip.s_addr;
 		memset(arptable[ARP_SERVER].node, 0, ETH_ALEN);
 	}
-	/* Join the multicast group */
-	igmptable[IGMP_SERVER].group.s_addr = info->multicast_ip.s_addr;
-	igmptable[IGMP_SERVER].time = currticks();
+	/* If I'm running over multicast join the multicast group */
+	igmptable[IGMP_SERVER].group.s_addr = 0;
+	igmptable[IGMP_SERVER].time = 0;
+	if ((info->multicast_ip.s_addr != info->server_ip.s_addr) &&
+		(info->multicast_ip.s_addr != IP_BROADCAST)) {
+		igmptable[IGMP_SERVER].group.s_addr = info->multicast_ip.s_addr;
+		igmptable[IGMP_SERVER].time = currticks();
+	}
 	for(;;) {
 		unsigned char *header;
 		unsigned char *data;

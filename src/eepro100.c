@@ -100,9 +100,6 @@
 #include "cards.h"
 #include "timer.h"
 
-#undef	virt_to_bus
-#define	virt_to_bus(x)	((unsigned long)x)
-
 static int ioaddr;
 
 typedef unsigned char  u8;
@@ -402,7 +399,7 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 	txfd.command = CmdSuspend | CmdTx | CmdTxFlex;
 	txfd.link   = virt_to_bus (&txfd);
 	txfd.count   = 0x02208000;
-	txfd.tx_desc_addr = (u32)&txfd.tx_buf_addr0;
+	txfd.tx_desc_addr = virt_to_bus(&txfd.tx_buf_addr0);
 	
 	txfd.tx_buf_addr0 = virt_to_bus (&hdr);
 	txfd.tx_buf_size0 = sizeof (hdr);
@@ -633,6 +630,17 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 	while (!txfd.status && timer2_running())
 		/* Wait */;
 	
+	/* Read the status register once to disgard stale data */
+	mdio_read(eeprom[6] & 0x1f, 1);
+	/* Check to see if the network cable is plugged in.
+	 * This allows for faster failure if there is nothing
+	 * we can do.
+	 */
+	if (!(mdio_read(eeprom[6] & 0x1f, 1) & (1 << 2))) {
+		printf("Valid link not established\n");
+		return 0;
+	}
+
 	nic->reset = eepro100_reset;
 	nic->poll = eepro100_poll;
 	nic->transmit = eepro100_transmit;

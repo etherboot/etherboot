@@ -66,9 +66,6 @@ Drivers are port from Intel's Linux driver e1000-3.1.23
 #include "cards.h"
 #include "timer.h"
 
-#undef	virt_to_bus
-#define	virt_to_bus(x)	((unsigned long)x)
-
 typedef unsigned char *dma_addr_t;
 typedef unsigned char u8;
 typedef signed char s8;

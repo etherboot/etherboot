@@ -361,7 +361,7 @@ static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 	unsigned int devfn, l, bus, buses;
 	unsigned char hdr_type = 0;
 	unsigned short vendor, device;
-	unsigned int addr0, addr1, romaddr;
+	unsigned int membase, ioaddr, romaddr;
 	int i, reg;
 	unsigned int pci_ioaddr = 0;
 
@@ -400,8 +400,20 @@ static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 			device = (l >> 16) & 0xffff;
 
 #if	DEBUG
-			printf("bus %hhX, function %hhX, vendor %hX, device %hX\n",
-				bus, devfn, vendor, device);
+			printf("%hhx:%hhx.%hhx [%hX/%hX]\n",
+				bus, PCI_SLOT(devfn), PCI_FUNC(devfn),
+				vendor, device);
+			for(i = 0; i < 256; i++) {
+				unsigned char byte;
+				if ((i & 0xf) == 0) {
+					printf("%hhx: ", i);
+				}
+				pcibios_read_config_byte(bus, devfn, i, &byte);
+				printf("%hhx ", byte);
+				if ((i & 0xf) == 0xf) {
+					printf("\n");
+				}
+			}
 #endif
 			for (i = first_i; i < ids; i++) {
 				if (vendor != id[i].vendor)
@@ -422,23 +434,23 @@ static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 				romaddr >>= 10;
 				dev->romaddr = romaddr;
 				
-				/* Get addr1 */
+				/* Get the ``membase'' */
 				pcibios_read_config_dword(bus, devfn,
-					PCI_BASE_ADDRESS_1, &addr1);
-				dev->addr1 = addr1;
+					PCI_BASE_ADDRESS_1, &membase);
+				dev->membase = membase;
 				
-				/* Get the addr0 */
+				/* Get the ``ioaddr'' */
 				for (reg = PCI_BASE_ADDRESS_0; reg <= PCI_BASE_ADDRESS_5; reg += 4) {
-					pcibios_read_config_dword(bus, devfn, reg, &addr0);
-					if ((addr0 & PCI_BASE_ADDRESS_IO_MASK) == 0 || (addr0 & PCI_BASE_ADDRESS_SPACE_IO) == 0)
+					pcibios_read_config_dword(bus, devfn, reg, &ioaddr);
+					if ((ioaddr & PCI_BASE_ADDRESS_IO_MASK) == 0 || (ioaddr & PCI_BASE_ADDRESS_SPACE_IO) == 0)
 						continue;
 
 
 					/* Strip the I/O address out of the returned value */
-					addr0 &= PCI_BASE_ADDRESS_IO_MASK;
+					ioaddr &= PCI_BASE_ADDRESS_IO_MASK;
 
 					/* Take the first one or the one that matches in boot ROM address */
-					dev->ioaddr = addr0;
+					dev->ioaddr = ioaddr;
 				}
 				printf("Found %s ROM address %#hx\n",
 					dev->name, romaddr);

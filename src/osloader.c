@@ -30,6 +30,7 @@ Modifications: Ken Yap (for Etherboot/16)
  */
 
 #include "etherboot.h"
+struct os_entry_regs os_regs;
 
 /* bootinfo */
 #define BOOTINFO_VERSION 1
@@ -342,8 +343,8 @@ static unsigned long dbuffer_available =0;
 static unsigned long not_loadin =0;
 static unsigned long d_now =0;
 
-void (*entry)();
-static char * ce_curaddr;
+unsigned long entry;
+static unsigned long ce_curaddr;
 
 
 
@@ -461,10 +462,12 @@ static int tagged_download(unsigned char *data, unsigned int len, int eof)
 				if (!TAGGED_PROGRAM_RETURNS)
 					cleanup();
 				if (LINEAR_EXEC_ADDR) {
-					int result, (*entry)(struct ebinfo *, long, struct bootpd_t *);
+					int result;
 					/* no gateA20_unset for PM call */
-					entry = (int (*)())tctx.img.execaddr;
-					result = (*entry)(&loaderinfo, tctx.linlocation, BOOTP_DATA_ADDR);
+					result = xstart32(tctx.img.execaddr,
+						virt_to_phys(&loaderinfo),
+						tctx.linlocation,
+						virt_to_phys(BOOTP_DATA_ADDR));
 					printf("Secondary program returned %d\n", result);
 					if (!TAGGED_PROGRAM_RETURNS) {
 						/* We shouldn't have returned */
@@ -474,7 +477,9 @@ static int tagged_download(unsigned char *data, unsigned int len, int eof)
 						
 				} else {
 					gateA20_unset();
-					xstart(tctx.img.execaddr, tctx.img.u.location, (char *)BOOTP_DATA_ADDR);
+					xstart16(tctx.img.execaddr, 
+						tctx.img.u.location, 
+						virt_to_phys(BOOTP_DATA_ADDR));
 					longjmp(restart_etherboot, -2);
 				}
 			}
@@ -496,7 +501,7 @@ static int tagged_download(unsigned char *data, unsigned int len, int eof)
 				+ ((sh.length & 0xF0) >> 2);
 		}
 		i = (tctx.seglen > len) ? len : tctx.seglen;
-		memcpy((void *)curaddr, data, i);
+		memcpy(phys_to_virt(curaddr), data, i);
 		tctx.seglen -= i;
 		curaddr += i;
 		len -= i;
@@ -546,7 +551,7 @@ static int aout_download(unsigned char *data, unsigned int len, int eof)
 		curaddr = 0x100000;
 		info.head.a_entry = curaddr + 0x20;
 	}
-	memcpy((void *)curaddr, data, len);
+	memcpy(phys_to_virt(curaddr), data, len);
 	curaddr += len;
 	return 1;
 #endif
@@ -564,13 +569,13 @@ static int aout_download(unsigned char *data, unsigned int len, int eof)
 
 			if (toread) {
 				if (toread >= len - offset) {
-					memcpy((void *)curaddr, data+offset,
+					memcpy(phys_to_virt(curaddr), data+offset,
 						len - offset);
 					curaddr += len - offset;
 					toread -= len - offset;
 					break;
 				}
-				memcpy((void *)curaddr, data+offset, toread);
+				memcpy(phys_to_virt(curaddr), data+offset, toread);
 				offset += toread;
 				toread = 0;
 			}
@@ -600,7 +605,7 @@ static int aout_download(unsigned char *data, unsigned int len, int eof)
 			curaddr = (curaddr + 4095) & ~4095;
 			skip = 0;
 			toread = 0;
-			memset((void *)curaddr, '\0', info.head.a_bss);
+			memset(phys_to_virt(curaddr), '\0', info.head.a_bss);
 			goto aout_startkernel;
 		default:
 			break;
@@ -611,10 +616,10 @@ static int aout_download(unsigned char *data, unsigned int len, int eof)
 
 	if (eof) {
 		int	j;
-		void	(*entry)();
+		unsigned long entry;
 
 aout_startkernel:
-		entry = (void *)info.head.a_entry;
+		entry = info.head.a_entry;
 		printf("done\n");
 #ifdef	DELIMITERLINES
 		for (j=0; j<80; j++) putchar('=');
@@ -629,15 +634,16 @@ aout_startkernel:
 			info.bsdinfo.bi_extmem = meminfo.memsize;
 			info.bsdinfo.bi_memsizes_valid = 1;
 			info.bsdinfo.bi_version = BOOTINFO_VERSION;
-			info.bsdinfo.bi_kernelname = KERNEL_BUF;
+			info.bsdinfo.bi_kernelname = virt_to_phys(KERNEL_BUF);
 			info.bsdinfo.bi_nfs_diskless = NULL;
 			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
-			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
+			xstart32(entry, freebsd_howto, NODEV, 0, 0, 0, 
+				virt_to_phys(&info.bsdinfo), 0, 0, 0);
 			longjmp(restart_etherboot, -2);
 		}
 #endif
 #ifdef AOUT_LYNX_KDI
-		(*entry)();
+		xstart32(entry);
 #endif
 		printf("unexpected a.out variant\n");
 		longjmp(restart_etherboot, -2);
@@ -679,9 +685,9 @@ static inline os_download_t elf_probe(unsigned char *data, unsigned int len)
 	phdr=(Elf32_Phdr *)((unsigned int)&info
 		+ (unsigned int)(info.elf32.e_phoff));
 	/* Check for Etherboot related limitations.  Memory
-	 * below 0x10000 and between RELOC and 0xfffff is not
-	 * allowed.  Reasons: the Etherboot code/data area
-	 * and the ROM/IO area.  */
+	 * between _text and _end is not allowed.  
+	 * Reasons: the Etherboot code/data area.
+	 */
 	for (segment = 0; segment < info.elf32.e_phnum;
 	     segment++) {
 		unsigned long start, end;
@@ -695,9 +701,12 @@ static inline os_download_t elf_probe(unsigned char *data, unsigned int len)
 #endif
 		start = phdr[segment].p_paddr;
 		end = phdr[segment].p_paddr+phdr[segment].p_memsz;
-		if ((phdr[segment].p_paddr < 0x100000) &&
-			(end > RELOC)) {
-			printf("segment in reserved area\n");
+		if ((end > virt_to_phys(_text)) && 
+			(start < virt_to_phys(_end))) {
+			printf("segment [%X, %X) overlaps etherboot [%X, %X)\n",
+				start, end,
+				virt_to_phys(_text), virt_to_phys(_end)
+				);
 			return 0;
 		}
 		fit = 0;
@@ -723,8 +732,12 @@ static inline os_download_t elf_probe(unsigned char *data, unsigned int len)
 					continue;
 				r_start = meminfo.map[i].addr;
 				r_end = r_start + meminfo.map[i].size;
-				printf("[%X, %X) type %d\n", 
-					r_start, r_end, meminfo.map[i].type);
+				printf("[%X%X, %X%X) type %d\n", 
+					(unsigned long)(r_start >> 32),
+					(unsigned long)r_start,
+					(unsigned long)(r_end >> 32),
+					(unsigned long)r_end,
+					meminfo.map[i].type);
 			}
 #endif
 			return 0;
@@ -768,13 +781,13 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 
 			if (toread) {
 				if (toread >= len - offset) {
-					memcpy((void *)curaddr, data+offset,
+					memcpy(phys_to_virt(curaddr), data+offset,
 					       len - offset);
 					curaddr += len - offset;
 					toread -= len - offset;
 					break;
 				}
-				memcpy((void *)curaddr, data+offset, toread);
+				memcpy(phys_to_virt(curaddr), data+offset, toread);
 				offset += toread;
 #ifdef	IMAGE_FREEBSD
 				/* Count the bytes read even for the last block
@@ -938,7 +951,7 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 						/* Save where we are loading this... */
 						symtab_load = curaddr;
 
-						*((long *)curaddr) = toread;
+						*((long *)phys_to_virt(curaddr)) = toread;
 						curaddr += sizeof(long);
 
 						/* Start to read... */
@@ -965,7 +978,7 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 						/* Save where we are loading this... */
 						symstr_load = curaddr;
 
-						*((long *)curaddr) = toread;
+						*((long *)phys_to_virt(curaddr)) = toread;
 						curaddr += sizeof(long);
 
 						/* Start to read... */
@@ -996,13 +1009,13 @@ static int elf_download(unsigned char *data, unsigned int len, int eof)
 
 	if (eof) {
 		int	j;
-		void (*entry)();
+		unsigned long entry;
 #ifdef	IMAGE_MULTIBOOT
 		unsigned char cmdline[512], *c;
 #endif
 
 elf_startkernel:
-		entry = (void *)info.elf32.e_entry;
+		entry = info.elf32.e_entry;
 		printf("done\n");
 #ifdef	DELIMITERLINES
 		for (j=0; j<80; j++)
@@ -1017,7 +1030,7 @@ elf_startkernel:
 			info.bsdinfo.bi_extmem = meminfo.memsize;
 			info.bsdinfo.bi_memsizes_valid = 1;
 			info.bsdinfo.bi_version = BOOTINFO_VERSION;
-			info.bsdinfo.bi_kernelname = KERNEL_BUF;
+			info.bsdinfo.bi_kernelname = virt_to_phys(KERNEL_BUF);
 			info.bsdinfo.bi_nfs_diskless = NULL;
 			info.bsdinfo.bi_size = sizeof(info.bsdinfo);
 #define RB_BOOTINFO     0x80000000      /* have `struct bootinfo *' arg */  
@@ -1043,14 +1056,14 @@ elf_startkernel:
 					sizeof(long) - 1) & ~(sizeof(long) - 1);
 
 				/* Where we will build the meta data... */
-				t = (unsigned long *)info.bsdinfo.bi_esymtab;
+				t = phys_to_virt(info.bsdinfo.bi_esymtab);
 
 #ifdef	DEBUG_ELF
 				printf("Metadata at %X\n",t);
 #endif
 
 				/* Set up the pointer to the memory... */
-				info.bsdinfo.bi_modulep = (unsigned long)t;
+				info.bsdinfo.bi_modulep = virt_to_phys(t);
 				
 				/* The metadata structure is an array of 32-bit
 				 * words where we store some information about the
@@ -1079,14 +1092,15 @@ elf_startkernel:
 				 * sure that the kernel knows its own end
 				 * of memory...  It is not _end but after
 				 * the symbols and the metadata... */
-				info.bsdinfo.bi_kernend = (unsigned long)t;
+				info.bsdinfo.bi_kernend = virt_to_phys(t);
 
 				/* Signal locore.s that we have a valid bootinfo
 				 * structure that was completely filled in. */
 				freebsd_howto |= 0x80000000;
 			}
 
-			(*entry)(freebsd_howto, NODEV, 0, 0, 0, &info.bsdinfo, 0, 0, 0);
+			xstart32(entry, freebsd_hofwto, NODEV, 0, 0, 0, 
+				virt_to_phys(&info.bsdinfo), 0, 0, 0);
 			longjmp(restart_etherboot, -2);
 		}
 #endif
@@ -1117,7 +1131,7 @@ elf_startkernel:
 			}
 			*c++ = KERNEL_BUF[i];
 		}
-		(void)sprintf(c, " -retaddr %#X", (unsigned long)xend);
+		(void)sprintf(c, " -retaddr %#X", virt_to_phys(xend32));
 
 		info.mbinfo.flags = MULTIBOOT_MMAP_VALID | MULTIBOOT_MEM_VALID |MULTIBOOT_CMDLINE_VALID;
 		info.mbinfo.memlower = meminfo.basememsize;
@@ -1131,32 +1145,27 @@ elf_startkernel:
 		memcpy(info.mbinfo.mmap, meminfo.map, info.mbinfo.mmap_length);
 
 		/* The Multiboot 0.6 spec requires all segment registers to be
-		 * loaded with an unrestricted, writeable segment.  All but two
-		 * are already loaded, just do the rest here.  */
-		__asm__ __volatile__(
-			"pushl %%ds\n\t"
-			"pushl %%ds\n\t"
-			"popl %%fs\n\t"
-			"popl %%gs"
-			: /* no outputs */
-			: /* no inputs */);
+		 * loaded with an unrestricted, writeable segment.
+		 * xstart32 does this for us.
+		 */
 
 		/* Start the kernel, passing the Multiboot information record
 		 * and the magic number.  */
-		__asm__ __volatile__(
-			"call *%2"
-			: /* no outputs */
-			: "a" (0x2BADB002), "b" (&info.mbinfo), "g" (entry)
-			: "ecx","edx","esi","edi","cc","memory");
+		os_regs.eax = 0x2BADB002;
+		os_regs.ebx = virt_to_phys(&info.mbinfo);
+		xstart32(entry);
 		longjmp(restart_etherboot, -2);
 #else	/* !IMAGE_MULTIBOOT, i.e. generic ELF */
 		/* Call cleanup only if program will not return */
-		if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0)
+		if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0) {
 			cleanup();
+		}
 		{	/* new scope so we can have local variables */
-			int result, (*entry)(struct ebinfo *, union infoblock *, struct bootpd_t *);
-			entry = (int (*)())info.elf32.e_entry;
-			result = (*entry)(&loaderinfo, &info, BOOTP_DATA_ADDR);
+			int result;
+			result = xstart32(entry,
+				virt_to_phys(&loaderinfo), 
+				virt_to_phys(&info), 
+				virt_to_phys(BOOTP_DATA_ADDR));
 			printf("Secondary program returned %d\n", result);
 			if ((info.elf32.e_flags & ELF_PROGRAM_RETURNS_BIT) == 0) {
 				/* We shouldn't have returned */
@@ -1236,7 +1245,7 @@ static int ce_loader(unsigned char *data, unsigned int len, int eof)
 		if( dbuffer_available <= not_loadin)
 		{
 			this_write = dbuffer_available ;
-			memcpy(ce_curaddr, (dbuffer+d_now), this_write );
+			memcpy(phys_to_virt(ce_curaddr), (dbuffer+d_now), this_write );
 			ce_curaddr += this_write;
 			not_loadin -= this_write;
 			
@@ -1256,7 +1265,7 @@ static int ce_loader(unsigned char *data, unsigned int len, int eof)
 		else
 		{
 			this_write = not_loadin;
-			memcpy(ce_curaddr, (dbuffer+d_now), this_write);
+			memcpy(phys_to_virt(ce_curaddr), (dbuffer+d_now), this_write);
 			ce_curaddr += this_write;
 			not_loadin = 0;
 			
@@ -1296,7 +1305,7 @@ static int get_x_header(unsigned char *dbuffer, unsigned long now)
 	X.size = *(unsigned long *)(dbuffer + now + sizeof(unsigned long));
 	X.checksum = *(unsigned long *)(dbuffer + now + sizeof(unsigned long)*2);
 
-	ce_curaddr = (char *)X.addr;
+	ce_curaddr = X.addr;
 	now += sizeof(unsigned long)*3;
 
 	/* re-calculate dbuffer available... */
@@ -1320,7 +1329,7 @@ static int get_x_header(unsigned char *dbuffer, unsigned long now)
 
 	if(X.addr == 0)
 	{
-		entry = (void (*)())X.size;
+		entry = X.size;
 		printf("Entry Point Address = [%x] \n", entry);
 		jump_2ep();		
 	}
@@ -1359,15 +1368,15 @@ static void jump_2ep()
 		BootArgs.pvFlatFrameBuffer = 0;	
 	}
 
-	ep = (char *)BOOT_ARG_PTR_LOCATION;
-	*ep= &BootArgs;
-	(*entry)();
+	ep = phys_to_virt(BOOT_ARG_PTR_LOCATION);
+	*ep= virt_to_phys(BootArgs);
+	xstart32(entry);
 }
 #endif /* WINCE_IMAGE */
 
-#ifdef X86_BOOTSECTOR_IMAGE
+#if defined(X86_BOOTSECTOR_IMAGE) && defined(PCBIOS)
 int bios_disk_dev = 0;
-#define BOOTSECT ((unsigned char *)0x7C00)
+#define BOOTSECT (0x7C00)
 static int x86_bootsector_download(unsigned char *data, unsigned int len, int eof);
 static os_download_t x86_bootsector_probe(unsigned char *data, unsigned int len)
 {
@@ -1383,13 +1392,13 @@ static int x86_bootsector_download(unsigned char *data, unsigned int len,int eof
 		printf("Wrong size bootsector\n");
 		return 0;
 	}
-	memcpy(BOOTSECT, data, len);
+	memcpy(phys_to_virt(BOOTSECT), data, len);
 	cleanup();
 	gateA20_unset();
 	/* Set %edx to device number to emulate BIOS
 	   Fortunately %edx is not used after this */
 	__asm__("movl %0,%%edx" : : "g" (bios_disk_dev));
-	xstart((unsigned long)BOOTSECT, 0, 0);
+	xstart16(BOOTSECT, 0, 0);
 	printf("Bootsector returned?");
 	return 0;
 }

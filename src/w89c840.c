@@ -93,9 +93,6 @@ typedef unsigned int   u32;
 typedef   signed int   s32;
 
 /* Linux support functions */
-#define virt_to_bus(x) ((unsigned long)x)
-#define bus_to_virt(x) ((void *)x)
-
 #define virt_to_le32desc(addr)  virt_to_bus(addr)
 #define le32desc_to_virt(addr)  bus_to_virt(addr)
 

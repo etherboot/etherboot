@@ -45,7 +45,7 @@ struct nic
 	int		flags;	/* driver specific flags */
 	struct rom_info	*rom_info;	/* -> rom_info from main */
 	unsigned char	*node_addr;
-	char		*packet;
+	unsigned char	*packet;
 	unsigned int	packetlen;
 	struct nic_id	devid;	/* NIC device ID string (sent to DHCP server) */
 	void		*priv_data;	/* driver can hang private data here */

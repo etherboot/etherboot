@@ -68,6 +68,7 @@
 					   bits 31..11 are address,
 					   10..2 are reserved */
 
+#define PCI_SLOT(devfn)		  ((devfn) >> 3)
 #define PCI_FUNC(devfn)           ((devfn) & 0x07)
 
 #define BIOS32_SIGNATURE        (('_' << 0) + ('3' << 8) + ('2' << 16) + ('_' << 24))
@@ -196,9 +197,9 @@ struct pci_id {
 struct pci_device {
 	unsigned short	vendor, dev_id;
 	const char	*name;
-	/* ioaddr is silly and deprecated */
+	/* membase and ioaddr are silly and depricated */
+	unsigned int	membase;
 	unsigned int	ioaddr;
-	unsigned int	addr1;
 	unsigned char	devfn;
 	unsigned char	bus;
 	struct pci_id *	probe_id;

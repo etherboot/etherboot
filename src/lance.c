@@ -132,10 +132,6 @@ static const struct lance_chip_type
 		LANCE_ENABLE_AUTOSELECT},
 };
 
-/* Define a macro for converting program addresses to real addresses */
-#undef	virt_to_bus
-#define	virt_to_bus(x)		((unsigned long)x)
-
 static int			chip_version;
 static int			lance_version;
 static unsigned short		ioaddr;

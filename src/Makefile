@@ -160,7 +160,7 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
+SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c relocate.c serial.S
 SRCS+=	main.c pci.c osloader.c nfs.c pxe.c proto_slam.c misc.c config.c
 SRCS+=	floppy.c pc_floppy.c
 
@@ -180,7 +180,7 @@ ELF_START32=	bin32/start32.o bin32/linuxbios.o
 
 BOBJS32=	bin32/main.o bin32/osloader.o bin32/nfs.o bin32/pxe.o bin32/proto_slam.o bin32/misc.o
 BOBJS32+=	bin32/floppy.o bin32/pc_floppy.o
-BOBJS32+=	bin32/serial.o bin32/timer.o
+BOBJS32+=	bin32/serial.o bin32/timer.o  bin32/relocate.o
 BLIB32=		bin32/bootlib.a
 LIBS32=		$(BLIB32) $(LIBC32)
 UTILS+=		bin/makerom bin/lzhuf
@@ -351,7 +351,7 @@ bin/%.bin:	bin/%.s
 	$(RM) bin/$*.tmp
 
 # general rule for .huf (compressed binary code), may be overridden
-%.huf:	%.img
+%.huf:	%.img bin/lzhuf
 	bin/lzhuf e $< $@
 
 # general rules for normal/compressed ROM images, may be overridden
@@ -371,6 +371,25 @@ bin32/%.pxe:	bin32/%.img $(PXELOADER)
 bin32/%.lzpxe:	bin32/%.huf $(PXEZLOADER)
 	cat $(PXEZLOADER) $< > $@
 	$(MAKEROM) -x $@
+
+# general rules for LinuxBIOS compressed ROM images, may be overridden
+bin32/%.elf.img: bin32/%.elf
+	objcopy -O binary $< $@
+
+bin32/%.elf.huf: bin32/%.elf.img bin/lzhuf
+	bin/lzhuf e $< $@
+
+bin32/%.elf.huf.o: bin32/%.elf.huf huf.lds
+	ld -T huf.lds -b binary $< -o $@
+
+bin32/lbzloader.s: lbzloader.S $(MAKEDEPS)
+	$(CPP) $(CFLAGS32) $(LCONFIG) -o $@ $<
+
+bin32/lbzloader.o: bin32/lbzloader.s
+	$(AS32) $(ASFLAGS32) -o $@ $<
+
+bin32/%.lzebi:	bin32/%.elf.huf.o bin32/lbzloader.o
+	ld -T lbzloader.lds bin32/lbzloader.o $< -o $@
 
 
 # rules to write the .rom/.lzrom image onto a blank floppy
@@ -421,7 +440,7 @@ clean:
 	$(RM) bin32/*.dsk bin32/*.lzdsk
 	$(RM) bin32/*.lilo bin32/*.lzlilo
 	$(RM) bin32/*.pxe bin32/*.lzpxe
-	$(RM) bin32/*.elf bin32/*.ebi
+	$(RM) bin32/*.elf bin32/*.ebi bin32/*.lzebi bin32/*.s
 	$(RM) gcccheck
 
 ../index.html:	../index.xhtml

@@ -87,9 +87,9 @@ static inline unsigned short int __swap16(unsigned short int x)
 #include "/sys/boot/i386/btx/lib/btxv86.h"
 #endif
 
+#include "stdint.h"
 #include "linux-asm-string.h"
 #include "linux-asm-io.h"
-#include "stdint.h"
 
 typedef	unsigned long Address;
 

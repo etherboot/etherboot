@@ -88,7 +88,6 @@ typedef   signed int   s32;
 #define get_unaligned(ptr) (*(ptr))
 #define put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
 #define get_u16(ptr) (*(u16 *)(ptr))
-#define virt_to_bus(x) ((unsigned long)x)
 #define virt_to_le32desc(addr)  virt_to_bus(addr)
 
 enum pcistuff {

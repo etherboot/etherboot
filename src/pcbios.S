@@ -4,7 +4,9 @@
 #define DATA32 data32
 #endif
 
-	.code32
+
+	.section ".text16"
+
 #if defined(CONFIG_TSC_CURRTICKS)
 #undef CONFIG_BIOS_CURRTICKS
 #else
@@ -27,10 +29,16 @@ currticks:
 	cmpb	$0, pxeemu_nbp_active
 	jne	currticks_postswitch
 #endif
-	call	_prot_to_real
-	.code16
-	DATA32 call	_real_to_prot
-	.code32
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
+	ret
+20:	.code32
+	.previous
+
 #ifdef FREEBSD_PXEEMU
 currticks_postswitch:
 #endif
@@ -73,14 +81,19 @@ console_putc_switch:
 	pushl	%esi
 	pushl	%edi
 	movb	8(%ebp),%cl
-	call	_prot_to_real
-	.code16
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
 	movl	$1,%ebx
 	movb	$0x0e,%ah
 	movb	%cl,%al
 	int	$0x10
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 #ifdef FREEBSD_PXEEMU
 console_putc_exit:
 #endif
@@ -105,13 +118,18 @@ _int10:
 	movw	10(%ebp),%bx
 	movw	12(%ebp),%cx
 	movw	14(%ebp),%dx
-	call	_prot_to_real
-	.code16
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
 	movw	%si,%ax
 	int	$0x10
 	movw	%ax,%si
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 	movl	%esi,%eax
 	andl	$0xFFFF,%eax
 	movw	%ax,int10ret
@@ -140,13 +158,18 @@ console_getc:
 	pushl	%esi
 	pushl	%edi
 
-	call	_prot_to_real
-	.code16
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
+	
 	movb	$0x0,%ah
 	int	$0x16
 	movb	%al,%bl
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 	xor	%eax,%eax
 	movzbl	%bl,%eax
 
@@ -163,16 +186,22 @@ console_ischar:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	call	_prot_to_real
-	.code16
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
+	
 	xorw	%bx,%bx
 	movb	$0x1,%ah
 	int	$0x16
 	jz	2f
 	movb	%al,%bl
 2:
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 	movzbl	%bl,%eax
 	popl	%edi
 	popl	%esi
@@ -187,14 +216,19 @@ getshift:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	call	_prot_to_real
-	.code16
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	.section ".text16"
+10:	.code16
+	
 	movb	$2,%ah
 	int	$0x16
 	andb	$0xdf,%al
 	movw	%ax,%bx
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 	movzbl	%bl,%eax
 	popl	%edi
 	popl	%esi
@@ -211,18 +245,23 @@ int15:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	movl	8(%ebp),%ecx	/* _prot_to_real destroys %eax */
-	call	_prot_to_real
-	.code16
+	movl	8(%ebp),%ecx	/* _real_call destroys %eax */
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
 	movw	%cx,%ax
 	stc			/* in case function not supported */
 	int	$0x15
 	jc	int15status
 	movb	$0,%ah
 int15status:
-	movb	%ah,%bl		/* _real_to_prot destroys %eax */
-	DATA32 call	_real_to_prot
-	.code32
+	movb	%ah,%bl		/* _real_call destroys %eax */
+	ret
+20:	.code32
+	.previous
 	movzbl	%bl,%eax
 	popl	%edi
 	popl	%esi
@@ -239,11 +278,17 @@ cpu_nap:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	call	_prot_to_real
-	.code16
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
 	hlt
-	DATA32 call	_real_to_prot
+	ret
 	.code32
+20:	.code32
+	.previous
 	popl	%edi
 	popl	%esi
 	popl	%ebx
@@ -262,14 +307,31 @@ meme820:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
+
 	movl	8(%ebp), %edi	/* Address to return e820 structures at */
-	subl	$RELOC, %edi
 	movl	12(%ebp), %esi	/* Maximum number of e820 structurs to return */
 	pushl	%esi
-	call	_prot_to_real
-	.code16
-	xorl	%ebx, %ebx
-jmpe820:	
+
+	/* Multiply %esi by 20 */
+	movl	%esi, %eax
+	movl	%esi, %ebx
+	shll	$2, %eax
+	shll	$4, %ebx
+	addl	%eax, %ebx
+	pushl	%ebx
+	
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
+	/* Allocate space on the stack for the maximum # of e820 structures */
+	popw	%ax
+	subw	%bx, %sp
+	movw	%sp, %di
+	pushw	%ax
+
+jmpe820:
 	movl	$0xe820, %eax
 	movl	$SMAP, %edx
 	movl	$20, %ecx
@@ -294,8 +356,18 @@ again820:
 	jne	jmpe820
 
 bail820:
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
+	popl	%ecx		/* Get the maximum return size */
+	pushl	%esi		/* Save the structure count */
+
+	/* Copy the structures to the return buffer */
+	movl	%eax, %esi
+	movl	8(%ebp), %edi
+	rep	movsb
+
+	popl	%esi
 	popl	%eax
 	subl	%esi, %eax	/* Compute how many structure we read */
 
@@ -316,8 +388,12 @@ memsize:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	call	_prot_to_real
-	.code16
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text16"
+10:	.code16
 	stc					# fix to work around buggy
 	xorw	%cx,%cx				# BIOSes which dont clear/set
 	xorw	%dx,%dx				# carry on pass/error of
@@ -346,8 +422,9 @@ memsize:
 	andl	$0xffff,%eax
 4:
 	movl	%eax,%esi
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 	movl	%esi,%eax
 	popl	%edi
 	popl	%esi
@@ -359,12 +436,16 @@ BASEMEMSIZE - Get size of the conventional (base) memory
 **************************************************************************/
 	.globl	basememsize
 basememsize:
-	call	_prot_to_real
-	.code16
+	pushl	$ 10f
+	pushl	$ 20f
+	call	_real_call
+	.section ".text"
+10:	.code16
 	int	$0x12
 	movw	%ax,%cx
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 	movw	%cx,%ax
 	ret
 
@@ -377,13 +458,18 @@ disk_init:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	call	_prot_to_real
-	.code16
+
+	pushl	$ 10f
+	pushl	$ 20f
+	call	_real_call
+	.section ".text"
+10:	.code16
 	xorw	%ax,%ax
 	movb	$0x80,%dl
 	int	$0x13
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 	popl	%edi
 	popl	%esi
 	popl	%ebx
@@ -410,8 +496,12 @@ disk_read:
 	movw	26(%ebp),%si
 	rorw	$4,%si
 	movw	24(%ebp),%bx	/* buffer */
-	call	_prot_to_real
-	.code16
+
+	pushl	$ 10f
+	pushl	$ 20f - 10f
+	call	_real_call
+	.section ".text"
+10:	.code16
 	movw	$0x0201,%ax
 	movw	%si,%es
 	int	$0x13
@@ -419,8 +509,9 @@ disk_read:
 	xorw	%ax,%ax
 1:
 	movw	%ax,%bx
-	DATA32 call	_real_to_prot
-	.code32
+	ret
+20:	.code32
+	.previous
 	movzwl	%bx,%eax
 	popl	%edi
 	popl	%esi

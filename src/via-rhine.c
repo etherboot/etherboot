@@ -668,10 +668,6 @@ static int rhine_poll (struct nic *nic);
 static void rhine_transmit (struct nic *nic, const char *d, unsigned int t,
 			    unsigned int s, const char *p);
 
-/* Linux support functions */
-#define virt_to_bus(x) ((unsigned long)x)
-#define bus_to_virt(x) ((void *)x)
-
 /* Initialize the Rx and Tx rings, along with various 'dev' bits. */
 static void
 rhine_init_ring (struct nic *nic)

@@ -11,9 +11,6 @@
 #include "timer.h"
 #include "epic100.h"
 
-#undef	virt_to_bus
-#define	virt_to_bus(x)	((unsigned long)x)
-
 #define TX_RING_SIZE	2	/* use at least 2 buffers for TX */
 #define RX_RING_SIZE	2
 

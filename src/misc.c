@@ -197,7 +197,6 @@ void printf(const char *fmt, ...)
 	(void)vsprintf(0, fmt, ((const int *)&fmt)+1);
 }
 
-#if	defined(DOWNLOAD_PROTO_SLAM)
 /**************************************************************************
 INET_ATON - Convert an ascii x.x.x.x to binary form
 **************************************************************************/
@@ -222,7 +221,6 @@ int inet_aton(const char *start, in_addr *i)
 	i->s_addr = htonl((ip << 8) | val);
 	return p - start;
 }
-#endif	/* DOWNLOAD_PROTO_SLAM */
 
 int getdec(const char **ptr)
 {

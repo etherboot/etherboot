@@ -39,21 +39,19 @@ static void read_lb_memory(
 		switch(mem->map[i].type) {
 		case LB_MEM_RAM:
 		{
-			unsigned long long high;
+			unsigned long long end;
 			unsigned long mem_k;
-			high = mem->map[i].start + mem->map[i].size;
+			end = mem->map[i].start + mem->map[i].size;
 #if defined(DEBUG_LINUXBIOS)
-			printf("lb: ram start: %X%X size: %X%X high: %X%X\n",
+			printf("lb: %X%X - %X%X (ram)\n",
 				(unsigned long)(mem->map[i].start >>32), 
 				(unsigned long)(mem->map[i].start & 0xFFFFFFFF), 
-				(unsigned long)(mem->map[i].size >> 32),
-				(unsigned long)(mem->map[i].size  & 0xFFFFFFFF),
-				(unsigned long)(high >> 32), 
-				(unsigned long)(high & 0xFFFFFFFF));
+				(unsigned long)(end >> 32), 
+				(unsigned long)(end & 0xFFFFFFFF));
 #endif /* DEBUG_LINUXBIOS */
-			high >>= 10;
-			mem_k = high;
-			if (high & 0xFFFFFFFF00000000ULL) {
+			end >>= 10;
+			mem_k = end;
+			if (end & 0xFFFFFFFF00000000ULL) {
 				mem_k = 0xFFFFFFFF;
 			}
 			set_base_mem_k(info, mem_k);
@@ -62,6 +60,17 @@ static void read_lb_memory(
 		}
 		case LB_MEM_RESERVED:
 		default:
+#if defined(DEBUG_LINUXBIOS)
+		{
+			unsigned long long end;
+			end = mem->map[i].start + mem->map[i].size;
+			printf("lb: %X%X - %X%X (reserved)\n",
+				(unsigned long)(mem->map[i].start >>32), 
+				(unsigned long)(mem->map[i].start & 0xFFFFFFFF), 
+				(unsigned long)(end >> 32), 
+				(unsigned long)(end & 0xFFFFFFFF));
+		}
+#endif /* DEBUG_LINUXBIOS */
 			break;
 		}
 	}
@@ -116,7 +125,7 @@ static int find_lb_table(void *start, void *end, struct lb_header **result)
 	unsigned char *ptr;
 	/* For now be stupid.... */
 	for(ptr = start; (void *)ptr < end; ptr += 16) {
-		struct lb_header *head = (void *)ptr;
+		struct lb_header *head = (struct lb_header *)ptr;
 		if (	(head->signature[0] != 'L') || 
 			(head->signature[1] != 'B') ||
 			(head->signature[2] != 'I') ||
@@ -125,16 +134,28 @@ static int find_lb_table(void *start, void *end, struct lb_header **result)
 		}
 		if (head->header_bytes != sizeof(*head))
 			continue;
+#if defined(DEBUG_LINUXBIOS)
+		printf("Found canidate at: %X\n", (unsigned long)head);
+#endif
 		if (ipchksum((uint16_t *)head, sizeof(*head)) != 0) 
 			continue;
+#if defined(DEBUG_LINUXBIOS)
+		printf("header checksum o.k.\n");
+#endif
 		if (ipchksum((uint16_t *)(ptr + sizeof(*head)), head->table_bytes) !=
 			head->table_checksum) {
 			continue;
 		}
+#if defined(DEBUG_LINUXBIOS)
+		printf("table checksum o.k.\n");
+#endif
 		if (count_lb_records(ptr + sizeof(*head), head->table_bytes) !=
 			head->table_entries) {
 			continue;
 		}
+#if defined(DEBUG_LINUXBIOS)
+		printf("record count o.k.\n");
+#endif
 		*result = head;
 		return 1;
 	};
@@ -157,10 +178,10 @@ void get_memsizes(void)
 	 * but size is important...
 	 */
 	if (!found) {
-		found = find_lb_table((void*)0x00000, (void*)0x01000, &lb_table);
+		found = find_lb_table(phys_to_virt(0x00000), phys_to_virt(0x01000), &lb_table);
 	}
 	if (!found) {
-		found = find_lb_table((void*)0xf0000, (void*)0x100000, &lb_table);
+		found = find_lb_table(phys_to_virt(0xf0000), phys_to_virt(0x100000), &lb_table);
 	}
 	if (found) {
 #if defined (DEBUG_LINUXBIOS)
