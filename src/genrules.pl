@@ -213,8 +213,6 @@ family		drivers/net/sis900
 
 family		drivers/net/natsemi
 
-family		drivers/net/fa311
-
 family		drivers/net/prism2_plx
 
 family		drivers/net/prism2_pci

@@ -23,7 +23,7 @@
 #define DEFAULT_BOOT_INDEX 0
 #endif
 
-#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE)
+#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE) && !defined(COFF_IMAGE)
 #define	TAGGED_IMAGE		/* choose at least one */
 #endif
 
@@ -39,20 +39,10 @@
 
 #ifdef FREEBSD_PXEEMU
 #undef DEFAULT_BOOTFILE
-#undef DEFAULT_BOOTFILE_STRINGIFIED
 #ifndef PXENFSROOTPATH
 #define PXENFSROOTPATH ""
 #endif
-#define DEFAULT_BOOTFILE
-#define DEFAULT_BOOTFILE_STRINGIFIED	PXENFSROOTPATH "/boot/pxeboot"
-#endif
-
-/* Stringify DEFAULT_BOOTFILE here in order to make the Config file more
- * user-friendly - avoids need for "\"...\"" in Config */
-#if defined(DEFAULT_BOOTFILE) && !defined(DEFAULT_BOOTFILE_STRINGIFIED)
-#define STRINGIFY(x) #x
-#define STRINGIFY_MACRO(x) STRINGIFY(x)
-#define DEFAULT_BOOTFILE_STRINGIFIED STRINGIFY_MACRO(DEFAULT_BOOTFILE)
+#define DEFAULT_BOOTFILE	PXENFSROOTPATH "/boot/pxeboot"
 #endif
 
 /* Clean up console settings... mainly CONSOLE_FIRMWARE and CONSOLE_SERIAL are used
@@ -294,6 +284,7 @@ extern int int15 P((int));
 #ifdef	POWERSAVE
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */
+extern void fake_irq ( uint8_t irq );
 
 /* basemem.c */
 extern uint32_t get_free_base_memory ( void );

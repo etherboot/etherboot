@@ -32,6 +32,7 @@ SRCS+=	arch/i386/core/i386_timer.c
 SRCS+=	arch/i386/core/elf.c
 SRCS+=	arch/i386/core/cpu.c
 SRCS+=	arch/i386/core/video_subr.c
+SRCS+=	arch/i386/core/pic8259.c
 
 # ROM loaders: PCI header version (prefix P)
 RLOADER=	$(BIN)/rloader.bin
@@ -91,6 +92,7 @@ alllilos:	$(BUILD_LILOS)
 
 BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
 BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o $(BIN)/video_subr.o
+BOBJS+=		$(BIN)/pic8259.o
 
 # Prepended loaders
 $(BIN)/rloader.bin:	$(BIN)/rloader.o
@@ -248,10 +250,10 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 
 # rules to make a LILO loadable image
 %.lilo:		%.img $(LILOPREFIX) $(START16)
-	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync of=$@
+	$(PERL) util/makelilo.pl $(LILOPREFIX) $(START16) $< > $@
 
 %.zlilo:	%.zimg $(LILOPREFIX) $(START16)
-	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync of=$@
+	$(PERL) util/makelilo.pl $(LILOPREFIX) $(START16) $< > $@
 
 # rules to generate a PXE loadable image
 %.pxe:	%.img $(PXEPREFIX) $(START16)
@@ -273,3 +275,10 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 
 %.zfd0:	%.zimg $(DISKLOADER) $(START16)
 	cat $(DISKLOADER) $(START16) $< > /dev/fd0
+
+# rule to make a non-emulation ISO boot image
+%.iso:	%.zimg $(START16)
+	mkdir -p $*.dir
+	cat $(START16) $< > $*.dir/$(*F).bin
+	mkisofs -o $@ -c boot.cat -no-emul-boot -b $(*F).bin $*.dir
+	rm -fr $*.dir

@@ -10,7 +10,8 @@
 #	-DASK_BOOT=n
 #			Ask "Boot from (N)etwork ... or (Q)uit? " 
 #			at startup, timeout after n seconds (0 = no timeout).
-#			If unset, boot immediately using the default.
+#			If unset or negative, don't ask and boot immediately
+#			using the default.
 #	-DBOOT_FIRST
 #	-DBOOT_SECOND
 #	-DBOOT_THIRD
@@ -64,7 +65,7 @@
 #			should be enabled unless you have a legacy DHCP server
 #			configuration from the bad old days before the use of
 #			encapsulated Etherboot options.
-#	-DDEFAULT_BOOTFILE="default_bootfile_name"
+#	-DDEFAULT_BOOTFILE=\"default_bootfile_name\"
 #			Define a default bootfile for the case where your DHCP
 #			server does not provide the information.  Example:
 #			  -DDEFAULT_BOOTFILE="tftp:///tftpboot/kernel"
@@ -231,14 +232,17 @@
 #			Include support for devices using the pci bus.
 #	-DCONFIG_ISA
 #			Include support for devices using isa bus.
+#	-DCONFIG_PCMCIA
+#			Include support for PCMCIA in general *development*
 # @/OptionDescription@
 
 # These default settings compile Etherboot with a small number of options.
 # You may wish to enable more of the features if the size of your ROM allows.
 
 
-# Select which busses etherboot should support
+# Select which buses etherboot should support
 CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
+#CFLAGS+=	-DCONFIG_PCMCIA
 
 # For prompting and default on timeout
 CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
@@ -271,7 +275,7 @@ CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
 # Specify a default bootfile to be used if the DHCP server does not
 # provide the information.  If you do not specify this option, then
 # DHCP offers that do not contain bootfiles will be ignored.
-# CFLAGS+=	-DDEFAULT_BOOTFILE="tftp:///tftpboot/kernel"
+# CFLAGS+=	-DDEFAULT_BOOTFILE=\"tftp:///tftpboot/kernel\"
 
 # Limit the delay on packet loss/congestion to a more bearable value. See
 # description above.  If unset, do not limit the delay between resend.

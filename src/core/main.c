@@ -42,17 +42,19 @@ static inline unsigned long ask_boot(unsigned *index)
 #ifdef LINUXBIOS
 	order = get_boot_order(order, index);
 #endif
-#if defined(ASK_BOOT) && ASK_BOOT > 0
+#if defined(ASK_BOOT) && ASK_BOOT >= 0
 	while(1) {
 		int c;
 		unsigned long time;
 		printf(ASK_PROMPT);
+#if ASK_BOOT > 0
 		for (time = currticks() + ASK_BOOT*TICKS_PER_SEC; !iskey(); ) {
 			if (currticks() > time) {
 				c = ANS_DEFAULT;
 				goto done;
 			}
 		}
+#endif /* ASK_BOOT > 0 */
 		c = getchar();
 		if ((c >= 'a') && (c <= 'z')) c &= 0x5F;
 		if ((c >= ' ') && (c <= '~')) putchar(c);
@@ -169,6 +171,10 @@ int main(struct Elf_Bhdr *ptr)
 	get_memsizes();
 	cleanup();
 
+#ifdef CONFIG_PCMCIA
+	pcmcia_init_all();
+#endif
+
 	/* -1:	timeout or ESC
 	   -2:	error return from loader
 	   -3:  finish the current run.
@@ -186,6 +192,9 @@ int main(struct Elf_Bhdr *ptr)
 		state = main_loop(state);
 	}
 	arch_on_exit(exit_status);
+#ifdef CONFIG_PCMCIA
+	pcmcia_shutdown_all();
+#endif
 	return exit_status;
 }
 

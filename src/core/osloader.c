@@ -89,6 +89,10 @@ static void aout_freebsd_boot(void);
 #include "elf_loader.c"
 #endif
 
+#if defined(COFF_IMAGE) 
+#include "../arch/e1/core/coff_loader.c"
+#endif
+
 #ifdef IMAGE_FREEBSD
 #include "../arch/i386/core/freebsd_loader.c"
 #endif
@@ -306,6 +310,9 @@ os_download_t probe_image(unsigned char *data, unsigned int len)
 #endif
 #ifdef ELF64_IMAGE
 	if (!os_download) os_download = elf64_probe(data, len);
+#endif
+#ifdef COFF_IMAGE
+    if (!os_download) os_download = coff_probe(data, len);
 #endif
 #ifdef WINCE_IMAGE
 	if (!os_download) os_download = wince_probe(data, len);

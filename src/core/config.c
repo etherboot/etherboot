@@ -27,6 +27,9 @@ void print_config(void)
 #ifdef	ELF_IMAGE
 		"ELF "
 #endif
+#ifdef	COFF_IMAGE
+		"COFF "
+#endif
 #ifdef	IMAGE_FREEBSD
 		"(FreeBSD) "
 #endif
@@ -58,6 +61,7 @@ void print_config(void)
 	for(driver = isa_drivers; driver < isa_drivers_end; driver++) {
 		printf("[%s]", driver->name);
 	}
+
 }
 #endif	
 	putchar('\n');

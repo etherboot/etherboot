@@ -17,7 +17,12 @@ struct isa_driver
 	unsigned short *ioaddrs;
 };
 
+#ifndef __HYPERSTONE__
 #define __isa_driver	__attribute__ ((unused,__section__(".drivers.isa")))
+#else 
+#define __isa_driver	__attribute__ ((unused,__section__(".drivisa")))
+#endif
+
 extern const struct isa_driver isa_drivers[];
 extern const struct isa_driver isa_drivers_end[];
 

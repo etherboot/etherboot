@@ -43,8 +43,6 @@
 #			Some systems do not have timer2 implemented.
 #			If you have a RTC this will allow you to roughly calibrate
 #			it using outb instructions.
-#	-DPXELOADER_KEEP_UNDI
-#			For implementation later with UNDI.
 #	-DIBM_L40
 #			This option uses the 0x92 method of controlling
 #			A20 instead of the traditional method of using the
@@ -60,6 +58,17 @@
 #	-DCONFIG_X86_64	
 #			Compile in support for booting x86_64 64bit binaries.
 #
+#	PXE loader options:
+#
+#	-DPXELOADER_KEEP_ALL
+#			Prevent PXE loader (prefix) from unloading the
+#			PXE stack.  You will want to use this if, for
+#			example, you are booting via PXE-on-floppy.
+#			You may want to use it under certain
+#			circumstances when using the Etherboot UNDI
+#			driver; these are complex and best practice is
+#			not yet established.
+#			
 #	Obscure options you probably don't need to touch:
 #
 #	-DMOVEROM

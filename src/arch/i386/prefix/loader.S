@@ -52,7 +52,7 @@ size:	.byte 0				/* number of 512 byte blocks */
 	jmp	over			/* skip over checksum */
 	.byte 0				/* checksum */
 	jmp	legacyentry		/* alternate entry point +6 */
-					/* used by floppyload */
+					/* used by mknbi-rom */
 
 #ifdef	PCI_PNP_HEADER
 mfgstr:
