@@ -245,5 +245,5 @@ CFLAGS32+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
 CFLAGS32+=	-Wall -W -Wno-format -Wno-unused
 ASFLAGS32=
 LDFLAGS32+=	-N -Ttext $(RELOCADDR) -e _start
-LDBINARY32=	-oformat binary		# flag for headerless binary
+LDBINARY32=	--oformat binary	# flag for headerless binary
 LIBC32=					# not needed
