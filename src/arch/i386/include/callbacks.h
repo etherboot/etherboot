@@ -176,7 +176,7 @@ typedef struct {
 	(structure)->padding = 0; \
 }
 /* As part of an external_call parameter list */
-#define EP_GDT(structure) EXTCALL_GDT, &((structure)->limit)
+#define EP_GDT(structure,our_cs) EXTCALL_GDT, &((structure)->limit), our_cs
 
 /* Stack alignment used by GCC.  Must be a power of 2.
  */
