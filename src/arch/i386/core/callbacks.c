@@ -38,16 +38,22 @@ uint32_t _ext_call ( uint32_t address, ... ) {
 uint32_t v_ext_call ( uint32_t address, va_list ap ) {
 	va_list aq;
 	uint32_t first_arg;
+	int valid = 1;
 	
 	va_copy ( aq, ap );
 	first_arg = va_arg ( aq, typeof(first_arg) );
 	if ( first_arg == EP_TRACE ) {
-		v_ext_call_check ( address, aq );
+		valid = v_ext_call_check ( address, aq );
+		sleep ( 1 );
 		/* Pop first_arg from ap as well */
 		va_arg ( ap, typeof(first_arg) );
 	}
 	va_end ( aq );
-	_v_ext_call ( address, ap );
+	if ( !valid ) {
+		printf ( "*** Refusing to perform external call ***\n" );
+		return 0xffffffff;
+	}
+	return _v_ext_call ( address, ap );
 }
 
 /* Print out a GDT segment descriptor.
@@ -78,18 +84,18 @@ void print_gdt_segment ( uint16_t segment_num, gdt_segment_t *gdt_seg ) {
 
 /* Print out parameter list for a call to ext_call().
  */
-void v_ext_call_check ( uint32_t address, va_list ap ) {
+int v_ext_call_check ( uint32_t address, va_list ap ) {
 	uint32_t type;
+	int valid = 1;
 
 	printf ( "External call to %x with arguments:\n", address );
 	/* Dump argument list */
-	while ( ( type = va_arg ( ap, typeof(type) ) ) != EXTCALL_END_LIST ) {
-		int valid = 0;
+	while ( valid && ( ( type = va_arg ( ap, typeof(type) ) )
+			   != EXTCALL_END_LIST ) ) {
 
 		switch ( type ) {
 		case EXTCALL_NONE: {
 			printf ( " Null argument\n" );
-			valid = 1;
 		} break;
 		case EXTCALL_REGISTERS: {
 			regs_t *regs;
@@ -100,17 +106,16 @@ void v_ext_call_check ( uint32_t address, va_list ap ) {
 				 regs,
 				 regs->eax, regs->ebx, regs->ecx, regs->edx,
 				 regs->esp, regs->ebp, regs->esi, regs->edi );
-			valid = 1;
 		} break;
 		case EXTCALL_SEG_REGISTERS: {
 			seg_regs_t *seg_regs;
 			seg_regs = va_arg ( ap, typeof(seg_regs) );
 			printf ( " Segment registers at %x:\n"
-				 "  cs=%hx ds=%hx ss=%hx es=%hx fs=%hx gs=%hx",
+				 "  cs=%hx ds=%hx ss=%hx"
+				 " es=%hx fs=%hx gs=%hx\n",
 				 seg_regs,
 				 seg_regs->cs, seg_regs->ds, seg_regs->ss,
 				 seg_regs->es, seg_regs->fs, seg_regs->gs );
-			valid = 1;
 		} break;
 		case EXTCALL_GDT: {
 			GDT_STRUCT_t(0) *gdt;
@@ -124,6 +129,7 @@ void v_ext_call_check ( uint32_t address, va_list ap ) {
 					 "(is %x, should be %hx)\n",
 					 gdt->address,
 					 virt_to_phys(gdt) );
+				valid = 0;
 			}
 			for ( gdt_seg = &(gdt->segments[0]);
 			      ( (void*)gdt_seg - (void*)gdt ) < gdt->limit ;
@@ -134,7 +140,6 @@ void v_ext_call_check ( uint32_t address, va_list ap ) {
 			eb_cs = va_arg ( ap, typeof(eb_cs) );
 			printf ( "  Etherboot accessible via CS=%hx\n",
 				 eb_cs );
-			valid = 1;
 		} break;
 		case EXTCALL_STACK: {
 			char *stack_base;
@@ -148,7 +153,6 @@ void v_ext_call_check ( uint32_t address, va_list ap ) {
 				printf ( "%hhx ", stack_base[i] );
 			}
 			putchar ( '\n' );
-			valid = 1;
 		} break;
 		case EXTCALL_RET_STACK: {
 			char *ret_stack_base;
@@ -164,25 +168,30 @@ void v_ext_call_check ( uint32_t address, va_list ap ) {
 					 ret_stack_len );
 			}
 			putchar ( '\n' );
-			valid = 1;
 		} break;
 		case EXTCALL_RELOC_STACK: {
 			char *reloc_stack;
 			reloc_stack = va_arg ( ap, typeof(reloc_stack) );
 			printf ( " Relocate stack to [......,%x)\n",
 				 reloc_stack );
-			valid = 1;
+		} break;
+		case EXTCALL_TRAMPOLINE: {
+			void *routine;
+			uint32_t length;
+			routine = va_arg ( ap, typeof(routine) );
+			length = va_arg ( ap, typeof(length) );
+			printf ( " Trampoline routine at %x length %hx\n",
+				 routine, length );
 		} break;
 		default:
-			printf ( " Unknown argument type %hx", type );
-			break;
-		}
-		if ( !valid ) {
-			printf ( "Argument list error: aborting\n" );
+			printf ( " Unknown argument type %hx\n", type );
+			valid = 0;
 			break;
 		}
 	}
-	printf ( "End of argument list\n" );
+	printf ( valid ? "End of argument list\n"
+		 : "Argument list error: aborting\n" );
+	return valid;
 }
 
 #endif /* DEBUG_EXT_CALL */
@@ -200,7 +209,11 @@ extern int demo_extcall ( long beta, char gamma, char epsilon, long delta );
 	/*	__asm__ ( "movl %%ebx, %%ecx;\n" : : ); */
 /*	return beta + delta + gamma + epsilon; 
 	}*/
+extern void demo_extcall_end;
 
+extern int _prot_to_real ( void );
+
+extern int get_esp ( void );
 
 int my_call ( char a, long b, char c, char e, long d );
 
@@ -215,62 +228,58 @@ int my_call ( char a, long b, char c, char e, long d ) {
 		uint16_t ret4;
 	} PACKED ret_parms;
 	uint32_t ret_stack_len;
+	seg_regs_t seg_regs;
 
 	registers.eax = a;
 	registers.edx = 0x12345678;
+
+	memset ( &seg_regs, 0, sizeof(seg_regs) );
+	seg_regs.cs = 0x08;
+	seg_regs.ss = 0x10;
+
 	struct {
 		uint16_t arg1;
 		uint16_t arg2;
 		uint16_t arg3;
 	} PACKED test_parms = { 7, 8, 9 };
 
-	GDT_STRUCT_t(6) gdt = {
+	GDT_STRUCT_t(2) gdt = {
 		0, 0, 0, {
-			GDT_SEGMENT_PMCS(virt_offset),
-			GDT_SEGMENT_PMDS(virt_offset),
-			GDT_SEGMENT_PMCS(0x1000),
-			/*				GDT_SEGMENT_RMCS, */
-			/*						GDT_SEGMENT_RMDS, */
-			/*			GDT_SEGMENT_PMCS_PHYS,
-						GDT_SEGMENT_PMDS_PHYS */
+			GDT_SEGMENT_PMCS_PHYS,
+			GDT_SEGMENT_PMDS_PHYS,
+			/*			GDT_SEGMENT_PMCS(virt_offset),*/
+			/*			GDT_SEGMENT_PMDS(virt_offset), */
+			/*			GDT_SEGMENT_RMCS,
+						GDT_SEGMENT_RMDS, */
 		}
 	};
 	GDT_ADJUST(&gdt);
 	
-	/*	ext_call_check ( demo_extcall, EP_STACK_PASSTHRU ( b, d ),
-			 EP_GDT(&gdt),
-			 EP_REGISTERS(&registers),
-			 EP_STACK(&test_parms) ); */
-	/*	return (int) ext_call ( demo_extcall, EP_STACK_PASSTHRU ( b, d ),
-				EP_GDT(&gdt),
-				EP_REGISTERS(&registers),
-				EP_STACK(&test_parms) ); */
 	registers.eax = 0x12344321;
 	registers.ebx = 0xabcdabcd;
-	/*	ext_call_check ( 
-			 virt_to_phys(demo_extcall),
-			 EP_REGISTERS(&registers),
-			 EP_STACK_PASSTHRU(b, d), EP_GDT(&gdt, 0x18),
-			 EP_RELOC_STACK(((void*)temp_stack) + 256),
-			 EP_RET_VARSTACK( &ret_parms, &ret_stack_len ) ); */
 
 	memset ( temp_stack, 0, 256 );
 
-	ret = (int) ext_call_trace ( virt_to_phys(demo_extcall) - 0x1000,
-			       /* demo_extcall, */
-			       EP_REGISTERS(&registers),
-			       EP_STACK_PASSTHRU(b, d), EP_GDT(&gdt, 0x18),
-			       EP_RELOC_STACK(((void*)temp_stack) + 256),
-			       EP_RET_VARSTACK( &ret_parms, &ret_stack_len ) );
-	/*	ret = (int) ext_call ( demo_extcall, EP_STACK_PASSTHRU ( b, d ) ,
-		EP_REGISTERS(&registers) ); */
-	printf ( "ecx = %#x\n", registers.ecx );
+	ret = (int) ext_call_trace (
+				    0, /* virt_to_phys(demo_extcall), */
+	   EP_REGISTERS(&registers),
+	   EP_SEG_REGISTERS(&seg_regs),
+	   EP_STACK_PASSTHRU(b, d),
+	   EP_GDT(&gdt, 0x08),
+	   EP_RELOC_STACK(virt_to_phys(((void*)temp_stack) + 256)),
+	   EP_RET_VARSTACK( &ret_parms, &ret_stack_len ),
+	   EP_TRAMPOLINE(demo_extcall, &demo_extcall_end)  );
+	
+	printf ( "ecx = %#x (%#x)\n", registers.ecx,
+		 phys_to_virt(registers.ecx) );
 
 	printf ( "return stack length %hx: %hx %hx %hx %hx\n",
 		 ret_stack_len,
 		 ret_parms.ret1, ret_parms.ret2,
 		 ret_parms.ret3, ret_parms.ret4 );
-	/*		hex_dump(temp_stack,256);  */
+
+	hex_dump(((void*)temp_stack),256);
+
 	return ret;
 }
 
