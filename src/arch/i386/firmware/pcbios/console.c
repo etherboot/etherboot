@@ -40,6 +40,7 @@ int console_getc ( void ) {
 	__asm__ ( "sti" );
 	__asm__ ( "xorw %ax, %ax" );
 	__asm__ ( "int $0x16" );
+	__asm__ ( "xorb %ah, %ah" );
 	__asm__ ( "cli" );
 	END_RM_FRAGMENT(rm_console_getc);
 
