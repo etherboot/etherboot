@@ -15,14 +15,14 @@ SECTIONS {
 		*(.rodata)
 		*(.rodata.*)
 	}
+	. = ALIGN(4);
 	.drivers.pci : {
-		. = ALIGN(4);
 		pci_drivers = . ;
 		*(.drivers.pci);
 		pci_drivers_end = . ;
 	}
+	. = ALIGN(4);
 	.drivers.isa : {
-		. = ALIGN(4);
 		isa_drivers = . ;
 		*(.drivers.isa);
 		isa_drivers_end = .;

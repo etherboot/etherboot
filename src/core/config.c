@@ -61,7 +61,7 @@ void print_config(void)
 }
 
 #ifdef CONFIG_PCI
-static int pci_probe(struct dev *dev)
+static int pci_probe(struct dev *dev, char *type_name)
 {
 /*
  *	NIC probing is in pci device order, followed by the 
@@ -74,6 +74,7 @@ static int pci_probe(struct dev *dev)
  *      will be repeated.
  */
 	struct pci_probe_state *state = &dev->state.pci;
+	printf("Probing pci %s...\n", type_name);
 	if (dev->how_probe == PROBE_FIRST) {
 		state->advance    = 1;
 		state->dev.driver = 0;
@@ -111,7 +112,7 @@ static int pci_probe(struct dev *dev)
 	return PROBE_FAILED;
 }
 #else
-#define pci_probe(d) (PROBE_FAILED)
+#define pci_probe(d, tn) (PROBE_FAILED)
 #endif
 
 #ifdef CONFIG_ISA
@@ -123,6 +124,7 @@ static int isa_probe(struct dev *dev)
  *	just change the order you list the drivers in.
  */
 	struct isa_probe_state *state = &dev->state.isa;
+	printf("Probing isa %s...\n", type_name);
 	if (dev->how_probe == PROBE_FIRST) {
 		state->advance = 0;
 		state->driver  = isa_drivers;
@@ -154,7 +156,7 @@ static int isa_probe(struct dev *dev)
 	return PROBE_FAILED;
 }
 #else
-#define isa_probe(d) (PROBE_FAILED)
+#define isa_probe(d, tn) (PROBE_FAILED)
 #endif
 
 static const char *driver_name[] = {
@@ -164,28 +166,24 @@ static const char *driver_name[] = {
 };
 int probe(struct dev *dev)
 {
-	char *to_probe;
-	to_probe = "";
+	char *type_name;
+	type_name = "";
 	if ((dev->type >= 0) && 
 		(dev->type < sizeof(driver_name)/sizeof(driver_name[0]))) {
-		to_probe = driver_name[dev->type];
+		type_name = driver_name[dev->type];
 	}
 	if (dev->how_probe == PROBE_FIRST) {
 		dev->to_probe = PROBE_PCI;
 		memset(&dev->state, 0, sizeof(dev->state));
 	}
 	if (dev->to_probe == PROBE_PCI) {
-		printf("Probing pci %s...\n", to_probe);
-		dev->how_probe = pci_probe(dev);
-		printf("\n");
+		dev->how_probe = pci_probe(dev, type_name);
 		if (dev->how_probe == PROBE_FAILED) {
 			dev->to_probe = PROBE_ISA;
 		}
 	}
 	if (dev->to_probe == PROBE_ISA) {
-		printf("Probing isa %s...\n", to_probe);
-		dev->how_probe = isa_probe(dev);
-		printf("\n");
+		dev->how_probe = isa_probe(dev, type_name);
 		if (dev->how_probe == PROBE_FAILED) {
 			dev->to_probe = PROBE_NONE;
 		}

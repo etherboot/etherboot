@@ -86,11 +86,11 @@ void *allot(size_t size)
 {
 	void *ptr;
 	size_t *mark, addr;
-	/* Get an 8 byte aligned chunk of memory off of the heap 
+	/* Get an 16 byte aligned chunk of memory off of the heap 
 	 * An extra sizeof(size_t) bytes is allocated to track
 	 * the size of the object allocated on the heap.
 	 */
-	addr = (heap_ptr - (size + sizeof(size_t))) &  ~7;
+	addr = (heap_ptr - (size + sizeof(size_t))) &  ~15;
 	if (addr < heap_top) {
 		ptr = 0;
 	} else {
@@ -113,7 +113,7 @@ void forget(void *ptr)
 	addr = virt_to_phys(ptr);
 	mark = phys_to_virt(addr - sizeof(size_t));
 	size = *mark;
-	addr += (size + 7) & ~7;
+	addr += (size + 15) & ~15;
 	
 	if (addr > heap_bot) {
 		addr = heap_bot;

@@ -91,7 +91,7 @@ CFLAGS+= -fstrength-reduce -fomit-frame-pointer -mcpu=i386
 # Squeeze the code in as little space as possible.
 CFLAGS+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
 
-LDFLAGS+=	-N -Ttext $(RELOCADDR) -T arch/i386/core/etherboot.lds
+LDFLAGS+=	-N -Ttext $(RELOCADDR)
 
 ifeq "$(shell uname -s)" "FreeBSD"
 CFLAGS+=	-DIMAGE_FREEBSD -DELF_IMAGE -DAOUT_IMAGE

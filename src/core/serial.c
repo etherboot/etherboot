@@ -38,7 +38,6 @@ static int found = 0;
 #error Bad ttys0 baud rate
 #endif
 
-#undef
 #define COMBRD (115200/UART_BAUD)
 
 /* Line Control Settings */

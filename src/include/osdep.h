@@ -4,6 +4,10 @@
 #define __unused __attribute__((unused))
 #define __aligned __attribute__((aligned(16)))
 
+/* Optimization barrier */
+/* The "volatile" is due to gcc bugs */
+#define barrier() __asm__ __volatile__("": : :"memory")
+
 #include "stdint.h"
 #include "limits.h"
 #include "string.h"

@@ -98,6 +98,29 @@ static inline void iounmap(void *virt_addr __unused)
 #define memcpy_toio(a,b,c)	memcpy((void *)(a),(b),(c))
 
 /*
+ * Force strict CPU ordering.
+ * And yes, this is required on UP too when we're talking
+ * to devices.
+ *
+ * For now, "wmb()" doesn't actually do anything, as all
+ * Intel CPU's follow what Intel calls a *Processor Order*,
+ * in which all writes are seen in the program order even
+ * outside the CPU.
+ *
+ * I expect future Intel CPU's to have a weaker ordering,
+ * but I'd also expect them to finally get their act together
+ * and add some real memory barriers if so.
+ *
+ * Some non intel clones support out of order store. wmb() ceases to be a
+ * nop for these.
+ */
+ 
+#define mb() 	__asm__ __volatile__ ("lock; addl $0,0(%%esp)": : :"memory")
+#define rmb()	mb()
+#define wmb()	mb();
+
+
+/*
  * Talk about misusing macros..
  */
 

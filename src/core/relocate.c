@@ -47,6 +47,9 @@ void relocate(void)
 		}
 		r_start = meminfo.map[i].addr;
 		r_end = r_start + meminfo.map[i].size;
+		/* Make the addresses 16 byte (128 bit) aligned */
+		r_start = (r_start + 15) & ~15;
+		r_end = r_end & ~15;
 		if (r_end < r_start) {
 			r_end = MAX_ADDR;
 		}

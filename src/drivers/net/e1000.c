@@ -51,14 +51,6 @@ Drivers are port from Intel's Linux driver e1000-4.3.15
 #include "timer.h"
 
 typedef unsigned char *dma_addr_t;
-typedef uint8_t  u8;
-typedef int8_t   s8;
-typedef uint16_t u16;
-typedef int16_t  s16;
-typedef uint32_t u32;
-typedef int32_t   s32;
-
-typedef unsigned long long u64;
 
 typedef enum {
 	FALSE = 0,
@@ -2513,21 +2505,22 @@ void fill_rx (void)
 	rd = rx_base + rx_tail;
 	rx_tail = (rx_tail + 1) % 8;
 	memset (rd, 0, 16);
-	rd->buffer_addr = virt_to_phys(&packet);
+	rd->buffer_addr = virt_to_bus(&packet);
 	E1000_WRITE_REG (&hw, RDT, rx_tail);
 }
 
 void init_descriptor (void)
 {
-	unsigned long p;
+	unsigned long ptr;
 	unsigned long tctl;
-	p = (u32) tx_pool;
-	if (p & 0xf)
-		p = (p + 0x10) & (~0xf);
 
-	tx_base = (struct e1000_tx_desc *) p;
+	ptr = virt_to_phys(tx_pool);
+	if (ptr & 0xf)
+		ptr = (ptr + 0x10) & (~0xf);
 
-	E1000_WRITE_REG (&hw, TDBAL, virt_to_phys(tx_base));
+	tx_base = phys_to_virt(ptr);
+
+	E1000_WRITE_REG (&hw, TDBAL, virt_to_bus(tx_base));
 	E1000_WRITE_REG (&hw, TDBAH, 0);
 	E1000_WRITE_REG (&hw, TDLEN, 128);
 	/* Setup the HW Tx Head and Tail descriptor pointers */
@@ -2545,11 +2538,11 @@ void init_descriptor (void)
 	rx_tail = 0;
 	/* disable receive */
 	E1000_WRITE_REG (&hw, RCTL, 0);
-	p = (u32) rx_pool;
-	if (p & 0xf)
-		p = (p + 0x10) & (~0xf);
-	rx_base = (struct e1000_rx_desc *) p;
-	E1000_WRITE_REG (&hw, RDBAL, virt_to_phys(rx_base));
+	ptr = virt_to_phys(rx_pool);
+	if (ptr & 0xf)
+		ptr = (ptr + 0x10) & (~0xf);
+	rx_base = phys_to_virt(ptr);
+	E1000_WRITE_REG (&hw, RDBAL, virt_to_bus(rx_base));
 	E1000_WRITE_REG (&hw, RDBAH, 0);
 
 	E1000_WRITE_REG (&hw, RDLEN, 128);
@@ -2592,8 +2585,8 @@ TRANSMIT - Transmit a frame
 ***************************************************************************/
 static void
 e1000_transmit (struct nic *nic, const char *d,	/* Destination */
-		    unsigned int t,	/* Type */
-		    unsigned int s,	/* size */
+		    unsigned int type,	/* Type */
+		    unsigned int size,	/* size */
 		    const char *p)
 {				/* Packet */
 	/* send the packet to destination */
@@ -2607,7 +2600,7 @@ e1000_transmit (struct nic *nic, const char *d,	/* Destination */
 	memcpy (&hdr.dst_addr, d, ETH_ALEN);
 	memcpy (&hdr.src_addr, nic->node_addr, ETH_ALEN);
 
-	hdr.type = htons (t);
+	hdr.type = htons (type);
 	txhd = tx_base + tx_tail;
 	tx_tail = (tx_tail + 1) % 8;
 	txp = tx_base + tx_tail;
@@ -2618,12 +2611,12 @@ e1000_transmit (struct nic *nic, const char *d,	/* Destination */
 	txhd->upper.data = 0;
 
 	txp->buffer_addr = virt_to_bus(p);
-	txp->lower.data = E1000_TXD_CMD_RPS | E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS | s;
+	txp->lower.data = E1000_TXD_CMD_RPS | E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS | size;
 	txp->upper.data = 0;
 
 	E1000_WRITE_REG (&hw, TDT, tx_tail);
 	while (!(txp->upper.data & E1000_TXD_STAT_DD)) {
-		udelay (10);	/* give the nic a chance to write to the register */
+		udelay(10);	/* give the nic a chance to write to the register */
 		poll_interruptions();
 	}
 	DEBUGFUNC("send end");
