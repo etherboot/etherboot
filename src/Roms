@@ -68,8 +68,10 @@ BINS32	+= bin32/eepro100.rom bin32/eepro100.lzrom
 BINS32	+= bin32/82559er.rom bin32/82559er.lzrom
 BINS32	+= bin32/id1029.rom bin32/id1029.lzrom
 BINS32	+= bin32/id1030.rom bin32/id1030.lzrom
+BINS32	+= bin32/id1031.rom bin32/id1031.lzrom
 BINS32	+= bin32/id1038.rom bin32/id1038.lzrom
 BINS32	+= bin32/82562et.rom bin32/82562et.lzrom
+BINS32	+= bin32/id103a.rom bin32/id103a.lzrom
 BINS32	+= bin32/82562etb.rom bin32/82562etb.lzrom
 BINS32	+= bin32/82562em.rom bin32/82562em.lzrom
 BINS32	+= bin32/epic100.rom bin32/epic100.lzrom
@@ -1869,6 +1871,42 @@ bin32/id1030.ebi:	bin32/eepro100.elf
 	cp bin32/eepro100.elf $@
 	$(STRIP) -R .comment -R .note $@
 
+bin32/id1031.rom:	bin32/eepro100.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/id1031--%.rom:	bin32/eepro100--%.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/id1031.lzrom:	bin32/eepro100.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/id1031--%.lzrom:	bin32/eepro100--%.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/id1031.pxe:	bin32/eepro100.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/id1031--%.pxe:	bin32/eepro100--%.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/id1031.lzpxe:	bin32/eepro100.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/id1031--%.lzpxe:	bin32/eepro100--%.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1031 -i$(IDENT32) $@
+
+bin32/id1031.ebi:	bin32/eepro100.elf
+	cp bin32/eepro100.elf $@
+	$(STRIP) -R .comment -R .note $@
+
 bin32/id1038.rom:	bin32/eepro100.img $(PRLOADER)
 	cat $(PRLOADER) $< > $@
 	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1038 -i$(IDENT32) $@
@@ -1938,6 +1976,42 @@ bin32/82562et--%.lzpxe:	bin32/eepro100--%.huf $(PXEZLOADER)
 	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
 
 bin32/82562et.ebi:	bin32/eepro100.elf
+	cp bin32/eepro100.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/id103a.rom:	bin32/eepro100.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x103a -i$(IDENT32) $@
+
+bin32/id103a--%.rom:	bin32/eepro100--%.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x103a -i$(IDENT32) $@
+
+bin32/id103a.lzrom:	bin32/eepro100.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x103a -i$(IDENT32) $@
+
+bin32/id103a--%.lzrom:	bin32/eepro100--%.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x103a -i$(IDENT32) $@
+
+bin32/id103a.pxe:	bin32/eepro100.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x103a -i$(IDENT32) $@
+
+bin32/id103a--%.pxe:	bin32/eepro100--%.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x103a -i$(IDENT32) $@
+
+bin32/id103a.lzpxe:	bin32/eepro100.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x103a -i$(IDENT32) $@
+
+bin32/id103a--%.lzpxe:	bin32/eepro100--%.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x103a -i$(IDENT32) $@
+
+bin32/id103a.ebi:	bin32/eepro100.elf
 	cp bin32/eepro100.elf $@
 	$(STRIP) -R .comment -R .note $@
 
