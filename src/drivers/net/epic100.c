@@ -1,3 +1,4 @@
+
 /* epic100.c: A SMC 83c170 EPIC/100 fast ethernet driver for Etherboot */
 
 /* 05/06/2003	timlegge	Fixed relocation and implemented Multicast */
@@ -49,13 +50,14 @@ struct epic_tx_desc {
 static void	epic100_open(void);
 static void	epic100_init_ring(void);
 static void	epic100_disable(struct dev *dev);
-static int	epic100_poll(struct nic *nic);
+static int	epic100_poll(struct nic *nic, int retrieve);
 static void	epic100_transmit(struct nic *nic, const char *destaddr,
 				 unsigned int type, unsigned int len, const char *data);
 #ifdef	DEBUG_EEPROM
 static int	read_eeprom(int location);
 #endif
 static int	mii_read(int phy_id, int location);
+static void     epic100_irq(struct nic *nic, irq_action_t action);
 
 static int	ioaddr;
 
@@ -109,6 +111,8 @@ epic100_probe(struct dev *dev, struct pci_device *pci)
        Epic cards in slot order. */
 
     ioaddr = pci->ioaddr;
+    nic->irqno  = 0;
+    nic->ioaddr = pci->ioaddr & ~3;
 
     /* compute all used static epic100 registers address */
     command = ioaddr + COMMAND;		/* Control Register */
@@ -200,6 +204,7 @@ epic100_probe(struct dev *dev, struct pci_device *pci)
     dev->disable  = epic100_disable;
     nic->poll     = epic100_poll;
     nic->transmit = epic100_transmit;
+    nic->irq      = epic100_irq;
 
     return 1;
 }
@@ -360,7 +365,7 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
  */
 
     static int
-epic100_poll(struct nic *nic)
+epic100_poll(struct nic *nic, int retrieve)
 {
     int entry;
     int retcode;
@@ -369,6 +374,8 @@ epic100_poll(struct nic *nic)
 
     if ((rx_ring[entry].status & cpu_to_le32(RRING_OWN)) == RRING_OWN)
 	return (0);
+
+    if ( ! retrieve ) return 1;
 
     status = le32_to_cpu(rx_ring[entry].status);
     /* We own the next entry, it's a new packet. Send it up. */
@@ -412,6 +419,17 @@ epic100_disable(struct dev *dev __unused)
 	outl(GC_SOFT_RESET, genctl);
 }
 
+static void epic100_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
 
 #ifdef	DEBUG_EEPROM
 /* Serial EEPROM section. */
