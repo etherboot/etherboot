@@ -57,7 +57,8 @@
 
 /* Utility macros to convert IRQ numbers to INT numbers and INT vectors  */
 #define IRQ_INT(x) ( (x)<IRQ_PIC_CUTOFF ? (x)+0x08 : (x)-IRQ_PIC_CUTOFF+0x70 )
-#define IRQ_VECTOR(x) ( (segoff_t*) phys_to_virt( 4 * IRQ_INT(x) ) )
+#define INT_VECTOR(x) ( (segoff_t*) phys_to_virt( 4 * (x) ) )
+#define IRQ_VECTOR(x) ( INT_VECTOR ( IRQ_INT(x) ) )
 
 /* Other constants */
 typedef uint8_t irq_t;
