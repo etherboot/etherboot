@@ -577,6 +577,36 @@ _pxenv_in_call_far:
 	lret
 
 /****************************************************************************
+ * PXE installation check (INT 1A) code
+ ****************************************************************************
+ */
+	.globl	_pxe_intercept_int1a
+_pxe_intercept_int1a:
+	pushfw
+	cmpw	$0x5650, %ax
+	jne	2f
+1:	/* INT 1A,5650 - Intercept */
+	popfw
+	/* Set up return values according to PXE spec: */
+	movw	$0x564e, %ax		/* AX := 564Eh (VN) */
+	pushw	%cs:INSTALLED(_pxe_pxenv_segment)
+	popw	%es			/* ES:BX := &(PXENV+ structure) */
+	movw	%cs:INSTALLED(_pxe_pxenv_offset), %bx
+	clc				/* CF is cleared */
+	lret	$2			/* 'iret' without reloading flags */
+2:	/* INT 1A,other - Do not intercept */
+	popfw
+	ljmp	%cs:*INSTALLED(_pxe_intercepted_int1a)
+
+	.globl	_pxe_intercepted_int1a
+_pxe_intercepted_int1a:	.word 0,0
+	.globl	_pxe_pxenv_location
+_pxe_pxenv_location:
+_pxe_pxenv_offset:	.word 0
+_pxe_pxenv_segment:	.word 0
+	
+	
+/****************************************************************************
  * Memory map mangling code
  ****************************************************************************
  */

@@ -100,6 +100,9 @@ typedef struct {
 	uint32_t length;
 } pxe_exclude_range_t;
 extern pxe_exclude_range_t _pxe_hide_memory[2];
+extern void _pxe_intercept_int1a ( void );
+extern segoff_t _pxe_intercepted_int1a;
+extern segoff_t _pxe_pxenv_location;
 
 /* Global variables
  */

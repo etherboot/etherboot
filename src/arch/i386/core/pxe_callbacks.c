@@ -20,6 +20,10 @@
 #define pxe_intercepted_int15	INSTALLED(_pxe_intercepted_int15)
 #define pxe_hide_memory		INSTALLED(_pxe_hide_memory)
 #define INT15_VECTOR ( (segoff_t*) ( phys_to_virt( 4 * 0x15 ) ) )
+#define pxe_intercept_int1a	INSTALLED(_pxe_intercept_int1a)
+#define pxe_intercepted_int1a	INSTALLED(_pxe_intercepted_int1a)
+#define pxe_pxenv_location	INSTALLED(_pxe_pxenv_location)
+#define INT1A_VECTOR ( (segoff_t*) ( phys_to_virt( 4 * 0x1a ) ) )
 
 /* Overall PXE stack size
  */
@@ -151,12 +155,19 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 
 	/* Hook INT15 handler */
 	*pxe_intercepted_int15 = *INT15_VECTOR;
-	INT15_VECTOR->segment = SEGMENT(pxe_callback_code);
-	INT15_VECTOR->offset = (void*)pxe_intercept_int15 - pxe_callback_code;
 	(*pxe_hide_memory)[0].start = virt_to_phys(_text);
 	(*pxe_hide_memory)[0].length = _end - _text;
 	(*pxe_hide_memory)[1].start = heap_top;
 	(*pxe_hide_memory)[1].length = heap_bot - heap_top;
+	INT15_VECTOR->segment = SEGMENT(pxe_callback_code);
+	INT15_VECTOR->offset = (void*)pxe_intercept_int15 - pxe_callback_code;
+
+	/* Hook INT1A handler */
+	*pxe_intercepted_int1a = *INT1A_VECTOR;
+	pxe_pxenv_location->segment = SEGMENT(pxe_stack);
+	pxe_pxenv_location->offset = (void*)pxenv - (void*)pxe_stack;
+	INT1A_VECTOR->segment = SEGMENT(pxe_callback_code);
+	INT1A_VECTOR->offset = (void*)pxe_intercept_int1a - pxe_callback_code;
 
 	return pxe_stack;
 }
@@ -164,13 +175,14 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 /* remove_pxe_stack(): remove PXE stack installed by install_pxe_stack()
  */
 void remove_pxe_stack ( void ) {
-	/* Restore original INT15 handler 
+	/* Restore original INT15 and INT1A handlers
 	 *
 	 * FIXME: should probably check that is safe to do so
 	 * (i.e. that no-one else has hooked it), but what do we do if
 	 * it isn't?  We can't leave our handler hooked in.
 	 */
 	*INT15_VECTOR = *pxe_intercepted_int15;
+	*INT1A_VECTOR = *pxe_intercepted_int1a;
 
 	forget_base_memory ( pxe_stack, pxe_stack_size() );
 	pxe_stack = NULL;
