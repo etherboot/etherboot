@@ -36,7 +36,11 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#ifdef __FreeBSD__
+#include <inttypes.h>
+#else
 #include <stdint.h>
+#endif
 #include <limits.h>
 #include <assert.h>
 #if UCLPACK_COMPAT

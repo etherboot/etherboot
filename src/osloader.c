@@ -1390,7 +1390,7 @@ elf_startkernel:
 				freebsd_howto |= 0x80000000;
 			}
 
-			xstart32(entry, freebsd_hofwto, NODEV, 0, 0, 0, 
+			xstart32(entry, freebsd_howto, NODEV, 0, 0, 0, 
 				virt_to_phys(&info.bsdinfo), 0, 0, 0);
 			longjmp(restart_etherboot, -2);
 		}

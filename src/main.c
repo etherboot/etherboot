@@ -30,7 +30,7 @@ int	url_port;
 
 #ifdef	IMAGE_FREEBSD
 int freebsd_howto = 0;
-char freebsd_kernel_env[256];
+char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 #endif
 
 #ifdef FREEBSD_PXEEMU

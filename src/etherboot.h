@@ -730,7 +730,8 @@ extern struct bootpd_t bootp_data;
 extern unsigned char *end_of_rfc1533;
 #ifdef	IMAGE_FREEBSD
 extern int freebsd_howto;
-extern char freebsd_kernel_env[];
+#define FREEBSD_KERNEL_ENV_SIZE 256
+extern char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 #endif
 
 /* bootmenu.c */
