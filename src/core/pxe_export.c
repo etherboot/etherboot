@@ -518,7 +518,7 @@ PXENV_EXIT_t pxenv_undi_initiate_diags ( t_PXENV_UNDI_INITIATE_DIAGS
 
 /* PXENV_UNDI_FORCE_INTERRUPT
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_force_interrupt ( t_PXENV_UNDI_FORCE_INTERRUPT
 					  *undi_force_interrupt ) {
@@ -615,7 +615,7 @@ PXENV_EXIT_t pxenv_undi_get_iface_info ( t_PXENV_UNDI_GET_IFACE_INFO
 
 /* PXENV_UNDI_ISR
  *
- * Status: working when hooked to the timer interrupt
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 	media_header_t *media_header = (media_header_t*)nic.packet;
@@ -830,8 +830,12 @@ PXENV_EXIT_t pxenv_tftp_read ( t_PXENV_TFTP_READ *tftp_read ) {
  */
 
 int pxe_tftp_read_block ( unsigned char *data, unsigned int block __unused, unsigned int len, int eof ) {
-	if ( pxe_stack->readfile.offset + len >= pxe_stack->readfile.bufferlen ) return -1;
-	memcpy ( pxe_stack->readfile.buffer + pxe_stack->readfile.offset, data, len );
+	if ( pxe_stack->readfile.buffer ) {
+		if ( pxe_stack->readfile.offset + len >=
+		     pxe_stack->readfile.bufferlen ) return -1;
+		memcpy ( pxe_stack->readfile.buffer +
+			 pxe_stack->readfile.offset, data, len );
+	}
 	pxe_stack->readfile.offset += len;
 	return eof ? 0 : 1;
 }
@@ -864,13 +868,29 @@ PXENV_EXIT_t pxenv_tftp_read_file ( t_PXENV_TFTP_READ_FILE *tftp_read_file ) {
 
 /* PXENV_TFTP_GET_FSIZE
  *
- * Status: stub
+ * Status: working, though ugly (we actually read the whole file,
+ * because it's too ugly to make Etherboot request the tsize option
+ * and hand it to us).
  */
 PXENV_EXIT_t pxenv_tftp_get_fsize ( t_PXENV_TFTP_GET_FSIZE *tftp_get_fsize ) {
+	int rc;
+
 	DBG ( "PXENV_TFTP_GET_FSIZE" );
-	/* ENSURE_READY ( tftp_get_fsize ); */
-	tftp_get_fsize->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( tftp_get_fsize );
+
+	pxe_stack->readfile.buffer = NULL;
+	pxe_stack->readfile.bufferlen = 0;
+	pxe_stack->readfile.offset = 0;
+
+	rc = tftp ( tftp_get_fsize->FileName, pxe_tftp_read_block );
+	if ( rc ) {
+		tftp_get_fsize->FileSize = 0;
+		tftp_get_fsize->Status = PXENV_STATUS_FAILURE;
+		return PXENV_EXIT_FAILURE;
+	}
+	tftp_get_fsize->FileSize = pxe_stack->readfile.offset;
+	tftp_get_fsize->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UDP_OPEN
