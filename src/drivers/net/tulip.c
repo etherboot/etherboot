@@ -1,6 +1,3 @@
-#ifdef ALLMULTI
-#error multicast support is not yet implemented
-#endif
 /* -*- Mode:C; c-basic-offset:4; -*- */
 
 /*
@@ -51,6 +48,7 @@
 /*********************************************************************/
 
 /*
+  07 Sep 2003  timlegge	Multicast Support Added
   11 Apr 2001  mdc     [patch to etherboot 4.7.24]
      Major rewrite to include Linux tulip driver media detection
      code.  This driver should support a lot more cards now.
@@ -306,6 +304,14 @@ enum status_bits {
     RxJabber=0x200, RxDied=0x100, RxNoBuf=0x80, RxIntr=0x40,
     TxFIFOUnderflow=0x20, TxJabber=0x08, TxNoBuf=0x04, TxDied=0x02, TxIntr=0x01,
 };
+
+/* The configuration bits in CSR6. */
+enum csr6_mode_bits {
+	TxOn=0x2000, RxOn=0x0002, FullDuplex=0x0200,
+	AcceptBroadcast=0x0100, AcceptAllMulticast=0x0080,
+	AcceptAllPhys=0x0040, AcceptRunt=0x0008,
+};
+
 
 enum desc_status_bits {
     DescOwnded=0x80000000, RxDescFatalErr=0x8000, RxWholePkt=0x0300,
@@ -932,6 +938,22 @@ static void tulip_init_ring(struct nic *nic __unused)
     tx_ring[1].length  = cpu_to_le32(DESC_RING_WRAP | BUFLEN);
 }
 
+
+static void set_rx_mode(struct nic *nic __unused) {
+	int csr6 = inl(ioaddr + CSR6) & ~0x00D5;
+
+	tp->csr6 &= ~0x00D5;
+ 
+	/* !IFF_PROMISC */
+	tp->csr6 |= AcceptAllMulticast;
+	csr6 |= AcceptAllMulticast;
+
+	outl(csr6, ioaddr + CSR6);
+
+	
+	
+}
+
 /*********************************************************************/
 /* eth_reset - Reset adapter                                         */
 /*********************************************************************/
@@ -951,7 +973,7 @@ static void tulip_reset(struct nic *nic)
     if (tp->mii_cnt  ||  (tp->mtable  &&  tp->mtable->has_mii)) {
 	outl(0x814C0000, ioaddr + CSR6);
     }
-  
+ 
     /* Reset the chip, holding bit 0 set at least 50 PCI cycles. */
     outl(0x00000001, ioaddr + CSR0);
     tulip_wait(1);
@@ -1044,6 +1066,8 @@ static void tulip_reset(struct nic *nic)
     if (tp->chip_id == LC82C168)
 	tulip_check_duplex(nic);
 
+    set_rx_mode(nic); 	
+        
     /* enable transmit and receive */
     outl(tp->csr6 | 0x00002002, ioaddr + CSR6);
 }
