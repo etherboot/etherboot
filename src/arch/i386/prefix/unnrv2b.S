@@ -38,7 +38,12 @@ decompress:
 	/* Setup to run the decompressor */
 	cld
 	/* "compressed" and "decompress_to" defined by linker script */
+	/* move compressed image up to temporary area before decompressing */
 	leal	compressed+4(%ebp), %esi
+	leal	compressed_copy(%ebp), %edi
+	movl	$_zfile_size, %ecx
+	rep movsb
+	leal	compressed_copy(%ebp), %esi
 	leal	decompress_to(%ebp), %edi
 	movl	$-1, %ebp	/* last_m_off = -1 */
 	jmp	dcl1_n2b

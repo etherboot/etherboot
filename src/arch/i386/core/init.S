@@ -242,7 +242,7 @@ prelocate:
 	movw	%bx, %es		/* Destination base for copy */
 	pushw	%cs
 	popw	%ds			/* Source base for copy */
-	movl	$_binary_size-1, %ecx	/* Offset to last byte */
+	movl	$_verbatim_size-1, %ecx	/* Offset to last byte */
 	movl	%ecx, %esi
 	movl	%ecx, %edi
 	incl	%ecx			/* Length */

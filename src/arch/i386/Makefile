@@ -1,5 +1,8 @@
 ARCH_FORMAT=	elf32-i386
 
+# For debugging, don't delete intermediates
+#.SECONDARY:
+
 LCONFIG+=	-DRELOC=$(RELOCADDR) -Ui386
 
 START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
@@ -194,15 +197,15 @@ $(BIN)/%.rom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
 		$(ROMENTRY) $(PREFIXOBJS) $< $(ROMEXIT)
 
-$(BIN)/%.zrom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(ZPREFIXOBJS) $(BIN)/%.rom.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ \
-		$(ROMENTRY) $(ZPREFIXOBJS) $(BIN)/$*.rom.rt2.zo $< $(ROMEXIT)
+$(BIN)/%.zrom.prf: $(BIN)/%.rt.o $(ISAENTRY) $(PCIENTRY) $(ISAEXIT) $(PCIEXIT) $(ZPREFIXOBJS) $(LDSCRIPT) $(MAKEDEPS) $(BIN)/%.rom.rt2.zbin
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.rom.rt2.zbin` -o $@ \
+		$(ROMENTRY) $(ZPREFIXOBJS) $< $(ROMEXIT)
 
 $(BIN)/%.rom: $(BIN)/%.rom.prf.bin $(BIN)/%.rom.rt.bin
 	cat $^ > $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$(ROMCARD)) $(MAKEROM_ID_$(ROMCARD)) -i$(IDENT) $@
 
-$(BIN)/%.zrom: $(BIN)/%.zrom.prf.bin $(BIN)/%.rom.rt1.bin
+$(BIN)/%.zrom: $(BIN)/%.zrom.prf.bin $(BIN)/%.rom.rt1.bin $(BIN)/%.rom.rt2.zbin
 	cat $^ > $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$(ROMCARD)) $(MAKEROM_ID_$(ROMCARD)) -i$(IDENT) $@
 
@@ -214,13 +217,13 @@ $(BIN)/elfprefix.tmp:	$(BIN)/elfprefix.o arch/i386/prefix/elfprefix.lds $(MAKEDE
 $(BIN)/elfprefix:	$(BIN)/elfprefix.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.elf:	$(BIN)/%.raw $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$(*).raw | (read l1; read d1 d2 bss rest ; echo $$bss )
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).raw | (read l1; read d1 d2 bss rest ; echo $$bss)` > $@
+$(BIN)/%.elf:	$(BIN)/%.raw $(BIN)/%.raw.prf $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)` > $@
 
-$(BIN)/%.zelf:	$(BIN)/%.zraw $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$(*).zraw | (read l1; read d1 d2 d3 size rest ; echo $$size )
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).zraw | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
+$(BIN)/%.zelf:	$(BIN)/%.zraw $(BIN)/%.raw.prf $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
 
 # general rules for Long Mode ELF images
 SUFFIXES +=	lmelf zlmelf
@@ -230,13 +233,13 @@ $(BIN)/lmelf_prefix.tmp:	$(BIN)/lmelf_prefix.o arch/i386/prefix/elfprefix.lds $(
 $(BIN)/lmelf_prefix:	$(BIN)/lmelf_prefix.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.lmelf:	$(BIN)/%.raw $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$(*).raw | (read l1; read d1 d2 bss rest ; echo $$bss )
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw | (read l1; read d1 d2 bss rest ; echo $$bss)` > $@
+$(BIN)/%.lmelf:	$(BIN)/%.raw $(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$*.raw.ptf | (read l1; read d1 d2 bss rest; echo $$bss)
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 bss rest; echo $$bss)` > $@
 
-$(BIN)/%.zlmelf:	$(BIN)/%.zraw $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
-	@$(SIZE) $(BIN)/$(*).zraw | (read l1; read d1 d2 d3 size rest ; echo $$size )
-	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).zraw | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
+$(BIN)/%.zlmelf:	$(BIN)/%.zraw $(BIN)/%.raw.prf $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$*.raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).raw.prf | (read l1; read d1 d2 d3 size rest; echo $$size)` > $@
 
 # rules to generate a DOS loadable .com executable
 SUFFIXES +=	com
@@ -259,12 +262,13 @@ $(BIN)/%.lilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(PREFIXOBJS) $(LDSCRI
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LILOENTRY) $(PREFIXOBJS) $< $(LILOEXIT)
 
 $(BIN)/%.zlilo.prf: $(BIN)/%.rt.o $(LILOENTRY) $(LILOEXIT) $(ZPREFIXOBJS) $(BIN)/%.lilo.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(LILOENTRY) $(ZPREFIXOBJS) $(BIN)/$*.lilo.rt2.zo $< $(LILOEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.lilo.rt2.zbin` -o $@ \
+		$(LILOENTRY) $(ZPREFIXOBJS) $< $(LILOEXIT)
 
 $(BIN)/%.lilo: $(BIN)/%.lilo.prf.bin $(BIN)/%.lilo.rt.bin
 	$(PERL) util/makelilo.pl $^ > $@
 
-$(BIN)/%.zlilo: $(BIN)/%.zlilo.prf.bin $(BIN)/%.lilo.rt1.bin
+$(BIN)/%.zlilo: $(BIN)/%.zlilo.prf.bin $(BIN)/%.lilo.rt1.bin $(BIN)/%.lilo.rt2.zbin
 	$(PERL) util/makelilo.pl $^ > $@
 
 # rules to generate a PXE loadable image
@@ -277,12 +281,13 @@ $(BIN)/%.pxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(PREFIXOBJS) $(LDSCRIPT)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(PXEENTRY) $(PREFIXOBJS) $< $(PXEEXIT)
 
 $(BIN)/%.zpxe.prf: $(BIN)/%.rt.o $(PXEENTRY) $(PXEEXIT) $(ZPREFIXOBJS) $(BIN)/%.pxe.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(PXEENTRY) $(ZPREFIXOBJS) $(BIN)/$*.pxe.rt2.zo $< $(PXEEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.pxe.rt2.zbin` -o $@ \
+		$(PXEENTRY) $(ZPREFIXOBJS) $< $(PXEEXIT)
 
 $(BIN)/%.pxe: $(BIN)/%.pxe.prf.bin $(BIN)/%.pxe.rt.bin
 	cat $^ > $@
 
-$(BIN)/%.zpxe: $(BIN)/%.zpxe.prf.bin $(BIN)/%.pxe.rt1.bin
+$(BIN)/%.zpxe: $(BIN)/%.zpxe.prf.bin $(BIN)/%.pxe.rt1.bin $(BIN)/%.pxe.rt2.zbin
 	cat $^ > $@
 
 # rules to generate the .dsk/.zdsk floppy images
@@ -295,12 +300,13 @@ $(BIN)/%.dsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(PREFIXOBJS) $(LDSCRIPT)
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(DSKENTRY) $(PREFIXOBJS) $< $(DSKEXIT)
 
 $(BIN)/%.zdsk.prf: $(BIN)/%.rt.o $(DSKENTRY) $(DSKEXIT) $(ZPREFIXOBJS) $(BIN)/%.dsk.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(DSKENTRY) $(ZPREFIXOBJS) $(BIN)/$*.dsk.rt2.zo $< $(DSKEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.dsk.rt2.zbin` -o $@ \
+		$(DSKENTRY) $(ZPREFIXOBJS) $< $(DSKEXIT)
 
 $(BIN)/%.dsk: $(BIN)/%.dsk.prf.bin $(BIN)/%.dsk.rt.bin
 	cat $^ > $@
 
-$(BIN)/%.zdsk: $(BIN)/%.zdsk.prf.bin $(BIN)/%.dsk.rt1.bin
+$(BIN)/%.zdsk: $(BIN)/%.zdsk.prf.bin $(BIN)/%.dsk.rt1.bin $(BIN)/%.dsk.rt2.zbin
 	cat $^ > $@
 
 # rules to write the .dsk/.zdsk image onto a blank floppy
@@ -320,13 +326,14 @@ $(BIN)/%.raw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(PREFIXOBJS) $(LDSCRIP
 	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(PREFIXOBJS) $< $(NULLEXIT)
 
 $(BIN)/%.zraw.prf: $(BIN)/%.rt.o $(NULLENTRY) $(NULLEXIT) $(ZPREFIXOBJS) $(BIN)/%.raw.rt2.zo $(LDSCRIPT) $(MAKEDEPS)
-	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $(NULLENTRY) $(ZPREFIXOBJS) $(BIN)/$*.raw.rt2.zo $< $(NULLEXIT)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) --defsym _zfile_size=`wc -c < $(BIN)/$*.raw.rt2.zbin` -o $@ \
+		$(NULLENTRY) $(ZPREFIXOBJS) $< $(NULLEXIT)
 
-$(BIN)/%.raw: $(BIN)/%.raw.prf
-	cat $< > $@
+$(BIN)/%.raw: $(BIN)/%.raw.prf.bin $(BIN)/%.raw.rt.bin
+	cat $^ > $@
 
-$(BIN)/%.zraw: $(BIN)/%.raw.prf
-	cat $< > $@
+$(BIN)/%.zraw: $(BIN)/%.zraw.prf.bin $(BIN)/%.raw.rt1.bin $(BIN)/%.raw.rt2.zbin
+	cat $^ > $@
 
 # rule to make a non-emulation ISO boot image
 SUFFIXES +=	iso
