@@ -59,7 +59,7 @@ typedef	signed int 	s32;
 #define TLAN_MIN_FRAME_SIZE	64
 #define TLAN_MAX_FRAME_SIZE	1600
 
-#define TLAN_NUM_RX_LISTS	64
+#define TLAN_NUM_RX_LISTS	4
 #define TLAN_NUM_TX_LISTS	2
 
 #define TLAN_IGNORE		0
