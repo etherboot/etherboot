@@ -10,14 +10,12 @@
 #include <etherboot.h>
 #include <vga.h>
 
-void beep(int ms);
-
 static char *vidmem;		/* The video buffer */
 static int video_line, video_col;
 
 #define VIDBUFFER 0xB8000	
 
-void memsetw(void *s, int c, unsigned int n)
+static void memsetw(void *s, int c, unsigned int n)
 {
 	int i;
 	u16 *ss = (u16 *) s;
@@ -52,7 +50,7 @@ static void video_scroll(void)
 		vidmem[i] = ' ';
 }
 
-void video_tx_byte(unsigned char byte)
+void vga_putc(unsigned char byte)
 {
 	if (byte == '\n') {
 		video_line++;
@@ -69,7 +67,7 @@ void video_tx_byte(unsigned char byte)
 
 	} else if (byte == '\a') {
 		//beep
-		beep(500);
+		//beep(500);
 
 	} else {
 		vidmem[((video_col + (video_line *COLS)) * 2)] = byte;
@@ -90,14 +88,6 @@ void video_tx_byte(unsigned char byte)
 	// move the cursor
 	write_crtc((video_col + (video_line *COLS)) >> 8, CRTC_CURSOR_HI);
 	write_crtc((video_col + (video_line *COLS)) & 0x0ff, CRTC_CURSOR_LO);
-}
-
-void console_putc(int b)
-{
-	video_tx_byte(b);
-}
-void beep(int ms)	/* not supported yet */
-{
 }
 
 #endif
