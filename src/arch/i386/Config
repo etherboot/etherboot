@@ -95,7 +95,7 @@ CFLAGS+=	-DPCBIOS
 CFLAGS+= -fstrength-reduce -fomit-frame-pointer -mcpu=i386 -march=i386
 # Squeeze the code in as little space as possible.
 # gcc3 needs a different syntax to gcc2 if you want to avoid spurious warnings.
-GCC_VERSION	 = $(subst ., ,$(shell gcc -dumpversion))
+GCC_VERSION	 = $(subst ., ,$(shell $(CC) -dumpversion))
 GCC_MAJORVERSION = $(firstword $(GCC_VERSION))
 ifeq ($(GCC_MAJORVERSION),2)
 CFLAGS+=	-malign-jumps=1 -malign-loops=1 -malign-functions=1
