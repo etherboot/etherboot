@@ -448,6 +448,9 @@ static const struct proto protos[] = {
 #ifdef DOWNLOAD_PROTO_HTTP
         { "http", http },
 #endif
+#ifdef DOWNLOAD_PROTO_FSP
+        { "fsp", url_fsp },
+#endif
 };
 
 int loadkernel(const char *fname)
@@ -502,6 +505,9 @@ int loadkernel(const char *fname)
 #ifdef	DEFAULT_PROTO_NFS
 	return nfs(fname, load_block);
 #else
+	#ifdef	DEFAULT_PROTO_FSP
+	return url_fsp(fname, load_block);
+	#endif
 	return tftp(fname, load_block);
 #endif
 }

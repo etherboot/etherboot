@@ -76,7 +76,7 @@
 #define CONSOLE_FIRMWARE
 #endif
 
-#if	!defined(DOWNLOAD_PROTO_TFTP) && !defined(DOWNLOAD_PROTO_NFS) && !defined(DOWNLOAD_PROTO_SLAM) && !defined(DOWNLOAD_PROTO_TFTM) && !defined(DOWNLOAD_PROTO_DISK) && !defined(DOWNLOAD_PROTO_HTTP)
+#if	!defined(DOWNLOAD_PROTO_TFTP) && !defined(DOWNLOAD_PROTO_NFS) && !defined(DOWNLOAD_PROTO_SLAM) && !defined(DOWNLOAD_PROTO_TFTM) && !defined(DOWNLOAD_PROTO_DISK) && !defined(DOWNLOAD_PROTO_HTTP) && !defined(DOWNLOAD_PROTO_FSP)
 #error No download protocol defined!
 #endif
 
@@ -254,6 +254,9 @@ extern int url_slam P((const char *name, int (*fnc)(unsigned char *, unsigned in
 
 /* proto_tftm.c */
 extern int url_tftm P((const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)));
+
+/* proto_fsp.c */
+extern int url_fsp P((const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)));
 
 /* config.c */
 extern void print_config(void);

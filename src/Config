@@ -393,6 +393,8 @@ CFLAGS+=	-DTAGGED_IMAGE -DELF_IMAGE
 
 # Download files via TFTP
 CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
+# FSP support
+# CFLAGS+=	-DDOWNLOAD_PROTO_FSP -DDEFAULT_PROTO_FSP
 # Change download protocol to NFS, default is TFTP
 # CFLAGS+=	-DDOWNLOAD_PROTO_NFS
 # Change download protocol to HTTP, default is TFTP
