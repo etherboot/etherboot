@@ -87,7 +87,11 @@ static sector_t pxe_download ( unsigned char *data,
 	 * to the BIOS, otherwise let Etherboot move to the next
 	 * device.
 	 */
-	longjmp ( restart_etherboot, PXE_STRICT ? 255 : 4 );
+#ifdef PXE_STRICT
+	longjmp ( restart_etherboot, 255 );
+#else
+	longjmp ( restart_etherboot, 4 );
+#endif
 	
 	/* Never reached; avoid compiler warning */
 	return ( 0 );
