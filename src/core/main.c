@@ -25,6 +25,14 @@ Literature dealing with the network protocols:
 #include "cpu.h"
 #include <stdarg.h>
 
+#ifdef CONSOLE_BTEXT
+#include "btext.h"
+#endif
+
+#ifdef CONFIG_FILO
+#include <lib.h>
+#endif
+
 jmp_buf	restart_etherboot;
 int	url_port;		
 
@@ -166,6 +174,9 @@ void console_init(void)
 #ifdef 	CONSOLE_DIRECT_VGA
        	video_init();
 #endif
+#ifdef	CONSOLE_BTEXT
+	map_boot_text();
+#endif
 }
 
 static void console_fini(void)
@@ -206,6 +217,14 @@ int main(in_call_data_t *data, va_list params)
 
 	console_init();
 	arch_main(data,params);
+
+#if 0
+#ifdef  CONSOLE_BTEXT
+        btext_init();
+        map_boot_text();
+        btext_clearscreen();
+#endif
+#endif 
 
 	if ( rom.rom_segment ) {
 		printf ( "ROM segment %#hx length %#hx reloc %#x\n",
@@ -289,6 +308,16 @@ static int main_loop(int state)
 			cleanup();
 			console_init();
 			init_heap();
+#ifdef  CONSOLE_BTEXT
+			//I need to all allot
+		        btext_init(); 
+		        map_boot_text();
+		        btext_clearscreen();
+#else
+	#ifdef CONFIG_FILO
+			pci_init();
+	#endif
+#endif
 
 			firsttime = 0;
 		} 

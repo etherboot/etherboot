@@ -259,6 +259,8 @@ extern int pci_probe(struct dev *, const char *);
 extern void init_heap(void);
 extern void *allot(size_t size);
 void forget(void *ptr);
+extern void *allot2(size_t size, uint32_t mask);
+void forget2(void *ptr);
 /* Physical address of the heap */
 extern size_t heap_ptr, heap_top, heap_bot;
 

@@ -3,6 +3,12 @@ MISC Support Routines
 **************************************************************************/
 
 #include "etherboot.h"
+#ifdef CONSOLE_BTEXT
+#include <btext.h>
+#endif
+#ifdef CONSOLE_PC_KBD
+#include <pc_kbd.h>
+#endif
 
 
 /**************************************************************************
@@ -267,9 +273,15 @@ void gateA20_set(void)
 }
 #endif
 
+
+int last_putchar; // From filo
+
 void
 putchar(int c)
 {
+	c &= 0xff;
+	last_putchar = c;
+
 	if (c == '\n')
 		putchar('\r');
 #ifdef	CONSOLE_FIRMWARE
@@ -277,6 +289,9 @@ putchar(int c)
 #endif
 #ifdef	CONSOLE_DIRECT_VGA
 	vga_putc(c);
+#endif
+#ifdef  CONSOLE_BTEXT
+        btext_putc(c);
 #endif
 #ifdef	CONSOLE_SERIAL
 	serial_putc(c);
@@ -309,6 +324,10 @@ int getchar(void)
 		if (serial_ischar())
 			c = serial_getc();
 #endif
+#ifdef CONSOLE_PC_KBD
+		if (kbd_ischar()) 
+			c = kbd_getc();
+#endif
 	} while (c==256);
 	if (c == '\r')
 		c = '\n';
@@ -323,6 +342,10 @@ int iskey(void)
 #endif
 #ifdef	CONSOLE_SERIAL
 	if (serial_ischar())
+		return 1;
+#endif
+#ifdef CONSOLE_PC_KBD
+        if (kbd_ischar())
 		return 1;
 #endif
 	return 0;
