@@ -123,7 +123,7 @@ print "IMGS\t:=\n";
 print "DOBJS\t:=\n";
 foreach my $img (sort keys %buildent) {
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
-	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.lzimg \$(BIN)/$img.nrv2bimg\n"
+	print "IMGS\t+= \$(BIN)/$img.img \$(BIN)/$img.zimg\n"
 }
 
 print "ROMS\t:=\n";
@@ -131,11 +131,11 @@ foreach my $family (sort keys %pcient) {
 	my $aref = $pcient{$family};
 	foreach my $entry (@$aref) {
 		my $rom = $entry->[0];
-		print "ROMS\t+= \$(BIN)/$rom.rom \$(BIN)/$rom.nrv2brom\n";
+		print "ROMS\t+= \$(BIN)/$rom.rom \$(BIN)/$rom.zrom\n";
 	}
 }
 foreach my $isa (sort keys %isaent) {
-	print "ROMS\t+= \$(BIN)/$isa.rom \$(BIN)/$isa.nrv2brom\n";
+	print "ROMS\t+= \$(BIN)/$isa.rom \$(BIN)/$isa.zrom\n";
 }
 
 # Generate the *.o rules
@@ -189,11 +189,11 @@ foreach my $family (sort keys %pcient) {
 	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom.nrv2brom:	\$(BIN)/$img.nrv2bimg \$(PRLOADER) \$(START16)
+\$(BIN)/$rom.zrom:	\$(BIN)/$img.zimg \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
-\$(BIN)/$rom--%.nrv2brom:	\$(BIN)/$img--%.nrv2bimg \$(PRLOADER) \$(START16)
+\$(BIN)/$rom--%.zrom:	\$(BIN)/$img--%.zimg \$(PRLOADER) \$(START16)
 	cat \$(PRLOADER) \$(START16) \$< > \$@
 	\$(MAKEROM) \$(MAKEROM_FLAGS) \$(MAKEROM_\$*) -p $ids -i\$(IDENT) \$@
 
@@ -212,7 +212,7 @@ foreach my $isa (sort keys %isaent) {
 	print <<EOF;
 \$(BIN)/$isa.rom:		\$(BIN)/$isa.img \$(RLOADER)
 
-\$(BIN)/$isa.nrv2brom:	\$(BIN)/$isa.nrv2bimg \$(RLOADER)
+\$(BIN)/$isa.zrom:	\$(BIN)/$isa.zimg \$(RLOADER)
 
 EOF
 }

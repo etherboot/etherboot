@@ -110,7 +110,7 @@ MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	1
 VERSION_PATCH=	4
-EXTRAVERSION=   rc1
+EXTRAVERSION=   rc2
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -176,7 +176,7 @@ BOBJS+=		$(BIN)/pci.o
 BOBJS+=		$(BIN)/vsprintf.o
 BLIB=		$(BIN)/bootlib.a 
 LIBS=		$(BLIB)
-UTILS+=		$(BIN)/lzhuf $(BIN)/nrv2b
+UTILS+=		$(BIN)/nrv2b
 STDDEPS=	$(START) $(BLIB) $(UTILS)
 ELF_DEPS=	$(ELF_START) $(BLIB)
 # MAKEDEPS is the one target that is depended by all ROMs, so we check gcc here
@@ -286,8 +286,8 @@ $(BIN)/%.tmp: $(BIN)/%.o $(START) $(BIN)/config.o arch/$(ARCH)/core/etherboot.ld
 $(BIN)/%.img: $(BIN)/%.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
-# general rule for .nrv2b (compressed binary code), may be overridden
-$(BIN)/%.nrv2b:	$(BIN)/%.img $(BIN)/nrv2b $(MAKEDEPS)
+# general rule for .z (compressed binary code), may be overridden
+$(BIN)/%.z:	$(BIN)/%.img $(BIN)/nrv2b $(MAKEDEPS)
 	$(BIN)/nrv2b e $< $@
 
 # Housekeeping

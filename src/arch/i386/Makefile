@@ -4,9 +4,9 @@ LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES) -Ui386
 
 BUILD_ROMS=	$(ROMS)
 BUILD_ELFS=	$(patsubst %img, %elf, $(IMGS))
-BUILD_PXES=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.nrv2bpxe, $(IMGS))
+BUILD_PXES=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.zpxe, $(IMGS))
 BUILD_COMS=	$(patsubst %.img, %.com, $(IMGS))
-BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.nrv2blilo, $(IMGS))
+BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMGS))
 
 START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o $(BIN)/linuxbios.o
 
@@ -181,11 +181,11 @@ $(BIN)/%.hufo: $(BIN)/%.huf arch/i386/prefix/huf.lds $(MAKEDEPS)
 $(BIN)/%.lzimg: $(BIN)/%.hufo $(BIN)/unhuf.o arch/i386/prefix/unhuf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/unhuf.lds $(BIN)/unhuf.o $< -o $@
 
-# general rule for .nrv2b (compressed binary code), may be overridden
-$(BIN)/%.nrv2bo:	$(BIN)/%.nrv2b arch/i386/prefix/huf.lds $(MAKEDEPS)
+# general rule for .z (compressed binary code), may be overridden
+$(BIN)/%.zo:	$(BIN)/%.z arch/i386/prefix/huf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/huf.lds -b binary $< -o $@
 
-$(BIN)/%.nrv2bimg:	$(BIN)/%.nrv2bo $(BIN)/unnrv2b.o arch/i386/prefix/unhuf.lds $(MAKEDEPS)
+$(BIN)/%.zimg:	$(BIN)/%.zo $(BIN)/unnrv2b.o arch/i386/prefix/unhuf.lds $(MAKEDEPS)
 	$(LD) -T arch/i386/prefix/unhuf.lds $(BIN)/unnrv2b.o $< -o $@
 
 
@@ -194,7 +194,7 @@ $(BIN)/%.rom:	$(BIN)/%.img $(RLOADER) $(START16)
 	cat $(RLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_FLAGS) $(MAKEROM_$*) -i$(IDENT) $@
 
-$(BIN)/%.nrv2brom: $(BIN)/%.nrv2bimg $(RLOADER) $(START16)
+$(BIN)/%.zrom: $(BIN)/%.zimg $(RLOADER) $(START16)
 	cat $(RLOADER) $(START16) $< > $@
 	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT) $@
 
@@ -205,7 +205,7 @@ $(BIN)/%.imgo:	$(BIN)/%.img $(MAKEDEPS)
 $(BIN)/%.lzimgo:	$(BIN)/%.lzimg $(MAKEDEPS)
 	$(LD) -T arch/$(ARCH)/prefix/img.lds -b binary $< -o $@
 
-$(BIN)/%.nrv2bimgo:	$(BIN)/%.nrv2bimg $(MAKEDEPS)
+$(BIN)/%.zimgo:	$(BIN)/%.zimg $(MAKEDEPS)
 	$(LD) -T arch/$(ARCH)/prefix/img.lds -b binary $< -o $@
 
 $(BIN)/%.elf:	$(BIN)/%.imgo $(ELFPREFIX) $(MAKEDEPS)
@@ -214,27 +214,27 @@ $(BIN)/%.elf:	$(BIN)/%.imgo $(ELFPREFIX) $(MAKEDEPS)
 $(BIN)/%.lzelf:	$(BIN)/%.lzimgo $(ELFPREFIX) $(MAKEDEPS)
 	$(LD) -T arch/$(ARCH)/prefix/elfprefix.lds $(ELFPREFIX) $< -o $@
 
-$(BIN)/%.nrv2belf:	$(BIN)/%.nrv2bimgo $(ELFPREFIX) $(MAKEDEPS)
+$(BIN)/%.zelf:	$(BIN)/%.zimgo $(ELFPREFIX) $(MAKEDEPS)
 	$(LD) -T arch/$(ARCH)/prefix/elfprefix.lds $(ELFPREFIX) $< -o $@
 
-# rules to write the .rom/.nrv2brom image onto a blank floppy
-# Give the directory name, e.g. $(BIN)/rtl8139.nrv2bfd0 as the target.
+# rules to write the .rom/.zrom image onto a blank floppy
+# Give the directory name, e.g. $(BIN)/rtl8139.zfd0 as the target.
 %.fd0:	%.rom $(DISKLOADER)
 	cat $(DISKLOADER) $< > /dev/fd0
 
-%.nrv2bfd0:	%.nrv2brom $(DISKLOADER)
+%.zfd0:	%.zrom $(DISKLOADER)
 	cat $(DISKLOADER) $< > /dev/fd0
 
 # rules to generate a .com executable
 # Give the directory name, e.g. use $(BIN)/rtl8139.com as the target.
-%.com:	%.nrv2bimg $(COMPREFIX)
+%.com:	%.zimg $(COMPREFIX)
 	cat $(COMPREFIX) $< > $@
 
 # rules to generate a pxe loadable image
 %.pxe:	%.img $(PXEPREFIX)
 	cat $(PXEPREFIX) $< > $@
 
-%.nrv2bpxe:	%.nrv2bimg $(PXEPREFIX)
+%.zpxe:	%.zimg $(PXEPREFIX)
 	cat $(PXEPREFIX) $< > $@
 
 # rules to make a disk image (padding to fill an even number of cylinders).
@@ -246,12 +246,12 @@ $(BIN)/%.nrv2belf:	$(BIN)/%.nrv2bimgo $(ELFPREFIX) $(MAKEDEPS)
 %.dsk:	%.rom $(DISKLOADER) 
 	cat $(DISKLOADER) $< /dev/zero | head -c 36k > $@
 
-%.nrv2bdsk:	%.nrv2brom $(DISKLOADER)
+%.zdsk:	%.zrom $(DISKLOADER)
 	cat $(DISKLOADER) $< /dev/zero | head -c 36k > $@
 
 # rules to make a LILO-bootable image
 %.lilo:		%.img $(LILOPREFIX)
 	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@
 
-%.nrv2blilo:	%.nrv2bimg $(LILOPREFIX)
+%.zlilo:	%.zimg $(LILOPREFIX)
 	cat $(LILOPREFIX) $< /dev/zero | head -c 64k > $@

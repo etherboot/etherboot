@@ -3,7 +3,7 @@ ARCH_FORMAT=	elf64-ia64-little
 LCONFIG+=	-DRELOC=$(RELOCADDR) -DS16SIZE=$(START16_BYTES)
 
 
-BUILD_EFIS=	$(patsubst %.img, %.efi, $(IMGS)) $(patsubst %.img, %.nrv2befi, $(IMGS))
+BUILD_EFIS=	$(patsubst %.img, %.efi, $(IMGS)) $(patsubst %.img, %.zefi, $(IMGS))
 
 START=	$(BIN)/start.o $(BIN)/reloc.o 
 #START+=	$(BIN)/efi_main.o
@@ -113,7 +113,7 @@ $(BIN)/unnrv2b.tmp:	$(BIN)/unnrv2b.o arch/ia64/prefix/unnrv2b.lds $(MAKEDEPS)
 $(BIN)/unnrv2b: $(BIN)/unnrv2b.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.nrv2bimg: $(BIN)/%.nrv2b $(BIN)/unnrv2b arch/ia64/prefix/apply_unnrv2b_prefix.pl $(MAKEDEPS)
+$(BIN)/%.zimg: $(BIN)/%.z $(BIN)/unnrv2b arch/ia64/prefix/apply_unnrv2b_prefix.pl $(MAKEDEPS)
 	$(PERL) arch/ia64/prefix/apply_unnrv2b_prefix.pl $(BIN)/unnrv2b $< > $@
 
 
@@ -128,7 +128,7 @@ $(BIN)/%.efi:	$(BIN)/%.img $(BIN)/%.tmp $(BIN)/efi_prefix arch/ia64/prefix/apply
 	@$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 bss rest ; echo $$bss )
 	$(PERL)	arch/ia64/prefix/apply_efi_prefix.pl $(BIN)/efi_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 bss rest ; echo $$bss )` > $@
 
-$(BIN)/%.nrv2befi: $(BIN)/%.nrv2bimg $(BIN)/%.tmp $(BIN)/efi_prefix arch/ia64/prefix/apply_efi_prefix.pl $(MAKEDEPS)
+$(BIN)/%.zefi: $(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/efi_prefix arch/ia64/prefix/apply_efi_prefix.pl $(MAKEDEPS)
 	@$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size )
 	$(PERL)	arch/ia64/prefix/apply_efi_prefix.pl $(BIN)/efi_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size )` > $@
 
