@@ -28,14 +28,16 @@ typedef union {
 	void name ( void ); \
 	__asm__ ( ".section \".text16\"" ); \
 	__asm__ ( ".code16" ); \
-	__asm__ ( #name ":" );
+	__asm__ ( ".globl " #name ); \
+	__asm__ ( "\n" #name ":" );
 #define END_RM_FRAGMENT(name) \
 	void _append_end(name) ( void ); \
-	__asm__ ( #name "_end:" ); \
+	__asm__ ( ".globl " #name "_end" ); \
+	__asm__ ( "\n" #name "_end:" ); \
 	__asm__ ( ".code32" ); \
 	__asm__ ( ".previous" );
-#define FRAGMENT_SIZE(fragment) ( ( (void*) _append_end(fragment) ) - \
-				  ( (void*) (fragment) ) )
+#define FRAGMENT_SIZE(fragment) ( (size_t) ( ( (void*) _append_end(fragment) )\
+					     - ( (void*) (fragment) ) ) )
 
 /* Data structures in _prot_to_real and _real_to_prot.  These
  * structures are accessed by assembly code as well as C code.
@@ -66,9 +68,9 @@ typedef struct {
 		     ( (in_stack) == NULL ? 0 : sizeof(*(in_stack)) ), \
 		     (void*)(out_stack), \
 		     ( (out_stack) == NULL ? 0 : sizeof(*(out_stack)) ) )
-extern int _real_call ( void *fragment, int fragment_len,
-			void *in_stack, int in_stack_len,
-			void *out_stack, int out_stack_len );
+extern uint16_t _real_call ( void *fragment, int fragment_len,
+			     void *in_stack, int in_stack_len,
+			     void *out_stack, int out_stack_len );
 /* Function prototypes: realmode_asm.S
  */
 extern void rm_callback_interface;
