@@ -48,15 +48,13 @@ struct tftm_info {
 	int (*fnc) (unsigned char *, unsigned int, unsigned int, int);
 	int sent_nack;
 	const char *name;	/* Filename */
-};	
+};
 
 struct tftm_state {
 	unsigned long block_size;
 	unsigned long total_bytes;
 	unsigned long total_packets;
 	char ismaster;
-	char *data;
-	uint16_t datalen;
 	unsigned long received_packets;
 	unsigned char *image;
 	unsigned char *bitmap;
@@ -66,17 +64,18 @@ struct tftm_state {
 #define TFTM_PORT 1758
 #define TFTM_MIN_PACKET 1024
 
+
 static int await_tftm(int ival, void *ptr,
 		      unsigned short ptype __unused, struct iphdr *ip,
 		      struct udphdr *udp)
 {
 	struct tftm_info *info = ptr;
 
+	/* Check for Unicast data being received */
 	if (ip->dest.s_addr == arptable[ARP_CLIENT].ipaddr.s_addr) {
 		if (!udp) {
 			return 0;
 		}
-
 		if (arptable[ARP_CLIENT].ipaddr.s_addr != ip->dest.s_addr)
 			return 0;
 		if (ntohs(udp->dest) != ival)
@@ -85,18 +84,12 @@ static int await_tftm(int ival, void *ptr,
 		return 1;	/* Unicast Data Received */
 	}
 
+	/* Also check for Multicast data being received */
 	if ((ip->dest.s_addr == info->multicast_ip.s_addr) &&
 	    (ntohs(udp->dest) == info->multicast_port) &&
 	    (nic.packetlen >= ETH_HLEN + sizeof(struct iphdr) +
 	     sizeof(struct udphdr))) {
-		state.data =
-		    nic.packet + ETH_HLEN + sizeof(struct iphdr) +
-		    sizeof(struct udphdr);
-		state.datalen =
-		    nic.packetlen - ETH_HLEN - sizeof(struct iphdr) -
-		    sizeof(struct udphdr);
-
-		return 1;
+		return 1;	/* Multicast data received */
 	}
 	return 0;
 }
@@ -107,16 +100,13 @@ int proto_tftm(struct tftm_info *info)
 	static unsigned short iport = 2000;
 	unsigned short oport = 0;
 	unsigned short len, block = 0, prevblock = 0;
-	int bcounter = 0;
 	struct tftp_t *tr;
 	struct tftpreq_t tp;
-	unsigned long filesize;
-	char *map;
-
+	unsigned long filesize = 0;
 
 	state.image = 0;
 	state.bitmap = 0;
-	
+
 	rx_qdrain();
 
 	/* Warning: the following assumes the layout of bootp_t.
@@ -133,6 +123,7 @@ int proto_tftm(struct tftm_info *info)
 	if (!udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, ++iport,
 			  TFTM_PORT, len, &tp))
 		return (0);
+
 	for (;;) {
 		long timeout;
 #ifdef	CONGESTED
@@ -156,14 +147,15 @@ int proto_tftm(struct tftm_info *info)
 				printf("<REXMT>\n");
 #endif
 				udp_transmit(arptable[ARP_SERVER].ipaddr.
-					     s_addr, iport, oport,
+					     s_addr, iport,
+					     oport,
 					     TFTP_MIN_PACKET, &tp);
 				continue;
 			}
 #endif
 			break;	/* timeout */
 		}
-		
+
 		tr = (struct tftp_t *) &nic.packet[ETH_HLEN];
 		if (tr->opcode == ntohs(TFTP_ERROR)) {
 			printf("TFTP error %d (%s)\n",
@@ -196,8 +188,10 @@ int proto_tftm(struct tftm_info *info)
 					i |= 2;
 					printf("blksize=");
 					p += 8;
-					state.block_size = strtoul(p, &p, 10);;
-					if (state.block_size != TFTM_MIN_PACKET) {
+					state.block_size =
+					    strtoul(p, &p, 10);;
+					if (state.block_size !=
+					    TFTM_MIN_PACKET) {
 						printf
 						    ("TFTM-Server rejected required transfer blocksize %d\n",
 						     TFTM_MIN_PACKET);
@@ -262,27 +256,40 @@ int proto_tftm(struct tftm_info *info)
 			} else {
 				unsigned long bitmap_len;
 				/* */
-				if(!state.recvd_oack) {
-					state.total_packets = 1 + (filesize - (filesize % state.block_size)) / state.block_size;
-/*					if(!(filesize % state.block_size))
-						state.total_packets++; */
-					bitmap_len   = (state.total_packets + 7)/8;
-					if(!state.image) {
-						state.bitmap = allot(bitmap_len);
-						state.image  = allot(filesize);
-					
-						if(( unsigned long)state.image < 1024*1024) {
-							printf("ALERT: tftp filesize to large for available memory\n");
-						return 0;
+				if (!state.recvd_oack) {
+					state.total_packets =
+					    1 + (filesize -
+						 (filesize %
+						  state.block_size)) /
+					    state.block_size;
+					bitmap_len =
+					    (state.total_packets + 7) / 8;
+					if (!state.image) {
+						state.bitmap =
+						    allot(bitmap_len);
+						printf
+						    ("Allocating Memory\n");
+						state.image =
+						    allot(filesize);
+
+						if ((unsigned long) state.
+						    image < 1024 * 1024) {
+							printf
+							    ("ALERT: tftp filesize to large for available memory\n");
+							return 0;
 						}
-						memset(state.bitmap, 0, bitmap_len);
-						printf("bitmap_len: %d", bitmap_len);
+						memset(state.bitmap, 0,
+						       bitmap_len);
+						printf("bitmap_len: %d",
+						       bitmap_len);
 					}
+
 					/* If I'm running over multicast join the multicast group */
-					join_group(IGMP_SERVER, info->multicast_ip.s_addr);
+					join_group(IGMP_SERVER,
+						   info->multicast_ip.
+						   s_addr);
 				}
-				state.recvd_oack = 1;			
-				
+				state.recvd_oack = 1;
 			}
 
 			if (p > e)
@@ -294,18 +301,26 @@ int proto_tftm(struct tftm_info *info)
 			unsigned long data_len;
 			unsigned char *data;
 			struct udphdr *udp;
-			udp = (struct udphdr *)&nic.packet[ETH_HLEN + sizeof(struct iphdr)];
-			len = ntohs(tr->udp.len) - sizeof(struct udphdr) - 4;
-			data = nic.packet + ETH_HLEN + sizeof ( struct iphdr ) + sizeof ( struct udphdr ) + 4;			
+			udp =
+			    (struct udphdr *) &nic.packet[ETH_HLEN +
+							  sizeof(struct
+								 iphdr)];
+			len =
+			    ntohs(tr->udp.len) - sizeof(struct udphdr) - 4;
+			data =
+			    nic.packet + ETH_HLEN + sizeof(struct iphdr) +
+			    sizeof(struct udphdr) + 4;
+
 			if (len > TFTM_MIN_PACKET)	/* shouldn't happen */
 				continue;	/* ignore it */
+
 			block = ntohs(tp.u.ack.block = tr->u.data.block);
 
 			if (block > state.total_packets) {
 				printf("ALERT: Invalid packet number\n");
 				continue;
 			}
-			
+
 			/* Compute the expected data length */
 			if (block != state.total_packets) {
 				data_len = state.block_size;
@@ -313,40 +328,47 @@ int proto_tftm(struct tftm_info *info)
 				data_len = filesize % state.block_size;
 			}
 			/* If the packet size is wrong drop the packet and then continue */
-			if (ntohs(udp->len) != (data_len + (data - (unsigned char*)udp))) {
-				printf("Block: %d", block);
-				printf("ALERT: udp packet is not the correct size\n");
+			if (ntohs(udp->len) !=
+			    (data_len + (data - (unsigned char *) udp))) {
+				printf
+				    ("ALERT: udp packet is not the correct size: %d\n",
+				     block);
 				continue;
 			}
 			if (nic.packetlen < data_len + (data - nic.packet)) {
-				printf("ALERT: Ethernet packet shorter than data_len\n");
+				printf
+				    ("ALERT: Ethernet packet shorter than data_len: %d\n",
+				     block);
 				continue;
 			}
-			
 
-			
 			if (data_len > state.block_size) {
 				data_len = state.block_size;
 			}
-			if (((state.bitmap[block >> 3] >> (block & 7)) & 1) == 0) {
+			if (((state.
+			      bitmap[block >> 3] >> (block & 7)) & 1) ==
+			    0) {
+				if(state.received_packets < (state.total_packets
+					- 1) &&block == state.total_packets) 
+					continue;
 				/* Non duplicate packet */
-				state.bitmap[block >> 3] |= (1 << (block & 7));
-				memcpy(state.image + ((block -1) * state.block_size), data, data_len);
+				state.bitmap[block >> 3] |=
+				    (1 << (block & 7));
+				memcpy(state.image +
+				       ((block - 1) * state.block_size),
+				       data, data_len);
 				state.received_packets++;
 			} else {
 
-/*					printf("<DUP>\n"); */
+/*				printf("<DUP>\n"); */
 			}
-/*			printf("R=%d, ", state.received_packets); */
-		/*	printf("%d", block); */
-			}
+		}
 
 		else {		/* neither TFTP_OACK nor TFTP_DATA */
 			break;
 		}
 
-		if (state.received_packets <= state.total_packets)
-		{ 
+		if (state.received_packets <= state.total_packets) {
 			unsigned long b;
 			unsigned long len;
 			unsigned long max;
@@ -354,36 +376,41 @@ int proto_tftm(struct tftm_info *info)
 			int last;
 
 			/* Compute the last bit and store an inverted trailer */
-			max = state.total_packets;
-			value = ((state.bitmap[(max -1) >> 3] >> ((max -1) & 7) ) & 1);
+			max = state.total_packets + 1;
+			value =
+			    ((state.
+			      bitmap[(max - 1) >> 3] >> ((max -
+							  1) & 7)) & 1);
 			value = !value;
 			state.bitmap[max >> 3] &= ~(1 << (max & 7));
 			state.bitmap[max >> 3] |= value << (max & 7);
-				
+
 			len = 0;
-			last = 0; /* Start with the received packets */
-			for(b = 0; b <= max; b++) {
-				value = (state.bitmap[b>>3] >> (b & 7)) & 1;
-				if(value == 1) {
-					tp.u.ack.block = htons(block);
+			last = 0;	/* Start with the received packets */
+			for (b = 1; b <= max; b++) {
+				value =
+				    (state.bitmap[b >> 3] >> (b & 7)) & 1;
+
+				if (value == 0) {
+/*				printf("Block: %d, B: %d, V: %d\n", block, b, value); */
+					tp.u.ack.block = htons(b - 1);	/* Acknowledge the previous block */
 					break;
 				}
 			}
 		}
-		if(state.ismaster) {
+		if (state.ismaster) {
 			tp.opcode = htons(TFTP_ACK);
 			oport = ntohs(tr->udp.src);
-			udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
-				iport, oport, TFTP_MIN_PACKET, &tp);/* ack */
+			udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr, iport, oport, TFTP_MIN_PACKET, &tp);	/* ack */
 		}
 /*		printf("T=%d", state.total_packets); */
-		if(state.received_packets == state.total_packets) {
+		if (state.received_packets == state.total_packets) {
 			/* We are done get out */
-		/*	tp.opcode = htons(TFTP_ACK);
-			tp.u.ack.block = htons(state.total_packets);
-			oport = ntohs(tr->udp.src);
-			udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
-				iport, oport, TFTP_MIN_PACKET, &tp);*/
+			/*      tp.opcode = htons(TFTP_ACK);
+			   tp.u.ack.block = htons(state.total_packets);
+			   oport = ntohs(tr->udp.src);
+			   udp_transmit(arptable[ARP_SERVER].ipaddr.s_addr,
+			   iport, oport, TFTP_MIN_PACKET, &tp); */
 			forget(state.bitmap);
 			break;
 		}
@@ -396,17 +423,7 @@ int proto_tftm(struct tftm_info *info)
 
 		prevblock = block;
 		retry = 0;	/* It's the right place to zero the timer? */
-		
-	/*	if ((rc = info->fnc(tr->u.data.download,
-				    ++bcounter, len,
-				    len < TFTM_MIN_PACKET)) <= 0)
-		return (rc);*/
-#ifdef TTTT
-		if (len < TFTM_MIN_PACKET) {	/* End of data --- fnc should not have returned */
-			printf("tftp download complete, but\n");
-			return (1);
-		}
-#endif
+
 	}
 	/* Leave the multicast group */
 	leave_group(IGMP_SERVER);
@@ -429,10 +446,8 @@ int url_tftm(const char *name,
 	info.multicast_port = TFTM_PORT;
 	info.fnc = fnc;
 	state.ismaster = 0;
-	state.data = "@";
-	state.datalen = 2;
 	info.name = name;
-	
+
 	state.block_size = 0;
 	state.total_bytes = 0;
 	state.total_packets = 0;
