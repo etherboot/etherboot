@@ -2712,3 +2712,22 @@ images and contributed the first cut at the code for geniso.
 
 + Small patch to support 3Com tulip version from Jacek Kalinski
 
++ Yinghai Lu contributed a large patch to add filo, bText and usb 
+support:
+	btext console: In LinuxBIOS, for the VGA, we only can 
+	enable display chipframe buffer and write char to framebuffer 
+	to get output in CRT.
+	
+	FILO: originally it is standalone boot program and 
+	author is TakeshiSone.
+
+	Boot from SATA disk.
+
+	Boot from USB disk (OHCI and UHCI).  USB boot is from Steven 
+	James 's baremetal in LinuxBIOS, moved to FILO and added the 
+	OHCI support to it 
+
++ Driver updates/cleanup: rtl8139, sis900, tlan 
+
++ Updates to via-rhine based on input from Guard Kuo from Via Networking 
+Technologies, Inc
