@@ -4,6 +4,7 @@
 #ifndef ASSEMBLY
 
 #include "etherboot.h"
+#include "segoff.h"
 
 typedef union {
 	struct {
@@ -87,10 +88,18 @@ extern void _real_to_prot_suffix ( void );
 extern void _real_to_prot_suffix_end ( void );
 extern uint16_t _real_to_prot_suffix_size;
 
+/* PXE assembler bits */
 extern void pxe_callback_interface;
 extern uint16_t pxe_callback_interface_size;
 extern void _pxe_in_call_far ( void );
 extern void _pxenv_in_call_far ( void );
+extern void _pxe_intercept_int15 ( void );
+extern segoff_t _pxe_intercepted_int15;
+typedef struct {
+	uint32_t start;
+	uint32_t length;
+} pxe_exclude_range_t;
+extern pxe_exclude_range_t _pxe_hide_memory[2];
 
 /* Global variables
  */

@@ -13,6 +13,14 @@
 #include "pxe_export.h"
 #include <stdarg.h>
 
+#define INSTALLED(x) ( (typeof(&x)) ( (void*)(&x) \
+				      - &pxe_callback_interface \
+				      + (void*)&pxe_stack->arch_data ) )
+#define pxe_intercept_int15	INSTALLED(_pxe_intercept_int15)
+#define pxe_intercepted_int15	INSTALLED(_pxe_intercepted_int15)
+#define pxe_hide_memory		INSTALLED(_pxe_hide_memory)
+#define INT15_VECTOR ( (segoff_t*) ( phys_to_virt( 4 * 0x15 ) ) )
+
 /* Overall PXE stack size
  */
 static inline int pxe_stack_size ( void ) {
@@ -141,12 +149,27 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 		 pxe_callback_interface_size );
 	install_rm_callback_interface ( rm_callback_code, 0 );
 
+	/* Hook INT15 handler */
+	*pxe_intercepted_int15 = *INT15_VECTOR;
+	INT15_VECTOR->segment = SEGMENT(pxe_callback_code);
+	INT15_VECTOR->offset = (void*)pxe_intercept_int15 - pxe_callback_code;
+	(*pxe_hide_memory)[0].start = virt_to_phys(_text);
+	(*pxe_hide_memory)[0].length = _end - _text;
+
 	return pxe_stack;
 }
 
 /* remove_pxe_stack(): remove PXE stack installed by install_pxe_stack()
  */
 void remove_pxe_stack ( void ) {
+	/* Restore original INT15 handler 
+	 *
+	 * FIXME: should probably check that is safe to do so
+	 * (i.e. that no-one else has hooked it), but what do we do if
+	 * it isn't?  We can't leave our handler hooked in.
+	 */
+	*INT15_VECTOR = *pxe_intercepted_int15;
+
 	forget_base_memory ( pxe_stack, pxe_stack_size() );
 	pxe_stack = NULL;
 }
@@ -215,5 +238,39 @@ int pxe_in_call ( in_call_data_t *in_call_data, va_list params ) {
 	structure = VIRTUAL ( segoff.segment, segoff.offset );
 	return pxe_api_call ( opcode, structure );
 }
+
+#ifdef TEST_EXCLUDE_ALGORITHM
+/* This code retained because it's a difficult algorithm to tweak with
+ * confidence
+ */
+int ___test_exclude ( int start, int len, int estart, int elen, int fixbase );
+void __test_exclude ( int start, int len, int estart, int elen, int fixbase ) {
+	int newrange = ___test_exclude ( start, len, estart, elen, fixbase );
+	int newstart = ( newrange >> 16 ) & 0xffff;
+	int newlen = ( newrange & 0xffff );
+
+	printf ( "[%x,%x): excluding [%x,%x) %s gives [%x,%x)\n",
+		 start, start + len,
+		 estart, estart + elen,
+		 ( fixbase == 0 ) ? "  " : "fb",
+		 newstart, newstart + newlen );
+}
+void _test_exclude ( int start, int len, int estart, int elen ) {
+	__test_exclude ( start, len, estart, elen, 0 );
+	__test_exclude ( start, len, estart, elen, 1 );
+}
+void test_exclude ( void ) {
+	_test_exclude ( 0x8000, 0x1000, 0x0400, 0x200 ); /* before */
+	_test_exclude ( 0x8000, 0x1000, 0x9000, 0x200 ); /* after */
+	_test_exclude ( 0x8000, 0x1000, 0x7f00, 0x200 ); /* before overlap */
+	_test_exclude ( 0x8000, 0x1000, 0x8f00, 0x200 ); /* after overlap */
+	_test_exclude ( 0x8000, 0x1000, 0x8000, 0x200 ); /* align start */
+	_test_exclude ( 0x8000, 0x1000, 0x8e00, 0x200 ); /* align end */
+	_test_exclude ( 0x8000, 0x1000, 0x8100, 0x200 ); /* early overlap */
+	_test_exclude ( 0x8000, 0x1000, 0x8d00, 0x200 ); /* late overlap */
+	_test_exclude ( 0x8000, 0x1000, 0x7000, 0x3000 ); /* total overlap */
+	_test_exclude ( 0x8000, 0x1000, 0x8000, 0x1000 ); /* exact overlap */
+}
+#endif /* TEST_EXCLUDE_ALGORITHM */
 
 #endif /* EXPORT_PXE */
