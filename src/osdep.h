@@ -86,6 +86,7 @@ static inline unsigned short int __swap16(unsigned short int x)
 
 #include "linux-asm-string.h"
 #include "linux-asm-io.h"
+#include "stdint.h"
 
 typedef	unsigned long Address;
 

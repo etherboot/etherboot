@@ -67,14 +67,14 @@ Drivers are port from Intel's Linux driver e1000-3.1.23
 #define	virt_to_bus(x)	((unsigned long)x)
 
 typedef unsigned char *dma_addr_t;
-typedef unsigned char u8, uint8_t;
+typedef unsigned char u8;
 typedef signed char s8;
-typedef unsigned short u16, uint16_t;
+typedef unsigned short u16;
 typedef signed short s16;
-typedef unsigned int u32, uint32_t;
+typedef unsigned int u32;
 typedef signed int s32, atomic_t;
 
-typedef unsigned long long u64, uint64_t;
+typedef unsigned long long u64;
 
 /*
  * readX/writeX() are used to access memory mapped devices. On some

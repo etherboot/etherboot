@@ -36,6 +36,9 @@ Author: Martin Renters
 
 #ifdef FREEBSD_PXEEMU
 #undef DEFAULT_BOOTFILE
+#ifndef PXENFSROOTPATH
+#define PXENFSROOTPATH ""
+#endif
 #define DEFAULT_BOOTFILE	PXENFSROOTPATH "/boot/pxeboot"
 #endif
 
@@ -93,6 +96,9 @@ Author: Martin Renters
 /* Inter-packet retry in ticks */
 #define TIMEOUT			(10*TICKS_PER_SEC)
 
+/* Max interval between IGMP packets */
+#define IGMP_INTERVAL		(10*TICKS_PER_SEC)
+
 /* These settings have sense only if compiled with -DCONGESTED */
 /* total retransmission timeout in ticks */
 #define TFTP_TIMEOUT		(30*TICKS_PER_SEC)
@@ -122,9 +128,10 @@ Author: Martin Renters
 #define ARP_CLIENT	0
 #define ARP_SERVER	1
 #define ARP_GATEWAY	2
-#define ARP_ROOTSERVER	3
-#define ARP_SWAPSERVER	4
-#define MAX_ARP		ARP_SWAPSERVER+1
+#define MAX_ARP		ARP_GATEWAY+1
+
+#define IGMP_SERVER	0
+#define MAX_IGMP	IGMP_SERVER+1
 
 #define	RARP_REQUEST	3
 #define	RARP_REPLY	4
@@ -138,9 +145,15 @@ Author: Martin Renters
 #define TFTP_PORT	69
 #define SUNRPC_PORT	111
 
+#define IP_ICMP		1
+#define IP_IGMP		2
 #define IP_UDP		17
+
 /* Same after going through htonl */
 #define IP_BROADCAST	0xFFFFFFFF
+
+#define MULTICAST_MASK    0xF0000000
+#define MULTICAST_NETWORK 0xE0000000
 
 #define ARP_REQUEST	1
 #define ARP_REPLY	2
@@ -277,70 +290,86 @@ Author: Martin Renters
 #endif
 
 typedef struct {
-	unsigned long	s_addr;
+	uint32_t	s_addr;
 } in_addr;
 
 struct arptable_t {
 	in_addr ipaddr;
-	unsigned char node[6];
+	uint8_t node[6];
 };
 
+struct igmptable_t {
+	in_addr group;
+	unsigned long time;
+};
 /*
  * A pity sipaddr and tipaddr are not longword aligned or we could use
  * in_addr. No, I don't want to use #pragma packed.
  */
 struct arprequest {
-	unsigned short hwtype;
-	unsigned short protocol;
-	char hwlen;
-	char protolen;
-	unsigned short opcode;
-	char shwaddr[6];
-	char sipaddr[4];
-	char thwaddr[6];
-	char tipaddr[4];
+	uint16_t hwtype;
+	uint16_t protocol;
+	uint8_t  hwlen;
+	uint8_t  protolen;
+	uint16_t opcode;
+	uint8_t  shwaddr[6];
+	uint8_t  sipaddr[4];
+	uint8_t  thwaddr[6];
+	uint8_t  tipaddr[4];
 };
 
 struct iphdr {
-	char verhdrlen;
-	char service;
-	unsigned short len;
-	unsigned short ident;
-	unsigned short frags;
-	char ttl;
-	char protocol;
-	unsigned short chksum;
+	uint8_t  verhdrlen;
+	uint8_t  service;
+	uint16_t len;
+	uint16_t ident;
+	uint16_t frags;
+	uint8_t  ttl;
+	uint8_t  protocol;
+	uint16_t chksum;
 	in_addr src;
 	in_addr dest;
 };
 
 struct udphdr {
-	unsigned short src;
-	unsigned short dest;
-	unsigned short len;
-	unsigned short chksum;
+	uint16_t src;
+	uint16_t dest;
+	uint16_t len;
+	uint16_t chksum;
 };
+
+struct igmp {
+	struct iphdr ip;
+	uint8_t  type_ver;
+	uint8_t  dummy;
+	uint16_t chksum;
+	in_addr group;
+};
+
+#define IGMP_QUERY	0x11
+#define IGMP_REPORT	0x21
+#define GROUP_ALL_HOSTS 0xe0000001 /* 224.0.0.1 Host byte order */
 
 /* Format of a bootp packet */
 struct bootp_t {
-	char bp_op;
-	char bp_htype;
-	char bp_hlen;
-	char bp_hops;
-	unsigned long bp_xid;
-	unsigned short bp_secs;
-	unsigned short unused;
+	uint8_t  bp_op;
+	uint8_t  bp_htype;
+	uint8_t  bp_hlen;
+	uint8_t  bp_hops;
+	uint32_t bp_xid;
+	uint16_t bp_secs;
+	uint16_t unused;
 	in_addr bp_ciaddr;
 	in_addr bp_yiaddr;
 	in_addr bp_siaddr;
 	in_addr bp_giaddr;
-	char bp_hwaddr[16];
-	char bp_sname[64];
-	char bp_file[128];
+	uint8_t  bp_hwaddr[16];
+	uint8_t  bp_sname[64];
+	char     bp_file[128];
 #ifdef	NO_DHCP_SUPPORT
-	char bp_vend[BOOTP_VENDOR_LEN];
+	uint8_t  bp_vend[BOOTP_VENDOR_LEN];
 #else
-	char bp_vend[DHCP_OPT_LEN];
+	uint8_t  bp_vend[DHCP_OPT_LEN];
 #endif	/* NO_DHCP_SUPPORT */
 };
 
@@ -355,7 +384,7 @@ struct bootpip_t
 /* Format of bootp packet with extensions */
 struct bootpd_t {
 	struct bootp_t bootp_reply;
-	unsigned char  bootp_extension[MAX_BOOTP_EXTLEN];
+	uint8_t bootp_extension[MAX_BOOTP_EXTLEN];
 };
 
 #define	KERNEL_BUF	(BOOTP_DATA_ADDR->bootp_reply.bp_file)
@@ -365,20 +394,20 @@ struct tftp_t {
 	struct udphdr udp;
 	unsigned short opcode;
 	union {
-		char rrq[TFTP_DEFAULTSIZE_PACKET];
+		uint8_t rrq[TFTP_DEFAULTSIZE_PACKET];
 		struct {
-			unsigned short block;
-			char download[TFTP_MAX_PACKET];
+			uint16_t block;
+			uint8_t  download[TFTP_MAX_PACKET];
 		} data;
 		struct {
-			unsigned short block;
+			uint16_t block;
 		} ack;
 		struct {
-			unsigned short errcode;
-			char errmsg[TFTP_DEFAULTSIZE_PACKET];
+			uint16_t errcode;
+			uint8_t  errmsg[TFTP_DEFAULTSIZE_PACKET];
 		} err;
 		struct {
-			char data[TFTP_DEFAULTSIZE_PACKET+2];
+			uint8_t  data[TFTP_DEFAULTSIZE_PACKET+2];
 		} oack;
 	} u;
 };
@@ -388,15 +417,15 @@ struct tftp_t {
 struct tftpreq_t {
 	struct iphdr ip;
 	struct udphdr udp;
-	unsigned short opcode;
+	uint16_t opcode;
 	union {
-		char rrq[512];
+		uint8_t rrq[512];
 		struct {
-			unsigned short block;
+			uint16_t block;
 		} ack;
 		struct {
-			unsigned short errcode;
-			char errmsg[512-2];
+			uint16_t errcode;
+			uint8_t  errmsg[512-2];
 		} err;
 	} u;
 };
@@ -407,24 +436,24 @@ struct rpc_t {
 	struct iphdr ip;
 	struct udphdr udp;
 	union {
-		char data[300];		/* longest RPC call must fit!!!! */
+		uint8_t  data[300];		/* longest RPC call must fit!!!! */
 		struct {
-			long id;
-			long type;
-			long rpcvers;
-			long prog;
-			long vers;
-			long proc;
-			long data[1];
+			uint32_t id;
+			uint32_t type;
+			uint32_t rpcvers;
+			uint32_t prog;
+			uint32_t vers;
+			uint32_t proc;
+			uint32_t data[1];
 		} call;
 		struct {
-			long id;
-			long type;
-			long rstatus;
-			long verifier;
-			long v2;
-			long astatus;
-			long data[1];
+			uint32_t id;
+			uint32_t type;
+			uint32_t rstatus;
+			uint32_t verifier;
+			uint32_t v2;
+			uint32_t astatus;
+			uint32_t data[1];
 		} reply;
 	} u;
 };
