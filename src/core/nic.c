@@ -177,12 +177,6 @@ struct nic	nic =
 	0,					/* priv_data */
 };
 
-
-/*
- *	Normally I would arrange the functions in a file to avoid forward
- *	declarations, but in this case I like to see main() as the first
- *	routine.
- */
 #ifdef RARP_NOT_BOOTP
 static int rarp(void);
 #else
@@ -712,8 +706,10 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 	if (memcmp(&bootpreply->bp_siaddr, &zeroIP, sizeof(in_addr)) == 0)
 		return 0;
 #ifndef	DEFAULT_BOOTFILE
-	if (bootpreply->bp_file[0] == '\0')
+	if (bootpreply->bp_file[0] == '\0') {
+		printf("F?");	/* No filename in offer */
 		return 0;
+	}
 #endif
 	if ((memcmp(broadcast, bootpreply->bp_hwaddr, ETH_ALEN) != 0) &&
 		(memcmp(arptable[ARP_CLIENT].node, bootpreply->bp_hwaddr, ETH_ALEN) != 0)) {
