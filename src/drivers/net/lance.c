@@ -119,6 +119,8 @@ static const struct lance_chip_type
 		LANCE_ENABLE_AUTOSELECT},
 	{0x2260, "PCnet/ISA+ 79C961",		/* 79C961 PCnet/ISA+, Plug-n-Play.  */
 		LANCE_ENABLE_AUTOSELECT},
+	{0x2261, "PCnet/ISA II 79C961A",	/* 79C961A PCnet/ISA II, Plug-n-Play.*/
+		LANCE_ENABLE_AUTOSELECT},
 	{0x2420, "PCnet/PCI 79C970",		/* 79C970 or 79C974 PCnet-SCSI, PCI. */
 		LANCE_ENABLE_AUTOSELECT},
 	/* Bug: the PCnet/PCI actually uses the PCnet/VLB ID number, so just call
