@@ -620,81 +620,62 @@ _rm_in_call_far:
  */
 
 #define RIC_PRESERVE ( 8 )
-#define RIC_OFFSET_RETADDR ( RIC_PRESERVE )
-#define RIC_OFFSET_RETADDR_E ( RIC_OFFSET_RETADDR + 8 )
-#define RIC_ORIG_OFFSET_RETADDR_E ( RIC_OFFSET_RETADDR_E )
-#define RIC_ORIG_OFFSET_RETADDR ( RIC_ORIG_OFFSET_RETADDR_E - 4 )
-#define RIC_INSERT_LENGTH ( ( RIC_OFFSET_RETADDR_E - RIC_OFFSET_RETADDR ) - \
-		      ( RIC_ORIG_OFFSET_RETADDR_E - RIC_ORIG_OFFSET_RETADDR ) )
+#define RIC_OFFSET_CALLADDR ( RIC_PRESERVE )
+#define RIC_OFFSET_CALLADDR_E ( RIC_OFFSET_CALLADDR + 8 )
+#define RIC_OFFSET_CONTADDR ( RIC_OFFSET_CALLADDR_E )
+#define RIC_OFFSET_CONTADDR_E ( RIC_OFFSET_CONTADDR + 8 )
+#define RIC_OFFSET_OPCODE ( RIC_OFFSET_CONTADDR_E )
+#define RIC_OFFSET_OPCODE_E ( RIC_OFFSET_OPCODE + 4 )
+#define RIC_INSERT_LENGTH ( RIC_OFFSET_OPCODE_E - RIC_OFFSET_CALLADDR )
 
-/* Little bit messy that we need to know this... */
+/* Slightly messy that we need to know this */
 #define RIC_R2P_INSERT_LENGTH ( NUM_SEG_REGS * 2 )
-	
-#define RIC2_PRESERVE ( 8 )
-#define RIC2_OFFSET_CALLADDR ( RIC2_PRESERVE )
-#define RIC2_OFFSET_CALLADDR_E ( RIC2_OFFSET_CALLADDR + 8 )
-#define RIC2_OFFSET_CONTADDR ( RIC2_OFFSET_CALLADDR_E )
-#define RIC2_OFFSET_CONTADDR_E ( RIC2_OFFSET_CONTADDR + 8 )
-#define RIC2_OFFSET_OPCODE ( RIC2_OFFSET_CONTADDR_E )
-#define RIC2_OFFSET_OPCODE_E ( RIC2_OFFSET_OPCODE + 4 )
-#define RIC2_OFFSET_RETADDR ( RIC2_OFFSET_OPCODE_E )
-#define RIC2_OFFSET_RETADDR_E ( RIC2_OFFSET_RETADDR + 8 )
-#define RIC2_OFFSET_R2P_INSERTED ( RIC2_OFFSET_RETADDR_E )
-#define RIC2_OFFSET_R2P_INSERTED_E ( RIC2_OFFSET_R2P_INSERTED + \
+
+#define RIC_OFFSET_R2P_INSERTED ( RIC_OFFSET_OPCODE_E )
+#define RIC_OFFSET_R2P_INSERTED_E ( RIC_OFFSET_R2P_INSERTED + \
 				     RIC_R2P_INSERT_LENGTH )
-#define RIC2_OFFSET_ORIG_OPCODE ( RIC2_OFFSET_R2P_INSERTED_E )
-#define RIC2_INSERT_LENGTH ( RIC2_OFFSET_OPCODE_E - RIC2_OFFSET_CALLADDR )
+#define RIC_OFFSET_LONG_PRESERVE ( RIC_OFFSET_R2P_INSERTED_E )
+#define RIC_OFFSET_LONG_PRESERVE_E ( RIC_OFFSET_LONG_PRESERVE + 4 )
+#define RIC_OFFSET_RETADDR ( RIC_OFFSET_LONG_PRESERVE_E )
+#define RIC_OFFSET_RETADDR_E ( RIC_OFFSET_RETADDR + 4 )
+#define RIC_OFFSET_ORIG_OPCODE ( RIC_OFFSET_RETADDR_E )
 	
 	.code16
 _real_in_call:
 	/* Expand near return address to far return address
 	 */
-	subw	$2, %sp
+	pushw	%ax		/* padding */
+	pushfw
 	pushw	%bp
 	pushw	%ax
 	movw	%sp, %bp
 	movw	%cs, %ax
-	xchgw	%ax, 6(%bp)
-	movw	%ax, 4(%bp)
+	xchgw	%ax, 8(%bp)
+	movw	%ax, 6(%bp)
 	popw	%ax
 	popw	%bp
+	popfw
 	/* Fall through to _real_call_far */
 	
 	.code16
 _real_in_call_far:
-	/* Allow space for expanded stack */
-	subw	$RIC_INSERT_LENGTH, %sp
-
-	/* Store temporary registers */
-	pushl	%ebp
-	pushl	%eax
-
-	/* 16-bit code:	need %bp as a base register */
-	movw	%sp, %bp
-
-	/* Expand 16-bit return address to 32-bit */
-	movzwl	(RIC_ORIG_OFFSET_RETADDR+0)(%bp), %eax
-	movl	%eax, (RIC_OFFSET_RETADDR+0)(%bp)
-	movzwl	(RIC_ORIG_OFFSET_RETADDR+2)(%bp), %eax
-	movl	%eax, (RIC_OFFSET_RETADDR+4)(%bp)
-
-	/* Restore temporary registers */
-	popl	%eax
-	popl	%ebp
+	/* Store flags and pad; this is the "LONG_PRESERVE" from above */
+	pushfw
+	pushw	%ax
 
 	/* Call to _real_to_prot */
-	DATA32 call _real_to_prot_core
+	call _real_to_prot_core
 
 	/* Continuation point */
-2:	.code32
+1:	.code32
 
 	/* We're in protected mode with flat physical addresses and
-	 * all the parameters are on the stack: set up _prot_to_real
-	 * as the return address and 'ljmp' into _in_call_far.
+	 * all the parameters are on the stack: set up continuation
+	 * address and 'ljmp' into _in_call_far.
 	 */
 
 	/* Allow space for expanded stack */
-	subl	$RIC2_INSERT_LENGTH, %esp
+	subl	$RIC_INSERT_LENGTH, %esp
 	
 	/* Store temporary registers */
 	pushl	%ebp
@@ -704,23 +685,23 @@ _real_in_call_far:
 	 * _in_call() and i386_in_call() expect it at a fixed
 	 * position, not as part of the va_list.
 	 */
-	movl	RIC2_OFFSET_ORIG_OPCODE(%esp), %eax
+	movl	RIC_OFFSET_ORIG_OPCODE(%esp), %eax
 	orl	$EB_CALL_FROM_REAL_MODE, %eax
-	movl	%eax, RIC2_OFFSET_OPCODE(%esp)
+	movl	%eax, RIC_OFFSET_OPCODE(%esp)
 	
 	/* Set up call and return addresses */
 	movl	$(r2p_pmcs-r2p_gdt), %eax	/* Flat physical CS */
-	movl	%eax, (RIC2_OFFSET_CALLADDR+4)(%esp)
-	movl	%eax, (RIC2_OFFSET_CONTADDR+4)(%esp)
+	movl	%eax, (RIC_OFFSET_CALLADDR+4)(%esp)
+	movl	%eax, (RIC_OFFSET_CONTADDR+4)(%esp)
 	call	1f
 1:	popl	%ebp
 	subl	$1b, %ebp			/* %ebp = offset */
 	movl	rm_etherboot_location(%ebp), %eax  /* Etherboot phys addr */
 	subl	$_text, %eax
 	addl	$_in_call_far, %eax		/* _in_call_far phys addr */
-	movl	%eax, (RIC2_OFFSET_CALLADDR+0)(%esp)
+	movl	%eax, (RIC_OFFSET_CALLADDR+0)(%esp)
 	leal	2f(%ebp), %eax			/* continuation address */
-	movl	%eax, (RIC2_OFFSET_CONTADDR+0)(%esp)
+	movl	%eax, (RIC_OFFSET_CONTADDR+0)(%esp)
 	
 	/* Restore temporary registers */
 	popl	%eax
@@ -730,11 +711,10 @@ _real_in_call_far:
 	lret
 
 2:	/* Continuation point */
-
 	/* Remove opcode from stack */
 	addl	$4, %esp
 	/* Return via _prot_to_real */
-	jmp	_prot_to_real
+	jmp	_prot_to_real_core
 
 /****************************************************************************
  * rm_etherboot_location: the current physical location of Etherboot.
@@ -755,46 +735,46 @@ rm_etherboot_location:	.long 0
  * from within Etherboot, and (b) as part of the exit path back to
  * real-mode code after a call to _real_in_call.
  * 
+ * Case (a): (_prot_to_real)
+ *
  * Parameters:
- *   32-bit far return address (implicit from far call to routine)
+ *   32-bit far pmode return address
  *   seg_regs_t rm_seg_regs : structure for real-mode segment register values.
  *
- * This routine will strip rm_seg_regs from the stack (i.e. shift up
- * the return address and adjust the stack pointer).
+ * This routine will strip the far return address and segment
+ * registers from the stack.  The return address is effectively
+ * discarded.  Return to Etherboot is via _real_to_prot, which will
+ * use the duplicate return address stored at the end of the
+ * trampoline code.  This allows the real-mode code to use the
+ * parameters on the stack (including passing them to external
+ * routines) without having to take the Etherboot return address into
+ * account.
  *
- * For case (a), the return address will eventually be interpreted by
- * _real_to_prot as part of the return to Etherboot.  It should be in
- * a flat physical segment.  (The actual segment value will be
- * ignored, but the offset must be a physical offset).  This routine
- * should be entered via a 32-bit far call.
+ * Case (b): (_prot_to_real_core)
+ *   seg_regs_t rm_seg_regs : structure for real-mode segment register values.
+ *   padding (2 bytes)
+ *   flags
+ *   16-bit far rmode return address
  *
- * In case (b), the return address should be a 32-bit real mode
- * segment:offset address.  This routine should be entered via a
- * 32-bit far jump (i.e. it is given as the return point for the call
- * to _in_call_far).
+ * This routine will strip the segment registers from the stack and
+ * then return to the specified address.
  ****************************************************************************
  */
 
-#define P2R_PRESERVE (14)
-#define P2R_OFFSET_RETADDR ( P2R_PRESERVE )
-#define P2R_OFFSET_RETADDR_E ( P2R_OFFSET_RETADDR + 8 )
-#define P2R_OFFSET_SEG_REGS ( P2R_OFFSET_RETADDR_E )
+#define P2R_PRESERVE (12)
+#define P2R_OFFSET_SEG_REGS ( P2R_PRESERVE )
 #define P2R_OFFSET_SEG_REGS_E ( P2R_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
-#define P2R_STRIP_LENGTH ( P2R_OFFSET_SEG_REGS_E - P2R_OFFSET_SEG_REGS )
-#define P2R_NEW_OFFSET_RETADDR ( P2R_OFFSET_RETADDR + P2R_STRIP_LENGTH )
 
 	.globl _prot_to_real
 	.code32
 _prot_to_real:
-	/* Store interrupt status and temporary registers */
-	pushfw
+	addl	$8, %esp		/* Skip return address */
+_prot_to_real_core:	
+	/* Store temporary registers */
 	pushl	%ebp
 	pushl	%eax
 	pushl	%ebx
 	
-	/* Disable interrupts */
-	cli
-
 	/* Calculate offset */
 	call	1f
 1:	popl	%ebp
@@ -864,35 +844,17 @@ _prot_to_real:
 	lret
 2:	
 
-	/* Reload other segment registers with real-mode values */
-	addw	$P2R_OFFSET_SEG_REGS, %sp
+	/* Restore registers */
+	popl	%ebx
+	popl	%eax
+	popl	%ebp
+
+	/* Set up segment registers with specified values */
 	popw	%gs
 	popw	%fs
 	popw	%es
 	popw	%ds
-	subw	$(P2R_OFFSET_SEG_REGS+8), %sp
-
-	/* Strip rm_seg_regs structure from stack, i.e. shuffle up the
-	 * return address.
-	 */
-	movl	(P2R_OFFSET_RETADDR+0)(%bp), %eax
-	movl	(P2R_OFFSET_RETADDR+4)(%bp), %ebx
-	movl	%eax, (P2R_NEW_OFFSET_RETADDR+0)(%bp)
-	movl	%ebx, (P2R_NEW_OFFSET_RETADDR+4)(%bp)
-	
-	/* Restore registers and interrupt status */
-	popl	%ebx
-	popl	%eax
-	popl	%ebp
-	popfw
-
-	/* FIXME: Ugly, ugly, ugly.  Re-enable interrupts on entering
-	 * real mode
-	 */
-	sti
-
-	/* Adjust stack to point to return address */
-	addw	$P2R_STRIP_LENGTH, %sp
+	addw	$4, %sp			/* skip ss, cs (already set) */	
 
 	jmp	99f
 p2r_gdt:
@@ -919,10 +881,12 @@ p2r_gdt_end:
 _prot_to_real_end:
 
 	/* For the case that this is being used as the return path to
-	 * real-mode code, we now have a 32-bit real-mode far return
-	 * address on the stack.
+	 * real-mode code, we now have stored flags and a 16-bit
+	 * real-mode far return address on the stack.
 	 */
-	DATA32 lret			/* Back to real-mode caller */
+	addw	$2, %sp		/* skip padding */
+	popfw			/* restore flags (incl. interrupt status) */
+	lret			/* Back to real-mode caller */
 	
 /****************************************************************************
  * _real_to_prot
@@ -936,94 +900,96 @@ _prot_to_real_end:
  * from within Etherboot, and (b) as part of the entry path from
  * real-mode code to in_call().
  * 
+ * Case (a): (_real_to_prot)
+ *
  * Parameters:
- *   32-bit flat physical far return address
+ *   none
  *
  * This routine will push a seg_regs_t structure containing the
  * real-mode segment registers onto the stack before returning to the
- * specified address.
+ * return address stored at the end of the trampoline code.
+ *
+ * Case (b): (_real_to_prot_core)
+ *
+ * Parameters:
+ *   none
+ *
+ * This routine will push a seg_regs_t structure containing the
+ * real-mode segment registers onto the stack and return to the caller.
+ *   
  ****************************************************************************
  */
 
-#define R2P_PRESERVE ( 10 )
-#define R2P_OFFSET_LOCALRETADDR ( R2P_PRESERVE )
-#define R2P_OFFSET_LOCALRETADDR_E ( R2P_OFFSET_LOCALRETADDR + 4 )
-#define R2P_OFFSET_RETADDR ( R2P_OFFSET_LOCALRETADDR_E )
-#define R2P_OFFSET_RETADDR_E ( R2P_OFFSET_RETADDR + 8 )
+#define R2P_PRESERVE ( 12 )
+#define R2P_OFFSET_RETADDR ( R2P_PRESERVE )
+#define R2P_OFFSET_RETADDR_E ( R2P_OFFSET_RETADDR + 4 )
 #define R2P_OFFSET_SEG_REGS ( R2P_OFFSET_RETADDR_E )
 #define R2P_OFFSET_SEG_REGS_E ( R2P_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
-#define R2P_INSERT_LENGTH ( R2P_OFFSET_SEG_REGS_E - R2P_OFFSET_SEG_REGS )
-#define R2P_ORIG_OFFSET_LOCALRETADDR ( R2P_OFFSET_LOCALRETADDR + \
-				       R2P_INSERT_LENGTH )
-#define R2P_ORIG_OFFSET_RETADDR ( R2P_OFFSET_RETADDR + R2P_INSERT_LENGTH )
-
-/* Safety check: _real_in_call needs to know R2P_INSERT_LENGTH but it
- * doesn't get calculated until this point in the file.  Rather than
- * reordering everything, just give a fatal error if it was the wrong
- * value.
- */
-#if RIC_R2P_INSERT_LENGTH != R2P_INSERT_LENGTH
-#error RIC_R2P_INSERT_LENGTH != R2P_INSERT_LENGTH
-#endif
+#define R2P_ORIG_OFFSET_RETADDR_E ( R2P_OFFSET_SEG_REGS_E )
+#define R2P_ORIG_OFFSET_RETADDR ( R2P_ORIG_OFFSET_RETADDR_E - 2 )
+#define R2P_INSERT_LENGTH ( R2P_ORIG_OFFSET_RETADDR - R2P_OFFSET_RETADDR )
 
 	.globl _real_to_prot
 	.globl _ereal_to_prot
 	
 	.code16		
 _real_to_prot:
-	DATA32 call _real_to_prot_core
+	call _real_to_prot_core
 	.code32
-	/* Force return segment address to 0x08 (i.e. physical).  We
-	 * do this because the GDT may have changed as a result of the
-	 * real-call payload.  A physical offset address for the
-	 * return address is an entry requirement of ours anyway, and
-	 * ext_call() can cope with an altered GDT on return.
+	/* Set up far return address on stack using address
+	 * stored at end of trampoline.
 	 */
-	movl	$(r2p_pmcs-r2p_gdt), 4(%esp)
-	
+	pushl	$(r2p_pmcs - r2p_gdt)	/* physical segment */
+	pushl	%eax			/* padding */
+	pushl	%ebp			/* preserve ebp */
+	call	1f
+1:	popl	%ebp
+	movl	%cs:(_real_to_prot_end-1b)(%ebp), %ebp
+	movl	%ebp, 4(%esp)
+	popl	%ebp			/* restore ebp */
+
 	/* Return to Etherboot */
 	lret
 
 	.code16
-_real_to_prot_core:	
-	/* Allow space for real-mode segment registers */
-	subw	$R2P_INSERT_LENGTH, %sp
-	
+_real_to_prot_core:
+	/* Store segment registers, skipping %cs.  They end up in the
+	 * right place, because there's currently exactly two bytes on
+	 * the stack: the near return address.  We'll store %cs later.
+	 */
+	pushw	%ss
+	pushw	%ds
+	pushw	%es
+	pushw	%fs
+	pushw	%gs
+
+	/* Allow space for 32-bit return address */
+	pushw	%ax
+	pushw	%ax
+		
 	/* Store interrupt status and temporary registers */
-	/* pushfw */		/* We can't handle interrupts in pmode yet */
-	pushw	%bp
+	pushl	%ebp
 	pushl	%eax
 	pushl	%ebx
 
 	/* Disable interrupts */
 	cli
 	
-	/* Move return addresses down the stack so we can insert the
+	/* Expand return address from 16- to 32-bit, move it down to
+	 * below the segment register dump.  Fill in %cs in the
 	 * segment register dump.
 	 */
 	movw	%sp, %bp
-	movl	(R2P_ORIG_OFFSET_RETADDR+0)(%bp), %eax
-	movl	(R2P_ORIG_OFFSET_RETADDR+4)(%bp), %ebx
-	movl	%eax, (R2P_OFFSET_RETADDR+0)(%bp)
-	movl	%ebx, (R2P_OFFSET_RETADDR+4)(%bp)
-	movl	(R2P_ORIG_OFFSET_LOCALRETADDR)(%bp), %eax
-	movl	%eax, (R2P_OFFSET_LOCALRETADDR)(%bp)
-
-	/* Store segment registers on stack */
-	addw	$R2P_OFFSET_SEG_REGS_E, %sp
-	pushw	%cs
-	pushw	%ss
-	pushw	%ds
-	pushw	%es
-	pushw	%fs
-	pushw	%gs
-	subw	$R2P_OFFSET_SEG_REGS, %sp
+	xorl	%eax, %eax
+	movw	%cs, %ax
+	xchgw	(R2P_ORIG_OFFSET_RETADDR)(%bp), %ax
+	movl	%eax, (R2P_OFFSET_RETADDR)(%bp)
 
 	/* Calculate 32-bit continuation address and push onto stack */
 	xorl	%eax, %eax
 	movw	%cs, %ax
 	shll	$4, %eax		/* %eax = %cs << 4 */
-	addl	%eax, R2P_OFFSET_LOCALRETADDR(%bp) /* Adjust local ret. addr */
+	addl	%eax, R2P_OFFSET_RETADDR(%bp) /* Adjust local ret. addr */
 	pushl	$(r2p_pmcs-r2p_gdt)	/* PMCS from r2p_gdt */
 	call	1f
 1:	popw	%bp			/* %bp = offset */
@@ -1068,8 +1034,7 @@ _real_to_prot_core:
 	/* Restore registers and interrupt status */
 	popl	%ebx
 	popl	%eax
-	popw	%bp
-	/* popfw */		/* We can't handle interrupts in pmode yet */
+	popl	%ebp
 
 	/* Return from _real_to_prot_core */
 	ret
