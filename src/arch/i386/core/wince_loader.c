@@ -1,4 +1,3 @@
-static int ce_loader(unsigned char *data, unsigned int len);
 static int get_x_header(unsigned char *data, unsigned long now);
 static void jump_2ep();
 static unsigned char ce_signature[] = {'B', '0', '0', '0', 'F', 'F', '\n',};
@@ -267,6 +266,6 @@ static void jump_2ep()
 	}
 
 	ep = phys_to_virt(BOOT_ARG_PTR_LOCATION);
-	*ep= virt_to_phys(BootArgs);
+	*ep= virt_to_phys(&BootArgs);
 	xstart32(entry);
 }
