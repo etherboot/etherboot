@@ -204,6 +204,8 @@ static int rtl8139_probe(struct dev *dev, struct pci_device *pci)
 
 	rtl_reset(nic);
 
+	printf("Vendor: 0x%hX, Device: 0x%hX\n", pci->vendor, pci->dev_id);
+
 	if (inb(ioaddr + MediaStatus) & MSRLinkFail) {
 		printf("Cable not connected or other link failure\n");
 		return(0);
