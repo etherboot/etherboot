@@ -243,8 +243,8 @@ CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
 # For prompting and default on timeout
 CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # If you would like to attempt to boot from other devices as well as the network.
-# CFLAGS+=	-DBOOT_SECOND=BOOT_DISK
-# CFLAGS+=	-DBOOT_THIRD=BOTO_FLOPPY
+CFLAGS+=	-DBOOT_SECOND=BOOT_FLOPPY
+# CFLAGS+=	-DBOOT_THIRD=BOOT_DISK
 # CFLAGS+=	-DBOOT_INDEX=0
 
 # If you prefer the old style rotating bar progress display
@@ -262,7 +262,7 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 # This option should be enabled unless you have a legacy DHCP server
 # configuration from the bad old days before the use of
 # encapsulated Etherboot options.
-# CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
+CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
 
 # Specify a default bootfile to be used if the DHCP server does not
 # provide the information.  If you do not specify this option, then
@@ -295,9 +295,7 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 # CFLAGS+=	-DFREEBSD_PXEEMU
 
 # Relocate etherboot to just below 4GB.
-# While not all drivers work correctly before 5.2 is released we want
-# everything that is used to support relocation, so define this by
-# default to get more bug reports.
+# A couple of drivers do not work with relocation, notably lance.
 CFLAGS+=	-DRELOCATE
 
 # you should normally not need to change these

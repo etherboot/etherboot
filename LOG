@@ -2485,4 +2485,8 @@ Released as Etherboot 5.1.9 (5.2 release candidate 1)
 
 + 82562EZ ID provided by Samual Clements.
 
++ Rename Local option as Quit, because that's what it really is.
+
++ Make BOOT_SECOND floppy in default config.
+
 Released as Etherboot 5.1.10 (5.2 release candidate 2)

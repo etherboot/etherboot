@@ -65,7 +65,7 @@ done:
 		default:
 			/* Nothing useful try again */
 			continue;
-		case ANS_LOCAL:
+		case ANS_QUIT:
 			order = BOOT_NOTHING;
 			*index = 0;
 			break;
@@ -261,7 +261,7 @@ static int main_loop(int state)
 			int failsafe;
 
 			/* Advance to the next device type */
-			i += 1;
+			i++;
 			boot = (order >> (i * BOOT_BITS)) & BOOT_MASK;
 			type = boot & BOOT_TYPE_MASK;
 			failsafe = (boot & BOOT_FAILSAFE) != 0;

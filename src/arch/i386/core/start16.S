@@ -33,7 +33,7 @@ _start:
 	 */
 	pushf			/* Save the original interrupt state */
 	movw	%sp, %ax
-	andw	$0xffc, %sp	/* 32bit align the stack */
+	andw	$0xfffc, %sp	/* 32bit align the stack */
 	pushw	%ss		/* Save the original stack address */
 	pushw	%ax
 

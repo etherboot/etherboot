@@ -10,12 +10,12 @@ Author: Martin Renters
 
 /* These could be customised for different languages perhaps */
 #define	ASK_PROMPT	\
-		"Boot from (N)etwork (D)isk (F)loppy or from (L)ocal? "
+		"Boot from (N)etwork (D)isk (F)loppy or (Q)uit? "
 
 #define	ANS_NETWORK	'N'
 #define ANS_DISK	'D'
 #define ANS_FLOPPY	'F'
-#define	ANS_LOCAL	'L'
+#define	ANS_QUIT	'Q'
 #define ANS_DEFAULT	'\n'
 
 #ifndef BOOT_FIRST

@@ -1,3 +1,4 @@
+#ifdef	SAFEBOOT
 /*
 	RSA.C - RSA routines for RSAEURO
 
@@ -1000,3 +1001,4 @@ R_RSA_PUBLIC_KEY *publicKey;    // RSA public key
 	R_memset((POINTER)m, 0, sizeof(m));
 	return(ID_OK);
 }
+#endif
