@@ -1,3 +1,5 @@
+#ifdef CONFIG_PCMCIA
+
 /*
  *	i82365.c
  *	Support for i82365 and similar ISA-to-PCMCIA bridges
@@ -651,3 +653,4 @@ int	i82365_interfacer ( interface_func_t func, int sockno, int par1, int par2, v
 // vg46x_get_state/...
 // get_bridge_state/...
 
+#endif /* CONFIG_PCMCIA */

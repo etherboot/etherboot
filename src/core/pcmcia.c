@@ -1,3 +1,5 @@
+#ifdef CONFIG_PCMCIA
+
 /*
  *	pcmcia.c
  *
@@ -264,3 +266,4 @@ int	pcmcia_shutdown_all(void) {
 	return 0;
 }
 
+#endif /* CONFIG_PCMCIA */
