@@ -13,7 +13,7 @@
 #define BASE_MEMORY_MAX ( 640 )
 #define FREE_BLOCK_MAGIC ( ('!'<<0) + ('F'<<8) + ('R'<<16) + ('E'<<24) )
 
-/* #define DEBUG_BASEMEM 1 */
+#define DEBUG_BASEMEM 0
 
 typedef struct free_base_memory_block {
 	uint32_t	magic;
@@ -44,7 +44,7 @@ void * allot_base_memory ( size_t size ) {
 	uint16_t size_kb = ( size + 1023 ) >> 10;
 	void *ptr = NULL;
 
-#ifdef DEBUG_BASEMEM
+#if DEBUG_BASEMEM
 	printf ( "Trying to allocate %d kB of base memory, %d kB free\n",
 		 size_kb, *fbms );
 #endif
@@ -58,11 +58,13 @@ void * allot_base_memory ( size_t size ) {
 	/* Calculate address of memory allocated */
 	ptr = phys_to_virt ( *fbms << 10 );
 
+#if DEBUG_BASEMEM
 	/* Zero out memory.  We do this so that allocation of
 	 * already-used space will show up in the form of a crash as
 	 * soon as possible.
 	 */
 	memset ( ptr, 0, size_kb << 10 );
+#endif
 
 	/* Adjust real mode stack pointer */
 	adjust_real_mode_stack ();
@@ -102,10 +104,9 @@ void forget_base_memory ( void *ptr, size_t size ) {
 		while ( free_block->magic == FREE_BLOCK_MAGIC ) {
 			/* Return memory to BIOS */
 			*fbms += free_block->size_kb;
-#ifdef DEBUG_BASEMEM
+#if DEBUG_BASEMEM
 			printf ( "Freed %d kB base memory, %d kB now free\n",
 				 free_block->size_kb, *fbms );
-#endif			
 
 			/* Zero out freed block.  We do this in case
 			 * the block contained any structures that
@@ -113,6 +114,7 @@ void forget_base_memory ( void *ptr, size_t size ) {
 			 * memory.
 			 */
 			memset ( free_block, 0, free_block->size_kb << 10 );
+#endif			
 
 			/* Stop processing if we're all the way up to 640K */
 			if ( *fbms == BASE_MEMORY_MAX ) break;
