@@ -58,11 +58,11 @@ int unhide_etherboot ( void ) {
 	if ( !mangling ) return 1;
 
 	/* Restore original INT15 handler
-	 *
-	 * FIXME: should probably check that is safe to do so
-	 * (i.e. that no-one else has hooked it), but what do we do if
-	 * it isn't?  We can't leave our handler hooked in.
 	 */
+	if ( VIRTUAL(INT15_VECTOR->segment,INT15_VECTOR->offset) != mangler ) {
+		printf ( "FATAL: corrupt INT15\n" );
+		/* Not a lot else we can do... */
+	}
 	*INT15_VECTOR = *intercepted_int15;
 
 	mangling = 0;
