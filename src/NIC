@@ -218,3 +218,13 @@ dp83815		natsemi		0x100B,0x0020
 fa311too	fa311		0x100B,0x0020
 # TI Thunderlan
 #olicom2326	tlan		0x108d,0x0014
+# Netgear MA301 (prism2_plx)
+ma301		prism2_plx	0x1385,0x4100
+# Various Prism2.5 (PCI) devices that manifest themselves as Harris Semiconductor devices
+# (with the actual vendor appearing as the vendor of the first subsystem)
+# Generic Prism2.5 PCI device
+prism2_pci	prism2_pci	0x1260,0x3873
+# ActionTec HWP01170 (prism2_pci)
+hwp01170	prism2_pci	0x1260,0x3873
+# DLink DWL-520
+dwl520		prism2_pci	0x1260,0x3873
