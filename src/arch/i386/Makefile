@@ -8,16 +8,18 @@ BUILD_PXES=	$(patsubst %.img, %.pxe, $(IMGS)) $(patsubst %.img, %.zpxe, $(IMGS))
 BUILD_COMS=	$(patsubst %.img, %.com, $(IMGS))
 BUILD_LILOS=	$(patsubst %.img, %.lilo, $(IMGS)) $(patsubst %.img, %.zlilo, $(IMGS))
 
-START=	$(BIN)/start32.o $(BIN)/pcbios.o $(BIN)/memsizes.o \
-	$(BIN)/basemem.o $(BIN)/linuxbios.o $(BIN)/callbacks_arch.o \
-	$(BIN)/callbacks_asm.o $(BIN)/pxe_callbacks.o
+START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
+	$(BIN)/bios.o $(BIN)/console.o $(BIN)/memsizes.o $(BIN)/basemem.o \
+	$(BIN)/realmode.o $(BIN)/realmode_asm.o \
+	$(BIN)/callbacks_arch.o $(BIN)/pxe_callbacks.o
 
 SRCS+=	arch/i386/prefix/floppyprefix.S
 SRCS+=	arch/i386/prefix/unhuf.S
 SRCS+=	arch/i386/prefix/unnrv2b.S
+SRCS+=	arch/i386/firmware/pcbios/bios.c
+SRCS+=	arch/i386/firmware/pcbios/console.c
 SRCS+=	arch/i386/firmware/pcbios/memsizes.c
 SRCS+=	arch/i386/firmware/pcbios/basemem.c
-SRCS+=	arch/i386/firmware/pcbios/pcbios.S
 SRCS+=	arch/i386/prefix/liloprefix.S
 SRCS+=	arch/i386/prefix/elfprefix.S
 SRCS+=	arch/i386/prefix/lmelf_prefix.S
@@ -36,7 +38,8 @@ SRCS+=	arch/i386/core/video_subr.c
 SRCS+=	arch/i386/core/pic8259.c
 SRCS+=	arch/i386/core/hooks.c
 SRCS+=	arch/i386/core/callbacks_arch.c
-SRCS+=	arch/i386/core/callbacks_asm.S
+SRCS+=	arch/i386/core/realmode.c
+SRCS+=	arch/i386/core/realmode_asm.S
 SRCS+=	arch/i386/core/pxe_callbacks.c
 
 # ROM loaders: ISA and PCI versions
