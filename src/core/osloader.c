@@ -294,13 +294,12 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 	/* Either len is greater or the skip is greater */
 	if ((skip_sectors > (len >> 9)) ||
 		((skip_sectors == (len >> 9)) && (skip_bytes >= (len & 0x1ff)))) {
-		if (skip_bytes > len) {
-			skip_bytes -= len;
-		}
-		else {
+		/* If I don't have enough bytes borrow them from skip_sectors */
+		if (skip_bytes < len) {
 			skip_sectors -= (len - skip_bytes + 511) >> 9;
-			skip_bytes = 512 - ((len - skip_bytes) & 0x1ff);
+			skip_bytes += (len - skip_bytes + 511) & ~0x1ff;
 		}
+		skip_bytes -= len;
 	}
 	else {
 		len -= (skip_sectors << 9) + skip_bytes;

@@ -13,6 +13,7 @@
 #ifdef CONFIG_PCI
 #include "etherboot.h"
 #include "pci.h"
+
 #ifdef	CONFIG_PCI_DIRECT
 #define  PCIBIOS_SUCCESSFUL                0x00
 
