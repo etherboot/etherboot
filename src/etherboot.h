@@ -108,16 +108,13 @@ Author: Martin Renters
    The confusion between 60/64 and 1514/1518 arose because the NS8390
    counts the 4 byte frame checksum in the incoming packet, but not
    in the outgoing packet. 60/1514 are the correct numbers for most
-   if not all of the other NIC controllers. I will be retiring the
-   64/1518 defines in the lead-up to 5.0.
+   if not all of the other NIC controllers.
 */
 
 #define ETH_ALEN		6	/* Size of Ethernet address */
 #define ETH_HLEN		14	/* Size of ethernet header */
 #define	ETH_ZLEN		60	/* Minimum packet */
-/*#define ETH_MIN_PACKET		64*/
 #define	ETH_FRAME_LEN		1514	/* Maximum packet */
-/*#define ETH_MAX_PACKET		1518*/
 #ifndef	ETH_MAX_MTU
 #define	ETH_MAX_MTU		(ETH_FRAME_LEN-ETH_HLEN)
 #endif

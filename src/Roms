@@ -24,6 +24,7 @@ DOBJS32	+= bin32/sis900.o
 DOBJS32	+= bin32/sk_g16.o
 DOBJS32	+= bin32/smc9000.o
 DOBJS32	+= bin32/tiara.o
+DOBJS32	+= bin32/tlan.o
 DOBJS32	+= bin32/tulip.o
 DOBJS32	+= bin32/via-rhine.o
 DOBJS32	+= bin32/w89c840.o
@@ -65,6 +66,7 @@ BINS32	+= bin32/82559er.rom bin32/82559er.lzrom
 BINS32	+= bin32/id1029.rom bin32/id1029.lzrom
 BINS32	+= bin32/id1030.rom bin32/id1030.lzrom
 BINS32	+= bin32/id1038.rom bin32/id1038.lzrom
+BINS32	+= bin32/82562et.rom bin32/82562et.lzrom
 BINS32	+= bin32/82562em.rom bin32/82562em.lzrom
 BINS32	+= bin32/epic100.rom bin32/epic100.lzrom
 BINS32	+= bin32/fa311too.rom bin32/fa311too.lzrom
@@ -1785,6 +1787,42 @@ bin32/id1038--%.lzpxe:	bin32/eepro100--%.huf $(PXEZLOADER)
 	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1038 -i$(IDENT32) $@
 
 bin32/id1038.ebi:	bin32/eepro100.elf
+	cp bin32/eepro100.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/82562et.rom:	bin32/eepro100.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et--%.rom:	bin32/eepro100--%.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et.lzrom:	bin32/eepro100.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et--%.lzrom:	bin32/eepro100--%.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et.pxe:	bin32/eepro100.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et--%.pxe:	bin32/eepro100--%.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et.lzpxe:	bin32/eepro100.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et--%.lzpxe:	bin32/eepro100--%.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0x8086,0x1039 -i$(IDENT32) $@
+
+bin32/82562et.ebi:	bin32/eepro100.elf
 	cp bin32/eepro100.elf $@
 	$(STRIP) -R .comment -R .note $@
 

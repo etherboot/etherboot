@@ -10,12 +10,12 @@ initrd.gz.
 
 1. First uncompress the .img:
 
-	bunzip2 tomsrtbt-1.7.361.ElTorito.288.img.bz2
+	bunzip2 tomsrtbt-2.0.103.ElTorito.288.img.bz2
 
 2. Mount the image using loopback. You probably need to be root to do
 this:
 
-	mount -o ro,loop tomsrtbt-1.7.361.ElTorito.288.img /media/floppy
+	mount -o ro,loop tomsrtbt-2.0.103.ElTorito.288.img /media/floppy
 
 I've specified /media/floppy which is the floppy mount point for my
 system, but any convenient directory will do.
@@ -26,7 +26,7 @@ system, but any convenient directory will do.
 
 4. Use mknbi-linux (or mkelf-linux) to make a netbootable image:
 
-	mknbi-linux --append='root=100' zImage initrd.gz > tomsrtbt.nb
+	mknbi-linux --append='root=100' bz2bzImage initrd.bz2 > tomsrtbt.nb
 
 root=100 means use /dev/ram0 (device 1,0) as the root device.
 

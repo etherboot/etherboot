@@ -11,6 +11,8 @@
 # The --output= options specifies an output file instead of stdout
 # The -nonet option specifies that a netbootable image is not to
 # be built but the vmlinuz and initrd.gz files left behind in $tempdir
+# The --localtime=f option specifies a timezone file that's to be
+# copied to /etc/localtime in the initrd, allowing a different timezone.
 #
 # The first non-option argument is taken to be the letter of a floppy to
 # convert, e.g. a:, b: or even x: where x: is mapped to a file using
