@@ -274,8 +274,9 @@ $(BIN)/%.tmp: $(BIN)/%.o $(START) $(BIN)/config.o arch/$(ARCH)/core/etherboot.ld
 $(BIN)/%.img: $(BIN)/%.tmp $(MAKEDEPS)
 	$(OBJCOPY) -O binary $< $@
 
+# Rules for generating symbol files (for use in conjunction with .img and .zimg files)
 $(BIN)/%.allsym: $(BIN)/%.tmp $(MAKEDEPS)
-	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=uncompressed_ $< $@
+	$(OBJCOPY) -x -O symbolsrec --prefix-symbols=runtime_ $< $@
 
 $(BIN)/%.sym: $(BIN)/%.allsym $(MAKEDEPS)
 	$(OBJCOPY) -O symbolsrec -j '*ABS*' $< $@
