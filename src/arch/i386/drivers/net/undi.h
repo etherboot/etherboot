@@ -169,7 +169,9 @@ typedef struct undi_base_mem_xmit_data {
 typedef struct undi_base_mem_data {
 	undi_call_info_t	undi_call_info;
 	pxenv_structure_t	pxs;
-	undi_base_mem_xmit_data_t xmit;
+	undi_base_mem_xmit_data_t xmit_data;
+	char			xmit_buffer[ETH_FRAME_LEN];
+	char			irq_handler[0]; /* Must be last in structure */
 } undi_base_mem_data_t;
 
 /* Macros and data structures used when freeing bits of base memory

@@ -27,9 +27,6 @@ $Id$
 /* 8259 PIC defines */
 #include "pic8259.h"
 
-#ifdef RELOCATE
-#error Relocation will not work with the UNDI driver at present
-#endif
 #ifndef PXELOADER_KEEP_ALL
 #error You must use PXELOADER_KEEP_ALL with the UNDI driver at present
 #endif
@@ -88,7 +85,8 @@ int allocate_base_mem_data ( void ) {
 	 */
 	if ( undi.base_mem_data == NULL ) {
 		undi.base_mem_data =
-			allot_base_memory ( sizeof(undi_base_mem_data_t) );
+			allot_base_memory ( sizeof(undi_base_mem_data_t) +
+					    TRIVIAL_IRQ_HANDLER_SIZE );
 		if ( undi.base_mem_data == NULL ) {
 			printf ( "Failed to allocate base memory\n" );
 			free_base_mem_data();
@@ -97,36 +95,26 @@ int allocate_base_mem_data ( void ) {
 		memset ( undi.base_mem_data, 0, sizeof(undi_base_mem_data_t) );
 		undi.undi_call_info = &undi.base_mem_data->undi_call_info;
 		undi.pxs = &undi.base_mem_data->pxs;
-		undi.xmit_data = &undi.base_mem_data->xmit;
+		undi.xmit_data = &undi.base_mem_data->xmit_data;
+		undi.xmit_buffer = undi.base_mem_data->xmit_buffer;
+		copy_trivial_irq_handler ( undi.base_mem_data->irq_handler,
+					   TRIVIAL_IRQ_HANDLER_SIZE );
 	}
-#ifdef RELOCATE
-	if ( undi.xmit_buffer == NULL ) {
-		undi.xmit_buffer = allot_base_memory ( ETH_FRAME_LEN );
-		if ( undi.xmit_buffer == NULL ) {
-			printf ( "Could not allocate transmit buffer!\n" );
-			free_base_mem_data();
-			return 0;
-		}
-	}
-#endif
 	return 1;
 }
 
 int free_base_mem_data ( void ) {
 	if ( undi.base_mem_data != NULL ) {
 		forget_base_memory ( undi.base_mem_data,
-				     sizeof(undi_base_mem_data_t) );
+				     sizeof(undi_base_mem_data_t) +
+				     TRIVIAL_IRQ_HANDLER_SIZE );
 		undi.base_mem_data = NULL;
 		undi.undi_call_info = NULL;
 		undi.pxs = NULL;
 		undi.xmit_data = NULL;
-	}
-#ifdef RELOCATE
-	if ( undi.xmit_buffer != NULL ) {
-		forget_base_memory ( undi.xmit_buffer, ETH_FRAME_LEN );
 		undi.xmit_buffer = NULL;
+		copy_trivial_irq_handler ( NULL, 0 );
 	}
-#endif
 	return 1;
 }
 
@@ -1043,10 +1031,6 @@ static void undi_transmit(
 		undi.xmit_data->tbd.Xmit.segment = SEGMENT( p );
 		undi.xmit_data->tbd.Xmit.offset = OFFSET( p );
 	} else {
-		if ( undi.xmit_buffer == NULL ) {
-			printf ( "No transmit buffer\n" );
-			return;
-		}
 		memcpy ( undi.xmit_buffer, p, s );
 		undi.xmit_data->tbd.Xmit.segment = SEGMENT( undi.xmit_buffer );
 		undi.xmit_data->tbd.Xmit.offset = OFFSET( undi.xmit_buffer );
