@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include "osdep.h"
 
 #ifndef BOOT_FIRST
@@ -139,6 +140,8 @@
 #define ENCAP_OPT
 #endif
 
+#define PACKED __attribute__((packed))
+
 #include	"if_arp.h"
 #include	"ip.h"
 #include	"udp.h"
@@ -172,6 +175,7 @@ extern inline int rom_address_ok(struct rom_info *rom, int assigned_rom_segment)
 		|| assigned_rom_segment == rom->rom_segment);
 }
 
+#include	"callbacks.h"
 
 /* Define a type for passing info to a loaded program */
 struct ebinfo {
@@ -184,6 +188,7 @@ External prototypes
 ***************************************************************************/
 /* main.c */
 struct Elf_Bhdr;
+extern int in_call(uint32_t opcode, va_list params, in_call_data_t *data);
 extern int main(struct Elf_Bhdr *ptr);
 extern int loadkernel P((const char *fname));
 /* nic.c */
@@ -287,8 +292,6 @@ extern void free_unused_base_memory ( void );
 extern void forget_decompressor_base_memory ( void );
 extern void forget_runtime_base_memory ( uint32_t old_addr );
 
-#define PACKED __attribute__((packed))
-
 struct e820entry {
 	uint64_t addr;
 	uint64_t size;
@@ -377,6 +380,10 @@ extern void serial_fini P((void));
 
 /* floppy.c */
 extern int bootdisk P((int dev,int part));
+
+/* export_pxe.c */
+extern int pxe_in_call ( va_list params, in_call_data_t *in_call_data );
+extern int pxe_api_call ( int opcode, void *structure );
 
 /***************************************************************************
 External variables
