@@ -8,6 +8,15 @@
 	.equ	FLAT_CODE_SEG,_pmcs2-_gdt
 	.equ	FLAT_DATA_SEG,_pmds2-_gdt
 	.equ	CR0_PE,1
+#ifdef CONFIG_X86_64
+	.equ	LM_CODE_SEG,  _lmcs-_gdt
+	.equ	LM_DATA_SEG,  _lmds-_gdt
+#endif
+
+	.equ	MSR_K6_EFER,   0xC0000080
+	.equ	EFER_LME,      0x00000100
+	.equ	X86_CR4_PAE,   0x00000020
+	.equ	CR0_PG,        0x80000000
 
 #undef CODE16
 #if defined(PCBIOS) || defined(TAGGED_IMAGE)
@@ -356,6 +365,177 @@ os_regs_ptr:
 
 	jmpl	*%edx
 
+#ifdef CONFIG_X86_64
+	.arch	sledgehammer
+/**************************************************************************
+XSTART_lm - Transfer control to the kernel just loaded in long mode
+**************************************************************************/
+	.globl xstart_lm
+xstart_lm:
+	/* Save the callee save registers */
+	pushl	%ebp
+	pushl	%esi
+	pushl	%edi
+	pushl	%ebx
+
+	/* Switch to using physical addresses */
+	call	_virt_to_phys
+
+	/* Cache virt_offset & 0xfffff000 */
+	mov	%ebp, %ebx
+	andl	$0xfffff000, %ebx
+
+	/* Initialize the page tables */
+	/* Level 4 */
+	leal	0x23 + pgt_level3(%ebx), %eax
+	leal	pgt_level4(%ebx), %edi
+	movl	%eax, (%edi)
+
+	/* Level 3 */
+	leal	0x23 + pgt_level2(%ebx), %eax
+	leal	pgt_level3(%ebx), %edi
+	movl	%eax, 0x00(%edi)
+	addl	$4096, %eax
+	movl	%eax, 0x08(%edi)
+	addl	$4096, %eax
+	movl	%eax, 0x10(%edi)
+	addl	$4096, %eax
+	movl	%eax, 0x18(%edi)
+
+	/* Level 2 */
+	movl	$0xe3, %eax
+	leal	pgt_level2(%ebx), %edi
+	leal	16384(%edi), %esi
+pgt_level2_loop:
+	movl	%eax, (%edi)
+	addl	$8, %edi
+	addl	$0x200000, %eax
+	cmp	%esi, %edi
+	jne	pgt_level2_loop
+
+	/* Point at the x86_64 page tables */
+	leal	pgt_level4(%ebx), %edi
+	movl	%edi, %cr3
+
+
+	/* Setup for the return from 64bit mode */
+	/* 64bit align the stack */
+	movl	%esp, %ebx		/* original stack pointer + 16 */
+	andl	$0xfffffff8, %esp
+
+	/* Save original stack pointer + 16 */
+	pushl	%ebx
+
+	/* Save virt_offset */
+	pushl	%ebp
+
+	
+	/* Setup for the jmp to 64bit long mode */
+	leal	start_lm(%ebp), %eax
+	movl	%eax, 0x00 + start_lm_addr(%ebp)
+	movl	$LM_CODE_SEG, %eax
+	movl	%eax, 0x04 + start_lm_addr(%ebp)
+
+	/* Setup for the jump out of 64bit long mode */
+	leal	end_lm(%ebp), %eax
+	movl	%eax, 0x00 + end_lm_addr(%ebp)
+	movl	$FLAT_CODE_SEG, %eax
+	movl	%eax, 0x04 + end_lm_addr(%ebp)
+
+	
+	/* Enable PAE mode */
+	movl	%cr4, %eax
+	orl	$X86_CR4_PAE, %eax
+	movl	%eax, %cr4
+
+
+	/* Enable long mode */
+	movl	$MSR_K6_EFER, %ecx
+	rdmsr
+	orl	$EFER_LME, %eax
+	wrmsr
+
+	/* Start paging, entering 32bit compatiblity mode */
+	movl	%cr0, %eax
+	orl	$CR0_PG, %eax
+	movl	%eax, %cr0
+
+	/* Enter 64bit long mode */
+	ljmp	*start_lm_addr(%ebp)
+	.code64
+start_lm:
+	/* Load 64bit data segments */
+	movl	$LM_DATA_SEG, %eax
+	movl	%eax, %ds
+	movl	%eax, %ss
+	movl	%eax, %es
+
+	andq	$0xffffffff, %rbx
+	/* Get the address to jump to */
+	movl	20(%rbx), %edx
+	andq	$0xffffffff, %rdx
+	
+	/* Get the argument pointer */
+	movl	24(%rbx), %ebx
+	andq	$0xffffffff, %rbx
+
+	/* Jump to the 64bit code */
+	call	*%rdx
+
+	/* Preserve the result */
+	movl	%eax, %edx
+
+	/* Fixup %eflags */
+	cli
+	cld
+
+	/* Switch to 32bit compatibility mode */
+	ljmp	*end_lm_addr(%rip)
+
+	.code32
+end_lm:
+	/* Disable paging */
+	movl	%cr0, %eax
+	andl	$~CR0_PG, %eax
+	movl	%eax, %cr0
+
+	/* Disable long mode */
+	movl	$MSR_K6_EFER, %ecx
+	rdmsr
+	andl	$~EFER_LME, %eax
+	wrmsr
+
+	/* Disable PAE */
+	movl	%cr4, %eax
+	andl	$~X86_CR4_PAE, %eax
+	movl	%eax, %cr4
+	
+	/* Compute virt_offset */
+	popl	%ebp
+
+	/* Compute the original stack pointer + 16 */
+	popl	%ebx
+	movl	%ebx, %esp
+
+	/* Enable the virtual addresses */
+	leal	_phys_to_virt(%ebp), %eax
+	call	*%eax
+
+	/* Restore the callee save registers */
+	popl	%ebx
+	popl	%esi
+	popl	%edi
+	popl	%ebp
+
+	/* Get the C return value */
+	movl	%edx, %eax
+
+	/* Return */
+	ret
+
+	.arch i386
+#endif /* CONFIG_X86_64 */
+
 /**************************************************************************
 SETJMP - Save stack context for non-local goto
 **************************************************************************/
@@ -678,6 +858,7 @@ _end16:
 /**************************************************************************
 GLOBAL DESCRIPTOR TABLE
 **************************************************************************/
+	.data
 	.align	4
 
 _gdt:
@@ -716,6 +897,16 @@ _pmds2:
 	.word	0xffff,0
 	.byte	0,0x93,0xcf,0
 
+#ifdef CONFIG_X86_64
+_lmcs:
+	/* 64bit long mode code segment, base 0 */
+	.word	0xffff, 0
+	.byte	0x00, 0x9f, 0xaf , 0x00
+_lmds:
+	/* 64bit long mode data segment, base 0 */
+	.word	0xffff, 0
+	.byte	0x00, 0x93, 0xcf, 0x00
+#endif
 _gdt_end:
 
 	/* The initial register contents */
@@ -735,4 +926,19 @@ virt_offset:
 _stack:
 	.space 4096
 _estack:
-	
+#ifdef CONFIG_X86_64
+	.p2align 12
+	/* Include a dummy space in case we are loaded badly aligned */
+	.space 4096
+	/* Reserve enough space for a page table convering 4GB with 2MB pages */
+pgt_level4:	
+	.space 4096
+pgt_level3:	
+	.space 4096
+pgt_level2:	
+	.space 16384
+start_lm_addr:
+	.space	8
+end_lm_addr:
+	.space	8
+#endif

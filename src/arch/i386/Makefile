@@ -17,6 +17,7 @@ SRCS+=	arch/i386/firmware/pcbios/memsizes.c
 SRCS+=	arch/i386/firmware/pcbios/pcbios.S
 SRCS+=	arch/i386/prefix/liloprefix.S
 SRCS+=	arch/i386/prefix/elfprefix.S
+SRCS+=	arch/i386/prefix/lmelf_prefix.S
 SRCS+=	arch/i386/prefix/comprefix.S
 SRCS+=	arch/i386/prefix/pxeprefix.S
 SRCS+=	arch/i386/prefix/loader.S
@@ -27,6 +28,7 @@ SRCS+=	arch/i386/core/pxe.c
 SRCS+=	arch/i386/core/pci_io.c
 SRCS+=	arch/i386/core/i386_timer.c
 SRCS+=	arch/i386/core/elf.c
+SRCS+=	arch/i386/core/cpu.c
 
 # ROM loaders: PCI header version (prefix P)
 RLOADER=	$(BIN)/rloader.bin
@@ -86,7 +88,7 @@ allcoms:	$(BUILD_COMS)
 alllilos:	$(BUILD_LILOS)
 
 BOBJS+=		$(BIN)/pxe.o $(BIN)/pci_io.o $(BIN)/i386_timer.o
-BOBJS+=		$(BIN)/elf.o
+BOBJS+=		$(BIN)/elf.o $(BIN)/cpu.o
 
 
 
@@ -201,23 +203,35 @@ $(BIN)/%.zrom: $(BIN)/%.zimg $(RLOADER) $(START16)
 	$(MAKEROM) $(MAKEROM_FLAGS)  $(MAKEROM_$*) -i$(IDENT) $@
 
 # general rules for ELF images
-$(BIN)/%.imgo:	$(BIN)/%.img $(MAKEDEPS)
-	$(LD) -T arch/$(ARCH)/prefix/img.lds -b binary $< -o $@
+$(BIN)/elfprefix.tmp:	$(BIN)/elfprefix.o arch/i386/prefix/elfprefix.lds $(MAKEDEPS)
+	$(LD) -T arch/i386/prefix/elfprefix.lds $< -o $@
 
-$(BIN)/%.lzimgo:	$(BIN)/%.lzimg $(MAKEDEPS)
-	$(LD) -T arch/$(ARCH)/prefix/img.lds -b binary $< -o $@
+$(BIN)/elfprefix:	$(BIN)/elfprefix.tmp $(MAKEDEPS)
+	$(OBJCOPY) -O binary $< $@
 
-$(BIN)/%.zimgo:	$(BIN)/%.zimg $(MAKEDEPS)
-	$(LD) -T arch/$(ARCH)/prefix/img.lds -b binary $< -o $@
+$(BIN)/%.elf:	$(BIN)/%.img $(BIN)/%.tmp $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 bss rest ; echo $$bss )
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 bss rest ; echo $$bss)` > $@
 
-$(BIN)/%.elf:	$(BIN)/%.imgo $(ELFPREFIX) $(MAKEDEPS)
-	$(LD) -T arch/$(ARCH)/prefix/elfprefix.lds $(ELFPREFIX) $< -o $@
+$(BIN)/%.zelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/elfprefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size )
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/elfprefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
 
-$(BIN)/%.lzelf:	$(BIN)/%.lzimgo $(ELFPREFIX) $(MAKEDEPS)
-	$(LD) -T arch/$(ARCH)/prefix/elfprefix.lds $(ELFPREFIX) $< -o $@
+# general rules for Long Mode ELF images
+$(BIN)/lmelf_prefix.tmp:	$(BIN)/lmelf_prefix.o arch/i386/prefix/elfprefix.lds $(MAKEDEPS)
+	$(LD) -T arch/i386/prefix/elfprefix.lds $< -o $@
 
-$(BIN)/%.zelf:	$(BIN)/%.zimgo $(ELFPREFIX) $(MAKEDEPS)
-	$(LD) -T arch/$(ARCH)/prefix/elfprefix.lds $(ELFPREFIX) $< -o $@
+$(BIN)/lmelf_prefix:	$(BIN)/lmelf_prefix.tmp $(MAKEDEPS)
+	$(OBJCOPY) -O binary $< $@
+
+$(BIN)/%.lmelf:	$(BIN)/%.img $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 bss rest ; echo $$bss )
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 bss rest ; echo $$bss)` > $@
+
+$(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix/apply_elf_prefix.pl $(MAKEDEPS)
+	@$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size )
+	$(PERL) arch/i386/prefix/apply_elf_prefix.pl $(RELOCADDR) $(BIN)/lmelf_prefix $< `$(SIZE) $(BIN)/$(*).tmp | (read l1; read d1 d2 d3 size rest ; echo $$size)` > $@
+
 
 # rules to write the .rom/.zrom image onto a blank floppy
 # Give the directory name, e.g. $(BIN)/rtl8139.zfd0 as the target.

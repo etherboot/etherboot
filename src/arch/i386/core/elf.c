@@ -126,5 +126,10 @@ struct Elf_Bhdr *prepare_boot_params(void *header)
 
 int elf_start(unsigned long machine, unsigned long entry, unsigned long params)
 {
+#if defined(CONFIG_X86_64)
+	if (machine == EM_X86_64) {
+		return xstart_lm(entry, params);
+	}
+#endif
 	return xstart32(entry, params);
 }

@@ -56,6 +56,9 @@
 #			BIOSes.
 #			Enable this only if you are sure of what you are doing.
 #
+#	Extended cpu options
+#	-DCONFIG_X86_64	
+#			Compile in support for booting x86_64 64bit binaries.
 #
 #	Obscure options you probably don't need to touch:
 #
@@ -75,6 +78,9 @@
 
 # BIOS select don't change unless you know what you are doing
 CFLAGS+=	-DPCBIOS
+
+# Compile in k8/hammer support
+#CFLAGS+= -DCONFIG_X86_64
 
 # Options to make a version of Etherboot that will work under linuxBIOS.
 #CFLAGS+= -DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE 

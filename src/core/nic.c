@@ -48,13 +48,20 @@ static int dhcp_reply;
 static in_addr dhcp_server = { 0L };
 static in_addr dhcp_addr = { 0L };
 static unsigned char	rfc1533_cookie[] = { RFC1533_COOKIE };
-static const unsigned char dhcp_machine_info[] = {
+#define DHCP_MACHINE_INFO_SIZE (sizeof dhcp_machine_info)
+static unsigned char dhcp_machine_info[] = {
 	/* Our enclosing DHCP tag */
 	RFC1533_VENDOR_ETHERBOOT_ENCAP, 11,
 	/* Our boot device */
 	RFC1533_VENDOR_NIC_DEV_ID, 5, PCI_BUS_TYPE, 0, 0, 0, 0,
 	/* Our current architecture */
-	RFC1533_VENDOR_ARCH, 2, EM_CURRENT & 0xff, (EM_CURRENT >> 8) & 0xFF,
+	RFC1533_VENDOR_ARCH, 2, EM_CURRENT & 0xff, (EM_CURRENT >> 8) & 0xff,
+#ifdef EM_CURRENT_64
+	/* The 64bit version of our current architecture */
+	RFC1533_VENDOR_ARCH, 2, EM_CURRENT_64 & 0xff, (EM_CURRENT_64 >> 8) & 0xff,
+#undef DHCP_MACHINE_INFO_SIZE
+#define DHCP_MACHINE_INFO_SIZE (sizeof(dhcp_machine_info) - (EM_CURRENT_64_PRESENT? 0: 4))
+#endif /* EM_CURRENT_64 */
 };
 static const unsigned char dhcpdiscover[] = {
 	RFC2132_MSG_TYPE,1,DHCPDISCOVER,
@@ -772,8 +779,8 @@ static int bootp(void)
 	memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, dhcpdiscover, sizeof dhcpdiscover);
 	/* Append machine_info to end, in encapsulated option */
 	bp_vend = ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcpdiscover;
-	memcpy(bp_vend, dhcp_machine_info, sizeof dhcp_machine_info);
-	bp_vend += sizeof dhcp_machine_info;
+	memcpy(bp_vend, dhcp_machine_info, DHCP_MACHINE_INFO_SIZE);
+	bp_vend += sizeof DHCP_MACHINE_INFO_SIZE;
 	*bp_vend++ = RFC1533_END;
 #endif	/* NO_DHCP_SUPPORT */
 
@@ -803,8 +810,8 @@ static int bootp(void)
 			memcpy(&ip.bp.bp_vend[15], &dhcp_addr, sizeof(in_addr));
 			bp_vend = ip.bp.bp_vend + sizeof rfc1533_cookie + sizeof dhcprequest;
 			/* Append machine_info to end, in encapsulated option */
-			memcpy(bp_vend, dhcp_machine_info, sizeof dhcp_machine_info);
-			bp_vend += sizeof dhcp_machine_info;
+			memcpy(bp_vend, dhcp_machine_info, DHCP_MACHINE_INFO_SIZE);
+			bp_vend += DHCP_MACHINE_INFO_SIZE;
 			*bp_vend++ = RFC1533_END;
 			for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
 				udp_transmit(IP_BROADCAST, BOOTP_CLIENT, BOOTP_SERVER,

@@ -24,6 +24,7 @@ Literature dealing with the network protocols:
 #include "nic.h"
 #include "disk.h"
 #include "timer.h"
+#include "cpu.h"
 
 jmp_buf	restart_etherboot;
 int	url_port;		
@@ -164,6 +165,7 @@ int main(struct Elf_Bhdr *ptr)
 	printf("ROM segment %#hx length %#hx reloc %#x\n", rom.rom_segment,
 		rom.rom_length << 1, (unsigned long)_text);
 
+	cpu_setup();
 	gateA20_set();
 	print_config();
 	get_memsizes();

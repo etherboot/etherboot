@@ -1,17 +1,30 @@
-OUTPUT_FORMAT("binary")
 OUTPUT_ARCH(i386)
 
 SECTIONS
 {
 	. = 0;
-	.text : { 
-		_text = .;
-		*(.text) 
-		_payload = . ;
-		*(.img)
-		_epayload = . ;
-	} = 0x9090
-	_data_size = _epayload  - _payload;
-	/* FIXME do a better calculation of _image_size! */
-	_image_size = _data_size + 65536;
+	.hdrs : {
+		_hdrs = . ;
+		*(.hdrs)
+		_ehdrs = . ;
+	}
+	.img : {
+		_img = . ;
+		. = ALIGN(16);
+		_text = . ;
+		*(.text)
+		_etext = . ;
+		_data = . ;
+		*(.data)
+		_edata = . ;
+	}
+	_payload_start = . ;
+	_eimg = .;
+	/DISCARD/ : {
+		*(*)
+	}
+	_hdrs_size      = _ehdrs - _hdrs;
+	_start_offset   = _start - elf_header;
+	_image_size     = _eimg - _img;
+	_image_mem_size = _eimg - _img;
 }

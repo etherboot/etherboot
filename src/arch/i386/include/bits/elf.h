@@ -1,12 +1,32 @@
 #ifndef I386_BITS_ELF_H
 #define I386_BITS_ELF_H
 
+#include "cpu.h"
+
+#ifdef CONFIG_X86_64
+/* ELF Defines for the 64bit version of the current architecture */
+#define EM_CURRENT_64	EM_X86_64
+#define EM_CURRENT_64_PRESENT ( \
+	CPU_FEATURE_P(cpu_info.x86_capability, LM) && \
+	CPU_FEATURE_P(cpu_info.x86_capability, PAE) && \
+	CPU_FEATURE_P(cpu_info.x86_capability, PSE))
+			
+#define ELF_CHECK_X86_64_ARCH(x) \
+	(EM_CURRENT_64_PRESENT && ((x).e_machine == EM_X86_64))
+#else
+#define ELF_CHECK_X86_64_ARCH(x) 0
+#endif
+
+
 /* ELF Defines for the current architecture */
 #define	EM_CURRENT	EM_386
 #define ELFDATA_CURRENT	ELFDATA2LSB
 
+#define ELF_CHECK_I386_ARCH(x) \
+	(((x).e_machine == EM_386) || ((x).e_machine == EM_486))
+
 #define ELF_CHECK_ARCH(x) \
-	((((x).e_machine == EM_386) || ((x).e_machine == EM_486)) && \
+	((ELF_CHECK_I386_ARCH(x) || ELF_CHECK_X86_64_ARCH(x)) && \
 		((x).e_entry <= 0xffffffffUL))
 
 #ifdef  IMAGE_FREEBSD

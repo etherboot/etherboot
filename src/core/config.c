@@ -61,7 +61,7 @@ void print_config(void)
 }
 
 #ifdef CONFIG_PCI
-static int pci_probe(struct dev *dev, char *type_name)
+static int pci_probe(struct dev *dev, const char *type_name)
 {
 /*
  *	NIC probing is in pci device order, followed by the 
@@ -119,7 +119,7 @@ static int pci_probe(struct dev *dev, char *type_name)
 #endif
 
 #ifdef CONFIG_ISA
-static int isa_probe(struct dev *dev, char *type_name)
+static int isa_probe(struct dev *dev, const char *type_name)
 {
 /*
  *	NIC probing is in the order the drivers were linked togeter.
@@ -172,7 +172,7 @@ static const char *driver_name[] = {
 };
 int probe(struct dev *dev)
 {
-	char *type_name;
+	const char *type_name;
 	type_name = "";
 	if ((dev->type >= 0) && 
 		(dev->type < sizeof(driver_name)/sizeof(driver_name[0]))) {

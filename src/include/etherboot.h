@@ -702,6 +702,7 @@ extern struct regs initial_regs;
 extern unsigned long real_mode_stack;
 extern void xstart16 P((unsigned long, unsigned long, char *));
 extern int xstart32(unsigned long entry_point, ...);
+extern int xstart_lm(unsigned long entry_point, unsigned long params);
 extern void xend32 P((void));
 struct Elf_Bhdr *prepare_boot_params(void *header);
 extern int elf_start(unsigned long machine, unsigned long entry, unsigned long params);
