@@ -4,7 +4,7 @@
 
 # Image filename for automatic boot and optional command line parameter
 #AUTOBOOT_FILE = "hda3:/boot/vmlinuz root=/dev/hda3 console=tty0 console=ttyS0,115200"
-AUTOBOOT_FILE = "hda2:/boot/vmlinuz initrd=/boot/initrd noacpi ro root=/dev/hda2 console=tty0 console=ttyS0,115200"
+AUTOBOOT_FILE = "hda2:/boot/vmlinuz initrd=/boot/initrd pci=noacpi ro root=/dev/hda2 console=tty0 console=ttyS0,115200"
 #AUTOBOOT_FILE = "mem@0xfff80000"
 #AUTOBOOT_FILE = "hde1@0"
 #AUTOBOOT_FILE = "uda1:/ram0_2.5_2.6.5_k8.2_mydisk7.elf"

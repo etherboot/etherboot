@@ -10,6 +10,17 @@ char *strdup(const char *s)
     return d;
 }
 
+int isspace(int c)
+{
+    switch (c) {
+    case ' ': case '\f': case '\n':
+    case '\r': case '\t': case '\v':
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 unsigned int get_le32(const unsigned char *p)
 {
     return ((unsigned int) p[0] << 0)

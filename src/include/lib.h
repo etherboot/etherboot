@@ -16,6 +16,9 @@ void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
 
 char *strdup(const char *s);
+
+int isspace(int c);
+
 unsigned long long simple_strtoull(const char *cp,char **endp,unsigned int base);
 unsigned long long strtoull_with_suffix(const char *cp,char **endp,unsigned int base);
 
