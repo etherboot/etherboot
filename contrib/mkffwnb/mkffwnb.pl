@@ -140,6 +140,7 @@ GetOptions('output=s' => \$output,
 	'localtime=s' => \$localtime,
 	'format=s' => \$format,
 	'ffw29!' => \$ffw29,
+	'ffw30!' => \$ffw29,
 	'i=s' => \$imagefile);
 if (defined($output) and $output !~ m(^/)) {
 	my $d = `pwd`;
@@ -183,7 +184,7 @@ mkdir($tempmount, 0755);
 unless (&dostounix("$libdir/floppyfw.ini", "floppyfw.ini")) {
 	&dostounix("floppyfw/floppyfw.ini", $ffw29 ? "etc/floppyfw.ini" : "floppyfw.ini");
 }
-&dostounix("config", "etc/config");
+&dostounix("config", $ffw29 ? "etc/config.prelogin" : "etc/config");
 for my $i (glob('*.bz2 floppyfw/add.bz2 modules/*.bz2 packages/*.bz2')) {
 	&bunzip2untar($i, $tempmount);
 }
