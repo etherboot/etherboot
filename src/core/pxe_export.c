@@ -28,6 +28,7 @@
 #include "etherboot.h"
 #include "pxe.h"
 #include "pxe_export.h"
+#include "pxe_callbacks.h"
 #include "nic.h"
 
 #if TRACE_PXE
@@ -93,12 +94,16 @@ PXENV_EXIT_t pxenv_undi_reset_adapter ( t_PXENV_UNDI_RESET_ADAPTER
 
 /* PXENV_UNDI_SHUTDOWN
  *
- * Status: stub
+ * Status: placeholder
  */
 PXENV_EXIT_t pxenv_undi_shutdown ( t_PXENV_UNDI_SHUTDOWN *undi_shutdown ) {
 	DBG ( "PXENV_UNDI_SHUTDOWN" );
-	undi_shutdown->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+
+	/* Ensure interrupts are unhooked, so OS can boot safely */
+	deactivate_pxe_stack();
+
+	undi_shutdown->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_OPEN
@@ -264,12 +269,16 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 
 /* PXENV_STOP_UNDI
  *
- * Status: stub
+ * Status: placeholder
  */
 PXENV_EXIT_t pxenv_stop_undi ( t_PXENV_STOP_UNDI *stop_undi ) {
 	DBG ( "PXENV_STOP_UNDI" );
-	stop_undi->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+
+	/* Ensure interrupts are unhooked, so OS can boot safely */
+	deactivate_pxe_stack();
+
+	stop_undi->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_TFTP_OPEN
@@ -456,7 +465,7 @@ PXENV_EXIT_t pxenv_udp_write ( t_PXENV_UDP_WRITE *udp_write ) {
 
 /* PXENV_UNLOAD_STACK
  *
- * Status: stub
+ * Status: placeholder
  */
 PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
 	DBG ( "PXENV_UNLOAD_STACK" );
@@ -464,8 +473,12 @@ PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
 	 * since we avoided calling it in the usual place (as part of
 	 * done()).
 	 */
-	unload_stack->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+
+	/* Ensure interrupts are unhooked, so OS can boot safely */
+	deactivate_pxe_stack();
+
+	unload_stack->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_GET_CACHED_INFO
