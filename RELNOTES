@@ -1,4 +1,8 @@
-Etherboot 5.0.6
+Etherboot 5.0.7
+
+If you can't get a SMC EtherEZ to work on a hybrid PCI/ISA system due to
+inability to map shared memory, you might want to try the -DWD_790_PIO
+compile option, which makes the NE driver use PIO instead.
 
 E820 memory sizing support has been added by Eric Biederman. LinuxBIOS
 compatibility is much better now, with major changes submitted by Eric.
