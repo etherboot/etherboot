@@ -12,8 +12,26 @@
 #define KERN_CODE_SEG (0x08)
 #define KERN_DATA_SEG (0x10)
 
+#undef CODE16
+#if defined(PCBIOS) || defined(TAGGED_IMAGE)
+#define	CODE16
+#endif
+
 #define NUM_PUSHA_REGS (8)
 #define NUM_SEG_REGS (6)
+
+	.text
+	.arch i386
+	.code32
+
+/****************************************************************************
+ * _v_ext_call
+ *
+ * Call to an external routine.  Has the capability to pass in and out
+ * register and stack contents, relocate stack to a new address,
+ * switch and restore GDT etc.
+ ****************************************************************************
+ */
 
 #define EC_SIGNATURE ( 0x43747845 ) /* "ExtC" */
 
@@ -22,7 +40,8 @@
 #define EC_SIG_SIG1 (0)
 #define EC_SIG_LENGTH ( EC_SIG_SIG1 + 4 )
 #define EC_SIG_STACK ( EC_SIG_LENGTH + 4 )
-#define EC_SIG_SIG2 ( EC_SIG_STACK + 4 )
+#define EC_SIG_TRAMPOLINE ( EC_SIG_STACK + 4 )
+#define EC_SIG_SIG2 ( EC_SIG_TRAMPOLINE + 4 )
 #define EC_SIGBLOCK_LENGTH ( EC_SIG_SIG2 + 4 )
 #define EC_OFFSET_CALLPRESERVE ( EC_OFFSET_SIGBLOCK + EC_SIGBLOCK_LENGTH )
 #define EC_CALLPRESERVE_LENGTH (16)
@@ -43,12 +62,6 @@
 #define ECR_OFFSET_SEG_REGS ( ECR_OFFSET_REGISTERS + ( NUM_PUSHA_REGS * 4 ) )
 #define ECR_OFFSET_PARAMS ( ECR_OFFSET_SEG_REGS + ( NUM_SEG_REGS * 2 ) )
 
-	.text
-	.arch i386
-	.code32
-
-/* _v_ext_call : call to an external routine.
- */
 	.globl _v_ext_call
 _v_ext_call:
 	/* Save registers required to return to C code */
@@ -60,6 +73,7 @@ _v_ext_call:
 	/* We set up a stack that looks like this:
 	 * 
 	 * EC_SIGNATURE		%ebp + EC_SIG_SIG2
+	 * trampoline		%ebp + EC_SIG_TRAMPOLINE
 	 * stack_ptr		%ebp + EC_SIG_STACK
 	 * length		%ebp + EC_SIG_LENGTH
 	 * EC_SIGNATURE		%ebp + EC_SIG_SIG1 ( = %ebp + 0 )
@@ -68,6 +82,10 @@ _v_ext_call:
 	 * seg_registers	%esp + EC_OFFSET_SEG_REGS
 	 * registers		%esp + EC_OFFSET_REGISTERS
 	 * flags		%esp + EC_OFFSET_FLAGS ( = %esp + 0 )
+	 *
+	 * trampoline : offset into ext_params of the trampoline code,
+	 * if any.  This is used only if the target address for the
+	 * ext_call is zero.
 	 *
 	 * stack_ptr : used to record the address to which the stack
 	 * should be copied before jumping to the external routine.
@@ -82,8 +100,8 @@ _v_ext_call:
 	 *
 	 * addresses : return and call addresses.  Always 4 dwords.
 	 * For a near call, these are (return address, call address,
-	 * 0, 0); for a far call (return segment, return address, call
-	 * segment, call address ).
+	 * 0, call address); for a far call (return segment, return
+	 * address, call segment, call address).
 	 *
 	 * seg_registers : segment registers to set up before calling
 	 * to external routine.  %cs and %ss are dealt with
@@ -105,6 +123,7 @@ _v_ext_call:
 	xorl	%ecx, %ecx
 	movl	%esp, %ebx
 	pushl	%eax		/* Signature */
+	pushl	%ecx		/* trampoline */
 	pushl	%ebx		/* stack_ptr */
 	pushl	%ecx		/* length */
 	pushl	%eax		/* Signature */
@@ -116,8 +135,9 @@ _v_ext_call:
 	pushl	(EC_OFFSET_SIGBLOCK+EC_OFFSET_ARGUMENTS)(%ebp)
 				/* Near call address */
 	xorl	%eax, %eax
-	pushl	%eax		/* 0, 0 (indicating near call) */
-	pushl	%eax
+	pushl	%eax		/* 0 (indicating near call) */
+	pushl	(EC_OFFSET_SIGBLOCK+EC_OFFSET_ARGUMENTS)(%ebp)
+				/* Near call address */
 
 	/* Save segment registers.  Order matches the seg_regs_t
 	 * struct in callbacks.h
@@ -167,6 +187,8 @@ process_ec_params:
 	je	process_ec_params_ret_stack
 	cmpl	$EXTCALL_RELOC_STACK, %eax
 	je	process_ec_params_reloc_stack
+	cmpl	$EXTCALL_TRAMPOLINE, %eax
+	je	process_ec_params_trampoline
 	/* fall through to error */
 process_ec_params_error: 
 	/* Lockup machine.  Drastic, but since we may have reloaded
@@ -206,18 +228,18 @@ ec_recalc_addresses:
 	testl	%eax, %eax
 	jne	1f
 	/* near call */
+	movl	%edx, (EC_OFFSET_ADDRESSES+0)(%esp)	/* call address */
+	movl	%eax, (EC_OFFSET_ADDRESSES+4)(%esp)	/* zero */
 	movl	%edx, (EC_OFFSET_ADDRESSES+8)(%esp)	/* call address */
 	movl	%ecx, (EC_OFFSET_ADDRESSES+12)(%esp)	/* return address */
-	movl	%eax, (EC_OFFSET_ADDRESSES+4)(%esp)	/* zero */
-	movl	%eax, (EC_OFFSET_ADDRESSES+0)(%esp)	/* zero */
 	jmp	process_ec_params
 1:	/* far call */
-	movl	%eax, (EC_OFFSET_ADDRESSES+4)(%esp)	/* call segment */
 	movl	%edx, (EC_OFFSET_ADDRESSES+0)(%esp)	/* call address */
+	movl	%eax, (EC_OFFSET_ADDRESSES+4)(%esp)	/* call segment */
 	pushl	%cs
 	popl	%eax
-	movl	%eax, (EC_OFFSET_ADDRESSES+12)(%esp)	/* return segment */
 	movl	%ecx, (EC_OFFSET_ADDRESSES+8)(%esp)	/* return address */
+	movl	%eax, (EC_OFFSET_ADDRESSES+12)(%esp)	/* return segment */
 	jmp	process_ec_params
 process_ec_params_gdt:
 	movl	0(%ebx), %eax		/* %eax = &gdt */
@@ -273,6 +295,19 @@ process_ec_params_reloc_stack:
 	movl	%eax, EC_SIG_STACK(%ebp) /* ...and store it */
 	addl	$4, %ebx
 	jmp	process_ec_params
+process_ec_params_trampoline:
+	/* Record current value of length as trampoline offset.
+	 * Ignore if a trampoline is already defined.  (This is to
+	 * make it possible to concatenate trampoline sections
+	 * together.)
+	 */
+	movl	EC_SIG_TRAMPOLINE(%ebp), %eax
+	testl	%eax, %eax
+	jne 1f
+	movl	EC_SIG_LENGTH(%ebp), %eax
+	movl	%eax, EC_SIG_TRAMPOLINE(%ebp)
+	/* Process as a EXTCALL_STACK parameter */
+1:	jmp	process_ec_params_stack
 process_ec_params_done:
 	/* Stack is all set up as described above.  Copy to new
 	 * location, set up the register values and jump to the
@@ -293,7 +328,28 @@ process_ec_params_done:
 	subl	%ecx, %edi		/* %es:edi = &(new stack) */
 	movl	%edi, %esp		/* Set new %esp */
 	rep ss movsb			/* Copy stack */
-	mov	%ax, %ss		/* Set new %ss */
+	movw	%ax, %ss		/* Set new %ss */
+	leal	(-EC_SIGBLOCK_LENGTH)(%edi), %ebp /* Set new %ebp */
+
+	/* Check for null call address => use trampoline, edit call
+	 * address as appropriate.
+	 */
+	cmpl	$0, (EC_OFFSET_ADDRESSES+0)(%esp)
+	jne	1f			/* No trampoline */
+	/* Zero call address indicates use of trampoline code */
+	movl	%ss:EC_SIG_TRAMPOLINE(%ebp), %eax
+					/* %eax = (trampoline-params) */
+	addl	$EC_OFFSET_PARAMS, %eax	/* %eax = (trampoline-%esp) */
+	addl	%esp, %eax		/* %eax = trampoline address */
+	/* Note: we are requiring that cs and ss have same base
+	 * address when using trampoline code
+	 */
+	movl	%eax, (EC_OFFSET_ADDRESSES+0)(%esp)
+	cmpl	$0, (EC_OFFSET_ADDRESSES+4)(%esp)
+	jne	1f
+	/* Near call only: update near call address field */
+	movl	%eax, (EC_OFFSET_ADDRESSES+8)(%esp)
+1:
 
 	/* Restore flags.  (It is safe to do this; cs and ss are
 	 * already reloaded, and we don't use the other segment
@@ -314,7 +370,7 @@ process_ec_params_done:
 	addl	$4, %esp		/* Skip ss and cs */
 
 	/* Call to routine */
-	cmpl	$0, 0(%esp)
+	cmpl	$0, 4(%esp)
 	jne	1f
 	/* near call */
 
@@ -439,6 +495,8 @@ process_ecr_params:
 	je	process_ecr_params_ret_stack
 	cmpl	$EXTCALL_RELOC_STACK, %eax
 	je	process_ecr_params_reloc_stack
+	cmpl	$EXTCALL_TRAMPOLINE, %eax
+	je	process_ecr_params_trampoline
 	/* fall through to error */
 process_ecr_params_error:
 	/* Lockup machine.  Drastic, but since we may have the wrong
@@ -498,6 +556,10 @@ process_ecr_params_reloc_stack:
 	/* Nothing to do */
 	addl	$4, %ebx
 	jmp	process_ecr_params
+process_ecr_params_trampoline:
+	/* Nothing to do */
+	addl	$8, %ebx
+	jmp	process_ecr_params
 process_ecr_params_done:
 
 	/* Grab %eax from the register store on the stack to return as
@@ -517,22 +579,206 @@ process_ecr_params_done:
 	popl	%ebx
 	popl	%ebp
 	ret
+
+
+#ifdef CODE16
+
+#define CR0_PE (1)
+		
+/****************************************************************************
+ * _prot_to_real
+ *
+ * (trampoline prefix)
+ *
+ * Switch from 16-bit protected mode to 16-bit real mode, preserving
+ * all registers.
+ *
+ * This fragment should be called in a 16-bit code segment,
+ * paragraph-aligned.  All other segments should be 16-bit data, with
+ * the same base address.  Segment limits should be real-mode
+ * compatible, i.e. 0xffff.  This implies that %eip and %esp will
+ * already have the top 16 bits cleared when called.
+ *
+ * Parameter:
+ *	RMCS (word) : (segment base address >> 4), i.e. real-mode %cs value
+ ****************************************************************************
+ */
+	.section "text16"
+	.code16
+	.globl _prot_to_real
+	.globl _eprot_to_real
+_prot_to_real:
+	/* Store interrupt status and temporary registers */
+	pushfw
+	pushw	%bp
+	pushl	%eax
+	pushl	%ebx
+	movw	%sp, %bp
+	
+	/* Disable interrupts */
+	cli
+
+	/* Set up real-mode continuation point */
+	movw	12(%bp), %ax
+	pushw	%ax			/* RM segment */
+	call	1f
+1:	popw	%ax
+	addw	$2f-1b, %ax
+	pushw	%ax			/* RM offset */
+
+	/* Switch to real mode */
+	movl	%cr0, %ebx
+	andb	$~CR0_PE, %bl
+	movl	%ebx, %cr0
+
+	/* Load real-mode segment value to %ss.  %sp already OK */
+	xorl	%ebx, %ebx		/* delay after rmode switch */
+	movw	%ax, %ss
+
+	/* 'ljmp' to reload %cs:ip and flush prefetch queue */	
+	lret
+2:	
+	/* Reload other segment registers with real-mode values */
+	movw	%cs, %ax
+	movw	%ax, %ss
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %fs
+	movw	%ax, %gs
+
+	/* Restore registers and interrupt status */
+	popl	%ebx
+	popl	%eax
+	popw	%bp
+	popfw
+
+	/* Skip segment address on stack */
+	addw	$2, %sp
+	
+	/* fall through to code following trampoline prefix */
+_eprot_to_real:
+	.code32
+	.previous
+
+/****************************************************************************
+ * _real_to_prot
+ *
+ * (trampoline suffix)
+ *
+ * Switch from 16-bit real-mode to 32-bit protected mode with flat
+ * physical addresses, preserving all registers, and return to
+ * Etherboot.
+ */
+	.section "text16"
+	.code16
+	.globl _real_to_prot
+	.globl _ereal_to_prot
+_real_to_prot:
+	/* Store interrupt status and temporary registers */
+	pushfw
+	pushw	%bp
+	pushl	%eax
+	pushl	%ebx
+
+	call	1f
+1:	pop	%bp			/* %bp = offset */
+
+	/* Calculate 32-bit continuation address and push onto stack */
+	pushl	$0x08			/* PMCS from rtp_gdt */
+	leal	(2f-1b)(%bp), %eax	
+	pushl	%eax
+
+	/* Convert %esp to 32-bit physical value */
+	movw	%ss, %ax
+	shll	$4, %eax
+	movzwl	%sp, %esp
+	addl	%eax, %esp
+
+	/* Set up GDT */
+	leal	(rtp_gdt-1b)(%bp), %eax	/* %cs:eax = %cs:ax = &(rtp_gdt) */
+	movl	%cs, %ebx
+	shll	$4, %ebx
+	addl	%ebx, %eax		/* %eax = &rtp_gdt (physical) */
+	movl	%eax, %cs:(2+rtp_gdt-1b)(%bp) /* Set phys. addr. in rtp_gdt */
+
+	/* Load GDT */
+	lgdt	%cs:(rtp_gdt-1b)(%bp)	/* Load GDT */
+
+	/* Switch to protected mode */
+	movl	%cr0, %eax
+	orb	$CR0_PE, %al
+	movl	%eax, %cr0
+
+	/* Reload %ss and %cs:eip */
+	movw	$0x10, %ax		/* PMDS from rtp_gdt */
+	movw	%ax, %ss		/* Reload %ss */
+	DATA32 lret			/* 'ljmp' to 2f */
+2:
+	.code32
+	/* Reload other segment registers with protected-mode values */
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %fs
+	movw	%ax, %gs
+
+	/* Restore registers and interrupt status */
+	popl	%ebx
+	popl	%eax
+	popw	%bp
+	popfw
+	
+	/* Return to Etherboot */
+	lret
+rtp_gdt:
+	.word	rtp_gdt_end - rtp_gdt - 1	/* limit */
+	.long 0					/* addr */
+	.word 0
+rtp_pmcs:
+	/* 32 bit protected mode code segment, physical addresses */
+	.word	0xffff, 0
+	.byte	0, 0x9f, 0xcf, 0
+rtp_pmds:
+	/* 32 bit protected mode data segment, physical addresses */
+	.word	0xffff,0
+	.byte	0,0x93,0xcf,0
+rtp_gdt_end:
+
+_ereal_to_prot:	
+	.code32
+	.previous
+
+#endif /* CODE16 */
+	
 	
 	.globl demo_extcall
 demo_extcall:
-	movl	4(%esp), %eax
-/*	addl	8(%esp), %eax
-	addl	12(%esp), %eax
-	addl	16(%esp), %eax */
 	movl	%ebx, %ecx
-	mov	$0x18, %dx
-	mov	%dx, %ds
-	mov	%dx, %es
+/*	lret */
+	
 	popl	%ebx			/* return address */
-	pushw	$0xabcd
+	popl	%edx
+
+	mov	$0x10, %ax
+	mov	%ax, %ds
+	mov	%ax, %es
+	movl	0(%esp), %eax
+/*	addl	4(%esp), %eax
+	addl	8(%esp), %eax
+	addl	11(%esp), %eax */
+	pushw	$0xabcd 
 	pushw	$0x5678
 	pushw	$0x1234
+	pushw	%ss
 	pushw	%cs
+	pushl	%edx
 	pushl	%ebx
+	lret
+/*	.byte 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99*/
+	.globl demo_extcall_end
+demo_extcall_end:		
+
+	.globl get_esp
+get_esp:
+	movl	%esp, %eax
 	ret
 	
