@@ -47,6 +47,12 @@ SECTIONS {
 	}
 	. = ALIGN(16);
 	_ebss = .;
+	_stack = . ;
+	.stack : {
+		*(.stack)
+		*(.stack.*)
+	}
+	. = ALIGN(16);
 	_end = .;
 	/DISCARD/ : {
 		*(.comment)

@@ -3,7 +3,7 @@
 # Do not delete the tag OptionDescription and /OptionDescription
 # It is used to automatically generate the documentation.
 #
-# <OptionDescrition>
+# @OptionDescrition@
 #
 #	BIOS interface options:
 #
@@ -74,7 +74,7 @@
 #			Ignore the memory map returned by the E820 BIOS
 #			call.  May be necessary on some buggy BIOSes.
 #
-# </OptionDescription>
+# @/OptionDescription@
 
 # BIOS select don't change unless you know what you are doing
 CFLAGS+=	-DPCBIOS

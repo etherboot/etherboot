@@ -923,13 +923,14 @@ initial_regs:
 virt_offset:
 	.long  	0
 
-	.section ".bss"
+	.section ".stack"
 	.p2align 3
-	/* allocate a 4K stack in the bss segment */
+	/* allocate a 4K stack in the stack segment */
 _stack:
 	.space 4096
 _estack:
 #ifdef CONFIG_X86_64
+	.section ".bss"
 	.p2align 12
 	/* Include a dummy space in case we are loaded badly aligned */
 	.space 4096
