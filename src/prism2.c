@@ -549,6 +549,8 @@ static int hfa384x_drvr_setconfig32(hfa384x_t *hw, UINT16 rid, UINT32 *val)
  * Arguments:
  *	hw		device structure
  *      event_mask      EVSTAT register mask of events to wait for
+ *	event_ack	EVACK register set of events to be acknowledged if they happen (can be
+ *			used to acknowledge "ignorable" events in addition to the "main" event)
  *      wait            Time (in us) to wait between each poll of the register
  *      timeout         Maximum number of polls before timing out
  *      descr           Descriptive text string of what is being waited for
@@ -557,7 +559,7 @@ static int hfa384x_drvr_setconfig32(hfa384x_t *hw, UINT16 rid, UINT32 *val)
  * Returns: 
  *      value of EVSTAT register, or 0 on failure 
  */
-static int hfa384x_wait_for_event(hfa384x_t *hw, UINT16 event_mask, int wait, int timeout, const char *descr)
+static int hfa384x_wait_for_event(hfa384x_t *hw, UINT16 event_mask, UINT16 event_ack, int wait, int timeout, const char *descr)
 {
   UINT16 reg;
   int count = 0;
@@ -572,7 +574,7 @@ static int hfa384x_wait_for_event(hfa384x_t *hw, UINT16 event_mask, int wait, in
     return 0; /* Return failure */
   }
   /* Acknowledge all events that we were waiting on */
-  hfa384x_setreg(hw, reg & event_mask, HFA384x_EVACK);
+  hfa384x_setreg(hw, reg & ( event_mask | event_ack ), HFA384x_EVACK);
   return reg;
 }
 
@@ -648,7 +650,7 @@ static void prism2_transmit(
     printf("hfa384x: Tx FID allocate command failed: Aborting transmit..\n");
     return;
   }
-  if ( !hfa384x_wait_for_event(hw, HFA384x_EVSTAT_ALLOC, 10, 50, "Tx FID to be allocated\n" ) ) return;
+  if ( !hfa384x_wait_for_event(hw, HFA384x_EVSTAT_ALLOC, HFA384x_EVACK_INFO, 10, 50, "Tx FID to be allocated\n" ) ) return;
   fid = hfa384x_getreg(hw, HFA384x_ALLOCFID);
 
   /* Build Tx frame structure */
@@ -682,7 +684,7 @@ static void prism2_transmit(
   }
   
   /* Wait for transmit completion (or exception) */
-  result = hfa384x_wait_for_event(hw, HFA384x_EVSTAT_TXEXC | HFA384x_EVSTAT_TX,
+  result = hfa384x_wait_for_event(hw, HFA384x_EVSTAT_TXEXC | HFA384x_EVSTAT_TX, HFA384x_EVACK_INFO,
 				  200, 500, "Tx to complete\n" );
   if ( !result ) return; /* timeout failure */
   if ( HFA384x_EVSTAT_ISTXEXC(result) ) {
@@ -777,7 +779,7 @@ static int prism2_pci_probe(struct dev *dev, struct pci_device *p)
   } else {
     printf("Attempting to autojoin to SSID %s...", &ssid[2]);
   }
-  if ( !hfa384x_wait_for_event(hw, HFA384x_EVSTAT_INFO, 1000, 2000, "Info event" ) ) return 0;
+  if ( !hfa384x_wait_for_event(hw, HFA384x_EVSTAT_INFO, 0, 1000, 2000, "Info event" ) ) return 0;
   printf("done\n");
   infofid = hfa384x_getreg(hw, HFA384x_INFOFID);
   /* Retrieve the length */
