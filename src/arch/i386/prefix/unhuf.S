@@ -1,3 +1,11 @@
+/*****************************************************************************
+ * NOTE: This code is no longer used in Etherboot.  The obsolete
+ * Makefile target .lzrom refers to it, but it is no longer being
+ * maintained and may no longer work.  Use .zrom instead (which uses
+ * the unnrv2b decompressor).
+ *****************************************************************************
+ */
+	
 /* At entry, the processor is in 16 bit real mode and the code is being
  * executed from an address it was not linked to. Code must be pic and
  * 32 bit sensitive until things are fixed up.
