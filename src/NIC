@@ -54,6 +54,7 @@
 #   0x900A : 10 Base FL
 #   0x9055 : 10/100 TPO
 #   0x9056 : 10/100 T4
+#   0x9058 : ?
 #   0x905A : 10 Base FX
 # Newer 90xC revision:
 #   0x9200 : 10/100 TPO (3C905C-TXM)
@@ -67,6 +68,7 @@
 3c905b-fl	3c90x		0x10b7,0x900a
 3c905b-tpo100	3c90x		0x10b7,0x9055
 3c905b-t4	3c90x		0x10b7,0x9056
+3c905b-9058	3c90x		0x10b7,0x9058
 3c905b-fx	3c90x		0x10b7,0x905a
 3c905c-tpo	3c90x		0x10b7,0x9200
 3c980		3c90x		0x10b7,0x9800
@@ -163,6 +165,8 @@ sis7016		sis900		0x1039,0x7016
 # A few NE2000 PCI clones, list not exhaustive
 # RealTek 8029
 rtl8029		ns8390		0x10ec,0x8029
+# D-Link DE528 (not confirmed, took numbers from pci.ids file)
+dlink-528	ns8390		0x1186,0x0300
 # Winbond 86C940
 winbond940	ns8390		0x1050,0x0940
 # Compex RL2000

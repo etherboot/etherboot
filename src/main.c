@@ -741,7 +741,7 @@ int tftp(const char *name, int (*fnc)(unsigned char *, int, int, int))
 		else /* neither TFTP_OACK nor TFTP_DATA */
 			break;
 
-		if ((block || bcounter) && (block != prevblock+1)) {
+		if ((block || bcounter) && (block != (unsigned short)(prevblock+1))) {
 			/* Block order should be continuous */
 			tp.u.ack.block = htons(block = prevblock);
 		}
