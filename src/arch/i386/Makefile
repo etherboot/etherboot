@@ -250,10 +250,10 @@ $(BIN)/%.zlmelf:	$(BIN)/%.zimg $(BIN)/%.tmp $(BIN)/lmelf_prefix arch/i386/prefix
 
 # rules to make a LILO loadable image
 %.lilo:		%.img $(LILOPREFIX) $(START16)
-	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync of=$@
+	$(PERL) util/makelilo.pl $(LILOPREFIX) $(START16) $< > $@
 
 %.zlilo:	%.zimg $(LILOPREFIX) $(START16)
-	cat $(LILOPREFIX) $(START16) $< | dd ibs=64k conv=sync of=$@
+	$(PERL) util/makelilo.pl $(LILOPREFIX) $(START16) $< > $@
 
 # rules to generate a PXE loadable image
 %.pxe:	%.img $(PXEPREFIX) $(START16)
