@@ -2616,3 +2616,47 @@ Released as Etherboot 5.3.6 (development)
 + Doug Ambrisko fixed bugs in the FreeBSD loader.
 
 + Anders Nystrom provided a tiny via-rhine patch
+
++ Introduce new define DEFAULT_PROTO_NFS for those who were used to
+using DOWNLOAD_PROTO_NFS in 5.0 for NFS booting.
+
++ Reverse sort PCI drivers so that 3c90x is tried ahead of 3c595.
+
++ Updated e1000 driver by Georg Baum.
+
++ New PCI IDs for 3c90x and tulip drivers. Typos in 3c90x and tg3
+drivers corrected.
+
++ Georg Baum fixed the 3c503 
+
++ Fixed Typos which caused compiling with RARP_NOT_BOOTP to fail
+
++ Fixed IMAGE_FREEBSD bugs
+
++ Cleanup of driver output (pcnet32, r8169, sundance, tlan)
+
++ Minor updates to the Config file comments
+
++ arch/i386/prefix/boot1a.S is no longer maintained
+
++ Added make rule for a floppy emulation ISO boot image
+
++ Timothy Legge updated proto_tftm to make it easier to maintain and
+  fix some issues
+
++ Timothy Legge contributed a forcedeth driver for the NVidia Force
+  NIC.
+
++ Timothy Legge contributed a ns83820 driver for National
+  Semiconductor 83820 based NICS
+
++ Ken Yap added support for creating .liso output type which is an iso
+  image with legacy floppy support
+
++ Michael Brown improved memory allocation, 16/32 mode swapping, and
+  did various code cleanups
+
++ Michael Brown added High-Level PXE API support (pxelinux) to Etherboot
+
+Released as Etherboot 5.3.7 (development)
+
