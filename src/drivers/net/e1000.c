@@ -3514,7 +3514,26 @@ static void e1000_disable (struct dev *dev __unused)
 	E1000_WRITE_REG (&hw, RDT, 0);
 
 	/* put the card in its initial state */
-	E1000_WRITE_REG (&hw, CTRL, E1000_CTRL_RST);
+	switch(hw.mac_type) {
+		case e1000_82544:
+		case e1000_82540:
+		case e1000_82545:
+		case e1000_82546:
+		case e1000_82541:
+		case e1000_82541_rev_2:
+			/* These controllers can't ack the 64-bit write when issuing the
+			 * reset, so use IO-mapping as a workaround to issue the reset */
+			E1000_WRITE_REG_IO(&hw, CTRL, E1000_CTRL_RST);
+			break;
+		case e1000_82545_rev_3:
+		case e1000_82546_rev_3:
+			/* Reset is performed on a shadow of the control register */
+			E1000_WRITE_REG(&hw, CTRL_DUP, E1000_CTRL_RST);
+			break;
+		default:
+			E1000_WRITE_REG(&hw, CTRL, E1000_CTRL_RST);
+			break;
+	}
 
 	/* Turn off the ethernet interface */
 	E1000_WRITE_REG (&hw, RCTL, 0);
