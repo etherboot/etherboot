@@ -114,7 +114,7 @@ rmode:
 	 * code, so we must switch to pmode first.  Save and restore
 	 * GDT over transition to pmode.
 	 */
-	movl	$compressed, %eax
+	movl	$decompress, %eax
 	testl	%eax, %eax
 	jz	1f
 	pushw	%ds
