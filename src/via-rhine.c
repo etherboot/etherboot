@@ -866,27 +866,7 @@ rhine_probe (struct nic *nic, unsigned short *probeaddrs,
     nic = rhine_probe1 (nic, pci->ioaddr, 0, -1);
 
     if (nic)
-    {
-	/* Get and check the bus-master and latency values. */
-	pcibios_read_config_word (pci->bus, pci->devfn, PCI_COMMAND, &pci_command);
-	if (!(pci_command & PCI_COMMAND_MASTER))
-	{
-	    printf ("  PCI Master Bit has not been set! Setting...\n");
-	    pci_command |= PCI_COMMAND_MASTER;
-	    pcibios_write_config_word (pci->bus, pci->devfn, PCI_COMMAND,
-				       pci_command);
-	}
-	pcibios_read_config_byte (pci->bus, pci->devfn, PCI_LATENCY_TIMER,
-				  &pci_latency);
-	if (pci_latency < 10)
-	{
-	    printf ("  PCI latency timer (CFLT) is unreasonably low "
-		    "at %d.  Setting to 64 clocks.\n", pci_latency);
-	    pcibios_write_config_byte (pci->bus, pci->devfn, PCI_LATENCY_TIMER, 64);
-	}
-	else if (rhine_debug > 1)
-	    printf ("  PCI latency timer (CFLT) is %#hX.\n", pci_latency);
-    }
+	adjust_pci_device(pci);
     nic->poll = rhine_poll;
     nic->transmit = rhine_transmit;
     nic->reset = rhine_reset;

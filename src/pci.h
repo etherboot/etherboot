@@ -161,6 +161,13 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 #define	PCI_DEVICE_ID_DFE530TXP		0x1300
 #define	PCI_VENDOR_ID_NS		0x100B
 #define	PCI_DEVICE_ID_DP83815		0x0020
+#define PCI_VENDOR_ID_OLICOM		0x108d
+#define PCI_DEVICE_ID_OLICOM_OC3136	0x0001
+#define PCI_DEVICE_ID_OLICOM_OC2315	0x0011
+#define PCI_DEVICE_ID_OLICOM_OC2325	0x0012
+#define PCI_DEVICE_ID_OLICOM_OC2183	0x0013
+#define PCI_DEVICE_ID_OLICOM_OC2326	0x0014
+#define PCI_DEVICE_ID_OLICOM_OC6151	0x0021
 
 struct pci_device {
 	unsigned short	vendor, dev_id;
@@ -179,4 +186,5 @@ extern int pcibios_read_config_word(unsigned int bus, unsigned int device_fn, un
 extern int pcibios_write_config_word (unsigned int bus, unsigned int device_fn, unsigned int where, unsigned short value);
 extern int pcibios_read_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int *value);
 extern int pcibios_write_config_dword(unsigned int bus, unsigned int device_fn, unsigned int where, unsigned int value);
+void adjust_pci_device(struct pci_device *p);
 #endif	/* PCI_H */

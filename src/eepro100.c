@@ -487,9 +487,6 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 	int options;
 	int promisc;
 
-	unsigned short pci_command;
-	unsigned short new_command;
-	unsigned char pci_latency;
 	/* we cache only the first few words of the EEPROM data
 	   be careful not to access beyond this array */
 	unsigned short eeprom[16];
@@ -498,30 +495,7 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
 		return 0;
 	ioaddr = probeaddrs[0] & ~3; /* Mask the bit that says "this is an io addr" */
 
-	/* From Matt Hortman <mbhortman@acpthinclient.com> */
-	if (p->dev_id == PCI_DEVICE_ID_INTEL_82557 ) {
-		/*
-		* check to make sure the bios properly set the
-		* 82557 (or 82558) to be bus master
-		*
-		* from eepro100.c in 2.2.9 kernel source
-		*/
-
-		pcibios_read_config_word(p->bus, p->devfn, PCI_COMMAND, &pci_command);
-		new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
-
-		if (pci_command != new_command) {
-			printf("\nThe PCI BIOS has not enabled this device!\nUpdating PCI command %hX->%hX. pci_bus %hhX pci_device_fn %hhX\n",
-				   pci_command, new_command, p->bus, p->devfn);
-			pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
-		}
-
-		pcibios_read_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, &pci_latency);
-		if (pci_latency < 32) {
-			printf("\nPCI latency timer (CFLT) is unreasonably low at %d. Setting to 32 clocks.\n", pci_latency);
-			pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
-		}
-	}
+	adjust_pci_device(p);
 
 	if ((do_eeprom_cmd(EE_READ_CMD << 24, 27) & 0xffe0000)
 		== 0xffe0000) {

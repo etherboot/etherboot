@@ -73,11 +73,7 @@ Author: Martin Renters
 #define MAX_BOOTP_RETRIES	20
 #endif
 
-#ifdef	BOOTP_DATA_AT_0x93C00
-#define MAX_BOOTP_EXTLEN	(1024-sizeof(struct bootp_t))
-#else
-#define MAX_BOOTP_EXTLEN	(ETH_FRAME_LEN-ETH_HLEN-sizeof(struct bootp_t))
-#endif
+#define MAX_BOOTP_EXTLEN	(ETH_MAX_MTU-sizeof(struct bootpip_t))
 
 #ifndef	MAX_ARP_RETRIES
 #define MAX_ARP_RETRIES		20
@@ -117,6 +113,7 @@ Author: Martin Renters
 /*#define ETH_MIN_PACKET		64*/
 #define	ETH_FRAME_LEN		1514	/* Maximum packet */
 /*#define ETH_MAX_PACKET		1518*/
+#define	ETH_MAX_MTU		(ETH_FRAME_LEN-ETH_HLEN)
 
 #define ARP_CLIENT	0
 #define ARP_SERVER	1
@@ -577,12 +574,8 @@ extern int defparams_max;
 #ifdef	MOTD
 extern char *motd[RFC1533_VENDOR_NUMOFMOTD];
 #endif
-#ifdef	BOOTP_DATA_AT_0x93C00
-#define	BOOTP_DATA_ADDR	((struct bootpd_t *)0x93C00)
-#else
 extern struct bootpd_t bootp_data;
 #define	BOOTP_DATA_ADDR	(&bootp_data)
-#endif
 extern unsigned char *end_of_rfc1533;
 #ifdef	IMAGE_FREEBSD
 extern int freebsd_howto;

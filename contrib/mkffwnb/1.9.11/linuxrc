@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# floppyfw initfile
+#
+# nicked from:
+# hal91's initfile (/linuxrc), the bootup script of the system
+#
+
+VERSION=2.1.2
+
+#
+echo "Booting floppyfw" 
+
+PATH="/bin"
+TERM=linux
+ignoreeof=10
+no_exit_on_failed_exec=yes
+export PATH TERM ignoreeof
+umask 022
+
+echo "mounting: proc"
+/bin/busybox mount -t proc /proc /proc
+
+echo "Generating links. (Thanks to busybox.lineo.com)"
+/bin/busybox --install -s
+
+echo "Generated"
+
+# Modified by Gem, based on coyote distro.
+ROOTDEV="`cat /proc/cmdline | sed 's/.*root=//' | sed 's/ .*//'`"
+FSTYPE=`echo ${ROOTDEV} | cut -f 2 -d ,`
+DEVICE=`echo ${ROOTDEV} | cut -f 1 -d ,`
+# filesystem not specified ?
+if [ ${FSTYPE} = ${DEVICE} ]; then
+# default filesystem is vfat 
+  FSTYPE='vfat'
+fi
+
+[ -f /floppyfw.ini ] && chmod 777 /floppyfw.ini
+echo "chmod done"
+[ -f /floppyfw.ini ] && exec /floppyfw.ini
+
+echo
+echo "** floppyfw.ini failed.. starting a shell"
+echo
+exec sh

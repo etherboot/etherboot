@@ -492,6 +492,7 @@ static void pnic_do_nway(struct nic *nic);
 static void select_media(struct nic *nic, int startup);
 static void init_media(struct nic *nic);
 static void start_link(struct nic *nic);
+static int tulip_check_duplex(struct nic *nic);
 
 static void tulip_wait(unsigned int nticks);
 
@@ -1045,6 +1046,9 @@ static void tulip_reset(struct nic *nic)
 	}
     }
 
+    if (tp->chip_id == LC82C168)
+	tulip_check_duplex(nic);
+
     /* enable transmit and receive */
     outl(tp->csr6 | 0x00002002, ioaddr + CSR6);
 }
@@ -1195,6 +1199,8 @@ struct nic *tulip_probe(struct nic *nic, unsigned short *io_addrs,
 
     tp->if_port = 0;
     tp->default_port = 0;
+
+    adjust_pci_device(pci);
 
     /* disable interrupts */
     outl(0x00000000, ioaddr + CSR7);
@@ -1920,4 +1926,63 @@ static void select_media(struct nic *nic, int startup)
 
     tp->csr6 = new_csr6 | (tp->csr6 & 0xfdff) | (tp->full_duplex ? 0x0200 : 0);
     return;
+}
+
+/*
+  Check the MII negotiated duplex and change the CSR6 setting if
+  required.
+  Return 0 if everything is OK.
+  Return < 0 if the transceiver is missing or has no link beat.
+*/
+static int tulip_check_duplex(struct nic *nic)
+{
+        unsigned int bmsr, lpa, negotiated, new_csr6;
+
+        bmsr = mdio_read(nic, tp->phys[0], 1);
+        lpa = mdio_read(nic, tp->phys[0], 5);
+
+#ifdef TULIP_DEBUG
+        if (tulip_debug > 1)
+                printf("%s: MII status %#x, Link partner report "
+                           "%#x.\n", tp->nic_name, bmsr, lpa);
+#endif
+
+        if (bmsr == 0xffff)
+                return -2;
+        if ((bmsr & 4) == 0) { 
+                int new_bmsr = mdio_read(nic, tp->phys[0], 1); 
+                if ((new_bmsr & 4) == 0) { 
+#ifdef TULIP_DEBUG
+                        if (tulip_debug  > 1)
+                                printf("%s: No link beat on the MII interface,"
+                                           " status %#x.\n", tp->nic_name, 
+                                           new_bmsr);
+#endif
+                        return -1;
+                }
+        }
+        tp->full_duplex = lpa & 0x140;
+
+        new_csr6 = tp->csr6;
+
+        if(negotiated & 0x380) new_csr6 &= ~0x400000; 
+        else                   new_csr6 |= 0x400000;
+        if (tp->full_duplex)   new_csr6 |= 0x200; 
+        else                   new_csr6 &= ~0x200;
+
+        if (new_csr6 != tp->csr6) {
+                tp->csr6 = new_csr6;
+
+#ifdef TULIP_DEBUG
+                if (tulip_debug > 0)
+                        printf("%s: Setting %s-duplex based on MII"
+                                   "#%d link partner capability of %#x.\n",
+                                   tp->nic_name, 
+                                   tp->full_duplex ? "full" : "half",
+                                   tp->phys[0], lpa);
+#endif
+                return 1;
+        }
+
+        return 0;
 }

@@ -611,10 +611,6 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
     int options;
     int promisc;
 
-    unsigned short pci_command;
-    unsigned short new_command;
-    unsigned char pci_latency;
-
     if (probe_addrs == 0 || probe_addrs[0] == 0)
         return 0;
 
@@ -647,22 +643,7 @@ struct nic *w89c840_probe(struct nic *nic, unsigned short *probe_addrs, struct p
 
     printf(" %s\n", w89c840_version);
 
-    pcibios_read_config_word(p->bus, p->devfn, PCI_COMMAND, &pci_command);
-    new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
-
-    if (pci_command != new_command) {
-        printf("\nThe PCI BIOS has not enabled this device!\n"
-               "Updating PCI command %hX->%hX. pci_bus %hhX pci_device_fn %hhX\n",
-               pci_command, new_command, p->bus, p->devfn);
-        pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
-    }
-
-    pcibios_read_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, &pci_latency);
-    if (pci_latency < 32) {
-        printf("\nPCI latency timer (CFLT) is unreasonably low at %d. "
-               "Setting to 32 clocks.\n", pci_latency);
-        pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
-    }
+    adjust_pci_device(p);
 
     /* Ok. Got one. Read the eeprom. */
     for (j = 0, i = 0; i < 0x40; i++) {

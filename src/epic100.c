@@ -5,6 +5,7 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "cards.h"
+#include "timer.h"
 #include "epic100.h"
 
 #undef	virt_to_bus
@@ -14,8 +15,6 @@
 #define RX_RING_SIZE	2
 
 #define PKT_BUF_SZ	1536	/* Size of each temporary Tx/Rx buffer.*/
-
-#define TIME_OUT	1000000
 
 /*
 #define DEBUG_RX
@@ -297,9 +296,7 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
 		 unsigned int len, const char *data)
 {
     unsigned short nstype;
-    unsigned short status;
     char* txp;
-    int to;
     int entry;
 
     /* Calculate the next Tx descriptor entry. */
@@ -337,25 +334,13 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
     /* Trigger an immediate transmit demand. */
     outl(CR_QUEUE_TX, command);
 
-    to = TIME_OUT;
-    status = tx_ring[entry].status;
+    load_timer2(10*TICKS_PER_MS);         /* timeout 10 ms for transmit */
+    while ((tx_ring[entry].status & TRING_OWN) && timer2_running())
+	/* Wait */;
 
-    while ( (status & TRING_OWN) && --to) {
-	status = tx_ring[entry].status;
-    }
-
-    if ((status & TRING_OWN) == 0) {
-#ifdef	DEBUG_TX
-	printf("tx done after %d loop(s), status %hX\n",
-	       TIME_OUT-to, tx_ring[entry].status );
-#endif
-	return;
-    }
-
-    if (to == 0) {
-	printf("OOPS, Something wrong with transmitter. status=%hX\n",
-	       tx_ring[entry].status);
-    }
+    if ((tx_ring[entry].status & TRING_OWN) != 0)
+	printf("Oops, transmitter timeout, status=%hX\n",
+	    tx_ring[entry].status);
 }
 
 /* function: epic100_poll / eth_poll
@@ -373,28 +358,14 @@ epic100_transmit(struct nic *nic, const char *destaddr, unsigned int type,
     static int
 epic100_poll(struct nic *nic)
 {
-    int to;
     int entry;
     int status;
     int retcode;
 
     entry = cur_rx % RX_RING_SIZE;
-    cur_rx++;
-    to = TIME_OUT;
 
-    status = rx_ring[entry].status;
-    while ( (status & RRING_OWN) == RRING_OWN && --to) {
-	status = rx_ring[entry].status;
-    }
-
-    if (to == 0) {
-#ifdef	DEBUG_RX
-	printf("epic_poll: time out! status %hX\n", status);
-#endif
-	/* Restart Receiver */
-	outl(CR_START_RX | CR_QUEUE_RX, command);
-	return 0;
-    }
+    if ((status = rx_ring[entry].status & RRING_OWN) == RRING_OWN)
+	return (0);
 
     /* We own the next entry, it's a new packet. Send it up. */
 
@@ -402,6 +373,7 @@ epic100_poll(struct nic *nic)
     printf("epic_poll: entry %d status %hX\n", entry, status);
 #endif
 
+    cur_rx++;
     if (status & 0x2000) {
 	printf("epic_poll: Giant packet\n");
 	retcode = 0;

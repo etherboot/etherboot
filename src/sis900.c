@@ -235,6 +235,8 @@ struct nic *sis900_probe(struct nic *nic, unsigned short *io_addrs, struct pci_d
     /* wakeup chip */
     pcibios_write_config_dword(pci->bus, pci->devfn, 0x40, 0x00000000);
 
+    adjust_pci_device(pci);
+
     /* get MAC address */
     ret = 0;
     pcibios_read_config_byte(pci->bus,pci->devfn, PCI_REVISION, &revision);

@@ -262,6 +262,8 @@ natsemi_probe(struct nic *nic, unsigned short *io_addrs, struct pci_device *pci)
     dev_id     = pci->dev_id;
     nic_name   = pci->name;
     
+    adjust_pci_device(pci);
+
     /* natsemi has a non-standard PM control register
      * in PCI config space.  Some boards apparently need
      * to be brought to D0 in this manner.

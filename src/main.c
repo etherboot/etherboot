@@ -52,9 +52,7 @@ int freebsd_howto = 0;
 char freebsd_kernel_env[256];
 #endif
 
-#ifndef	BOOTP_DATA_AT_0x93C00
 struct bootpd_t bootp_data;
-#endif
 
 #ifdef	NO_DHCP_SUPPORT
 char    rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
@@ -67,7 +65,7 @@ unsigned char rfc1533_end[] = {RFC1533_END };
 static const unsigned char dhcpdiscover[] = {
 	RFC2132_MSG_TYPE,1,DHCPDISCOVER,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
-	sizeof(struct bootpd_t) / 256, sizeof(struct bootpd_t) % 256,
+	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
 	RFC2132_PARAM_LIST,4,RFC1533_NETMASK,RFC1533_GATEWAY,
@@ -78,7 +76,7 @@ static const unsigned char dhcprequest [] = {
 	RFC2132_SRV_ID,4,0,0,0,0,
 	RFC2132_REQ_ADDR,4,0,0,0,0,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
-	sizeof(struct bootpd_t) / 256, sizeof(struct bootpd_t) % 256,
+	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
 	/* request parameters */

@@ -91,7 +91,7 @@ STRIP=		strip
 OBJCOPY=	objcopy
 VERSION_MAJOR=	5
 VERSION_MINOR=	0
-VERSION_PATCH=	4
+VERSION_PATCH=	5
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -407,7 +407,13 @@ clean:
 	$(RM) bin32/*.elf bin32/*.ebi
 	$(RM) gcccheck
 
-tarball:
+../index.html:	../index.xhtml
+	(cd ..; m4 -P -DHOSTSITE=SOURCEFORGE index.xhtml > index.html)
+
+../index-berlios.html:	../index.xhtml
+	(cd ..; m4 -P -DHOSTSITE=BERLIOS index.xhtml > index-berlios.html)
+
+tarball: ../index.html ../index-berlios.html
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
 	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude doc etherboot-$(VERSION))
 	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2

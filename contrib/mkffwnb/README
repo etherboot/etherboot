@@ -49,6 +49,12 @@ where x: could be mapped to a disk file. This allows you to build an
 image without a real floppy drive. Remember that for virtual drives root
 must have the mapping for the drive in question in ~root/.mtoolsrc.
 
+You can use the option --localtime=/etc/localtime to specify that the
+file /etc/localtime is to be copied to /etc/localtime on the initrd.
+Instead of /etc/localtime, you can use any of the timezone files under
+/usr/share/zoneinfo/, it's just that /etc/localtime will usually be the
+correct one for your timezone.
+
 If you use the option -nonet, it leaves the intermediate files in
 $tempdir, /tmp/mkffwnb by default. This is useful if you want the
 vmlinuz and initrd.gz files for use with LILO or isolinux to boot from

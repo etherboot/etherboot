@@ -409,7 +409,7 @@ static void scan_bus(struct pci_device *pcidev)
 					/* Get the ROM base address */
 					pcibios_read_config_dword(bus, devfn, PCI_ROM_ADDRESS, &romaddr);
 					romaddr >>= 10;
-					printf("Found %s at %#hX, ROM address %#hX\n",
+					printf("Found %s at %#hx, ROM address %#hx\n",
 						pcidev[i].name, ioaddr, romaddr);
 					/* Take the first one or the one that matches in boot ROM address */
 					if (pci_ioaddr == 0 || romaddr == ((unsigned long) rom.rom_segment << 4)) {
@@ -434,4 +434,27 @@ void eth_pci_init(struct pci_device *pcidev)
 #endif
 	scan_bus(pcidev);
 	/* return values are in pcidev structures */
+}
+
+/*
+ *	Set device to be a busmaster in case BIOS neglected to do so.
+ *	Also adjust PCI latency timer to a reasonable value, 32.
+ */
+void adjust_pci_device(struct pci_device *p)
+{
+	unsigned short	new_command, pci_command;
+	unsigned char	pci_latency;
+
+	pcibios_read_config_word(p->bus, p->devfn, PCI_COMMAND, &pci_command);
+	new_command = pci_command | PCI_COMMAND_MASTER|PCI_COMMAND_IO;
+	if (pci_command != new_command) {
+		printf("The PCI BIOS has not enabled this device!\nUpdating PCI command %hX->%hX. pci_bus %hhX pci_device_fn %hhX\n",
+			   pci_command, new_command, p->bus, p->devfn);
+		pcibios_write_config_word(p->bus, p->devfn, PCI_COMMAND, new_command);
+	}
+	pcibios_read_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, &pci_latency);
+	if (pci_latency < 32) {
+		printf("PCI latency timer (CFLT) is unreasonably low at %d. Setting to 32 clocks.\n", pci_latency);
+		pcibios_write_config_byte(p->bus, p->devfn, PCI_LATENCY_TIMER, 32);
+	}
 }

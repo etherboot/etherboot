@@ -185,34 +185,16 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 	struct pci_device *pci)
 {
 	int i;
-	struct pci_device *p;
 	int speed10, fullduplex;
 
 	/* There are enough "RTL8139" strings on the console already, so
 	 * be brief and concentrate on the interesting pieces of info... */
 	printf(" - ");
-	/*
-	   This bit below is not necessary at all since the pci.c subsystem
-	   is supposed to find the NIC, but I will leave it in since it
-           hardly will ever execute this test.
-	*/
-	if (probeaddrs == 0 || probeaddrs[0] == 0) {
-		printf("\nERROR: no probeaddrs given, using pci_device\n");
-		for (p = pci; p->vendor; p++) {
-			if ( ( (p->vendor == PCI_VENDOR_ID_REALTEK)
-			    && (p->dev_id == PCI_DEVICE_ID_REALTEK_8139) )
-			  || ( (p->vendor == PCI_VENDOR_ID_SMC_1211)
-			    && (p->dev_id == PCI_DEVICE_ID_SMC_1211) ) ) {
-				probeaddrs[0] = p->ioaddr;
-				printf("rtl8139: probing %hX (membase %hX)\n",
-					p->ioaddr, p->membase);
-			}
-		}
-		return 0;
-	}
 
 	/* Mask the bit that says "this is an io addr" */
 	ioaddr = probeaddrs[0] & ~3;
+
+	adjust_pci_device(pci);
 
 	/* Bring the chip out of low-power mode. */
 	outb(0x00, ioaddr + Config1);

@@ -405,10 +405,25 @@ aout_startkernel:
 			longjmp(restart_etherboot, -2);
 		}
 #endif
+#ifdef AOUT_LYNX_KDI
+		(*entry)();
+#endif
 		printf("unexpected a.out variant\n");
 		longjmp(restart_etherboot, -2);
 	}
 	offset = 0;
+
+#ifdef AOUT_LYNX_KDI
+	segment++;
+	if (segment == 0) {
+		curaddr = 0x100000;
+		info.head.a_entry = curaddr + 0x20;
+	}
+	memcpy((void *)curaddr, data, len);
+	curaddr += len;
+	return 1;
+#endif
+
 	do {
 		if (segment != -1) {
 			if (skip) {

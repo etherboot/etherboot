@@ -82,11 +82,15 @@ struct lance_tx_head
 struct lance_interface
 {
 	struct lance_init_block	init_block;
-	int			rx_idx;
 	struct lance_rx_head	rx_ring[RX_RING_SIZE];
 	struct lance_tx_head	tx_ring;
-	unsigned char		rbuf[RX_RING_SIZE][ETH_FRAME_LEN];
+	unsigned char		rbuf[RX_RING_SIZE][ETH_FRAME_LEN+4];
 	unsigned char		tbuf[ETH_FRAME_LEN];
+	/*
+	 * Do not alter the order of the struct members above;
+	 * the hardware depends on the correct alignment.
+	 */
+	int			rx_idx;
 };
 
 #define	LANCE_MUST_PAD		0x00000001
@@ -258,7 +262,7 @@ static void lance_reset(struct nic *nic)
 		lp->init_block.phys_addr[i] = nic->node_addr[i];
 	/* Preset the receive ring headers */
 	for (i=0; i<RX_RING_SIZE; i++) {
-		lp->rx_ring[i].buf_length = -ETH_FRAME_LEN;
+		lp->rx_ring[i].buf_length = -ETH_FRAME_LEN-4;
 		/* OWN */
 		lp->rx_ring[i].u.base = virt_to_bus(lp->rbuf[i]) & 0xffffff;
 		/* we set the top byte as the very last thing */
@@ -311,7 +315,7 @@ static int lance_poll(struct nic *nic)
 		memcpy(nic->packet, lp->rbuf[lp->rx_idx], nic->packetlen = lp->rx_ring[lp->rx_idx].msg_length);
 	/* Andrew Boyd of QNX reports that some revs of the 79C765
 	   clear the buffer length */
-	lp->rx_ring[lp->rx_idx].buf_length = -ETH_FRAME_LEN;
+	lp->rx_ring[lp->rx_idx].buf_length = -ETH_FRAME_LEN-4;
 	lp->rx_ring[lp->rx_idx].u.addr[3] |= 0x80;	/* prime for next receive */
 
 	/* I'm not sure if the following is still ok with multiple Rx buffers, but it works */
@@ -538,11 +542,7 @@ struct nic *ni6510_probe(struct nic *nic, unsigned short *probe_addrs)
 				break;
 #endif
 #ifdef	INCLUDE_LANCE
-		pcibios_read_config_word(pci->bus, pci->devfn, PCI_COMMAND, &pci_cmd);
-		if (!(pci_cmd & PCI_COMMAND_MASTER)) {
-			pci_cmd |= PCI_COMMAND_MASTER;
-			pcibios_write_config_word(pci->bus, pci->devfn, PCI_COMMAND, pci_cmd);
-		}
+		adjust_pci_device(pci);
 		if (lance_probe1(nic, pci) >= 0)
 			break;
 #endif
