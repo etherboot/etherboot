@@ -58,12 +58,16 @@
 	#define WLAN_Ix96			3
 	#define WLAN_ARM			4
 	#define WLAN_ALPHA			5
+	#define WLAN_MIPS			6
+	#define WLAN_HPPA			7
 /* WLAN_CPU_CORE */
 	#define WLAN_I386CORE			1
 	#define WLAN_PPCCORE			2
 	#define WLAN_I296			3
 	#define WLAN_ARMCORE			4
 	#define WLAN_ALPHACORE			5
+	#define WLAN_MIPSCORE			6
+	#define WLAN_HPPACORE			7
 /* WLAN_CPU_PART */
 	#define WLAN_I386PART			1
 	#define WLAN_MPC860			2
@@ -72,6 +76,8 @@
 	#define WLAN_PPCPART			5
 	#define WLAN_ARMPART			6
 	#define WLAN_ALPHAPART			7
+	#define WLAN_MIPSPART			8
+	#define WLAN_HPPAPART			9
 /* WLAN_SYSARCH */
 	#define WLAN_PCAT			1
 	#define WLAN_MBX			2
@@ -81,14 +87,11 @@
 	#define WLAN_SKIFF			6
 	#define WLAN_BITSY			7
 	#define WLAN_ALPHAARCH			7
+	#define WLAN_MIPSARCH			9
+	#define WLAN_HPPAARCH			10
 /* WLAN_OS */
 	#define WLAN_LINUX_KERNEL		1
 	#define WLAN_LINUX_USER			2
-	#define WLAN_LWOS			3
-	#define WLAN_QNX4			4
-/* WLAN_COMPILER */
-	#define WLAN_GNUC			1
-	#define WLAN_DIAB			2
 /* WLAN_HOSTIF (generally set on the command line, not detected) */
 	#define WLAN_PCMCIA			1
 	#define WLAN_ISA			2
@@ -101,96 +104,87 @@
 /*       isn't a real PCMCIA host interface adapter providing all the    */
 /*       card&socket services.                                           */
 
-
-/* LinuxPPC users! uncomment the following line to build for LinuxPPC */
-/*   a header file change has created a small problem that will be fixed */
-/*   in the next release.  For the time being we can't automagically */
-/*   detect LinuxPPC */
-
-/* #define CONFIG_PPC 1 */
-
-
-/* Lets try to figure out what we've got. */
-#if defined(__LINUX_WLAN__) && defined(__KERNEL__)
+/* Lets try to figure out what we've got.  Kernel mode or User mode? */
+#if defined(__KERNEL__)
 	#define WLAN_OS				WLAN_LINUX_KERNEL
-	#define WLAN_COMPILER			WLAN_GNUC
-	#if defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__)
-		#define WLAN_CPU_FAMILY		WLAN_Ix86
-		#define WLAN_CPU_CORE		WLAN_I386CORE
-		#define WLAN_CPU_PART		WLAN_I386PART
-		#define WLAN_SYSARCH		WLAN_PCAT
-	#elif defined(CONFIG_PPC)
-		#define WLAN_CPU_FAMILY		WLAN_PPC
-		#define WLAN_CPU_CORE		WLAN_PPCCORE
-		#if defined(CONFIG_MBX)
-			#define WLAN_CPU_PART	WLAN_MPC860
-			#define WLAN_SYSARCH	WLAN_MBX
-		#elif defined(CONFIG_RPXLITE)
-			#define WLAN_CPU_PART	WLAN_MPC823
-			#define WLAN_SYSARCH	WLAN_RPX
-		#elif defined(CONFIG_RPXCLASSIC)
-			#define WLAN_CPU_PART	WLAN_MPC860
-			#define WLAN_SYSARCH	WLAN_RPX
-		#else
-			#define WLAN_CPU_PART	WLAN_PPCPART
-			#define WLAN_SYSARCH	WLAN_PMAC
-		#endif
-	#elif defined(__arm__)
-		#define WLAN_CPU_FAMILY		WLAN_ARM
-		#define WLAN_CPU_CORE		WLAN_ARMCORE
-		#define WLAN_CPU_PART		WLAN_ARM_PART
-		#define WLAN_SYSARCH		WLAN_SKIFF
-	#elif defined(__WLAN_ALPHA__)
-		#define WLAN_CPU_FAMILY		WLAN_ALPHA
-		#define WLAN_CPU_CORE		WLAN_ALPHACORE
-		#define WLAN_CPU_PART		WLAN_ALPHAPART
-		#define WLAN_SYSARCH		WLAN_ALPHAARCH
-	#else
-		#error "No CPU identified!"
-	#endif
-#elif defined(__LINUX_WLAN__) && !defined(__KERNEL__)
+#else 
 	#define WLAN_OS				WLAN_LINUX_USER
-	#define WLAN_COMPILER			WLAN_GNUC
-	#if defined(__I386__)
-		#define WLAN_CPU_FAMILY		WLAN_Ix86
-		#define WLAN_CPU_CORE		WLAN_I386CORE
-		#define WLAN_CPU_PART		WLAN_I386PART
-		#define WLAN_SYSARCH		WLAN_PCAT
-	#elif defined(__WLAN_PPC__)
-		#define WLAN_CPU_FAMILY		WLAN_PPC
-		#define WLAN_CPU_CORE		WLAN_PPCCORE
-		#if defined(CONFIG_MBX)
-			#define WLAN_CPU_PART	WLAN_MPC860
-			#define WLAN_SYSARCH	WLAN_MBX
-		#elif defined(CONFIG_RPX)
-			#define WLAN_CPU_PART	WLAN_MPC850
-			#define WLAN_SYSARCH	WLAN_RPX
-		#else
-			#define WLAN_CPU_PART	WLAN_PPCPART
-			#define WLAN_SYSARCH	WLAN_PMAC
-		#endif
-	#elif defined(__arm__)
-		#define WLAN_CPU_FAMILY		WLAN_ARM
-		#define WLAN_CPU_CORE		WLAN_ARMCORE
-		#define WLAN_CPU_PART		WLAN_ARM_PART
-		#define WLAN_SYSARCH		WLAN_SKIFF
+#endif
+
+#ifdef __powerpc__
+#ifndef __ppc__
+#define __ppc__
+#endif
+#endif
+
+#if (defined(CONFIG_PPC) || defined(CONFIG_8xx))
+#ifndef __ppc__
+#define __ppc__
+#endif
+#endif
+
+#if defined(__KERNEL__)
+#if defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__)
+	#define WLAN_CPU_FAMILY		WLAN_Ix86
+	#define WLAN_CPU_CORE		WLAN_I386CORE
+	#define WLAN_CPU_PART		WLAN_I386PART
+	#define WLAN_SYSARCH		WLAN_PCAT
+#elif defined(__ppc__)
+	#define WLAN_CPU_FAMILY		WLAN_PPC
+	#define WLAN_CPU_CORE		WLAN_PPCCORE
+	#if defined(CONFIG_MBX)
+		#define WLAN_CPU_PART	WLAN_MPC860
+		#define WLAN_SYSARCH	WLAN_MBX
+	#elif defined(CONFIG_RPXLITE)
+		#define WLAN_CPU_PART	WLAN_MPC823
+		#define WLAN_SYSARCH	WLAN_RPX
+	#elif defined(CONFIG_RPXCLASSIC)
+		#define WLAN_CPU_PART	WLAN_MPC860
+		#define WLAN_SYSARCH	WLAN_RPX
 	#else
-		#error "No CPU identified!"
+		#define WLAN_CPU_PART	WLAN_PPCPART
+		#define WLAN_SYSARCH	WLAN_PMAC
 	#endif
-#elif defined(LW) || defined(LW_HDW_ISDN) || defined(LW_HDW_SERIAL)
-	#define WLAN_OS				WLAN_LWOS
-	#define WLAN_COMPILER			WLAN_DIAB
-	#define WLAN_CPU_FAMILY			WLAN_PPC
-	#define WLAN_CPU_CORE			WLAN_PPCCORE
-	#define WLAN_CPU_PART			WLAN_MPC860
-	#define WLAN_SYSARCH			WLAN_LWARCH
-#elif defined(MBX)
-	#define WLAN_OS				WLAN_LWOS
-	#define WLAN_COMPILER			WLAN_DIAB
-	#define WLAN_CPU_FAMILY			WLAN_PPC
-	#define WLAN_CPU_CORE			WLAN_PPCCORE
-	#define WLAN_CPU_PART			WLAN_MPC860
-	#define WLAN_SYSARCH			WLAN_MBX
+#elif defined(__arm__)
+	#define WLAN_CPU_FAMILY		WLAN_ARM
+	#define WLAN_CPU_CORE		WLAN_ARMCORE
+        #define WLAN_CPU_PART		WLAN_ARM_PART
+	#define WLAN_SYSARCH		WLAN_SKIFF
+#elif defined(__alpha__)
+	#define WLAN_CPU_FAMILY		WLAN_ALPHA
+	#define WLAN_CPU_CORE		WLAN_ALPHACORE
+	#define WLAN_CPU_PART		WLAN_ALPHAPART
+	#define WLAN_SYSARCH		WLAN_ALPHAARCH
+#elif defined(__mips__)
+	#define WLAN_CPU_FAMILY		WLAN_MIPS
+	#define WLAN_CPU_CORE		WLAN_MIPSCORE
+        #define WLAN_CPU_PART		WLAN_MIPSPART
+	#define WLAN_SYSARCH		WLAN_MIPSARCH
+#elif defined(__hppa__)
+	#define WLAN_CPU_FAMILY		WLAN_HPPA
+	#define WLAN_CPU_CORE		WLAN_HPPACORE
+	#define WLAN_CPU_PART		WLAN_HPPAPART
+	#define WLAN_SYSARCH		WLAN_HPPAARCH
+#else
+	#error "No CPU identified!"
+#endif
+#endif /* __KERNEL__ */
+
+/*
+   Some big endian machines implicitly do all I/O in little endian mode.
+
+   In particular:
+          Linux/PPC on PowerMacs (PCI)
+	  Arm/Intel Xscale (PCI)
+
+   This may also affect PLX boards and other BE &| PPC platforms; 
+   as new ones are discovered, add them below. 
+*/
+
+#if (WLAN_HOSTIF == WLAN_PCI)
+#if ((WLAN_SYSARCH == WLAN_SKIFF) || (WLAN_SYSARCH == WLAN_PMAC))
+#define REVERSE_ENDIAN
+#endif
 #endif
 
 /*=============================================================*/
@@ -230,39 +224,6 @@
 #define BIT30	0x40000000
 #define BIT31	0x80000000
 
-#define MOTO_BIT31	0x00000001
-#define MOTO_BIT30	0x00000002
-#define MOTO_BIT29	0x00000004
-#define MOTO_BIT28	0x00000008
-#define MOTO_BIT27	0x00000010
-#define MOTO_BIT26	0x00000020
-#define MOTO_BIT25	0x00000040
-#define MOTO_BIT24	0x00000080
-#define MOTO_BIT23	0x00000100
-#define MOTO_BIT22	0x00000200
-#define MOTO_BIT21	0x00000400
-#define MOTO_BIT20	0x00000800
-#define MOTO_BIT19	0x00001000
-#define MOTO_BIT18	0x00002000
-#define MOTO_BIT17	0x00004000
-#define MOTO_BIT16	0x00008000
-#define MOTO_BIT15	0x00010000
-#define MOTO_BIT14	0x00020000
-#define MOTO_BIT13	0x00040000
-#define MOTO_BIT12	0x00080000
-#define MOTO_BIT11	0x00100000
-#define MOTO_BIT10	0x00200000
-#define MOTO_BIT9	0x00400000
-#define MOTO_BIT8	0x00800000
-#define MOTO_BIT7	0x01000000
-#define MOTO_BIT6	0x02000000
-#define MOTO_BIT5	0x04000000
-#define MOTO_BIT4	0x08000000
-#define MOTO_BIT3	0x10000000
-#define MOTO_BIT2	0x20000000
-#define MOTO_BIT1	0x40000000
-#define MOTO_BIT0	0x80000000
-
 typedef unsigned char   UINT8;
 typedef unsigned short  UINT16;
 typedef unsigned long   UINT32;
@@ -274,12 +235,8 @@ typedef signed long     INT32;
 typedef unsigned int    UINT;
 typedef signed int      INT;
 
-#if (WLAN_COMPILER == WLAN_GNUC)
-	typedef unsigned long long	UINT64;
-	typedef signed long long	INT64;
-#else
-	typedef UINT8			UINT64[8];
-#endif
+typedef unsigned long long	UINT64;
+typedef signed long long	INT64;
 
 #define UINT8_MAX	(0xffUL)
 #define UINT16_MAX	(0xffffUL)
@@ -292,21 +249,11 @@ typedef signed int      INT;
 /*=============================================================*/
 /*------ Compiler Portability Macros --------------------------*/
 /*=============================================================*/
-#if (WLAN_COMPILER == WLAN_GNUC)
-	#define __WLAN_ATTRIB_PACK__		__attribute__ ((packed))
-	#define __WLAN_PRAGMA_PACK1__
-	#define __WLAN_PRAGMA_PACKDFLT__
-	#define __WLAN_INLINE__			inline
-	#define WLAN_MIN_ARRAY			0
-#elif (WLAN_COMPILER == WLAN_DIAB)
-	#define __WLAN_ATTRIB_PACK__	
-	#define __WLAN_PRAGMA_PACK1__		#pragma pack
-	#define __WLAN_PRAGMA_PACKDFLT__	#pragma pack()
-	#define __WLAN_INLINE__			inline
-	#define WLAN_MIN_ARRAY			1
-#else
-	#error "Unknown compiler"
-#endif
+#define __WLAN_ATTRIB_PACK__		__attribute__ ((packed))
+#define __WLAN_PRAGMA_PACK1__
+#define __WLAN_PRAGMA_PACKDFLT__
+#define __WLAN_INLINE__			inline
+#define WLAN_MIN_ARRAY			0
 
 /*=============================================================*/
 /*------ OS Portability Macros --------------------------------*/
@@ -317,37 +264,37 @@ typedef signed int      INT;
 #endif
 
 #if (WLAN_OS == WLAN_LINUX_KERNEL)
-	#define WLAN_LOG_ERROR0(s) printk(KERN_ERR __FUNCTION__ ": " s);
-	#define WLAN_LOG_ERROR1(s,n) printk(KERN_ERR __FUNCTION__ ": " s, (n));
-	#define WLAN_LOG_ERROR2(s,n1,n2) printk(KERN_ERR __FUNCTION__ ": " s, (n1), (n2));
-	#define WLAN_LOG_ERROR3(s,n1,n2,n3) printk(KERN_ERR __FUNCTION__ ": " s, (n1), (n2), (n3));
-	#define WLAN_LOG_ERROR4(s,n1,n2,n3,n4) printk(KERN_ERR __FUNCTION__ ": " s, (n1), (n2), (n3), (n4));
+	#define WLAN_LOG_ERROR0(x) printk(KERN_ERR "%s: " x , __FUNCTION__ );
+	#define WLAN_LOG_ERROR1(x,n) printk(KERN_ERR "%s: " x , __FUNCTION__ , (n));
+	#define WLAN_LOG_ERROR2(x,n1,n2) printk(KERN_ERR "%s: " x , __FUNCTION__ , (n1), (n2));
+	#define WLAN_LOG_ERROR3(x,n1,n2,n3) printk(KERN_ERR "%s: " x , __FUNCTION__, (n1), (n2), (n3));
+	#define WLAN_LOG_ERROR4(x,n1,n2,n3,n4) printk(KERN_ERR "%s: " x , __FUNCTION__, (n1), (n2), (n3), (n4));
 
-	#define WLAN_LOG_WARNING0(s) printk(KERN_WARNING __FUNCTION__ ": " s);
-	#define WLAN_LOG_WARNING1(s,n) printk(KERN_WARNING __FUNCTION__ ": " s, (n));
-	#define WLAN_LOG_WARNING2(s,n1,n2) printk(KERN_WARNING __FUNCTION__ ": " s, (n1), (n2));
-	#define WLAN_LOG_WARNING3(s,n1,n2,n3) printk(KERN_WARNING __FUNCTION__ ": " s, (n1), (n2), (n3));
-	#define WLAN_LOG_WARNING4(s,n1,n2,n3,n4) printk(KERN_WARNING __FUNCTION__ ": " ": " s, (n1), (n2), (n3), (n4));
+	#define WLAN_LOG_WARNING0(x) printk(KERN_WARNING "%s: " x , __FUNCTION__);
+	#define WLAN_LOG_WARNING1(x,n) printk(KERN_WARNING "%s: " x , __FUNCTION__, (n));
+	#define WLAN_LOG_WARNING2(x,n1,n2) printk(KERN_WARNING "%s: " x , __FUNCTION__, (n1), (n2));
+	#define WLAN_LOG_WARNING3(x,n1,n2,n3) printk(KERN_WARNING "%s: " x , __FUNCTION__, (n1), (n2), (n3));
+	#define WLAN_LOG_WARNING4(x,n1,n2,n3,n4) printk(KERN_WARNING "%s: " x , __FUNCTION__ , (n1), (n2), (n3), (n4));
 
-	#define WLAN_LOG_NOTICE0(s) printk(KERN_NOTICE __FUNCTION__ ": " s);
-	#define WLAN_LOG_NOTICE1(s,n) printk(KERN_NOTICE __FUNCTION__ ": " s, (n));
-	#define WLAN_LOG_NOTICE2(s,n1,n2) printk(KERN_NOTICE __FUNCTION__ ": " s, (n1), (n2));
-	#define WLAN_LOG_NOTICE3(s,n1,n2,n3) printk(KERN_NOTICE __FUNCTION__ ": " s, (n1), (n2), (n3));
-	#define WLAN_LOG_NOTICE4(s,n1,n2,n3,n4) printk(KERN_NOTICE __FUNCTION__ ": " s, (n1), (n2), (n3), (n4));
+	#define WLAN_LOG_NOTICE0(x) printk(KERN_NOTICE "%s: " x , __FUNCTION__);
+	#define WLAN_LOG_NOTICE1(x,n) printk(KERN_NOTICE "%s: " x , __FUNCTION__, (n));
+	#define WLAN_LOG_NOTICE2(x,n1,n2) printk(KERN_NOTICE "%s: " x , __FUNCTION__, (n1), (n2));
+	#define WLAN_LOG_NOTICE3(x,n1,n2,n3) printk(KERN_NOTICE "%s: " x , __FUNCTION__, (n1), (n2), (n3));
+	#define WLAN_LOG_NOTICE4(x,n1,n2,n3,n4) printk(KERN_NOTICE "%s: " x , __FUNCTION__, (n1), (n2), (n3), (n4));
 
-	#define WLAN_LOG_INFO0(s) printk(KERN_INFO s);
-	#define WLAN_LOG_INFO1(s,n) printk(KERN_INFO s, (n));
-	#define WLAN_LOG_INFO2(s,n1,n2) printk(KERN_INFO s, (n1), (n2));
-	#define WLAN_LOG_INFO3(s,n1,n2,n3) printk(KERN_INFO s, (n1), (n2), (n3));
-	#define WLAN_LOG_INFO4(s,n1,n2,n3,n4) printk(KERN_INFO s, (n1), (n2), (n3), (n4));
-	#define WLAN_LOG_INFO5(s,n1,n2,n3,n4,n5) printk(KERN_INFO s, (n1), (n2), (n3), (n4), (n5));
+	#define WLAN_LOG_INFO0(x) printk(KERN_INFO x);
+	#define WLAN_LOG_INFO1(x,n) printk(KERN_INFO x, (n));
+	#define WLAN_LOG_INFO2(x,n1,n2) printk(KERN_INFO x, (n1), (n2));
+	#define WLAN_LOG_INFO3(x,n1,n2,n3) printk(KERN_INFO x, (n1), (n2), (n3));
+	#define WLAN_LOG_INFO4(x,n1,n2,n3,n4) printk(KERN_INFO x, (n1), (n2), (n3), (n4));
+	#define WLAN_LOG_INFO5(x,n1,n2,n3,n4,n5) printk(KERN_INFO x, (n1), (n2), (n3), (n4), (n5));
 
 	#if defined(WLAN_INCLUDE_DEBUG)
 		#define WLAN_ASSERT(c) if ((!(c)) && WLAN_DBVAR >= 1) { \
 			WLAN_LOG_DEBUG0(1, "Assertion failure!\n"); }
-		#define WLAN_HEX_DUMP( l, s, p, n)	if( WLAN_DBVAR >= (l) ){ \
+		#define WLAN_HEX_DUMP( l, x, p, n)	if( WLAN_DBVAR >= (l) ){ \
 			int __i__; \
-			printk(KERN_DEBUG s ":"); \
+			printk(KERN_DEBUG x ":"); \
 			for( __i__=0; __i__ < (n); __i__++) \
 				printk( " %02x", ((UINT8*)(p))[__i__]); \
 			printk("\n"); }
@@ -355,91 +302,19 @@ typedef signed int      INT;
 		#define DBFENTER { if ( WLAN_DBVAR >= 4 ){ WLAN_LOG_DEBUG0(3,"Enter\n"); } }
 		#define DBFEXIT  { if ( WLAN_DBVAR >= 4 ){ WLAN_LOG_DEBUG0(3,"Exit\n"); } }
 
-		#define WLAN_LOG_DEBUG0(l, s) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG __FUNCTION__": " s);
-		#define WLAN_LOG_DEBUG1(l, s,n) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG __FUNCTION__": " s, (n));
-		#define WLAN_LOG_DEBUG2(l, s,n1,n2) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG __FUNCTION__": " s, (n1), (n2));
-		#define WLAN_LOG_DEBUG3(l, s,n1,n2,n3) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG __FUNCTION__": " s, (n1), (n2), (n3));
-		#define WLAN_LOG_DEBUG4(l, s,n1,n2,n3,n4) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG __FUNCTION__": " s, (n1), (n2), (n3), (n4));
-		#define WLAN_LOG_DEBUG5(l, s,n1,n2,n3,n4,n5) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG __FUNCTION__": " s, (n1), (n2), (n3), (n4), (n5));
+		#define WLAN_LOG_DEBUG0(l,x) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG "%s: " x ,  __FUNCTION__ );
+		#define WLAN_LOG_DEBUG1(l,x,n) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG "%s: " x , __FUNCTION__ , (n));
+		#define WLAN_LOG_DEBUG2(l,x,n1,n2) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG "%s: " x , __FUNCTION__ , (n1), (n2));
+		#define WLAN_LOG_DEBUG3(l,x,n1,n2,n3) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG "%s: " x , __FUNCTION__ , (n1), (n2), (n3));
+		#define WLAN_LOG_DEBUG4(l,x,n1,n2,n3,n4) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG "%s: " x , __FUNCTION__ , (n1), (n2), (n3), (n4));
+		#define WLAN_LOG_DEBUG5(l,x,n1,n2,n3,n4,n5) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG "%s: " x , __FUNCTION__ , (n1), (n2), (n3), (n4), (n5));
+		#define WLAN_LOG_DEBUG6(l,x,n1,n2,n3,n4,n5,n6) if ( WLAN_DBVAR >= (l)) printk(KERN_DEBUG "%s: " x , __FUNCTION__ , (n1), (n2), (n3), (n4), (n5), (n6));
 	#else
 		#define WLAN_ASSERT(c) 
 		#define WLAN_HEX_DUMP( l, s, p, n)
 
 		#define DBFENTER 
 		#define DBFEXIT 
-
-		#define WLAN_LOG_DEBUG0(l, s)
-		#define WLAN_LOG_DEBUG1(l, s,n)
-		#define WLAN_LOG_DEBUG2(l, s,n1,n2)
-		#define WLAN_LOG_DEBUG3(l, s,n1,n2,n3)
-		#define WLAN_LOG_DEBUG4(l, s,n1,n2,n3,n4)
-		#define WLAN_LOG_DEBUG5(l, s,n1,n2,n3,n4,n5)
-	#endif
-#elif (WLAN_OS == WLAN_LWOS)
-	#define KERN_ERR	
-	#define KERN_WARNING
-	#define KERN_NOTICE
-	#define KERN_INFO
-	#define KERN_DEBUG
-	#define __FUNCTION__
-
-	#define WLAN_LOG_ERROR0(s) kprintf(KERN_ERR s);
-	#define WLAN_LOG_ERROR1(s,n) kprintf(KERN_ERR s, (n));
-	#define WLAN_LOG_ERROR2(s,n1,n2) kprintf(KERN_ERR s, (n1), (n2));
-	#define WLAN_LOG_ERROR3(s,n1,n2,n3) kprintf(KERN_ERR s, (n1), (n2), (n3));
-	#define WLAN_LOG_ERROR4(s,n1,n2,n3,n4) kprintf(KERN_ERR s, (n1), (n2), (n3), (n4));
-
-	#define WLAN_LOG_WARNING0(s) kprintf(KERN_WARNING s);
-	#define WLAN_LOG_WARNING1(s,n) kprintf(KERN_WARNING s, (n));
-	#define WLAN_LOG_WARNING2(s,n1,n2) kprintf(KERN_WARNING s, (n1), (n2));
-	#define WLAN_LOG_WARNING3(s,n1,n2,n3) kprintf(KERN_WARNING s, (n1), (n2), (n3));
-	#define WLAN_LOG_WARNING4(s,n1,n2,n3,n4) kprintf(KERN_WARNING s, (n1), (n2), (n3), (n4));
-
-	#define WLAN_LOG_NOTICE0(s) kprintf(KERN_NOTICE s);
-	#define WLAN_LOG_NOTICE1(s,n) kprintf(KERN_NOTICE s, (n));
-	#define WLAN_LOG_NOTICE2(s,n1,n2) kprintf(KERN_NOTICE s, (n1), (n2));
-	#define WLAN_LOG_NOTICE3(s,n1,n2,n3) kprintf(KERN_NOTICE s, (n1), (n2), (n3));
-	#define WLAN_LOG_NOTICE4(s,n1,n2,n3,n4) kprintf(KERN_NOTICE s, (n1), (n2), (n3), (n4));
-
-	#if defined(WLAN_INCLUDE_DEBUG)
-		#define WLAN_ASSERT(c) if ((!(c)) && WLAN_DBVAR >= 1) \
-			{WLAN_LOG_DEBUG0(1, "Assertion failure!\n");}
-		#define WLAN_HEX_DUMP( l, s, p, n)	if( WLAN_DBVAR >= (l) ){ \
-			int __i__; \
-			kprintf(KERN_DEBUG s ":"); \
-			for( __i__=0; __i__ < (n); __i__++) \
-				kprintf( " %02x", ((UINT8*)(p))[__i__]); \
-			kprintf("\n"); }
-
-		#define DBFENTER { if ( WLAN_DBVAR >= 4 ){ WLAN_LOG_DEBUG0(3,"Enter\n"); } }
-		#define DBFEXIT  { if ( WLAN_DBVAR >= 4 ){ WLAN_LOG_DEBUG0(3,"Exit\n"); } }
-
-		#define WLAN_LOG_INFO0(s) kprintf(KERN_INFO __FUNCTION__": " s);
-		#define WLAN_LOG_INFO1(s,n) kprintf(KERN_INFO __FUNCTION__": " s, (n));
-		#define WLAN_LOG_INFO2(s,n1,n2) kprintf(KERN_INFO __FUNCTION__": " s, (n1), (n2));
-		#define WLAN_LOG_INFO3(s,n1,n2,n3) kprintf(KERN_INFO __FUNCTION__": " s, (n1), (n2), (n3));
-		#define WLAN_LOG_INFO4(s,n1,n2,n3,n4) kprintf(KERN_INFO __FUNCTION__": " s, (n1), (n2), (n3), (n4));
-		#define WLAN_LOG_INFO4(s,n1,n2,n3,n4,n5) kprintf(KERN_INFO __FUNCTION__": " s, (n1), (n2), (n3), (n4),(n5));
-
-		#define WLAN_LOG_DEBUG0(l, s) if ( WLAN_DBVAR >= (l)) kprintf(KERN_DEBUG __FUNCTION__": " s);
-		#define WLAN_LOG_DEBUG1(l, s,n) if ( WLAN_DBVAR >= (l)) kprintf(KERN_DEBUG __FUNCTION__": " s, (n));
-		#define WLAN_LOG_DEBUG2(l, s,n1,n2) if ( WLAN_DBVAR >= (l)) kprintf(KERN_DEBUG __FUNCTION__": " s, (n1), (n2));
-		#define WLAN_LOG_DEBUG3(l, s,n1,n2,n3) if ( WLAN_DBVAR >= (l)) kprintf(KERN_DEBUG __FUNCTION__": " s, (n1), (n2), (n3));
-		#define WLAN_LOG_DEBUG4(l, s,n1,n2,n3,n4) if ( WLAN_DBVAR >= (l)) kprintf(KERN_DEBUG __FUNCTION__": " s, (n1), (n2), (n3), (n4));
-		#define WLAN_LOG_DEBUG5(l, s,n1,n2,n3,n4,n5) if ( WLAN_DBVAR >= (l)) kprintf(KERN_DEBUG __FUNCTION__": " s, (n1), (n2), (n3), (n4), (n5));
-	#else
-		#define WLAN_ASSERT(c) 
-		#define WLAN_HEX_DUMP( l, s, p, n)
-
-		#define DBFENTER 
-		#define DBFEXIT 
-
-		#define WLAN_LOG_INFO0(s)
-		#define WLAN_LOG_INFO1(s,n)
-		#define WLAN_LOG_INFO2(s,n1,n2)
-		#define WLAN_LOG_INFO3(s,n1,n2,n3)
-		#define WLAN_LOG_INFO4(s,n1,n2,n3,n4)
-		#define WLAN_LOG_INFO5(s,n1,n2,n3,n4,n5)
 
 		#define WLAN_LOG_DEBUG0(l, s)
 		#define WLAN_LOG_DEBUG1(l, s,n)
@@ -488,76 +363,146 @@ typedef signed int      INT;
 		#define WLAN_LOG_DEBUG5(l, s,n1,n2,n3,n4,n5)
 #endif
 
-#if (WLAN_OS == WLAN_LINUX_KERNEL)
-	#define wlan_ticks_per_sec		HZ
-	#define wlan_ms_per_tick		(1000UL / (wlan_ticks_per_sec))
-	#define wlan_ms_to_ticks(n)		( (n) / (wlan_ms_per_tick))
-	#define wlan_tu2ticks(n)		( (n) / (wlan_ms_per_tick))
-	#define WLAN_INT_DISABLE(n)		{ save_flags((n)); cli(); }
-	#define WLAN_INT_ENABLE(n)		{ sti(); restore_flags((n)); }
-	#define am930shim_pballoc_p80211( pb, len)	am930llc_pballoc_p80211((pb),(len))
-	#define am930shim_pballoc		am930llc_pballoc
-	#define am930shim_pbfree		am930llc_pbfree
-	#define am930shim_malloc(l,d)		kmalloc((l), (d))
-	#define am930shim_free(p,l)		kfree_s((p), (l))
-	#define am930shim_rxframe(o,p)		am930llc_rxframe((o), (p))
-	#define am930shim_ontxcomplete(o,r)	am930llc_ontxcomplete((o), (r))
-	typedef	UINT32				wlan_flags_t;
-	#ifdef CONFIG_MODVERSIONS
-		#define MODVERSIONS		1
-		#include <linux/modversions.h>
-	#endif
+#define wlan_ms_per_tick		(1000UL / (wlan_ticks_per_sec))
+#define wlan_ms_to_ticks(n)		( (n) / (wlan_ms_per_tick))
+#define wlan_tu2ticks(n)		( (n) / (wlan_ms_per_tick))
+#define WLAN_INT_DISABLE(n)		{ save_flags((n)); cli(); }
+#define WLAN_INT_ENABLE(n)		{ sti(); restore_flags((n)); }
 
-	#ifdef CONFIG_SMP
-		#define __SMP__			1
-	#endif	
+#ifdef CONFIG_MODVERSIONS
+#define MODVERSIONS		1
+#include <linux/modversions.h>
+#endif
 
-	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,17))
-		#define CONFIG_NETLINK		1
-	#endif
+#ifdef CONFIG_SMP
+#define __SMP__			1
+#endif	
 
-#elif (WLAN_OS == WLAN_LWOS)
-	#define atomic_t							UINT32
-	#define jiffies				(sNumTicks)
-	#define wlan_ticks_per_sec		((kTicksPerTenth) * 10UL)
-	#define HZ				(wlan_ticks_per_sec)
-	#define wlan_ms_per_tick		(1000UL / (wlan_ticks_per_sec))
-	#define wlan_ms_to_ticks(n)		( (n) / (wlan_ms_per_tick))
-	#define wlan_tu2ticks(n)		( (n) / (wlan_ms_per_tick))
-	#define udelay(n) 			{ int i, j=0; for( i = (n)*10; i > 0; i--) j++; }
-	#define outb_p(v, a)			(*((UINT8*)(a))) = (v);
-	#define outb(v, a)			(*((UINT8*)(a))) = (v);
-	#define inb_p(a)			(*((UINT8*)(a)))
-	#define inb(a)				(*((UINT8*)(a)))
-	#define readb(a)			(*((UINT8*)(a)))
-	#define writeb(byte, dest)		((*((UINT8*)(dest))) = ((UINT8)(byte)))
-	#define test_and_set_bit(b, p)	\
-		(((*(UINT32*)(p)) & ((BIT0) << (b))) ? \
-		(1) : (((*(UINT32*)(p)) | ((BIT0) << (b))), (0)) )
-	#define clear_bit(b, p)			((*((UINT32*)(p))) |= ((BIT0) << (b)))
+#ifndef KERNEL_VERSION
+#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
+#endif
 
-	#define kmalloc(l,d)			malloc((l))
-	#define kfree_s(p,l)			free((p))
-	#define GFP_KERNEL			0
-	#define GFP_ATOMIC			0
-	#define WLAN_INT_DISABLE(n)		{ IntDisable(&(n)); }
-	#define WLAN_INT_ENABLE(n)		{ IntRestore(&(n)); }
-	#define spin_lock_irqsave(a,b)		WLAN_INT_DISABLE((b));
-	#define spin_unlock_irqrestore(a,b)	WLAN_INT_ENABLE((b));
-	#define am930shim_pballoc_p80211( pb, len)	am930lw_pballoc_p80211((pb),(len))
-	#define am930shim_pballoc		am930lw_pballoc
-	#define am930shim_pbfree		am930lw_pbfree
-	#define am930shim_malloc(l,d)		am930lw_bufalloc((l))
-	#define am930shim_free(p,l)		am930lw_buffree((p), (l))
-	#define am930shim_rxframe(o,p)		am930lw_rxframe((o), (p))
-	#define am930shim_ontxcomplete(o,r)	am930lw_ontxcomplete((o), (r))
-	#define SPIN_LOCK_UNLOCKED		0
-	#define time_after(a,b)			((UINT32)(b) - (UINT32)(a) < 0)
-	#define time_before(a,b)		time_after(b,a)
-	#define time_after_eq(a,b)		((UINT32)(a) - (UINT32)(b) >= 0)
-	#define time_before_eq(a,b)		time_after_eq(b,a)
-	typedef UINT32				spinlock_t;
-	typedef	UINT32				wlan_flags_t;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,17))
+#define CONFIG_NETLINK		1
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,0))
+#define kfree_s(a, b)	kfree((a))
+#endif
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,2,18))
+#ifndef init_waitqueue_head
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,0,16))
+#define init_waitqueue_head(p)  (*(p) = NULL)
+#else
+#define init_waitqueue_head(p)  init_waitqueue(p)
+#endif
+typedef struct wait_queue *wait_queue_head_t;
+typedef struct wait_queue wait_queue_t;
+#define set_current_state(b)  { current->state = (b); mb(); }
+#define init_waitqueue_entry(a, b) { (a)->task = current; }
+#endif
+#endif
+
+#ifndef wait_event_interruptible_timeout
+// retval == 0; signal met; we're good.
+// retval < 0; interrupted by signal.
+// retval > 0; timed out.
+#define __wait_event_interruptible_timeout(wq, condition, timeout, ret)   \
+do {                                                                      \
+        int __ret = 0;                                                    \
+        if (!(condition)) {                                               \
+          wait_queue_t __wait;                                            \
+          unsigned long expire;                                           \
+          init_waitqueue_entry(&__wait, current);                         \
+	                                                                  \
+          expire = timeout + jiffies;                                     \
+          add_wait_queue(&wq, &__wait);                                   \
+          for (;;) {                                                      \
+                  set_current_state(TASK_INTERRUPTIBLE);                  \
+                  if (condition)                                          \
+                          break;                                          \
+                  if (jiffies > expire) {                                 \
+                          ret = jiffies - expire;                         \
+                          break;                                          \
+                  }                                                       \
+                  if (!signal_pending(current)) {                         \
+                          schedule_timeout(timeout);                      \
+                          continue;                                       \
+                  }                                                       \
+                  ret = -ERESTARTSYS;                                     \
+                  break;                                                  \
+          }                                                               \
+          set_current_state(TASK_RUNNING);                                \
+          remove_wait_queue(&wq, &__wait);                                \
+	}                                                                 \
+} while (0)
+
+#define wait_event_interruptible_timeout(wq, condition, timeout)	\
+({									\
+	int __ret = 0;							\
+	if (!(condition))						\
+		__wait_event_interruptible_timeout(wq, condition,	\
+						timeout, __ret);	\
+	__ret;								\
+})
+
+#endif
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,1,90))
+#define spin_lock(l)            do { } while (0)
+#define spin_unlock(l)          do { } while (0)
+#define spin_lock_irqsave(l,f)  do { save_flags(f); cli(); } while (0)
+#define spin_unlock_irqrestore(l,f) do { restore_flags(f); } while (0)
+#define spin_lock_init(s)       do { } while (0)
+#define spin_trylock(l)         (1)
+typedef int spinlock_t;
+#endif
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,4,0))
+#ifdef CONFIG_SMP
+#define spin_is_locked(x)       (*(volatile char *)(&(x)->lock) <= 0)
+#else
+#define spin_is_locked(l)       (0)
+#endif
+#endif
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,3,38))
+typedef struct device netdevice_t;
+#elif (LINUX_VERSION_CODE < KERNEL_VERSION(2,4,4))
+typedef struct net_device netdevice_t;
+#else
+#undef netdevice_t
+typedef struct net_device netdevice_t;
+#endif
+
+#ifdef WIRELESS_EXT
+#if (WIRELESS_EXT < 13)
+struct iw_request_info
+{
+        __u16           cmd;            /* Wireless Extension command */
+        __u16           flags;          /* More to come ;-) */
+};
+#endif
+#endif
+
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,1,18))
+#define MODULE_PARM(a,b)        extern int __bogus_decl
+#define MODULE_AUTHOR(a)        extern int __bogus_decl
+#define MODULE_DESCRIPTION(a)   extern int __bogus_decl
+#define MODULE_SUPPORTED_DEVICE(a) extern int __bogus_decl
+#undef  GET_USE_COUNT
+#define GET_USE_COUNT(m)        mod_use_count_
+#endif
+
+#ifndef MODULE_LICENSE
+#define MODULE_LICENSE(m)       extern int __bogus_decl
+#endif
+
+/* TODO:  Do we care about this? */
+#ifndef MODULE_DEVICE_TABLE
+#define MODULE_DEVICE_TABLE(foo,bar)
 #endif
 
 #define wlan_minutes2ticks(a) ((a)*(wlan_ticks_per_sec *  60))
@@ -567,104 +512,21 @@ typedef signed int      INT;
 /*------ Hardware Portability Macros --------------------------*/
 /*=============================================================*/
 
-#if (WLAN_OS == WLAN_LINUX_KERNEL || WLAN_OS == WLAN_LINUX_USER)
-	#define ieee2host16(n)	__le16_to_cpu(n)
-	#define ieee2host32(n)	__le32_to_cpu(n)
-	#define host2ieee16(n)	__cpu_to_le16(n)
-	#define host2ieee32(n)	__cpu_to_le32(n)
-#elif (WLAN_OS == WLAN_LWOS)
-	#define __swab16(n) \
-		((UINT16) ( \
-			((((UINT16)(n)) & ((UINT16)0x00ffU)) << 8 ) | \
-			((((UINT16)(n)) & ((UINT16)0xff00U)) >> 8 )      ))
-	#define __swab32(n) \
-		((UINT32) ( \
-			((((UINT32)(n)) & ((UINT32)0x000000ffUL)) << 24 ) | \
-			((((UINT32)(n)) & ((UINT32)0x0000ff00UL)) <<  8 ) | \
-			((((UINT32)(n)) & ((UINT32)0x00ff0000UL)) >>  8 ) | \
-			((((UINT32)(n)) & ((UINT32)0xff000000UL)) >> 24 ) )) 
+#define ieee2host16(n)	__le16_to_cpu(n)
+#define ieee2host32(n)	__le32_to_cpu(n)
+#define host2ieee16(n)	__cpu_to_le16(n)
+#define host2ieee32(n)	__cpu_to_le32(n)
 
-	#ifndef htons
-		#define htons(n) (n)
-	#endif
-
-	#ifndef ntohs
-		#define ntohs(n) (n)
-	#endif
+#if (WLAN_CPU_FAMILY == WLAN_PPC)
+       #define wlan_inw(a)                     in_be16((unsigned short *)((a)+_IO_BASE))
+       #define wlan_inw_le16_to_cpu(a)         inw((a))
+       #define wlan_outw(v,a)                  out_be16((unsigned short *)((a)+_IO_BASE), (v))
+       #define wlan_outw_cpu_to_le16(v,a)      outw((v),(a))
 #else
-	#warning "WLAN_OS not defined"
-#endif
-
-
-
-#if (WLAN_OS == WLAN_LINUX_KERNEL && WLAN_CPU_FAMILY == WLAN_Ix86)
-	#define wlan_inb(a)			inb((a))
-	#define wlan_inw(a)			inw((a))
-	#define wlan_inw_le16_to_cpu(a)		inw((a))
-	#define wlan_inw_be16_to_cpu(a)		(__be16_to_cpu(inw((a))))
-	#define wlan_inl(a)			inl((a))
-	#define wlan_inl_le32_to_cpu(a)		inl((a))
-	#define wlan_inl_be32_to_cpu(a)		(__be32_to_cpu(inl((a))))
-
-	#define wlan_outb(v,a)			outb((v),(a))
-	#define wlan_outw(v,a)			outw((v),(a))
-	#define wlan_outw_cpu_to_le16(v,a)	outw((v),(a))
-	#define wlan_outw_cpu_to_be16(v,a)	outw(__cpu_to_be16((v)), (a))
-	#define wlan_outl(v,a)			outl((v),(a))
-	#define wlan_outl_cpu_to_le32(v,a)	outl((v),(a))
-	#define wlan_outl_cpu_to_be32(v,a)	outl(__cpu_to_be32((v)), (a))
-#elif (WLAN_OS == WLAN_LINUX_KERNEL && WLAN_CPU_FAMILY == WLAN_ARM) 
-	#define wlan_inb(a)			inb((a))
-	#define wlan_inw(a)			inw((a))
-	#define wlan_inw_le16_to_cpu(a)		inw((a))
-	#define wlan_inw_be16_to_cpu(a)		(__be16_to_cpu(inw((a))))
-	#define wlan_inl(a)			inl((a))
-	#define wlan_inl_le32_to_cpu(a)		inl((a))
-	#define wlan_inl_be32_to_cpu(a)		(__be32_to_cpu(inl((a))))
-
-	#define wlan_outb(v,a)			outb((v),(a))
-	#define wlan_outw(v,a)			outw((v),(a))
-	#define wlan_outw_cpu_to_le16(v,a)	outw((v),(a))
-	#define wlan_outw_cpu_to_be16(v,a)	outw(__cpu_to_be16((v), (a)))
-	#define wlan_outl(v,a)			outl((v),(a))
-	#define wlan_outl_cpu_to_le32(v,a)	outl((v),(a))
-	#define wlan_outl_cpu_to_be32(v,a)	outw(__cpu_to_be32((v), (a)))
-#elif (WLAN_OS == WLAN_LINUX_KERNEL && WLAN_CPU_FAMILY == WLAN_PPC) 
-	#define wlan_inb(a)			inb((a))
-	#define wlan_inw(a)			in_be16((unsigned short *)((a)+_IO_BASE))
-	#define wlan_inw_le16_to_cpu(a)		inw((a))
-	#define wlan_inw_be16_to_cpu(a)		in_be16((unsigned short *)((a)+_IO_BASE))
-	#define wlan_inl(a)			in_be32((unsigned short *)((a)+_IO_BASE))
-	#define wlan_inl_le32_to_cpu(a)		inwl((a))
-	#define wlan_inl_be32_to_cpu(a)		in_be32((unsigned short *)((a)+_IO_BASE))
-
-	#define wlan_outb(v,a)			outb((v),(a))
-	#define wlan_outw(v,a)			out_be16((unsigned short *)((a)+_IO_BASE), (v))
-	#define wlan_outw_cpu_to_le16(v,a)	outw((v),(a))
-	#define wlan_outw_cpu_to_be16(v,a)	out_be16((unsigned short *)((a)+_IO_BASE), (v))
-	#define wlan_outl(v,a)			out_be32((unsigned short *)((a)+_IO_BASE), (v))
-	#define wlan_outl_cpu_to_le32(v,a)	outl((v),(a))
-	#define wlan_outl_cpu_to_be32(v,a)	out_be32((unsigned short *)((a)+_IO_BASE), (v))
-#elif (WLAN_OS == WLAN_LINUX_KERNEL && WLAN_CPU_FAMILY == WLAN_ALPHA) 
-	#define wlan_inb(a)                     inb((a))
-	#define wlan_inw(a)                     inw((a))
-	#define wlan_inw_le16_to_cpu(a)         inw((a))
-	#define wlan_inw_be16_to_cpu(a)         (__be16_to_cpu(inw((a))))
-	#define wlan_inl(a)                     inl((a))
-	#define wlan_inl_le32_to_cpu(a)         inl((a))
-	#define wlan_inl_be32_to_cpu(a)         (__be32_to_cpu(inl((a))))
-
-	#define wlan_outb(v,a)                  outb((v),(a))
-	#define wlan_outw(v,a)                  outw((v),(a))
-	#define wlan_outw_cpu_to_le16(v,a)      outw((v),(a))
-	#define wlan_outw_cpu_to_be16(v,a)      outw(__cpu_to_be16((v)), (a))
-	#define wlan_outl(v,a)                  outl((v),(a))
-	#define wlan_outl_cpu_to_le32(v,a)      outl((v),(a))
-	#define wlan_outl_cpu_to_be32(v,a)      outl(__cpu_to_be32((v)), (a))
-#elif (WLAN_OS == WLAN_LINUX_USER)
-/* We don't need these macros in usermode */
-#else
-#error "No definition for wlan_inb and friends"
+       #define wlan_inw(a)                     inw((a))
+       #define wlan_inw_le16_to_cpu(a)         __cpu_to_le16(inw((a)))
+       #define wlan_outw(v,a)                  outw((v),(a))
+       #define wlan_outw_cpu_to_le16(v,a)      outw(__cpu_to_le16((v)),(a))
 #endif
 
 /*=============================================================*/
@@ -673,8 +535,6 @@ typedef signed int      INT;
 
 #define wlan_max(a, b) (((a) > (b)) ? (a) : (b))
 #define wlan_min(a, b) (((a) < (b)) ? (a) : (b))
-
-#define WLAN_KVERSION(a,b,c)	(((a)<<16)+((b)<<8)+(c))
 
 #define wlan_isprint(c)	(((c) > (0x19)) && ((c) < (0x7f)))
 
@@ -700,16 +560,6 @@ typedef signed int      INT;
 		} \
 	} \
 }
-
-/*=============================================================*/
-/*--- Linux Version Macros ------------------------------------*/
-/*=============================================================*/
-#ifdef LINUX_VERSION_CODE
-/* TODO: Find out what version really removed kfree_s */
-#if (LINUX_VERSION_CODE >= WLAN_KVERSION(2,4,0) )
-#define kfree_s(a, b)	kfree((a))
-#endif
-#endif
 
 /*=============================================================*/
 /*--- Variables -----------------------------------------------*/
