@@ -3001,7 +3001,10 @@ static const char * tg3_phy_string(struct tg3 *tp)
 	case PHY_ID_BCM5701:	return "5701";
 	case PHY_ID_BCM5703:	return "5703";
 	case PHY_ID_BCM5704:	return "5704";
-	case PHY_ID_BCM8002:	return "8002";
+        case PHY_ID_BCM5705:    return "5705";
+        case PHY_ID_BCM5750:    return "5750";
+	case PHY_ID_BCM5751:	return "5751"; 
+	case PHY_ID_BCM8002:	return "8002/serdes";
 	case PHY_ID_SERDES:	return "serdes";
 	default:		return "unknown";
 	};
