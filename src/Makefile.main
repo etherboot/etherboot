@@ -341,12 +341,6 @@ tarball: ../index.html ../index-berlios.html
 	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
 	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
 
-cvs_tarball: ../index.html ../index-berlios.html
-	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
-	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude doc etherboot-$(MM_VERSION))
-	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
-	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
-
 # Auto-incrementing build serial number.  Is auto-incremented for each
 # make run that specifies a final image file (e.g. bin/undi.zpxe) as a
 # target, or a target of the form "all*".  Enable via -DBUILD_SERIAL
