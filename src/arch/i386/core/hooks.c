@@ -2,12 +2,12 @@
 #include "callbacks.h"
 #include <stdarg.h>
 
-void arch_main ( in_call_data_t *data, va_list params __unused ) {
+void arch_main ( in_call_data_t *data __unused, va_list params __unused ) {
 
 #ifdef PCBIOS
-	/* Deallocate base memory used for the decompressor, if applicable
+	/* Deallocate base memory used for the prefix, if applicable
 	 */
-	forget_decompressor_base_memory();
+	forget_prefix_base_memory();
 #endif
 
 }

@@ -259,6 +259,14 @@ prelocate:
 	cld
 	popal				/* Restore 32-bit registers */
 
+	/* Store (%bx<<4) as image_basemem to be picked up by basemem.c */
+	pushl	%eax
+	xorl	%eax, %eax
+	movw	%bx, %ax
+	shll	$4, %eax
+	movl	%eax, %es:image_basemem
+	popl	%eax
+
 	/* Expand original near return address into far return to new
 	 * code location.
 	 */

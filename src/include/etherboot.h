@@ -295,7 +295,7 @@ extern void forget_real_mode_stack ( void );
 extern void * allot_base_memory ( size_t );
 extern void forget_base_memory ( void*, size_t );
 extern void free_unused_base_memory ( void );
-extern void forget_decompressor_base_memory ( void );
+extern void forget_prefix_base_memory ( void );
 extern void forget_runtime_base_memory ( uint32_t old_addr );
 
 struct e820entry {
@@ -372,7 +372,7 @@ extern unsigned long currticks P((void));
 extern void exit P((int status));
 extern void _stack;
 extern char _prefix_copy[512];
-extern unsigned long image_basemem;
+extern uint32_t image_basemem;
 
 /* serial.c */
 extern int serial_getc P((void));
