@@ -39,11 +39,9 @@ do
 		echo $f does not exist, skipping 1>&2
 		continue
 	fi
-	# shorten name for 8.3 filesystem
 	b=$(basename $f)
 	g=${b%.zlilo}
-	g=${g//[^a-z0-9]}
-	g=${g:0:8}.zli
+	g=${g//[^a-z0-9]}.zli
 	case "$first" in
 	"")
 		echo DEFAULT $g
@@ -54,5 +52,5 @@ do
 	echo "" KERNEL $g
 	cp -p $f $dir/$g
 done >> $cfg
-mkisofs -o $out -c boot.cat -b isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table $dir
+mkisofs -l -o $out -c boot.cat -b isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table $dir
 rm -fr $dir
