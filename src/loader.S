@@ -162,12 +162,13 @@ PnP:
  *	we need another #define to take care of that.
  */
 over: 
-#ifndef	PNP_BUT_NOT_BBS_COMPLIANT
+/* Accept old name too for backward compatibility */
+#if	!defined(BBS_BUT_NOT_PNP_COMPLIANT) && !defined(PNP_BUT_NOT_BBS_COMPLIANT)
 	cmpw	$'$'+'P'*256,%es:0(%di)
 	jne	notpnp
 	cmpw	$'n'+'P'*256,%es:2(%di)
 	jne	notpnp
-#endif	/* PNP_BUT_NOT_BBS_COMPLIANT */
+#endif	/* BBS_BUT_NOT_PNP_COMPLIANT */
 	movw	$0x20,%ax
 	lret
 notpnp:

@@ -160,11 +160,12 @@
 #
 #	BIOS interface options:
 #
-#	-DPNP_BUT_NOT_BBS_COMPLIANT
+#	-DBBS_BUT_NOT_PNP_COMPLIANT
 #			Some BIOSes claim to be PNP but they don't conform
 #			to the BBS spec which specifies that ES:DI must
 #			point to the string $PnP on entry. This option
-#			works around those.
+#			works around those. This option must be added to
+#			LCONFIG.
 #	-DNO_DELAYED_INT
 #			Take control as soon as BIOS detects the ROM.
 #			Normally hooks onto INT18H or INT19H. Use only if you
@@ -176,7 +177,8 @@
 #			Etherboot normally hooks onto INT19H for legacy ROMs.
 #			You can choose to hook onto INT18H (BASIC interpreter
 #			entry point) instead. This entry point is used when
-#			all boot devices have been exhausted.
+#			all boot devices have been exhausted. This option must
+#			be added to LCONFIG.
 #	-DCONFIG_PCI_DIRECT
 #			Define this for PCI BIOSes that do not implement
 #			BIOS32 or not correctly. Normally not needed.
@@ -202,7 +204,7 @@
 #			compressed BOOT-Prom images. It has no effect on
 #			uncompressed images. Unless you are very tight on
 #			free space, you will usually want to define this
-#			option.  This flag must be added to LCONFIG!
+#			option.  This option must be added to LCONFIG!
 #			(recommended).
 #	-DUSE_LOWMEM_BUFFER
 #			Define to put some buffers below 0x10000 which
@@ -249,8 +251,10 @@ CFLAGS32+=	-DTAGGED_IMAGE -DELF_IMAGE
 # Options to make a version of Etherboot that will work under linuxBIOS.
 #CFLAGS32+= -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCONSPEED=115200 -DCONFIG_PCI_DIRECT -DELF_IMAGE -DIMAGE_MULTIBOOT
 
-# These flags affect the loader that is prepended to the Etherboot image
+# These options affect the loader that is prepended to the Etherboot image
 LCONFIG+=	-DMOVEROM
+# LCONFIG+=	-DBBS_BUT_NOT_PNP_COMPLIANT
+# LCONFIG+=	-DBOOT_INT18H
 
 # you should normally not need to change these
 RM=		rm -f
