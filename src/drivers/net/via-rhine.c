@@ -1003,17 +1003,10 @@ rhine_reset (struct nic *nic)
     int rx_bufs_tmp, rx_bufs_tmp1;
     int tx_bufs_tmp, tx_bufs_tmp1;
 
-#ifdef	USE_LOWMEM_BUFFER
-#define buf1 (0x10000 - (RX_RING_SIZE * PKT_BUF_SZ + 32))
-#define buf2 (buf1 - (RX_RING_SIZE * PKT_BUF_SZ + 32))
-#define desc1 (buf2 - (TX_RING_SIZE * sizeof (struct rhine_tx_desc) + 32))
-#define desc2 (desc1 - (TX_RING_SIZE * sizeof (struct rhine_tx_desc) + 32))
-#else
     static char buf1[RX_RING_SIZE * PKT_BUF_SZ + 32];
     static char buf2[RX_RING_SIZE * PKT_BUF_SZ + 32];
     static char desc1[TX_RING_SIZE * sizeof (struct rhine_tx_desc) + 32];
     static char desc2[TX_RING_SIZE * sizeof (struct rhine_tx_desc) + 32];
-#endif
 
     /* printf ("rhine_reset\n"); */
     /* Soft reset the chip. */

@@ -137,13 +137,7 @@ static unsigned short		ioaddr;
 static int			dma;
 #endif
 static struct lance_interface	*lp;
-
-/* additional 8 bytes for 8-byte alignment space */
-#ifdef	USE_LOWMEM_BUFFER
-#define lance ((char *)0x10000 - (sizeof(struct lance_interface)+8))
-#else
 static char			lance[sizeof(struct lance_interface)+8];
-#endif
 
 #ifndef	INCLUDE_LANCE
 /* DMA defines and helper routines */

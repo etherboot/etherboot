@@ -84,13 +84,8 @@ static unsigned short	eeprom[64];
 static signed char	phys[4];		/* MII device addresses. */
 static struct epic_rx_desc	rx_ring[RX_RING_SIZE];
 static struct epic_tx_desc	tx_ring[TX_RING_SIZE];
-#ifdef	USE_LOWMEM_BUFFER
-#define rx_packet ((char *)0x10000 - PKT_BUF_SZ * RX_RING_SIZE)
-#define tx_packet ((char *)0x10000 - PKT_BUF_SZ * RX_RING_SIZE - PKT_BUF_SZ * TX_RING_SIZE)
-#else
 static char		rx_packet[PKT_BUF_SZ * RX_RING_SIZE];
 static char		tx_packet[PKT_BUF_SZ * TX_RING_SIZE];
-#endif
 
 /***********************************************************************/
 /*                    Externally visible functions                     */

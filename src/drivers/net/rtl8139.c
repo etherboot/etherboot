@@ -162,16 +162,7 @@ static unsigned int cur_rx,cur_tx;
 
 /* The RTL8139 can only transmit from a contiguous, aligned memory block.  */
 static unsigned char tx_buffer[TX_BUF_SIZE] __attribute__((aligned(4)));
-
-/* I know that this is a MEGA HACK, but the tagged boot image specification
- * states that we can do whatever we want below 0x10000 - so we do!  */
-/* But we still give the user the choice of using an internal buffer
-   just in case - Ken */
-#ifdef	USE_LOWMEM_BUFFER
-#define rx_ring ((unsigned char *)(0x10000 - (RX_BUF_LEN + 16)))
-#else
 static unsigned char rx_ring[RX_BUF_LEN+16] __attribute__((aligned(4)));
-#endif
 
 static int rtl8139_probe(struct dev *dev, struct pci_device *pci);
 static int read_eeprom(int location, int addr_len);

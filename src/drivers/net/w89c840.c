@@ -259,14 +259,8 @@ static struct winbond_private
 
 static int ioaddr;
 static unsigned short eeprom [0x40];
-
-#ifdef    USE_LOWMEM_BUFFER
-#define rx_packet ((char *)0x10000 - PKT_BUF_SZ * RX_RING_SIZE)
-#define tx_packet ((char *)0x10000 - PKT_BUF_SZ * RX_RING_SIZE - PKT_BUF_SZ * TX_RING_SIZE)
-#else
 static char        rx_packet[PKT_BUF_SZ * RX_RING_SIZE];
 static char        tx_packet[PKT_BUF_SZ * TX_RING_SIZE];
-#endif
 
 static int  eeprom_read(long ioaddr, int location);
 static int  mdio_read(int base_address, int phy_id, int location);

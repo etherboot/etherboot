@@ -387,21 +387,11 @@ static u32 ioaddr;
 
 #define TX_RING_SIZE	2
 static struct tulip_tx_desc tx_ring[TX_RING_SIZE] __attribute__ ((aligned(4)));
-
-#ifdef USE_LOWMEM_BUFFER
-#define txb ((char *)0x10000 - BUFLEN)
-#else
 static unsigned char txb[BUFLEN] __attribute__ ((aligned(4)));
-#endif
 
 #define RX_RING_SIZE	4
 static struct tulip_rx_desc rx_ring[RX_RING_SIZE] __attribute__ ((aligned(4)));
-
-#ifdef USE_LOWMEM_BUFFER
-#define rxb ((char *)0x10000 - RX_RING_SIZE * BUFLEN - BUFLEN)
-#else
 static unsigned char rxb[RX_RING_SIZE * BUFLEN] __attribute__ ((aligned(4)));
-#endif
 
 static struct tulip_private {
     int cur_rx;

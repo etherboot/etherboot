@@ -228,13 +228,8 @@ struct RxFD {               /* Receive frame descriptor. */
 	char packet[1518];
 };
 
-#ifdef	USE_LOWMEM_BUFFER
-#define rxfd ((struct RxFD *)(0x10000 - sizeof(struct RxFD)))
-#define ACCESS(x) x->
-#else
 static struct RxFD rxfd;
 #define ACCESS(x) x.
-#endif
 
 static int congenb = 0;         /* Enable congestion control in the DP83840. */
 static int txfifo = 8;          /* Tx FIFO threshold in 4 byte units, 0-15 */

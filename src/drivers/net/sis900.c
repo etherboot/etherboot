@@ -64,14 +64,8 @@ static unsigned int cur_rx;
 
 static BufferDesc txd;
 static BufferDesc rxd[NUM_RX_DESC];
-
-#ifdef USE_LOWMEM_BUFFER
-#define txb ((char *)0x10000 - TX_BUF_SIZE)
-#define rxb ((char *)0x10000 - NUM_RX_DESC*RX_BUF_SIZE - TX_BUF_SIZE)
-#else
 static unsigned char txb[TX_BUF_SIZE];
 static unsigned char rxb[NUM_RX_DESC * RX_BUF_SIZE];
-#endif
 
 static struct mac_chip_info {
     const char *name;

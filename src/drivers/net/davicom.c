@@ -140,20 +140,12 @@ static unsigned long ioaddr;
 /* transmit descriptor and buffer */
 #define NTXD 2
 static struct txdesc txd[NTXD] __attribute__ ((aligned(4)));
-#ifdef	USE_LOWMEM_BUFFER
-#define txb ((char *)0x10000 - BUFLEN)
-#else
 static unsigned char txb[BUFLEN] __attribute__ ((aligned(4)));
-#endif
 
 /* receive descriptor(s) and buffer(s) */
 #define NRXD 4
 static struct rxdesc rxd[NRXD] __attribute__ ((aligned(4)));
-#ifdef	USE_LOWMEM_BUFFER
-#define rxb ((char *)0x10000 - NRXD * BUFLEN - BUFLEN)
-#else
 static unsigned char rxb[NRXD * BUFLEN] __attribute__ ((aligned(4)));
-#endif
 static int rxd_tail;
 static int TxPtr;
 

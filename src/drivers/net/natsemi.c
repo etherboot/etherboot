@@ -208,13 +208,8 @@ static unsigned int tx_config;
 static BufferDesc txd              __attribute__ ((aligned(4)));
 static BufferDesc rxd[NUM_RX_DESC] __attribute__ ((aligned(4)));
 
-#ifdef USE_LOWMEM_BUFFER
-#define txb ((char *)0x10000 - TX_BUF_SIZE)
-#define rxb ((char *)0x10000 - NUM_RX_DESC*RX_BUF_SIZE - TX_BUF_SIZE)
-#else
 static unsigned char txb[TX_BUF_SIZE] __attribute__ ((aligned(4)));
 static unsigned char rxb[NUM_RX_DESC * RX_BUF_SIZE] __attribute__ ((aligned(4)));
-#endif
 
 /* Function Prototypes */
 
