@@ -267,28 +267,6 @@ void gateA20_set(void)
 }
 #endif
 
-#if defined(PCBIOS) && !defined(RELOCATE) && (defined(TAGGED_IMAGE) || defined(CAN_BOOT_DISK))
-/*
- * Unset Gate A20 for high memory - some operating systems (mainly old 16 bit
- * ones) don't expect it to be set by the boot loader.
- */
-void gateA20_unset(void)
-{
-	if (int15(Disable_A20) == 0) {
-		return;
-	}
-#ifdef	IBM_L40
-	outb(0x0, 0x92);
-#else	/* IBM_L40 */
-	empty_8042();
-	outb(KC_CMD_WOUT, K_CMD);
-	empty_8042();
-	outb(KB_UNSET_A20, K_RDWR);
-	empty_8042();
-#endif	/* IBM_L40 */
-}
-#endif
-
 void
 putchar(int c)
 {
