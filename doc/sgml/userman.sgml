@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/,
 <tt/&lt;markus+etherboot@gutschke.com&gt;/
-<date>v5.0.5, 31 December 2001
+<date>v5.0.6, 31 March 2002
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -41,6 +41,10 @@ documentation.
 
 <descrip>
 
+<tag/5.0.6 2002-03-31/ Released as Etherboot-doc 5.0.4.
+
+<tag/5.0.5 2001-12-31/ Released as Etherboot-doc 5.0.5.
+
 <tag/5.0.4 2001-09-16/ Released as Etherboot-doc 5.0.4.
 
 <tag/5.0.3 2001-08-05/ Released as Etherboot-doc 5.0.3.
@@ -64,7 +68,7 @@ Comments on and corrections for this User Manual may be directed to the
 
 <p>
 
-&copy; 2001 Ken Yap and Markus Gutschke.
+&copy; 2001,2002 Ken Yap and Markus Gutschke.
 
 <p>
 
@@ -175,7 +179,7 @@ listed on the Etherboot home page.</it>
 
 <p>
 
-The following is the current NIC configuration file as of 2001-12-28.
+The following is the current NIC configuration file as of 2002-03-26.
 
 Even if your NIC does not appear in the list, it may still be supported
 if the chip is one of those supported.  Many OEMs use chips from
@@ -239,6 +243,7 @@ strategy is to read the number on the LAN controller chip on the board.
 #   0x900A : 10 Base FL
 #   0x9055 : 10/100 TPO
 #   0x9056 : 10/100 T4
+#   0x9058 : ?
 #   0x905A : 10 Base FX
 # Newer 90xC revision:
 #   0x9200 : 10/100 TPO (3C905C-TXM)
@@ -252,6 +257,7 @@ strategy is to read the number on the LAN controller chip on the board.
 3c905b-fl	3c90x		0x10b7,0x900a
 3c905b-tpo100	3c90x		0x10b7,0x9055
 3c905b-t4	3c90x		0x10b7,0x9056
+3c905b-9058	3c90x		0x10b7,0x9058
 3c905b-fx	3c90x		0x10b7,0x905a
 3c905c-tpo	3c90x		0x10b7,0x9200
 3c980		3c90x		0x10b7,0x9800
@@ -263,6 +269,14 @@ eepro100	eepro100	0x8086,0x1229
 id1029		eepro100	0x8086,0x1029
 id1030		eepro100	0x8086,0x1030
 82562em		eepro100	0x8086,0x2449
+
+#Intel Etherexpress Pro/1000
+e1000     	e1000		0x8086,0x1000
+e1000-fib	e1000		0x8086,0x1001
+e1000-cop	e1000		0x8086,0x1004
+e1000-ecop	e1000		0x8086,0x1008
+e1000-creb	e1000		0x8086,0x100d
+
 # Lance PCI PCNet/32
 lancepci	lance		0x1022,0x2000
 pcnetfastiii	lance		0x1022,0x2625
@@ -293,8 +307,10 @@ mx98715		tulip		0x10d9,0x0531
 mx98725		tulip		0x10d9,0x0531
 # Another Macronix clone?
 mxic-98715	tulip		0x1113,0x1217
-# ADMtek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
+# ADMTek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
 an981		tulip		0x1317,0x0981
+# ADMTek Comet 983 (reported by RISKO Gergely)
+an983		tulip		0x1113,0x1216
 # ADMtek Centaur-P Tulip clones
 centaur-p	tulip		0x1317,0x0985
 centaur-c	tulip		0x1317,0x1985
@@ -314,6 +330,8 @@ davicom9102	davicom		0x1282,0x9102
 davicom9009	davicom		0x1282,0x9009
 # Old base driver for Tulip, not much use now
 otulip		otulip		0x1011,0x0002
+# Realtek 8129
+rtl8129		rtl8139		0x10ec,0x8129
 # Realtek 8139
 rtl8139		rtl8139		0x10ec,0x8139
 # SMC1211 (uses Realtek 8139 but with different IDs)
@@ -336,6 +354,8 @@ sis7016		sis900		0x1039,0x7016
 # A few NE2000 PCI clones, list not exhaustive
 # RealTek 8029
 rtl8029		ns8390		0x10ec,0x8029
+# D-Link DE528 (not confirmed, took numbers from pci.ids file)
+dlink-528	ns8390		0x1186,0x0300
 # Winbond 86C940
 winbond940	ns8390		0x1050,0x0940
 # Compex RL2000
@@ -680,8 +700,22 @@ Console options:
 		bits and parity. See a National Semiconditor 8250/
 		16450/16550 data sheet for bit meanings.
 		If undefined, defaults to 0x03 = 8N1.
+-DCOMPRESERVE
+		Ignore COMSPEED and COMPARAM and instead preserve
+		the com port parameters from the previous user
+		of the com port.  Examples of previous user are a BIOS
+		that implements console redirection, lilo and LinuxBIOS.
+		This makes it trivial to keep the serial port
+		speed setting in sync between multiple users.
+		You set the speed in the first user and the
+		rest follow along.
 
 BIOS interface options:
+
+-DPCBIOS
+		Compile in support for the normal pcbios
+-DLINUXBIOS
+		Compile in support for LinuxBIOS
 
 -DBBS_BUT_NOT_PNP_COMPLIANT
 		Some BIOSes claim to be PNP but they don't conform
@@ -713,6 +747,15 @@ BIOS interface options:
 		486s and above.
 -DPXELOADER_KEEP_UNDI
 		For implementation later with UNDI.
+-DIBM_L40
+		This option uses the 0x92 method of controlling
+		A20 instead of the traditional method of using the
+		keyboard controller. An explanation of A20 is here:
+		http://www.win.tue.nl/~aeb/linux/kbd/A20.html
+		This occurs on MCA, EISA and some embedded boards,
+		and sometimes with the Fast Gate A20 option on some
+		BIOSes.
+		Enable this only if you are sure of what you are doing.
 
 Obscure options you probably don't need to touch:
 
@@ -1353,8 +1396,11 @@ Anyway if you are still determined, in the <url
 url="http://etherboot.sourceforge.net/" name="Etherboot home page">,
 there are links to external Web pages, one explaining how this was done
 with a commercial TCP/IP boot ROM, another explaining how to do it using
-Etherboot and Netbios over IPX. Good luck and send us your experiences
-or better still a URL to a page explaining how you did it.
+Etherboot and Netbios over IPX. A recent user experience is <url
+name="here"
+url="http://www.geocrawler.com/lists/3/SourceForge/5299/0/8052616/">.
+Good luck and send us your experiences or better still a URL to a page
+explaining how you did it.
 
 <sect>Making an Etherboot EPROM or EEPROM
 
@@ -1570,7 +1616,7 @@ image? Is the card properly seated in the computer? Can you see the
 card with other software? Are there any address conflicts with other
 hardware? Is the PCI id of the card one that is not known to Etherboot
 yet? In this case and where you think there is a bug in Etherboot,
-please contact the author with all details.
+please submit a report to the Etherboot-users mailing list.
 
 <item>Etherboot detects card but hangs computer after detection. Some
 cards are booby traps while they are enabled. The typical offenders
@@ -1593,6 +1639,15 @@ denied by tcpwrapper rules?  Did you put the right home directory and
 boot filename in bootptab? If you are booting lots of clients, is inetd
 shutting down tftpd for being spawned too often? If so, you need to get
 a better inetd or a a dedicated tftpd that runs as an independent daemon.
+
+<item>Etherboot loads file but hangs halfway through the transfer. We
+have one report that this happens if the Fast A20 Gate option is
+selected in the BIOS setup. The A20 issue is explained <url name="here"
+url="http://www.win.tue.nl/~aeb/linux/kbd/A20.html">. In effect this
+causes the loaded kernel to overwrite Etherboot and kill it. Etherboot
+(as of writing, version 5.0.5) does not yet have the smarts to detect
+when Fast A20 Gate is in effect and do the right thing.  So don't select
+the option.  You don't need it for Linux anyway.
 
 <item>Etherboot loads file via tftp but Linux fails to boot. This is a
 large category. Here are some suggestions:
@@ -2622,6 +2677,7 @@ format, thus allowing Etherboot to be built without requiring as86/nasm.
 
 <tag/Luigi Rizzo/ contributed a bootloader from FreeBSD that works for
 both floppy and hard disk partitions. This obsoletes floppyload.S.
+Patch to do adaptive timeout in NFS booting.
 
 <tag/Michael Sinz/ contributed patches for loading debug symbols when
 booting FreeBSD.
@@ -2634,20 +2690,25 @@ NICs.
 it work for the SiS630e/SiS730s.
 
 <tag/Eric Biederman/ improved the recovery logic of main.c and lots of
-other changes.
+other changes. Contributed E820H memory sizing logic. Reworked PCI
+logic. Made more compatible with LinuxBIOS. Lots of small fixes.
 
 <tag/Peter Lister and Vasil Vasilev/ contributed changes to generate
 .pxe image that can be booted using a PXE booter.
 
-<tag/Fred Gray contributed changes in tulip.c to check for a duplex
+<tag/Fred Gray/ contributed changes in tulip.c to check for a duplex
 connection and to modify the controller register if so.
 
-<tag/Mark G of Inprimis Technologies contributed another FA311
+<tag/Mark G/ of Inprimis Technologies contributed another FA311
 (National Semiconductor DP83815) driver, also based on the Donald
 Becker Linux driver.
 
-<tag/Armin Schindler contributed a patch to allow booting LynxOS KDI
+<tag/Armin Schindler/ contributed a patch to allow booting LynxOS KDI
 images.
+
+<tag/Christopher Li/ contributed an Intel E1000 gigabit Ethernet driver.
+
+<tag/Rohit Jalan/ contributed a patch for FreeBSD style PXE booting.
 
 </descrip>
 
@@ -2694,6 +2755,12 @@ cs89x0.h		GPL
 davicom.c		GPL
 depca.c			GPL
 disrom.pl		GPL
+e1000.c			GPL
+e1000.h			GPL
+e1000_fxhw.c		GPL
+e1000_fxhw.h		GPL
+e1000_phy.c		GPL
+e1000_phy.h		GPL
 eepro.c			GPL
 eepro100.c		GPL
 epic100.c		None

@@ -158,23 +158,27 @@ be static and private to the driver module. Similarly all global data
 in the driver should be static and private.
 <P>
 <P>
-<P>A prototype for the probe routine should be added to the file config.c,
-conditional on INCLUDE_NAMEOFNIC.  NAMEOFNIC is derived from the name
-of the driver source file for your adapter by uppercasing alphabets and
-converting hyphen to underscore. If the file is pop-sicle.c, then the
-symbol is INCLUDE_POP_SICLE. Also conditional on INCLUDE_NAMEOFNIC should
-be a struct entry containing the name of the driver and a pointer to the
-probe routine. The third element of the structure should be pci_probeaddrs
-in the case of PCI adapters, otherwise 0.
+<P>In cards.h add a prototype for the probe routine, conditional on
+INCLUDE_NAMEOFNIC.  NAMEOFNIC is derived from the name of the driver
+source file for your adapter by uppercasing alphabets and converting
+hyphen to underscore. If the file is pop-sicle.c, then the symbol is
+INCLUDE_POP_SICLE.
 <P>
 <P>
-<P>If the NIC is a PCI adapter, then you also need to put an entry
-in the pci_nic_list array with the name, vendor and id fields
-filled in. You can obtain the vendor and device ids from the file
-/usr/include/linux/pci.h. It is also displayed by PCI BIOSes on bootup,
-or you can use the lspci program from the pciutils package to discover
-the ids.  The other fields will be filled in by the pci routines.
-The symbol INCLUDE_NAMEOFNIC should be used to set INCLUDE_PCI.
+<P>In config.c, add a struct entry containing the name of the driver and a
+pointer to the probe routine, also conditional on INCLUDE_NAMEOFNIC.
+The third element of the structure should be pci_probeaddrs in the case
+of PCI adapters, otherwise 0.
+<P>
+<P>
+<P>If the NIC is a PCI adapter, near the top of config.c, add
+INCLUDE_NAMEOFNIC to the list of defines that cause INCLUDE_PCI to be
+set. Also add an entry in the pci_nic_list array with the name, vendor
+and id fields filled in. You can obtain the vendor and device ids from
+the file /usr/include/linux/pci.h. It is also displayed by PCI BIOSes on
+bootup, or you can use the lspci program from the pciutils package to
+discover the ids.  The other fields will be filled in by the pci
+routines.
 <P>
 <P>
 <P>Then add an entry to the file NIC so that the build process will create

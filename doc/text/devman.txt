@@ -1,6 +1,6 @@
   Etherboot Developers Manual
   Ken Yap, <ken_yap@users.sourceforge.net>
-  v5.0.5, 31 December 2001
+  v5.0.6, 31 March 2002
 
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
@@ -77,6 +77,14 @@
 
 
 
+     55..00..66 22000022--0033--3311
+        Released as Etherboot-doc 5.0.6.
+
+
+     55..00..55 22000011--1122--3311
+        Released as Etherboot-doc 5.0.5.
+
+
      55..00..44 22000011--0099--1166
         Released as Etherboot-doc 5.0.4.
 
@@ -105,7 +113,7 @@
   11..55..  CCooppyyrriigghhttss aanndd TTrraaddeemmaarrkkss
 
 
-  (C) 2001 Ken Yap.
+  (C) 2001,2002 Ken Yap.
 
 
 
@@ -122,13 +130,14 @@
   +o  If you distribute this work in part, instructions for obtaining the
      complete version of this manual must be included, and a means for
      obtaining a complete version provided.
-
   +o  Small portions may be reproduced as illustrations for reviews or
      quotes in other works without this permission notice if proper
      citation is given. Exceptions to these rules may be granted for
      academic purposes: Write to the author and ask. These restrictions
      are here to protect us as authors, not to restrict you as learners
      and educators.
+
+
 
   All trademarks mentioned in this document belong to their respective
   owners.
@@ -187,13 +196,9 @@
   a special case in terms of ROM address. When network adaptors were
   made for the PC, it was a natural step to put ROMs on them that could
   contact a server for network booting.
-
-
-
   How does the main BIOS know that the code in the ROM is to be executed
   and why does it not execute some random code by accident? The ROM code
   has several conditions placed on it.
-
 
 
   +o  The ROM must start on a 2kB boundary in the memory space, between
@@ -262,6 +267,7 @@
 
   1. The main BIOS detects the Etherboot ROM as an extension BIOS and
      passes control to it with a far call.
+
   2. For legacy ROMs, the Etherboot code hooks itself to interrupt 0x19
      and returns control to the main BIOS. For PnP ROMs the Etherboot
      code indicates that it is a bootable device.
@@ -324,7 +330,6 @@
   there is nothing in the procedure above that is Linux specific. By
   creating the loaded file appropriately, different operating systems,
   e.g.  FreeBSD, DOS, can be loaded.
-
 
 
 
@@ -394,6 +399,9 @@
   dynamic storage allocation. This keeps things simple, makes it a bit
   less prone to programming errors, and also acts as a check against
   unthinking use of memory by programmers.
+
+
+
   One thing that we usually want to do is minimise the size of the ROM
   used to hold Etherboot. Even if the network adapter accommodates large
   ROMs, there are many claims on the area between 0xC8000 to 0xEE000, by
@@ -451,8 +459,6 @@
   as86/nasm. Fortunately they have now been translated to assemble using
   the .code16 mode of the GNU assembler, so less extra tools are needed
   now.
-
-
 
   In the case of Linux tagged images, the initial segment first32.c runs
   in protected mode. The segment uses the same stack as Etherboot. Since
@@ -525,7 +531,6 @@
   adapter, again using C preprocessor technology.
 
 
-
   44..22..  DDrriivveerrss
 
 
@@ -590,6 +595,7 @@
   obtained by Etherboot, which includes the filename field. Finally, the
   external program can return one longword of status to Etherboot to
   indicate various conditions.
+
 
 
   So here's how the external menu program would work. Etherboot is told
@@ -657,7 +663,6 @@
   +o  The file config.c is compiled to bin32/config-tulip.o while
      applying the appropriate define: INCLUDE_TULIP.
 
-
   +o  The startup routine (which must be first in the list of objects),
      the driver object, bootlib.a, and config-tulip.o are linked to
      produce an ELF binary, linked to run at the relocation address of
@@ -718,9 +723,13 @@
      floppy one would say:
 
 
+
      ___________________________________________________________________
      make mx987x5.lzdsk
      ___________________________________________________________________
+
+
+
 
 
 
@@ -856,6 +865,9 @@
      reset routine to initialise the adapter.  Finally it should fill in
      the function pointers for the other routines, and return the `nic'
      pointer. If it fails to find an adapter, it should return 0.
+
+
+
      The field rom_info in the `nic' struct contains, on entry to the
      probe routine, a pointer to the structure rom_info, defined in
      ehterboot.h.  This contains the segment address and length in
@@ -921,33 +933,35 @@
      with them.
 
 
-
   Only the probe routine needs to be public, all the other routines
   should be static and private to the driver module. Similarly all
   global data in the driver should be static and private.
 
 
 
-  A prototype for the probe routine should be added to the file
-  config.c, conditional on INCLUDE_NAMEOFNIC.  NAMEOFNIC is derived from
-  the name of the driver source file for your adapter by uppercasing
-  alphabets and converting hyphen to underscore. If the file is pop-
-  sicle.c, then the symbol is INCLUDE_POP_SICLE. Also conditional on
-  INCLUDE_NAMEOFNIC should be a struct entry containing the name of the
-  driver and a pointer to the probe routine. The third element of the
-  structure should be pci_probeaddrs in the case of PCI adapters,
-  otherwise 0.
+  In cards.h add a prototype for the probe routine, conditional on
+  INCLUDE_NAMEOFNIC.  NAMEOFNIC is derived from the name of the driver
+  source file for your adapter by uppercasing alphabets and converting
+  hyphen to underscore. If the file is pop-sicle.c, then the symbol is
+  INCLUDE_POP_SICLE.
 
 
 
-  If the NIC is a PCI adapter, then you also need to put an entry in the
-  pci_nic_list array with the name, vendor and id fields filled in. You
-  can obtain the vendor and device ids from the file
-  /usr/include/linux/pci.h. It is also displayed by PCI BIOSes on
-  bootup, or you can use the lspci program from the pciutils package to
-  discover the ids.  The other fields will be filled in by the pci
-  routines.  The symbol INCLUDE_NAMEOFNIC should be used to set
-  INCLUDE_PCI.
+  In config.c, add a struct entry containing the name of the driver and
+  a pointer to the probe routine, also conditional on INCLUDE_NAMEOFNIC.
+  The third element of the structure should be pci_probeaddrs in the
+  case of PCI adapters, otherwise 0.
+
+
+
+  If the NIC is a PCI adapter, near the top of config.c, add
+  INCLUDE_NAMEOFNIC to the list of defines that cause INCLUDE_PCI to be
+  set. Also add an entry in the pci_nic_list array with the name, vendor
+  and id fields filled in. You can obtain the vendor and device ids from
+  the file /usr/include/linux/pci.h. It is also displayed by PCI BIOSes
+  on bootup, or you can use the lspci program from the pciutils package
+  to discover the ids.  The other fields will be filled in by the pci
+  routines.
 
 
 
@@ -1037,6 +1051,9 @@
   timer.h. You use them like this (in pseudo-code):
 
 
+
+
+
   ______________________________________________________________________
           for (load_timer2(TIMEOUT_VALUE);
                   transmitter_busy && (status = timer2_running()); )
@@ -1052,6 +1069,7 @@
   need to delay a short time without needing to do other checks during
   the timeout, you can call waiton_timer2(TIMEOUT_VALUE) which will
   load, then poll the timer, and return control on timeout.
+
 
 
   Please do not use counting loops to implement delays. Such loops are
@@ -1101,6 +1119,7 @@
   of the rest of Etherboot is GPLed.
 
 
+
   88..  AA ppootttteedd hhiissttoorryy ooff EEtthheerrbboooott
 
 
@@ -1116,7 +1135,6 @@
   binaries could be used in a boot ROM.  This allows any NIC on the
   market that has a packet driver to be used immediately. He also
   migrated the development to a Linux (Unix) platform.
-
 
 
 
@@ -1148,24 +1166,6 @@
   April 2000, Etherboot has been hosted at Sourceforge
   <http://sourceforge.net/>. Sourceforge has provided superb facilities
   for hosting community Open Source development.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

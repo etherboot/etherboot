@@ -182,6 +182,7 @@ format, thus allowing Etherboot to be built without requiring as86/nasm.
 <P>
 <DT><B>Luigi Rizzo</B><DD><P>contributed a bootloader from FreeBSD that works for
 both floppy and hard disk partitions. This obsoletes floppyload.S.
+Patch to do adaptive timeout in NFS booting.
 <P>
 <DT><B>Michael Sinz</B><DD><P>contributed patches for loading debug symbols when
 booting FreeBSD.
@@ -194,18 +195,26 @@ NICs.
 it work for the SiS630e/SiS730s.
 <P>
 <DT><B>Eric Biederman</B><DD><P>improved the recovery logic of main.c and lots of
-other changes.
+other changes. Contributed E820H memory sizing logic. Reworked PCI
+logic. Made more compatible with LinuxBIOS. Lots of small fixes.
 <P>
 <DT><B>Peter Lister and Vasil Vasilev</B><DD><P>contributed changes to generate
 .pxe image that can be booted using a PXE booter.
 <P>
-<DT><B>Fred Gray contributed changes in tulip.c to check for a duplex
-connection and to modify the controller register if so.</B><DD><P>
-<DT><B>Mark G of Inprimis Technologies contributed another FA311
+<DT><B>Fred Gray</B><DD><P>contributed changes in tulip.c to check for a duplex
+connection and to modify the controller register if so.
+<P>
+<DT><B>Mark G</B><DD><P>of Inprimis Technologies contributed another FA311
 (National Semiconductor DP83815) driver, also based on the Donald
-Becker Linux driver.</B><DD><P>
-<DT><B>Armin Schindler contributed a patch to allow booting LynxOS KDI
-images.</B><DD><P>
+Becker Linux driver.
+<P>
+<DT><B>Armin Schindler</B><DD><P>contributed a patch to allow booting LynxOS KDI
+images.
+<P>
+<DT><B>Christopher Li</B><DD><P>contributed an Intel E1000 gigabit Ethernet driver.
+<P>
+<DT><B>Rohit Jalan</B><DD><P>contributed a patch for FreeBSD style PXE booting.
+<P>
 </DL>
 <P>
 <HR>

@@ -246,8 +246,22 @@ Console options:
                 bits and parity. See a National Semiconditor 8250/
                 16450/16550 data sheet for bit meanings.
                 If undefined, defaults to 0x03 = 8N1.
+-DCOMPRESERVE
+                Ignore COMSPEED and COMPARAM and instead preserve
+                the com port parameters from the previous user
+                of the com port.  Examples of previous user are a BIOS
+                that implements console redirection, lilo and LinuxBIOS.
+                This makes it trivial to keep the serial port
+                speed setting in sync between multiple users.
+                You set the speed in the first user and the
+                rest follow along.
 
 BIOS interface options:
+
+-DPCBIOS
+                Compile in support for the normal pcbios
+-DLINUXBIOS
+                Compile in support for LinuxBIOS
 
 -DBBS_BUT_NOT_PNP_COMPLIANT
                 Some BIOSes claim to be PNP but they don't conform
@@ -279,6 +293,15 @@ BIOS interface options:
                 486s and above.
 -DPXELOADER_KEEP_UNDI
                 For implementation later with UNDI.
+-DIBM_L40
+                This option uses the 0x92 method of controlling
+                A20 instead of the traditional method of using the
+                keyboard controller. An explanation of A20 is here:
+                http://www.win.tue.nl/~aeb/linux/kbd/A20.html
+                This occurs on MCA, EISA and some embedded boards,
+                and sometimes with the Fast Gate A20 option on some
+                BIOSes.
+                Enable this only if you are sure of what you are doing.
 
 Obscure options you probably don't need to touch:
 

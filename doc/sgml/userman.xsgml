@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/,
 <tt/&lt;markus+etherboot@gutschke.com&gt;/
-<date>v5.0.5, 31 December 2001
+<date>v5.0.6, 31 March 2002
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -41,6 +41,10 @@ documentation.
 
 <descrip>
 
+<tag/5.0.6 2002-03-31/ Released as Etherboot-doc 5.0.4.
+
+<tag/5.0.5 2001-12-31/ Released as Etherboot-doc 5.0.5.
+
 <tag/5.0.4 2001-09-16/ Released as Etherboot-doc 5.0.4.
 
 <tag/5.0.3 2001-08-05/ Released as Etherboot-doc 5.0.3.
@@ -64,7 +68,7 @@ Comments on and corrections for this User Manual may be directed to the
 
 <p>
 
-&copy; 2001 Ken Yap and Markus Gutschke.
+&copy; 2001,2002 Ken Yap and Markus Gutschke.
 
 <p>
 
@@ -935,8 +939,11 @@ Anyway if you are still determined, in the <url
 url="http://etherboot.sourceforge.net/" name="Etherboot home page">,
 there are links to external Web pages, one explaining how this was done
 with a commercial TCP/IP boot ROM, another explaining how to do it using
-Etherboot and Netbios over IPX. Good luck and send us your experiences
-or better still a URL to a page explaining how you did it.
+Etherboot and Netbios over IPX. A recent user experience is <url
+name="here"
+url="http://www.geocrawler.com/lists/3/SourceForge/5299/0/8052616/">.
+Good luck and send us your experiences or better still a URL to a page
+explaining how you did it.
 
 <sect>Making an Etherboot EPROM or EEPROM
 
@@ -1152,7 +1159,7 @@ image? Is the card properly seated in the computer? Can you see the
 card with other software? Are there any address conflicts with other
 hardware? Is the PCI id of the card one that is not known to Etherboot
 yet? In this case and where you think there is a bug in Etherboot,
-please contact the author with all details.
+please submit a report to the Etherboot-users mailing list.
 
 <item>Etherboot detects card but hangs computer after detection. Some
 cards are booby traps while they are enabled. The typical offenders
@@ -1175,6 +1182,15 @@ denied by tcpwrapper rules?  Did you put the right home directory and
 boot filename in bootptab? If you are booting lots of clients, is inetd
 shutting down tftpd for being spawned too often? If so, you need to get
 a better inetd or a a dedicated tftpd that runs as an independent daemon.
+
+<item>Etherboot loads file but hangs halfway through the transfer. We
+have one report that this happens if the Fast A20 Gate option is
+selected in the BIOS setup. The A20 issue is explained <url name="here"
+url="http://www.win.tue.nl/~aeb/linux/kbd/A20.html">. In effect this
+causes the loaded kernel to overwrite Etherboot and kill it. Etherboot
+(as of writing, version 5.0.5) does not yet have the smarts to detect
+when Fast A20 Gate is in effect and do the right thing.  So don't select
+the option.  You don't need it for Linux anyway.
 
 <item>Etherboot loads file via tftp but Linux fails to boot. This is a
 large category. Here are some suggestions:
@@ -2204,6 +2220,7 @@ format, thus allowing Etherboot to be built without requiring as86/nasm.
 
 <tag/Luigi Rizzo/ contributed a bootloader from FreeBSD that works for
 both floppy and hard disk partitions. This obsoletes floppyload.S.
+Patch to do adaptive timeout in NFS booting.
 
 <tag/Michael Sinz/ contributed patches for loading debug symbols when
 booting FreeBSD.
@@ -2216,20 +2233,25 @@ NICs.
 it work for the SiS630e/SiS730s.
 
 <tag/Eric Biederman/ improved the recovery logic of main.c and lots of
-other changes.
+other changes. Contributed E820H memory sizing logic. Reworked PCI
+logic. Made more compatible with LinuxBIOS. Lots of small fixes.
 
 <tag/Peter Lister and Vasil Vasilev/ contributed changes to generate
 .pxe image that can be booted using a PXE booter.
 
-<tag/Fred Gray contributed changes in tulip.c to check for a duplex
+<tag/Fred Gray/ contributed changes in tulip.c to check for a duplex
 connection and to modify the controller register if so.
 
-<tag/Mark G of Inprimis Technologies contributed another FA311
+<tag/Mark G/ of Inprimis Technologies contributed another FA311
 (National Semiconductor DP83815) driver, also based on the Donald
 Becker Linux driver.
 
-<tag/Armin Schindler contributed a patch to allow booting LynxOS KDI
+<tag/Armin Schindler/ contributed a patch to allow booting LynxOS KDI
 images.
+
+<tag/Christopher Li/ contributed an Intel E1000 gigabit Ethernet driver.
+
+<tag/Rohit Jalan/ contributed a patch for FreeBSD style PXE booting.
 
 </descrip>
 

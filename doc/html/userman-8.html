@@ -82,7 +82,7 @@ image? Is the card properly seated in the computer? Can you see the
 card with other software? Are there any address conflicts with other
 hardware? Is the PCI id of the card one that is not known to Etherboot
 yet? In this case and where you think there is a bug in Etherboot,
-please contact the author with all details.
+please submit a report to the Etherboot-users mailing list.
 </LI>
 <LI>Etherboot detects card but hangs computer after detection. Some
 cards are booby traps while they are enabled. The typical offenders
@@ -105,6 +105,15 @@ denied by tcpwrapper rules?  Did you put the right home directory and
 boot filename in bootptab? If you are booting lots of clients, is inetd
 shutting down tftpd for being spawned too often? If so, you need to get
 a better inetd or a a dedicated tftpd that runs as an independent daemon.
+</LI>
+<LI>Etherboot loads file but hangs halfway through the transfer. We
+have one report that this happens if the Fast A20 Gate option is
+selected in the BIOS setup. The A20 issue is explained 
+<A HREF="http://www.win.tue.nl/~aeb/linux/kbd/A20.html">here</A>. In effect this
+causes the loaded kernel to overwrite Etherboot and kill it. Etherboot
+(as of writing, version 5.0.5) does not yet have the smarts to detect
+when Fast A20 Gate is in effect and do the right thing.  So don't select
+the option.  You don't need it for Linux anyway.
 </LI>
 <LI>Etherboot loads file via tftp but Linux fails to boot. This is a
 large category. Here are some suggestions:

@@ -1,7 +1,7 @@
   Etherboot User Manual
   Ken Yap and Markus Gutschke, <ken_yap@users.source-
   forge.net>, <markus+etherboot@gutschke.com>
-  v5.0.5, 31 December 2001
+  v5.0.6, 31 March 2002
 
   This User Manual explains how to install, configure and use the Ether-
   boot package.  The instructions here apply to version 5.0 of Ether-
@@ -155,6 +155,14 @@
 
 
 
+     55..00..66 22000022--0033--3311
+        Released as Etherboot-doc 5.0.4.
+
+
+     55..00..55 22000011--1122--3311
+        Released as Etherboot-doc 5.0.5.
+
+
      55..00..44 22000011--0099--1166
         Released as Etherboot-doc 5.0.4.
 
@@ -186,9 +194,7 @@
   11..55..  CCooppyyrriigghhttss aanndd TTrraaddeemmaarrkkss
 
 
-  (C) 2001 Ken Yap and Markus Gutschke.
-
-
+  (C) 2001,2002 Ken Yap and Markus Gutschke.
 
   This manual may be reproduced in whole or in part, without fee,
   subject to the following restrictions:
@@ -196,6 +202,7 @@
 
   +o  The copyright notice above and this permission notice must be
      preserved complete on all complete or partial copies.
+
   +o  Any translation or derived work must be approved by the author in
      writing before distribution.
 
@@ -255,8 +262,6 @@
   For a somewhat out of date talk/tutorial type introduction to what
   Etherboot does and how to set it up, see my SLUG talk <diskless.html>.
   You may wish to review this before reading further.
-
-
   22..22..  LLeeggaall ssttaattuuss ooff tthhee ccooddee
 
 
@@ -293,18 +298,13 @@
   22..33..  WWhhaatt hhaarrddwwaarree iiss ssuuppppoorrtteedd??
 
 
-  The following is the current NIC configuration file as of 2001-12-28.
+  The following is the current NIC configuration file as of 2002-03-26.
 
   Even if your NIC does not appear in the list, it may still be
   supported if the chip is one of those supported.  Many OEMs use chips
   from foundries. An exhaustive list of brand names is impossible.  The
   best strategy is to read the number on the LAN controller chip on the
   board.
-
-
-
-
-
 
 
 
@@ -385,6 +385,7 @@
   #   0x900A : 10 Base FL
   #   0x9055 : 10/100 TPO
   #   0x9056 : 10/100 T4
+  #   0x9058 : ?
   #   0x905A : 10 Base FX
   # Newer 90xC revision:
   #   0x9200 : 10/100 TPO (3C905C-TXM)
@@ -398,6 +399,7 @@
   3c905b-fl       3c90x           0x10b7,0x900a
   3c905b-tpo100   3c90x           0x10b7,0x9055
   3c905b-t4       3c90x           0x10b7,0x9056
+  3c905b-9058     3c90x           0x10b7,0x9058
   3c905b-fx       3c90x           0x10b7,0x905a
   3c905c-tpo      3c90x           0x10b7,0x9200
   3c980           3c90x           0x10b7,0x9800
@@ -409,6 +411,14 @@
   id1029          eepro100        0x8086,0x1029
   id1030          eepro100        0x8086,0x1030
   82562em         eepro100        0x8086,0x2449
+
+  #Intel Etherexpress Pro/1000
+  e1000           e1000           0x8086,0x1000
+  e1000-fib       e1000           0x8086,0x1001
+  e1000-cop       e1000           0x8086,0x1004
+  e1000-ecop      e1000           0x8086,0x1008
+  e1000-creb      e1000           0x8086,0x100d
+
   # Lance PCI PCNet/32
   lancepci        lance           0x1022,0x2000
   pcnetfastiii    lance           0x1022,0x2625
@@ -439,8 +449,10 @@
   mx98725         tulip           0x10d9,0x0531
   # Another Macronix clone?
   mxic-98715      tulip           0x1113,0x1217
-  # ADMtek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
+  # ADMTek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
   an981           tulip           0x1317,0x0981
+  # ADMTek Comet 983 (reported by RISKO Gergely)
+  an983           tulip           0x1113,0x1216
   # ADMtek Centaur-P Tulip clones
   centaur-p       tulip           0x1317,0x0985
   centaur-c       tulip           0x1317,0x1985
@@ -460,6 +472,8 @@
   davicom9009     davicom         0x1282,0x9009
   # Old base driver for Tulip, not much use now
   otulip          otulip          0x1011,0x0002
+  # Realtek 8129
+  rtl8129         rtl8139         0x10ec,0x8129
   # Realtek 8139
   rtl8139         rtl8139         0x10ec,0x8139
   # SMC1211 (uses Realtek 8139 but with different IDs)
@@ -482,6 +496,8 @@
   # A few NE2000 PCI clones, list not exhaustive
   # RealTek 8029
   rtl8029         ns8390          0x10ec,0x8029
+  # D-Link DE528 (not confirmed, took numbers from pci.ids file)
+  dlink-528       ns8390          0x1186,0x0300
   # Winbond 86C940
   winbond940      ns8390          0x1050,0x0940
   # Compex RL2000
@@ -576,9 +592,6 @@
   people as possible see the questions and answers. Note that I will
   post my replies to the mailing lists so to see the answers you should
   subscribe, or be willing to check the archives later.
-
-
-
   Other lists you can join are the Netboot mailing list (joining details
   on Etherboot home page), and the Linux Terminal Server Project mailing
   lists at LTSP <http://www.ltsp.org/>.  The Etherboot and Netboot lists
@@ -640,6 +653,11 @@
   followed by one of the following:
 
 
+
+
+
+
+
   ______________________________________________________________________
           tar zxvf ../etherboot-doc-5.0.x.tar.gz
           tar jxvf ../etherboot-doc-5.0.x.tar.bz2
@@ -680,24 +698,6 @@
 
 
   Here is a description of the options available:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -880,8 +880,22 @@
                   bits and parity. See a National Semiconditor 8250/
                   16450/16550 data sheet for bit meanings.
                   If undefined, defaults to 0x03 = 8N1.
+  -DCOMPRESERVE
+                  Ignore COMSPEED and COMPARAM and instead preserve
+                  the com port parameters from the previous user
+                  of the com port.  Examples of previous user are a BIOS
+                  that implements console redirection, lilo and LinuxBIOS.
+                  This makes it trivial to keep the serial port
+                  speed setting in sync between multiple users.
+                  You set the speed in the first user and the
+                  rest follow along.
 
   BIOS interface options:
+
+  -DPCBIOS
+                  Compile in support for the normal pcbios
+  -DLINUXBIOS
+                  Compile in support for LinuxBIOS
 
   -DBBS_BUT_NOT_PNP_COMPLIANT
                   Some BIOSes claim to be PNP but they don't conform
@@ -913,6 +927,15 @@
                   486s and above.
   -DPXELOADER_KEEP_UNDI
                   For implementation later with UNDI.
+  -DIBM_L40
+                  This option uses the 0x92 method of controlling
+                  A20 instead of the traditional method of using the
+                  keyboard controller. An explanation of A20 is here:
+                  http://www.win.tue.nl/~aeb/linux/kbd/A20.html
+                  This occurs on MCA, EISA and some embedded boards,
+                  and sometimes with the Fast Gate A20 option on some
+                  BIOSes.
+                  Enable this only if you are sure of what you are doing.
 
   Obscure options you probably don't need to touch:
 
@@ -965,9 +988,6 @@
   boot block.  Like this, after you have done a make to create all the
   images:
 
-
-
-
   ______________________________________________________________________
           cat bin/boot1a.bin bin32/3c509.lzrom > /dev/fd0
   ______________________________________________________________________
@@ -987,6 +1007,8 @@
   operation, you should read the instructions in boot1a.s. If you don't
   understand how to do it, please ask the mailing list for help, don't
   just try it and destroy your disk data.
+
+
 
   When you boot with this floppy it will load the Etherboot ROM image
   from floppy and execute it. If you chose the correct ROM image, it
@@ -1096,6 +1118,8 @@
   <http://sourceforge.net/projects/etherboot/>.
 
 
+
+
   44..22..  CCoommppiilliinngg aa ccuussttoomm kkeerrnneell
 
 
@@ -1116,8 +1140,6 @@
 
   After you have compiled the custom kernel, make the tagged image,
   typically like this:
-
-
 
 
   ______________________________________________________________________
@@ -1153,6 +1175,17 @@
   Here is a sample DHCP configuration for ISC dhcpd:
 
 
+
+
+
+
+
+
+
+
+
+
+
   ______________________________________________________________________
   option domain-name "ken.net.au";
   option domain-name-servers 192.168.26.1;
@@ -1186,6 +1219,7 @@
   NFS mounting.
 
 
+
   Recent kernels in the 2.2 series can autoconfigure using DHCP thanks
   to code by Chip Salzenberg. It also can use DHCP in 2.4 kernels
   starting from 2.4.4 thanks to Eric Biederman.  Otherwise the kernel
@@ -1217,8 +1251,6 @@
   currently 5.0. The 5 and the 0 are printable digits, not binary
   values, i.e. byte values 53 and 48 respectively. This allows the
   server to identify Etherboot clients and ignore all others.
-
-
 
   The second part is Etherboot can be conditionally compiled to require
   a Vendor Encapsulated Option containing a VCI of "Etherboot",
@@ -1286,7 +1318,6 @@
   bootps service is active in /etc/inetd.conf; it should look something
   like this:
 
-
   ______________________________________________________________________
   bootps  dgram   udp     wait    root    /usr/sbin/tcpd  bootpd
   ______________________________________________________________________
@@ -1317,6 +1348,7 @@
 
   Here is an example of a /etc/bootptab for the bootpd supplied with
   many Linux distributions and probably many versions of Unix:
+
 
   ______________________________________________________________________
   .default:\
@@ -1352,9 +1384,6 @@
   tftpd, this chroots to the specified directory, but then your
   pathnames in bootptab or dhcpd.conf must be relative to the new root
   directory.
-
-
-
   If you are booting many clients you should be aware of the limitations
   of running tftpd from inetd. Typically inetd has limits on how often a
   daemon can be spawned, to detect runaway daemons. If many clients
@@ -1450,6 +1479,9 @@
   you have got the initial filesystem mounted, you can mount additional
   network filesystems such as /usr or /opt to give you a full execution
   environment.
+
+
+
   See the FAQ section for various methods of constructing a NFS root
   filesystem. There is no one true method. In the method I use I was
   lazy so I just made a copy of the necessary files from an existing
@@ -1577,9 +1609,10 @@
   in the Etherboot home page <http://etherboot.sourceforge.net/>, there
   are links to external Web pages, one explaining how this was done with
   a commercial TCP/IP boot ROM, another explaining how to do it using
-  Etherboot and Netbios over IPX. Good luck and send us your experiences
-  or better still a URL to a page explaining how you did it.
-
+  Etherboot and Netbios over IPX. A recent user experience is here
+  <http://www.geocrawler.com/lists/3/SourceForge/5299/0/8052616/>.  Good
+  luck and send us your experiences or better still a URL to a page
+  explaining how you did it.
 
 
   77..  MMaakkiinngg aann EEtthheerrbboooott EEPPRROOMM oorr EEEEPPRROOMM
@@ -1647,6 +1680,8 @@
   good price for the EPROM.  Currently the 32kB and 64kB EPROMs (27256
   and 27512) seem to be the cheapest per unit. Smaller EPROMs appear to
   be more expensive because they are out of mainstream production.
+
+
 
   If you cannot find out from the documentation what capacity of EPROM
   your card takes, for ISA NICs only, you could do it by trial and
@@ -1744,6 +1779,7 @@
      bss is greater than 48kB, then Etherboot might crash at unexpected
      places.
 
+
   +o  Floppy version works but EPROM version doesn't work. There is a
      program called rom-scan (Linux, FreeBSD and DOS versions) in the
      directory contrib/rom-scan which will help detect problems. Rom-
@@ -1799,7 +1835,8 @@
      with other software? Are there any address conflicts with other
      hardware? Is the PCI id of the card one that is not known to
      Etherboot yet? In this case and where you think there is a bug in
-     Etherboot, please contact the author with all details.
+     Etherboot, please submit a report to the Etherboot-users mailing
+     list.
 
   +o  Etherboot detects card but hangs computer after detection. Some
      cards are booby traps while they are enabled. The typical offenders
@@ -1807,6 +1844,7 @@
      reset addresses while interrupts are active. You may need to do a
      hard reset of the computer, i.e. power down and up again before
      running Etherboot.
+
 
   +o  Etherboot detects card but does nothing after saying Searching for
      server. Check your network hardware. Did you select the right
@@ -1825,6 +1863,16 @@
      booting lots of clients, is inetd shutting down tftpd for being
      spawned too often? If so, you need to get a better inetd or a a
      dedicated tftpd that runs as an independent daemon.
+
+  +o  Etherboot loads file but hangs halfway through the transfer. We
+     have one report that this happens if the Fast A20 Gate option is
+     selected in the BIOS setup. The A20 issue is explained here
+     <http://www.win.tue.nl/~aeb/linux/kbd/A20.html>. In effect this
+     causes the loaded kernel to overwrite Etherboot and kill it.
+     Etherboot (as of writing, version 5.0.5) does not yet have the
+     smarts to detect when Fast A20 Gate is in effect and do the right
+     thing.  So don't select the option.  You don't need it for Linux
+     anyway.
 
   +o  Etherboot loads file via tftp but Linux fails to boot. This is a
      large category. Here are some suggestions:
@@ -1862,6 +1910,7 @@
   +o  Missing /dev/tty?
 
   +o  Missing /bin/sh
+
 
   +o  System programs that insist on creating/writing to files outside of
      /var (mount and /etc/mtab* is the canonical example)
@@ -1928,6 +1977,7 @@
      Your gas is too old, upgrade to 2.9.5.
 
 
+
   3. I get warnings about ljmp *.
 
 
@@ -1991,6 +2041,7 @@
      beware of differences between drives, e.g. writing a 360k floppy in
      a 1.2M drive creates narrow tracks which may not overwrite previous
      contents.
+
 
 
   2. My network adapter is detected but I get no reply to the BOOTP/DHCP
@@ -2125,7 +2176,6 @@
      distributed computation, e.g. a Beowulf cluster.
 
 
-
   99..44..  BBoooottiinngg LLiinnuuxx
 
 
@@ -2258,9 +2308,6 @@
   3. When I am logged in using an X-terminal, I find that the floppy
      drive, sound card and name of the computer are those of the
      server!?
-
-
-
      This is to be expected! This is exactly how an X-terminal works.
      You are indeed logged onto the server and the client just provides
      display (screen) and input device (keyboard and mouse) services to
@@ -2327,7 +2374,6 @@
      don't run unneeded daemons.
 
 
-
      As for the server, in the X-terminal case this has all the
      applications running on it, so it should be adequate for the
      multiuser aspect. A high-end Pentium, with 64 MB of memory to start
@@ -2373,6 +2419,7 @@
 
      You may wish to check the LTSP <http://www.ltsp.org/> site and
      mailing lists for other proposed solutions.
+
 
   3. How can I access the floppy on the client?
 
@@ -2459,9 +2506,6 @@
      this section. However I gather that it is only possible on
      Windows95A, as other versions don't have the necessary support for
      diskless booting.
-
-
-
   99..99..  HHaarrddwwaarree iissssuueess
 
 
@@ -2498,6 +2542,28 @@
 
      Here is some text contributed by Dirk von Suchodoletz. He hopes to
      put it on a web site someday:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2983,7 +3049,8 @@
 
      LLuuiiggii RRiizzzzoo
         contributed a bootloader from FreeBSD that works for both floppy
-        and hard disk partitions. This obsoletes floppyload.S.
+        and hard disk partitions. This obsoletes floppyload.S.  Patch to
+        do adaptive timeout in NFS booting.
 
 
      MMiicchhaaeell SSiinnzz
@@ -3003,6 +3070,8 @@
 
      EErriicc BBiieeddeerrmmaann
         improved the recovery logic of main.c and lots of other changes.
+        Contributed E820H memory sizing logic. Reworked PCI logic. Made
+        more compatible with LinuxBIOS. Lots of small fixes.
 
 
      PPeetteerr LLiisstteerr aanndd VVaassiill VVaassiilleevv
@@ -3010,17 +3079,27 @@
         using a PXE booter.
 
 
-     FFrreedd GGrraayy ccoonnttrriibbuutteedd cchhaannggeess iinn ttuulliipp..cc ttoo cchheecckk ffoorr aa dduupplleexx
-        connection and to modify the controller register if so."
-
-     MMaarrkk GG ooff IInnpprriimmiiss TTeecchhnnoollooggiieess ccoonnttrriibbuutteedd aannootthheerr FFAA331111
-        (National Semiconductor DP83815) driver, also based on the Don-
-        ald Becker Linux driver."
-
-     AArrmmiinn SScchhiinnddlleerr ccoonnttrriibbuutteedd aa ppaattcchh ttoo aallllooww bboooottiinngg LLyynnxxOOSS KKDDII
-        images."
+     FFrreedd GGrraayy
+        contributed changes in tulip.c to check for a duplex connection
+        and to modify the controller register if so.
 
 
+     MMaarrkk GG
+        of Inprimis Technologies contributed another FA311 (National
+        Semiconductor DP83815) driver, also based on the Donald Becker
+        Linux driver.
+
+
+     AArrmmiinn SScchhiinnddlleerr
+        contributed a patch to allow booting LynxOS KDI images.
+
+
+     CChhrriissttoopphheerr LLii
+        contributed an Intel E1000 gigabit Ethernet driver.
+
+
+     RRoohhiitt JJaallaann
+        contributed a patch for FreeBSD style PXE booting.
   1111..  SSoouurrccee ccooppyyrriigghhttss
 
 
@@ -3034,22 +3113,9 @@
   promise to provide on demand, the source code.  The full conditions of
   the GPL are specified in the file COPYING.
 
+
+
   Here are the copyright details of the source, file by file:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3125,6 +3191,12 @@
   davicom.c               GPL
   depca.c                 GPL
   disrom.pl               GPL
+  e1000.c                 GPL
+  e1000.h                 GPL
+  e1000_fxhw.c            GPL
+  e1000_fxhw.h            GPL
+  e1000_phy.c             GPL
+  e1000_phy.h             GPL
   eepro.c                 GPL
   eepro100.c              GPL
   epic100.c               None
@@ -3232,6 +3304,7 @@
   NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
   WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
   */
+
   /*
    * Serial bootblock interface routines
    * Copyright (c) 1994, J"org Wunsch
@@ -3247,13 +3320,6 @@
    * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
    */
   ______________________________________________________________________
-
-
-
-
-
-
-
 
 
 
