@@ -101,6 +101,8 @@ __asm__ __volatile__("pushfl ; popl %0":"=g" (x): /* no input */ :"memory")
 #define restore_flags(x) \
 __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 
+#define	PCI_ANY_ID			(~0)
+
 #define PCI_VENDOR_ID_ADMTEK            0x1317
 #define PCI_DEVICE_ID_ADMTEK_0985       0x0985
 #define PCI_VENDOR_ID_REALTEK           0x10ec

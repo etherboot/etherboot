@@ -160,7 +160,7 @@ VIA_RHINEFLAGS=	-DINCLUDE_VIA_RHINE
 WDFLAGS=	-DINCLUDE_WD -DWD_DEFAULT_MEM=0xCC000
 W89C840FLAGS=	-DINCLUDE_W89C840
 
-SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.S
+SRCS=	boot1a.s comprefix.S liloprefix.S loader.S start32.S memsizes.c serial.c
 SRCS+=	main.c pci.c osloader.c nfs.c misc.c ansiesc.c bootmenu.c config.c
 SRCS+=	md5.c floppy.c
 

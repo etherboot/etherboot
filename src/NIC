@@ -138,6 +138,7 @@ rtl8139		0x10ec,0x8139	Realtek 8139
 smc1211		0x1112,0x1211	SMC EZ10/100
 smc1211a	0x1113,0x1211	SMC EZ10/100
 dfe538		0x1186,0x1300	D-Link DFE538TX+/DFE538TX
+clone-rtl8139	0xffff,0x8139	Cloned 8139
 
 family		via-rhine
 dlink-530tx-old	0x1106,0x3043	Rhine-I

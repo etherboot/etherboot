@@ -404,7 +404,7 @@ static void scan_bus(struct pci_id *id, int ids, struct pci_device *dev)
 				bus, devfn, vendor, device);
 #endif
 			for (i = first_i; i < ids; i++) {
-				if (vendor != id[i].vendor)
+				if (id[i].vendor != PCI_ANY_ID && vendor != id[i].vendor)
 					continue;
 				if (device != id[i].dev_id)
 					continue;

@@ -96,6 +96,7 @@ BINS32	+= bin32/rtl8139.rom bin32/rtl8139.lzrom
 BINS32	+= bin32/smc1211.rom bin32/smc1211.lzrom
 BINS32	+= bin32/smc1211a.rom bin32/smc1211a.lzrom
 BINS32	+= bin32/dfe538.rom bin32/dfe538.lzrom
+BINS32	+= bin32/clone-rtl8139.rom bin32/clone-rtl8139.lzrom
 BINS32	+= bin32/sis900.rom bin32/sis900.lzrom
 BINS32	+= bin32/sis7016.rom bin32/sis7016.lzrom
 BINS32	+= bin32/dc21040.rom bin32/dc21040.lzrom
@@ -2873,6 +2874,42 @@ bin32/dfe538--%.lzpxe:	bin32/rtl8139--%.huf $(PXEZLOADER)
 	$(MAKEROM) -x $(MAKEROM_$*) -p 0x1186,0x1300 -i$(IDENT32) $@
 
 bin32/dfe538.ebi:	bin32/rtl8139.elf
+	cp bin32/rtl8139.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/clone-rtl8139.rom:	bin32/rtl8139.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0xffff,0x8139 -i$(IDENT32) $@
+
+bin32/clone-rtl8139--%.rom:	bin32/rtl8139--%.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0xffff,0x8139 -i$(IDENT32) $@
+
+bin32/clone-rtl8139.lzrom:	bin32/rtl8139.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0xffff,0x8139 -i$(IDENT32) $@
+
+bin32/clone-rtl8139--%.lzrom:	bin32/rtl8139--%.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	$(MAKEROM) $(MAKEROM_$*) -p 0xffff,0x8139 -i$(IDENT32) $@
+
+bin32/clone-rtl8139.pxe:	bin32/rtl8139.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0xffff,0x8139 -i$(IDENT32) $@
+
+bin32/clone-rtl8139--%.pxe:	bin32/rtl8139--%.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0xffff,0x8139 -i$(IDENT32) $@
+
+bin32/clone-rtl8139.lzpxe:	bin32/rtl8139.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0xffff,0x8139 -i$(IDENT32) $@
+
+bin32/clone-rtl8139--%.lzpxe:	bin32/rtl8139--%.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	$(MAKEROM) -x $(MAKEROM_$*) -p 0xffff,0x8139 -i$(IDENT32) $@
+
+bin32/clone-rtl8139.ebi:	bin32/rtl8139.elf
 	cp bin32/rtl8139.elf $@
 	$(STRIP) -R .comment -R .note $@
 
