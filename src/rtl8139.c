@@ -176,7 +176,7 @@ static unsigned char rx_ring[RX_BUF_LEN+16] __attribute__((aligned(4)));
 
 struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 	struct pci_device *pci);
-static int read_eeprom(int location);
+static int read_eeprom(int location, int addr_len);
 static void rtl_reset(struct nic *nic);
 static void rtl_transmit(struct nic *nic, const char *destaddr,
 	unsigned int type, unsigned int len, const char *data);
@@ -189,6 +189,8 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 {
 	int i;
 	int speed10, fullduplex;
+	int addr_len;
+	unsigned short *ap = (unsigned short*)nic->node_addr;
 
 	/* There are enough "RTL8139" strings on the console already, so
 	 * be brief and concentrate on the interesting pieces of info... */
@@ -202,15 +204,9 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 	/* Bring the chip out of low-power mode. */
 	outb(0x00, ioaddr + Config1);
 
-	if (read_eeprom(0) != 0xffff) {
-		unsigned short *ap = (unsigned short*)nic->node_addr;
-		for (i = 0; i < 3; i++)
-			*ap++ = read_eeprom(i + 7);
-	} else {
-		unsigned char *ap = (unsigned char*)nic->node_addr;
-		for (i = 0; i < ETH_ALEN; i++)
-			*ap++ = inb(ioaddr + MAC0 + i);
-	}
+	addr_len = read_eeprom(0,8) == 0x8129 ? 8 : 6;
+	for (i = 0; i < 3; i++)
+	  *ap++ = read_eeprom(i + 7,addr_len);
 
 	speed10 = inb(ioaddr + MediaStatus) & MSRSpeed10;
 	fullduplex = inw(ioaddr + MII_BMCR) & BMCRDuplex;
@@ -252,22 +248,23 @@ struct nic *rtl8139_probe(struct nic *nic, unsigned short *probeaddrs,
 #define eeprom_delay()  inl(ee_addr)
 
 /* The EEPROM commands include the alway-set leading bit. */
-#define EE_WRITE_CMD    (5 << 6)
-#define EE_READ_CMD     (6 << 6)
-#define EE_ERASE_CMD    (7 << 6)
+#define EE_WRITE_CMD    (5)
+#define EE_READ_CMD     (6)
+#define EE_ERASE_CMD    (7)
 
-static int read_eeprom(int location)
+static int read_eeprom(int location, int addr_len)
 {
 	int i;
 	unsigned int retval = 0;
 	long ee_addr = ioaddr + Cfg9346;
-	int read_cmd = location | EE_READ_CMD;
+	int read_cmd = location | (EE_READ_CMD << addr_len);
 
 	outb(EE_ENB & ~EE_CS, ee_addr);
 	outb(EE_ENB, ee_addr);
+	eeprom_delay();
 
 	/* Shift the read command bits out. */
-	for (i = 10; i >= 0; i--) {
+	for (i = 4 + addr_len; i >= 0; i--) {
 		int dataval = (read_cmd & (1 << i)) ? EE_DATA_WRITE : 0;
 		outb(EE_ENB | dataval, ee_addr);
 		eeprom_delay();
@@ -287,6 +284,7 @@ static int read_eeprom(int location)
 
 	/* Terminate the EEPROM access. */
 	outb(~EE_CS, ee_addr);
+	eeprom_delay();
 	return retval;
 }
 
