@@ -417,6 +417,23 @@ static const char *version = "rhine.c v1.0.1 2003-02-06\n";
 #define RX_RING_SIZE		2
 #define PKT_BUF_SZ		1536	/* Size of each temporary Rx buffer. */
 
+enum rhine_revs {
+    VT86C100A       = 0x00,
+    VTunknown0      = 0x20,
+    VT6102          = 0x40,
+    VT8231          = 0x50, /* Integrated MAC */
+    VT8233          = 0x60, /* Integrated MAC */
+    VT8235          = 0x74, /* Integrated MAC */
+    VT8237          = 0x78, /* Integrated MAC */
+    VTunknown1      = 0x7C,
+    VT6105          = 0x80,
+    VT6105_B0       = 0x83,
+    VT6105L 	    = 0x8A,
+    VT6107          = 0x8C,
+    VTunknown2      = 0x8E,
+    VT6105M         = 0x90,
+};
+
 /* Transmit and receive descriptors definition */
 
 struct rhine_tx_desc
@@ -653,7 +670,7 @@ static struct rhine_private
 }
 rhine;
 
-static void rhine_probe1 (struct nic *nic, int ioaddr,
+static void rhine_probe1 (struct nic *nic, int revision_id, int ioaddr,
 				 int chip_id, int options);
 static int QueryAuto (int);
 static int ReadMII (int byMIIIndex, int);
@@ -885,26 +902,30 @@ enum intr_status_bits {
  IRQ - PXE IRQ Handler
 ***************************************************************************/
 void rhine_irq ( struct nic *nic, irq_action_t action ) {
-     struct rhine_private *tp = (struct rhine_private *) nic->priv_data;
-     /* Enable interrupts by setting the interrupt mask. */
-     unsigned int intr_status;
+    struct rhine_private *tp = (struct rhine_private *) nic->priv_data;
+    /* Enable interrupts by setting the interrupt mask. */
+    unsigned int intr_status;
 
-     switch ( action ) {
-          case DISABLE :
-          case ENABLE :
-               intr_status = inw(nic->ioaddr + IntrStatus);
-               /* On Rhine-II, Bit 3 indicates Tx descriptor write-back race. */
-               if (tp->chip_id == 0x3065)
-                   intr_status |= inb(nic->ioaddr + IntrStatus2) << 16;
-               intr_status = (intr_status & ~DEFAULT_INTR);
-               if ( action == ENABLE ) 
-                   intr_status = intr_status | DEFAULT_INTR;
-               outw(intr_status, nic->ioaddr + IntrEnable);
-               break;
-         case FORCE :
-               outw(0x0010, nic->ioaddr + 0x84);
-               break;
-         }
+    switch ( action ) {
+        case DISABLE :
+        case ENABLE :
+            intr_status = inw(nic->ioaddr + IntrStatus);
+            /* On Rhine-II, Bit 3 indicates Tx descriptor write-back race. */
+
+            /* added comment by guard */
+            /* For supporting VT6107, please use revision id to recognize different chips in driver */
+            // if (tp->chip_id == 0x3065)
+            if( tp->chip_revision < 0x80 && tp->chip_revision >=0x40 )
+                intr_status |= inb(nic->ioaddr + IntrStatus2) << 16;
+                intr_status = (intr_status & ~DEFAULT_INTR);
+                if ( action == ENABLE ) 
+                    intr_status = intr_status | DEFAULT_INTR;
+                    outw(intr_status, nic->ioaddr + IntrEnable);
+                break;
+        case FORCE :
+            outw(0x0010, nic->ioaddr + 0x84);
+           break;
+        }
 }
 
 static int
@@ -912,9 +933,12 @@ rhine_probe (struct dev *dev, struct pci_device *pci)
 {
     struct nic *nic = (struct nic *)dev;
     struct rhine_private *tp = &rhine;
+    uint8_t revision_id;    
     if (!pci->ioaddr)
 	return 0;
-    rhine_probe1 (nic, pci->ioaddr, pci->dev_id, -1);
+    // get revision id.
+    pci_read_config_byte(pci, PCI_REVISION, &revision_id);
+    rhine_probe1 (nic, revision_id, pci->ioaddr, pci->dev_id, -1);
 
     adjust_pci_device(pci);
     rhine_reset (nic);
@@ -944,7 +968,7 @@ static void set_rx_mode(struct nic *nic __unused) {
 }
 
 static void
-rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
+rhine_probe1 (struct nic *nic, int revision_id, int ioaddr, int chip_id, int options)
 {
     struct rhine_private *tp;
     static int did_version = 0;	/* Already printed version info. */
@@ -977,6 +1001,7 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
 	outb(0xFF, byPwrcsrClr);
 	
     }
+
 
     /* Perhaps this should be read from the EEPROM? */
     for (i = 0; i < ETH_ALEN; i++)
@@ -1056,6 +1081,7 @@ rhine_probe1 (struct nic *nic, int ioaddr, int chip_id, int options)
     tp->chip_id = chip_id;
     tp->ioaddr = ioaddr;
     tp->phys[0] = -1;
+    tp->chip_revision = revision_id;
 
     /* The lower four bits are the media type. */
     if (options > 0)
