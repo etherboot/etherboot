@@ -211,6 +211,7 @@ void free_unused_base_memory ( void ) {
 #ifdef DEBUG_BASEMEM
 		printf ( "Freed %d kB base memory, %d kB now free\n",
 			 free_block->size_kb, *fbms );
+#endif
 		
 		/* Zero out freed block.  We do this in case
 		 * the block contained any structures that
@@ -218,9 +219,7 @@ void free_unused_base_memory ( void ) {
 		 * memory.
 		 */
 		memset ( free_block, 0, free_block->size_kb << 10 );
-#endif			
 	}
-
 }
 
 /* Free base memory used by the decompressor.  Called once at start of
