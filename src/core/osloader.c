@@ -383,10 +383,11 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 				for ( i = 0; i < 64; ++i ) encryptedString[i] = *(unsigned char*)(data+446+i);
 			}
 		}
-#endif
-		  skip_sectors = os_download(data, len, eof);
-		skip_bytes = 0;
+#endif 
 	}
+	skip_sectors = os_download(data, len, eof);
+	skip_bytes = 0;
+	
 	return 1;
 }
 
