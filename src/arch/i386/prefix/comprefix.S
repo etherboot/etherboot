@@ -1,3 +1,5 @@
+#define EXEC_IN_SITU_MAGIC	0x45524548	/* 'HERE' */
+	
 /* We need a real mode stack that won't be stomped on by Etherboot
    which starts at 0x20000. Choose something that's sufficiently high,
    but not in DOC territory. Note that we couldn't do this in a real
@@ -31,7 +33,22 @@ _start:
 	pushw	%ax			/* new code segment */
 	xorw	%ax,%ax
 	pushw	%ax			/* new offset */
-	lret
+
+/*
+ * Load ES:DI with "HE:RE" - the magic signature that prevents
+ * start16.S from relocating the payload to an area of memory claimed
+ * from the BIOS.
+ *
+ * This is new behaviour for start16 (added by Michael Brown on
+ * 2004/01/02).  I have no idea how .com images should interact with
+ * DOS memory allocation.  By setting this magic signature we get
+ * behaviour as before, so at least it won't make things worse.
+ */
+	push	$(EXEC_IN_SITU_MAGIC >> 16)
+	pop	%es
+	mov	$(EXEC_IN_SITU_MAGIC & 0xffff), %di
+		
+	lret				/* The actual jump to start16.S */
 retaddr: 
 	movw	$0x4c00,%ax		/* return to DOS */
 	int	$0x21			/* reach this on Quit */
