@@ -7,7 +7,7 @@ Literature dealing with the network protocols:
 	IP - RFC791
 	UDP - RFC768
 	BOOTP - RFC951, RFC2132 (vendor extensions)
-	DHCP - RFC2131, RFC2132 (options)
+	DHCP - RFC2131, RFC2132l, RFC3004 (options)
 	TFTP - RFC1350, RFC2347 (options), RFC2348 (blocksize), RFC2349 (tsize)
 	RPC - RFC1831, RFC1832 (XDR), RFC1833 (rpcbind/portmapper)
 	NFS - RFC1094, RFC1813 (v3, useful for clarifications, not implemented)
@@ -66,6 +66,15 @@ static const unsigned char dhcpdiscover[] = {
 	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
+#ifdef DHCP_CLIENT_ID
+	/* Client ID Option */
+	RFC2132_CLIENT_ID, ( DHCP_CLIENT_ID_LEN + 1 ),
+	DHCP_CLIENT_ID_TYPE, DHCP_CLIENT_ID,
+#endif /* DHCP_CLIENT_ID */
+#ifdef DHCP_USER_CLASS
+	/* User Class Option */
+	RFC3004_USER_CLASS, DHCP_USER_CLASS_LEN, DHCP_USER_CLASS,
+#endif /* DHCP_USER_CLASS */
 	RFC2132_PARAM_LIST,
 #define DHCPDISCOVER_PARAMS_BASE 4
 #ifdef  DNS_RESOLVER
@@ -91,6 +100,15 @@ static const unsigned char dhcprequest [] = {
 	ETH_MAX_MTU / 256, ETH_MAX_MTU % 256,
 	RFC2132_VENDOR_CLASS_ID,13,'E','t','h','e','r','b','o','o','t',
 	'-',VERSION_MAJOR+'0','.',VERSION_MINOR+'0',
+#ifdef DHCP_CLIENT_ID
+	/* Client ID Option */
+	RFC2132_CLIENT_ID, ( DHCP_CLIENT_ID_LEN + 1 ),
+	DHCP_CLIENT_ID_TYPE, DHCP_CLIENT_ID,
+#endif /* DHCP_CLIENT_ID */
+#ifdef DHCP_USER_CLASS
+	/* User Class Option */
+	RFC3004_USER_CLASS, DHCP_USER_CLASS_LEN, DHCP_USER_CLASS,
+#endif /* DHCP_USER_CLASS */
 	/* request parameters */
 	RFC2132_PARAM_LIST,
 #define DHCPREQUEST_PARAMS_BASE    ( 5 + 4 + 2 + 8 + 16 ) 
