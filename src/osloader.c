@@ -501,7 +501,7 @@ static inline os_download_t tagged_probe(unsigned char *data, unsigned int len)
 		if (!prep_segment(
 			sh->loadaddr,
 			sh->loadaddr + sh->imglength,
-			sh->loadaddr + sh->memlength,
+			sh->loadaddr + sh->imglength,
 			loc, loc + sh->imglength)) {
 			return 0;
 		}
