@@ -172,7 +172,7 @@ SRCS+=	core/btext.c core/pc_kbd.c
 
 SRCS+=	core/main.c core/pci.c core/osloader.c core/nfs.c
 SRCS+=	core/misc.c core/config.c core/isa_probe.c core/pci_probe.c
-SRCS_=	core/relocate.c core/heap.c
+SRCS+=	core/relocate.c core/heap.c
 SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/timer.c
 SRCS+=	core/proto_eth_slow.c
 SRCS+=	core/proto_slam.c core/proto_tftm.c core/proto_http.c
