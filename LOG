@@ -2610,3 +2610,5 @@ needs family entry in genrules.pl.
 tricky stringify macro falls foul of C++ // comments in gcc 3.x.
 
 Released as Etherboot 5.3.6 (development)
+
++ Doug Ambrisko fixed bugs in the FreeBSD loader.
