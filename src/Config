@@ -381,8 +381,10 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 # Multicast Support
 #CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
 
-# Etherboot as a PXE ROM
-CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT -DPXE_DHCP_STRICT
+# Etherboot as a PXE network protocol ROM
+CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
+# Etherboot stricter as a PXE network protocol ROM
+# CFLAGS+=	-DPXE_DHCP_STRICT
 
 # Support for PXE emulation. Works only with FreeBSD to load the kernel
 # via pxeboot, use only with DOWNLOAD_PROTO_NFS
