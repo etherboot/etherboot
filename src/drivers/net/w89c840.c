@@ -263,13 +263,15 @@ static char        tx_packet[PKT_BUF_SZ * TX_RING_SIZE];
 
 static int  eeprom_read(long ioaddr, int location);
 static int  mdio_read(int base_address, int phy_id, int location);
+#if 0
 static void mdio_write(int base_address, int phy_id, int location, int value);
+#endif
 
 static void check_duplex(void);
 static void set_rx_mode(void);
 static void init_ring(void);
 
-#if defined W89C840_DEBUG
+#if defined(W89C840_DEBUG)
 static void decode_interrupt(u32 intr_status)
 {
     printf("Interrupt status: ");
@@ -343,6 +345,7 @@ static void w89c840_reset(struct nic *nic)
 #endif
 }
 
+#if 0
 static void handle_intr(u32 intr_stat)
 {
     if ((intr_stat & (NormalIntr|AbnormalIntr)) == 0) {
@@ -357,7 +360,7 @@ static void handle_intr(u32 intr_stat)
         /* There was an abnormal interrupt */
         printf("\n-=- Abnormal interrupt.\n");
 
-#if defined (W89C840_DEBUG)
+#if defined(W89C840_DEBUG)
         decode_interrupt(intr_stat);
 #endif
 
@@ -368,18 +371,21 @@ static void handle_intr(u32 intr_stat)
         }
     }
 }
+#endif
 
 /**************************************************************************
 w89c840_poll - Wait for a frame
 ***************************************************************************/
-static int w89c840_poll(struct nic *nic)
+static int w89c840_poll(struct nic *nic, int retrieve)
 {
     /* return true if there's an ethernet packet ready to read */
     /* nic->packet should contain data on return */
     /* nic->packetlen should contain length of data */
     int packet_received = 0;
 
+#if defined(W89C840_DEBUG)
     u32 intr_status = readl(ioaddr + IntrStatus);
+#endif
 
     do {
         /* Code from netdev_rx(dev) */
@@ -392,6 +398,11 @@ static int w89c840_poll(struct nic *nic)
         if (status & DescOwn) {
             /* DescOwn bit is still set, we should wait for RX to complete */
             packet_received = 0;
+            break;
+        }
+
+        if ( !retrieve ) {
+            packet_received = 1;
             break;
         }
 
@@ -530,8 +541,9 @@ static void w89c840_transmit(
     load_timer2(TX_TIMEOUT);
 
     {
+#if defined W89C840_DEBUG
         u32 intr_stat = 0;
-
+#endif
         while (1) {
 
 #if defined(W89C840_DEBUG)
@@ -580,6 +592,21 @@ static void w89c840_disable(struct dev *dev)
 }
 
 /**************************************************************************
+w89c840_irq - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void w89c840_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
+
+/**************************************************************************
 w89c840_probe - Look for an adapter, this routine's visible to the outside
 ***************************************************************************/
 static int w89c840_probe(struct dev *dev, struct pci_device *p)
@@ -592,7 +619,10 @@ static int w89c840_probe(struct dev *dev, struct pci_device *p)
     if (p->ioaddr == 0)
         return 0;
 
-    ioaddr = p->ioaddr;
+    ioaddr      = p->ioaddr;
+    nic->ioaddr = p->ioaddr & ~3;
+    nic->irqno  = 0;
+
 
 #if defined(W89C840_DEBUG)
     printf("winbond-840: PCI bus %hhX device function %hhX: I/O address: %hX\n", p->bus, p->devfn, ioaddr);
@@ -668,6 +698,7 @@ static int w89c840_probe(struct dev *dev, struct pci_device *p)
     dev->disable  = w89c840_disable;
     nic->poll     = w89c840_poll;
     nic->transmit = w89c840_transmit;
+    nic->irq      = w89c840_irq;
 
     w89c840_reset(nic);
 
@@ -789,6 +820,7 @@ static int mdio_read(int base_address, int phy_id, int location)
     return (retval>>1) & 0xffff;
 }
 
+#if 0
 static void mdio_write(int base_address, int phy_id, int location, int value)
 {
     long mdio_addr = base_address + MIICtrl;
@@ -819,6 +851,7 @@ static void mdio_write(int base_address, int phy_id, int location, int value)
     }
     return;
 }
+#endif
 
 static void check_duplex(void)
 {
