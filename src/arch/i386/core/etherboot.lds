@@ -83,6 +83,8 @@ SECTIONS {
 		*(.stack.*)
 		_stack_end = . ;
 	}
+	_bss_size = _ebss - _bss;
+	_bss_size_pgh = (_bss_size + 15) / 16;
 	_stack_offset = _stack - _runtime_start + _prefix_size ;
 	_stack_offset_pgh = _stack_offset / 16 ;
 	_stack_size = _stack_end - _stack_start ;
@@ -97,8 +99,9 @@ SECTIONS {
 	_verbatim_size = _verbatim_end - _verbatim_start + _zfile_size;
 	/* _verbatim_size is the actual amount that has to be copied to
 	base memory */
-	_verbatim_size_tail = (_verbatim_size) % 512;
-	_verbatim_size_pages = ((_verbatim_size) + 511) / 512;
+	_exe_size = (_verbatim_size) + 16;
+	_exe_size_tail = (_exe_size) % 512;
+	_exe_size_pages = ((_exe_size) + 511) / 512;
 	_runtime_size = _runtime_end - _runtime_start ;
 	_image_size = _prefix_size + _runtime_size + _zfile_size;
 	/* _image_size is the amount of base memory needed to run,
