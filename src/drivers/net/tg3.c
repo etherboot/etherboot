@@ -1609,7 +1609,7 @@ static int tg3_restart_fw(struct tg3 *tp, uint32_t state)
 	/* Wait for firmware initialization to complete. */
 	for (i = 0; i < 100000; i++) {
 		tg3_read_mem(NIC_SRAM_FIRMWARE_MBOX, &val);
-		if (val == ~NIC_SRAM_FIRMWARE_MBOX_MAGIC1)
+		if (val == (uint32_t) ~NIC_SRAM_FIRMWARE_MBOX_MAGIC1)
 			break;
 		udelay(10);
 	}
@@ -2989,7 +2989,7 @@ static void tg3_ack_irqs(struct tg3 *tp)
 	}
 }
 
-static int tg3_poll(struct nic *nic)
+static int tg3_poll(struct nic *nic, int retrieve)
 {
 	/* return true if there's an ethernet packet ready to read */
 	/* nic->packet should contain data on return */
@@ -2999,7 +2999,12 @@ static int tg3_poll(struct nic *nic)
 	int result;
 
 	result = 0;
+
+	if ( (tp->hw_status->idx[0].rx_producer != tp->rx_rcb_ptr) && !retrieve ) 
+	  return 1;
+
 	tg3_ack_irqs(tp);
+
 	if (tp->hw_status->idx[0].rx_producer != tp->rx_rcb_ptr) {
 		struct tg3_rx_buffer_desc *desc;
 		unsigned int len;
@@ -3029,6 +3034,7 @@ static int tg3_poll(struct nic *nic)
 /**************************************************************************
 TRANSMIT - Transmit a frame
 ***************************************************************************/
+#if 0
 static void tg3_set_txd(struct tg3 *tp, int entry,
 	dma_addr_t mapping, int len, uint32_t flags,
 	uint32_t mss_and_is_end)
@@ -3044,6 +3050,7 @@ static void tg3_set_txd(struct tg3 *tp, int entry,
 	txd->len_flags = (len << TXD_LEN_SHIFT) | flags;
 	txd->vlan_tag  = 0 << TXD_VLAN_TAG_SHIFT;
 }
+#endif
 
 static void tg3_transmit(struct nic *nic, const char *dst_addr,
 	unsigned int type, unsigned int size, const char *packet)
@@ -3127,7 +3134,20 @@ static void tg3_disable(struct dev *dev __unused)
 	iounmap((void *)tp->regs);
 }
 
-
+/**************************************************************************
+IRQ - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void tg3_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
+}
 
 /**************************************************************************
 PROBE - Look for an adapter, this routine's visible to the outside
@@ -3146,6 +3166,9 @@ static int tg3_probe(struct dev *dev, struct pci_device *pdev)
 	memset(tp, 0, sizeof(*tp));
 
 	adjust_pci_device(pdev);
+
+	nic->irqno  = 0;
+	nic->ioaddr = pdev->ioaddr & ~3;
 
 	/* Find power-management capability. */
 	pm_cap = pci_find_capability(pdev, PCI_CAP_ID_PM);
@@ -3249,6 +3272,8 @@ static int tg3_probe(struct dev *dev, struct pci_device *pdev)
 	dev->disable  = tg3_disable;
 	nic->poll     = tg3_poll;
 	nic->transmit = tg3_transmit;
+	nic->irq      = tg3_irq;
+
 	return 1;
 
  err_out_iounmap:
