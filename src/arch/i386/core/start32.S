@@ -60,31 +60,15 @@
  */
 
 /**************************************************************************
-START - Where all the fun begins....
-**************************************************************************/
-/* this must be the first thing in the file because we enter from the top */
+ * START
+ *
+ * This file is no longer enterered from the top.  init.S will jump to
+ * either _in_call or _rm_in_call, depending on the processor mode
+ * when init.S was entered.
+ **************************************************************************/
 	.text
 	.arch i386
-	.global	_start
 	.code32
-_start:
-	/* We use _in_call to do the actual work.
-	 */
-	pushl	$(EB_OPCODE_MAIN | EB_USE_INTERNAL_STACK)
-#ifdef CODE16
-	/* Check for entry via start16 (indicated by a null return
-	 * address) and set the flag EB_CALL_FROM_REAL_MODE if so.
-	 */
-	cmpl	$0, 4(%esp)
-	jne	1f
-	orl	$EB_CALL_FROM_REAL_MODE, 0(%esp)
-1:	
-#endif
-	/* Fall through to _in_call.  Zero here indicates a dummy
-	 * return address, which means in_call will skip our pushed
-	 * opcode before returning to the caller.
-	 */
-	pushl	$0
 	
 /**************************************************************************
 _IN_CALL - make a call in to Etherboot.
@@ -121,7 +105,12 @@ _IN_CALL - make a call in to Etherboot.
 	.globl _in_call
 	.globl _in_call_far
 _in_call:
-	pushl	$0			/* Indicate near return address */
+	/* Expand to far return address */
+	pushl	%eax			/* Store %eax */
+	xorl	%eax, %eax
+	movw	%cs, %ax
+	xchgl	%eax, 4(%esp)		/* 4(%esp) = %cs, %eax = ret addr */
+	xchgl	%eax, 0(%esp)		/* 0(%esp) = ret addr, restore %eax */
 _in_call_far:
 	/* Store flags */
 	pushfl
@@ -215,18 +204,16 @@ _in_call_far:
 	 */
 	movl	( 12 + IC_OFFSET_REGISTERS - IC_OFFSET_RETADDR )(%esp), %esp
 		
-	cmpl	$0, 0(%esp)		/* Check for near/far return */
-	je	2f
-1:	/* far return */
+	/* Check for EB_SKIP_OPCODE */
+	pushfl
+	testl	$EB_SKIP_OPCODE, 8(%esp)
+	jnz	1f
+	/* Normal return */
+	popfl
 	lret
-2:	/* near return (or fall-through from _start) */
-	addl	$4, %esp
-	cmpl	$0, 0(%esp)
-	je	3f
-	ret
-3:	/* fall-through from _start */
-	addl	$8, %esp		/* Skip dummy retn. address & opcode */
-	ret				/* Exit */
+1:	/* Return and skip opcode */
+	popfl
+	lret	$2
 	
 #if defined(RELOCATE)
 /**************************************************************************
@@ -768,23 +755,6 @@ _stack:
 	.space 4096
 	.globl	_estack
 _estack:
-#ifdef CODE16
-	/* Data that needs to be preserved across invocations of
-	 * main() and potential relocation-and-restarts, such as the
-	 * copy of the 16-bit prefix code and the record of base
-	 * memory used by the Etherboot image.
-	 */
-	.section ".bss.preserve"
-	.globl _prefix_copy
-	.globl _eprefix_copy
-	.balign 16, 0
-_prefix_copy:
-	.space 512
-_eprefix_copy:	
-	.globl image_basemem
-image_basemem:
-	.long 0
-#endif
 #ifdef CONFIG_X86_64
 	.section ".bss"
 	.p2align 12
