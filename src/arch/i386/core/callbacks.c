@@ -82,7 +82,9 @@ void exit_via_prefix ( in_call_data_t *data ) {
 	} PACKED in_stack;
 	void *prefix_code;
 
-	/* Ensure prefix is intact */
+	/* Ensure prefix is intact.  Prefix may be in ROM, which is
+	 * why we don't just automatically copy it back.
+	 */
 	prefix_code = VIRTUAL ( data->rm->ret_addr.segment, 0 );
 	if ( memcmp ( prefix_code, _prefix_copy, sizeof(_prefix_copy) ) ) {
 		memcpy ( prefix_code, _prefix_copy, sizeof(_prefix_copy) );
