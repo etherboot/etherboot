@@ -10,17 +10,10 @@ static unsigned long raw_load_addr;
 
 int mach_boot(register unsigned long entry_point)
 {
-#if 0
-	void (*fnc)(void) = (void (*)(void)) raw_load_addr;
+	void (*fnc)(void) = (void *) entry_point;
 	// r0 = 0
 	// r1 = 625 (machine nr. MACH_TYPE_P2001)
-	fnc();
-#else
-	asm volatile(
-	    "mov PC, %0"
-	    : /* no outputs */
-	    : "l" (entry_point) );
-#endif
+	(*fnc)();
 
 	return 0; /* We should never reach this point ! */
 }
