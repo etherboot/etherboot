@@ -213,7 +213,10 @@ typedef struct {
 
 typedef struct {
 	seg_regs_t	seg_regs;
-	uint16_t	pad;
+	union {
+		uint16_t	pad;
+		uint16_t	prefix_sp;
+	};
 	uint16_t	flags;
 	struct {
 		uint16_t offset;
