@@ -131,17 +131,34 @@ An alternative is Reverse Address Resolution Protocol (
 fields of the reply, sets its IP address and other parameters, and sends
 a Trivial File Transfer Protocol (
 <A HREF="http://www.ietf.org/rfc/rfc1350.txt">TFTP</A>) request to download the
-file. An alternative loading protocol is Network File System (
-<A HREF="http://www.ietf.org/rfc/rfc1094.txt">NFS</A>) protocol.  In
-this instance a mount of the remote filesystem is done (with the bare
-minimum of features) and the boot file is read off the filesystem.
+file. Be aware that the 16-bit counter field of TFTP may limit transfers
+to 16 MB (signed interpretation), 32 MB (unsigned interpretation) or 90
+MB (unsigned, large block size option active). This is a rollover bug in
+many TFTP servers, but quite prevalent. An alternative loading protocol
+is Network File System (
+<A HREF="http://www.ietf.org/rfc/rfc1094.txt">NFS</A>) protocol.  In this instance
+a mount of the remote filesystem is done (with the bare minimum of
+features) and the boot file is read off the filesystem.
 </LI>
 <LI>The file to be loaded is in a special format, it contains a
 "directory" in the first block that specifies where in memory the
 various pieces of the file are to be loaded. Formats that are supported
 are 
-<A HREF="spec.html">tagged</A> or Execution and Loader Format
-(ELF).
+<A HREF="spec.html">tagged</A> or 
+<A HREF="http://www.acm.uiuc.edu/sigops/rsrc/pfmt11.pdf">Execution and Loader Format (ELF)</A>. One small
+extension to ELF has been made, the top bit in the e_flags longword
+of the ELF header has been used as ELF_PROGRAM_RETURNS_BIT, meaning that
+the program transferred to intends to return to Etherboot, e.g. a menu
+program, and that Etherboot should not disable the network interface
+yet. See the file osloader.c.
+
+<P>
+<P>Eric Biederman adds: The ELF format is actually docmented in the SysV
+Generic ABI doc.  http://www.sco.com/developer/devspecs/gabi41.pdf
+http://www.sco.com/developer/devspecs/abi386-4.pdf Also check out the
+linux standard base it has good links to all of these documents, in its
+related documents section.  http://www.linuxbase.org/spec/
+<P>
 </LI>
 <LI>Etherboot transfers control to the loaded image.
 </LI>

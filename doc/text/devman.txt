@@ -1,6 +1,6 @@
   Etherboot Developers Manual
   Ken Yap, <ken_yap@users.sourceforge.net>
-  v5.0.2, 23 June 2001
+  v5.0.4, 16 September 2001
 
   This document explains the internals of the Etherboot package.  The
   information here applies to version 5.0 of Etherboot.
@@ -77,6 +77,10 @@
 
 
 
+     55..00..44 22000011--0099--1166
+        Released as Etherboot-doc 5.0.4.
+
+
      55..00..22 22000011--0066--2233
         Released as Etherboot-doc 5.0.2. No significant changes from
         5.0.1 really.
@@ -126,10 +130,10 @@
      are here to protect us as authors, not to restrict you as learners
      and educators.
 
-
-
   All trademarks mentioned in this document belong to their respective
   owners.
+
+
   11..66..  AAcckknnoowwlleeddggeemmeennttss aanndd TThhaannkkss
 
 
@@ -191,10 +195,10 @@
   has several conditions placed on it.
 
 
+
   +o  The ROM must start on a 2kB boundary in the memory space, between
      0xC8000 and 0xEE000, although some main BIOSes scan outside these
      limits.
-
 
   +o  The first two bytes of the ROM must be 55 AA hex.
 
@@ -258,10 +262,10 @@
 
   1. The main BIOS detects the Etherboot ROM as an extension BIOS and
      passes control to it with a far call.
-
   2. For legacy ROMs, the Etherboot code hooks itself to interrupt 0x19
      and returns control to the main BIOS. For PnP ROMs the Etherboot
      code indicates that it is a bootable device.
+
   3. The main BIOS finishes initialising other devices and boots the
      operating system by calling interrupt 0x19.
 
@@ -280,16 +284,36 @@
      of the reply, sets its IP address and other parameters, and sends a
      Trivial File Transfer Protocol (TFTP
      <http://www.ietf.org/rfc/rfc1350.txt>) request to download the
-     file. An alternative loading protocol is Network File System (NFS
-     <http://www.ietf.org/rfc/rfc1094.txt>) protocol.  In this instance
-     a mount of the remote filesystem is done (with the bare minimum of
-     features) and the boot file is read off the filesystem.
+     file. Be aware that the 16-bit counter field of TFTP may limit
+     transfers to 16 MB (signed interpretation), 32 MB (unsigned
+     interpretation) or 90 MB (unsigned, large block size option
+     active). This is a rollover bug in many TFTP servers, but quite
+     prevalent. An alternative loading protocol is Network File System
+     (NFS <http://www.ietf.org/rfc/rfc1094.txt>) protocol.  In this
+     instance a mount of the remote filesystem is done (with the bare
+     minimum of features) and the boot file is read off the filesystem.
 
   8. The file to be loaded is in a special format, it contains a
      "directory" in the first block that specifies where in memory the
      various pieces of the file are to be loaded. Formats that are
      supported are tagged <spec.html> or Execution and Loader Format
-     (ELF).
+     (ELF) <http://www.acm.uiuc.edu/sigops/rsrc/pfmt11.pdf>. One small
+     extension to ELF has been made, the top bit in the e_flags longword
+     of the ELF header has been used as ELF_PROGRAM_RETURNS_BIT, meaning
+     that the program transferred to intends to return to Etherboot,
+     e.g. a menu program, and that Etherboot should not disable the
+     network interface yet. See the file osloader.c.
+
+
+
+     Eric Biederman adds: The ELF format is actually docmented in the
+     SysV Generic ABI doc.
+     http://www.sco.com/developer/devspecs/gabi41.pdf
+     http://www.sco.com/developer/devspecs/abi386-4.pdf Also check out
+     the linux standard base it has good links to all of these
+     documents, in its related documents section.
+     http://www.linuxbase.org/spec/
+
 
   9. Etherboot transfers control to the loaded image.
 
@@ -300,6 +324,7 @@
   there is nothing in the procedure above that is Linux specific. By
   creating the loaded file appropriately, different operating systems,
   e.g.  FreeBSD, DOS, can be loaded.
+
 
 
 
@@ -369,9 +394,6 @@
   dynamic storage allocation. This keeps things simple, makes it a bit
   less prone to programming errors, and also acts as a check against
   unthinking use of memory by programmers.
-
-
-
   One thing that we usually want to do is minimise the size of the ROM
   used to hold Etherboot. Even if the network adapter accommodates large
   ROMs, there are many claims on the area between 0xC8000 to 0xEE000, by
@@ -503,6 +525,7 @@
   adapter, again using C preprocessor technology.
 
 
+
   44..22..  DDrriivveerrss
 
 
@@ -522,7 +545,6 @@
   The files timer.h and timer.c provide routines for access to the
   second hardware timer of the PC. This is used for implementing
   microsecond timeouts.
-
 
 
 
@@ -568,7 +590,6 @@
   obtained by Etherboot, which includes the filename field. Finally, the
   external program can return one longword of status to Etherboot to
   indicate various conditions.
-
 
 
   So here's how the external menu program would work. Etherboot is told
@@ -636,6 +657,7 @@
   +o  The file config.c is compiled to bin32/config-tulip.o while
      applying the appropriate define: INCLUDE_TULIP.
 
+
   +o  The startup routine (which must be first in the list of objects),
      the driver object, bootlib.a, and config-tulip.o are linked to
      produce an ELF binary, linked to run at the relocation address of
@@ -656,7 +678,6 @@
   +o  In the case of mx987x5.lzrom, this is for a PCI adaptor and we want
      a compressed ROM, so the loader is przloader.  This is prepended to
      the binary image to generate a ROM image.
-
 
   +o  makerom is run over this ROM image to pad it to the size of a
      standard EPROM. (8 kB, 16 kB, 32 kB, etc.) The PCI IDs are written
@@ -703,9 +724,6 @@
 
 
 
-
-
-
   66..  FFrreeqquueennttllyy aasskkeedd qquueessttiioonnss
 
 
@@ -720,7 +738,6 @@
   me that did not already have a boot ROM capability was the x86
   platform.  (Sparcs and Alphas already have network booting capability
   in their boot ROMs.)
-
 
 
 
@@ -789,7 +806,6 @@
   find for the hardware, from the manufacturer and other sources.
 
 
-
   77..22..  BBaacckkggrroouunndd iinnffoorrmmaattiioonn
 
 
@@ -840,9 +856,6 @@
      reset routine to initialise the adapter.  Finally it should fill in
      the function pointers for the other routines, and return the `nic'
      pointer. If it fails to find an adapter, it should return 0.
-
-
-
      The field rom_info in the `nic' struct contains, on entry to the
      probe routine, a pointer to the structure rom_info, defined in
      ehterboot.h.  This contains the segment address and length in
@@ -906,6 +919,7 @@
      as detected by having a source address of itself. You can throw
      these out immediately on reception and not bother the upper layer
      with them.
+
 
 
   Only the probe routine needs to be public, all the other routines
@@ -988,6 +1002,7 @@
   multicasting. You do not need to implement statistics counting.
 
 
+
   Generally speaking, the probe routine is relatively easy to translate
   from the Linux driver. The exception is when you need to handle media
   and speed switching. The reset routine is tricky because you won't
@@ -1037,7 +1052,6 @@
   need to delay a short time without needing to do other checks during
   the timeout, you can call waiton_timer2(TIMEOUT_VALUE) which will
   load, then poll the timer, and return control on timeout.
-
 
 
   Please do not use counting loops to implement delays. Such loops are
@@ -1105,6 +1119,7 @@
 
 
 
+
   Etherboot was ported from FreeBSD by Markus Gutschke. He made it
   compile under Linux and added code to support tagged images in
   addition to NFS boot. Since tagged images are a more general mechanism
@@ -1133,21 +1148,6 @@
   April 2000, Etherboot has been hosted at Sourceforge
   <http://sourceforge.net/>. Sourceforge has provided superb facilities
   for hosting community Open Source development.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

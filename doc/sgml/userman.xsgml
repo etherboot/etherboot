@@ -6,7 +6,7 @@
 <author>Ken Yap and Markus Gutschke,
 <tt/&lt;ken_yap@users.sourceforge.net&gt;/,
 <tt/&lt;markus+etherboot@gutschke.com&gt;/
-<date>v5.0.3, 5 August 2001
+<date>v5.0.4, 16 September 2001
 
 <abstract>
 This User Manual explains how to install, configure and use the
@@ -40,6 +40,8 @@ documentation.
 <p>
 
 <descrip>
+
+<tag/5.0.4 2001-09-16/ Released as Etherboot-doc 5.0.4.
 
 <tag/5.0.3 2001-08-05/ Released as Etherboot-doc 5.0.3.
 

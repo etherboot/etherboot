@@ -10,3 +10,12 @@ declaration in dhcpd.conf (ISC DHCPD) to work well with existing DHCP
 servers, and a few more acknowledgements.
 
 Released as Etherboot-doc 5.0.2
+
++ Small updates: link to lilo+etherboot HOWTO, a bit about PXE chaining
+and link to the PXE HOWTO mail by Marty Connor.
+
+Released as Etherboot-doc 5.0.3
+
++ Small updates to match etherboot-5.0.4.
+
+Released as Etherboot-doc 5.0.4

@@ -1,7 +1,7 @@
   Etherboot User Manual
   Ken Yap and Markus Gutschke, <ken_yap@users.source-
   forge.net>, <markus+etherboot@gutschke.com>
-  v5.0.3, 5 August 2001
+  v5.0.4, 16 September 2001
 
   This User Manual explains how to install, configure and use the Ether-
   boot package.  The instructions here apply to version 5.0 of Ether-
@@ -155,6 +155,10 @@
 
 
 
+     55..00..44 22000011--0099--1166
+        Released as Etherboot-doc 5.0.4.
+
+
      55..00..33 22000011--0088--0055
         Released as Etherboot-doc 5.0.3.
 
@@ -192,7 +196,6 @@
 
   +o  The copyright notice above and this permission notice must be
      preserved complete on all complete or partial copies.
-
   +o  Any translation or derived work must be approved by the author in
      writing before distribution.
 
@@ -290,16 +293,13 @@
   22..33..  WWhhaatt hhaarrddwwaarree iiss ssuuppppoorrtteedd??
 
 
-  The following is the current NIC configuration file as of 2001-08-04.
+  The following is the current NIC configuration file as of 2001-09-16.
 
   Even if your NIC does not appear in the list, it may still be
   supported if the chip is one of those supported.  Many OEMs use chips
   from foundries. An exhaustive list of brand names is impossible.  The
   best strategy is to read the number on the LAN controller chip on the
   board.
-
-
-
 
 
 
@@ -740,7 +740,7 @@
                   See etherboot.h for prompt and answer strings.
   -DBAR_PROGRESS
                   Use rotating bar instead of sequential dots
-                  to indicate a packet transmitted.
+                  to indicate an IP packet transmitted.
   -DMOTD
                   Display message of the day; read vendortags.html
                   for further information.
@@ -821,7 +821,7 @@
 
   -DCAN_BOOT_DISK
                   Can boot from floppy/hd if bootimage matches the
-                  pattern "/dev/[fh]d*".
+                  pattern "/dev/[fhs]d*".
   -DTRY_FLOPPY_FIRST
                   If > 0, tries that many times to read the boot
                   sector from a floppy drive before booting from
@@ -853,10 +853,10 @@
   -DFREEBSD_KERNEL_ENV
                   Pass in FreeBSD kernel environment
   -DDOWNLOAD_PROTO_TFTP
-                  If defined, boots by tftp (recommended).
+                  If defined, boots by TFTP (recommended).
   -DDOWNLOAD_PROTO_NFS
                   If defined, boots from a NFS mount and disables
-                  tftp loading. Default is DOWNLOAD_PROTO_TFTP
+                  TFTP loading. Default is DOWNLOAD_PROTO_TFTP
                   if neither is defined.
 
   Console options:
@@ -880,6 +880,11 @@
 
   BIOS interface options:
 
+  -DPNP_BUT_NOT_BBS_COMPLIANT
+                  Some BIOSes claim to be PNP but they don't conform
+                  to the BBS spec which specifies that ES:DI must
+                  point to the string $PnP on entry. This option
+                  works around those.
   -DNO_DELAYED_INT
                   Take control as soon as BIOS detects the ROM.
                   Normally hooks onto INT18H or INT19H. Use only if you
@@ -889,7 +894,7 @@
                   This option was formerly called NOINT19H.
   -DBOOT_INT18H
                   Etherboot normally hooks onto INT19H for legacy ROMs.
-                  You can choose to hook onto INT18H (Basic interpreter
+                  You can choose to hook onto INT18H (BASIC interpreter
                   entry point) instead. This entry point is used when
                   all boot devices have been exhausted.
   -DCONFIG_PCI_DIRECT
@@ -908,19 +913,17 @@
                   Halt the processor when waiting for keyboard input
                   which saves power while waiting for user interaction.
                   Good for compute clusters and VMware emulation.
+                  But may not work for all CPUs.
   -DT503_AUI
                   Use AUI by default on 3c503 cards.
   -DMOVEROM
                   If your motherboard does not cache adapter memory
                   space, then this option can speed up loading of
-                  compressed BOOT-Prom images. It has not affect on
+                  compressed BOOT-Prom images. It has no effect on
                   uncompressed images. Unless you are very tight on
                   free space, you will usually want to define this
                   option.  This flag must be added to LCONFIG!
                   (recommended).
-  -DBOOTP_DATA_AT_0x93C00
-                  If the area 0x93C00-0x93FFF is to be used for
-                  bootpd_data (not recommended).
   -DUSE_LOWMEM_BUFFER
                   Define to put some buffers below 0x10000 which
                   may interfere with other programs (not recommended).
@@ -985,9 +988,6 @@
   should be able to detect your card. To get the bootrom to acquire an
   IP address and load the intended code, you need to set up bootp or
   DHCP, tftp and NFS services, which we will discuss next.
-
-
-
   We suggest you continue to use floppy booting until you have completed
   the setup of the server and are satisfied that diskless booting works.
 
