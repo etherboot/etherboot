@@ -67,10 +67,14 @@ typedef uint8_t irq_t;
 
 /* Labels in assembly code (in pcbios.S)
  */
+extern void _trivial_irq_handler_start;
 extern void _trivial_irq_handler ( void );
 extern volatile uint16_t _trivial_irq_trigger_count;
 extern segoff_t _trivial_irq_chain_to;
 extern uint8_t _trivial_irq_chain;
+extern void _trivial_irq_handler_end;
+#define TRIVIAL_IRQ_HANDLER_SIZE \
+	((uint32_t)( &_trivial_irq_handler_end - &_trivial_irq_handler_start ))
 
 /* Function prototypes
  */
@@ -83,6 +87,7 @@ int remove_irq_handler ( irq_t irq, segoff_t *handler,
 int install_trivial_irq_handler ( irq_t irq );
 int remove_trivial_irq_handler ( irq_t irq );
 int trivial_irq_triggered ( irq_t irq );
+int copy_trivial_irq_handler ( void *target, size_t target_size );
 void send_non_specific_eoi ( irq_t irq );
 void send_specific_eoi ( irq_t irq );
 #ifdef DEBUG_IRQ

@@ -99,6 +99,10 @@ int install_trivial_irq_handler ( irq_t irq ) {
 		DBG ( "Can install trivial IRQ handler only once\n" );
 		return 0;
 	}
+	if ( SEGMENT(trivial_irq_handler) > 0xffff ) {
+		DBG ( "Trivial IRQ handler not in base memory\n" );
+		return 0;
+	}
 
 	DBG ( "Installing trivial IRQ handler on IRQ %d\n", irq );
 	if ( ! install_irq_handler ( irq, &trivial_irq_handler_segoff,
@@ -170,6 +174,56 @@ int trivial_irq_triggered ( irq_t irq ) {
 	
 	trivial_irq_previous_trigger_count = trivial_irq_this_trigger_count;
 	return triggered ? 1 : 0;
+}
+
+/* Copy trivial IRQ handler to a new location.  Typically used to copy
+ * the handler into base memory; when relocation is being used we need
+ * to do this before installing the handler.
+ *
+ * Call with target=NULL in order to restore the handler to its
+ * original location.
+ */
+
+int copy_trivial_irq_handler ( void *target, size_t target_size ) {
+	irq_t currently_installed_on = trivial_irq_installed_on;
+	uint32_t offset = ( target == NULL ? 0 :
+			    target - &_trivial_irq_handler_start );
+
+	if (( target != NULL ) && ( target_size < TRIVIAL_IRQ_HANDLER_SIZE )) {
+		DBG ( "Insufficient space to copy trivial IRQ handler\n" );
+		return 0;
+	}
+
+	if ( currently_installed_on != IRQ_NONE ) {
+		DBG ("WARNING: relocating trivial IRQ handler while in use\n");
+		if ( ! remove_trivial_irq_handler ( currently_installed_on ) )
+			return 0;
+	}
+
+	/* Do the actual copy */
+	if ( target != NULL ) {
+		DBG ( "Copying trivial IRQ handler to %hx:%hx\n",
+		      SEGMENT(target), OFFSET(target) );
+		memcpy ( target, &_trivial_irq_handler_start,
+			 TRIVIAL_IRQ_HANDLER_SIZE );
+	} else {
+		DBG ( "Restoring trivial IRQ handler to original location\n" );
+	}
+	/* Update all the pointers to structures within the handler */
+	trivial_irq_handler = ( void (*)P((void)) )
+		( (void*)_trivial_irq_handler + offset );
+	trivial_irq_trigger_count = (uint16_t*)
+		( (void*)&_trivial_irq_trigger_count + offset );
+	trivial_irq_chain_to = (segoff_t*)
+		( (void*)&_trivial_irq_chain_to + offset );
+	trivial_irq_chain = (uint8_t*)
+		( (void*)&_trivial_irq_chain + offset );
+
+	if ( currently_installed_on != IRQ_NONE ) {
+		if ( ! install_trivial_irq_handler ( currently_installed_on ) )
+			return 0;
+	}
+	return 1;
 }
 
 /* Send non-specific EOI(s).  This seems to be inherently unsafe.
