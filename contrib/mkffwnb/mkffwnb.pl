@@ -46,7 +46,7 @@ sub getappendargs () {
 	my @args = split(/\s+/, $append);
 	my @result = ();
 	foreach $_ (@args) {
-		next if (/^$/ or /^append/ or /^root=/ or /^initrd=/);
+		next if (/^$/ or /^append/ or (!$ffw29 and /^root=/) or /^initrd=/);
 		push (@result, $_);
 	}
 	return (join(' ', @result));
@@ -173,6 +173,9 @@ mkdir($tempmount, 0755);
 &dostounix("$libdir/linuxrc", "linuxrc") if (-r "$libdir/linuxrc");
 unless (&dostounix("$libdir/floppyfw.ini", "floppyfw.ini")) {
 	&dostounix("floppyfw/floppyfw.ini", $ffw29 ? "etc/floppyfw.ini" : "floppyfw.ini");
+}
+if ($ffw29) {
+	&dostounix("$libdir/rc.initrd", "etc/rc.initrd");
 }
 &dostounix("config", "etc/config");
 for my $i (glob('floppyfw/add.bz2 modules/*.bz2 packages/*.bz2')) {
