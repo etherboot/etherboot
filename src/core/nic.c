@@ -80,8 +80,8 @@ static const unsigned char dhcprequest [] = {
 	/* request parameters */
 	RFC2132_PARAM_LIST,
 #ifdef	IMAGE_FREEBSD
-	/* 5 standard + 7 vendortags + 8 motd + 16 menu items */
-	5 + 7 + 8 + 16,
+	/* 5 standard + 8 vendortags + 8 motd + 16 menu items */
+	5 + 8 + 8 + 16,
 #else
 	/* 5 standard + 6 vendortags + 8 motd + 16 menu items */
 	5 + 6 + 8 + 16,
@@ -1133,14 +1133,14 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 	unsigned char        *endp;
 	static unsigned char in_encapsulated_options = 0;
 
-#ifdef	REQUIRE_VCI_ETHERBOOT
-	vci_etherboot = 0;
-#endif
 	if (eof == -1) {
 		/* Encapsulated option block */
 		endp = p + len;
 	}
 	else if (block == 0) {
+#ifdef	REQUIRE_VCI_ETHERBOOT
+	vci_etherboot = 0;
+#endif
 		end_of_rfc1533 = NULL;
 #ifdef	IMAGE_FREEBSD
 		/* yes this is a pain FreeBSD uses this for swap, however,
