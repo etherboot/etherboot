@@ -527,6 +527,7 @@ int eth_probe(int last_adapter)
 #endif
 		pci_ioaddrs[0] = dev.ioaddr;
 		pci_ioaddrs[1] = 0;
+		nic.devid.bus_type = PCI_BUS_TYPE;
 		nic.devid.vendor_id = htons(dev.vendor);
 		nic.devid.device_id = htons(dev.dev_id);
 		if ((*t->eth_probe)(&nic, pci_ioaddrs, &dev))
