@@ -350,8 +350,8 @@ unsigned long get_boot_order(unsigned long order, unsigned *index)
 	static int checksum_valid;
 	static unsigned boot_count;
 	int i;
-		
-	if (!again) {
+
+	if (!lb_failsafe && !again) {
 		/* Decrement the boot countdown the first time through */
 		checksum_valid = cmos_valid();
 		boot_count = cmos_read(lb_countdown.bit, lb_countdown.length);
@@ -360,17 +360,21 @@ unsigned long get_boot_order(unsigned long order, unsigned *index)
 		}
 		again = 1;
 	}
+	if (lb_failsafe || !checksum_valid) {
+		/* When LinuxBIOS is in failsafe mode, or there is an
+		 * invalid cmos checksum ignore all cmos options 
+		 */
+		return order;
+	}
 	for(i = 0; i < MAX_BOOT_ENTRIES; i++) {
 		unsigned long boot;
 		boot = order >> (i*BOOT_BITS) & BOOT_MASK;
-		if (!lb_failsafe && checksum_valid) {
-			boot = lb_boot[i] & BOOT_TYPE_MASK;
-			if (boot >= BOOT_NOTHING) {
-				boot = BOOT_NOTHING;
-			}
-			if (boot_count == 0) {
-				boot |= BOOT_FAILSAFE;
-			}
+		boot = lb_boot[i] & BOOT_TYPE_MASK;
+		if (boot >= BOOT_NOTHING) {
+			boot = BOOT_NOTHING;
+		}
+		if (boot_count == 0) {
+			boot |= BOOT_FAILSAFE;
 		}
 		order &= ~(BOOT_MASK << (i * BOOT_BITS));
 		order |= (boot << (i*BOOT_BITS));
