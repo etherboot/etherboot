@@ -419,7 +419,7 @@ retry:
 ETH_POLL - Wait for a frame
 ***************************************************************************/
 
-static int cs89x0_poll(struct nic *nic)
+static int cs89x0_poll(struct nic *nic, int retrieve)
 {
 	int status;
 
@@ -427,6 +427,8 @@ static int cs89x0_poll(struct nic *nic)
 
 	if ((status & RX_OK) == 0)
 		return(0);
+
+	if ( ! retrieve ) return 1;
 
 	status = inw(eth_nic_base + RX_FRAME_PORT);
 	nic->packetlen = inw(eth_nic_base + RX_FRAME_PORT);
@@ -440,6 +442,18 @@ static void cs89x0_disable(struct dev *dev)
 {
 	struct nic *nic = (struct nic *)dev;
 	cs89x0_reset(nic);
+}
+
+static void cs89x0_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
 }
 
 /**************************************************************************
@@ -677,9 +691,13 @@ static int cs89x0_probe(struct dev *dev, unsigned short *probe_addrs __unused)
 	if (ioaddr == 0)
 		return (0);
 
+	nic->irqno    = 0;
+	nic->ioaddr   = ioaddr;
+
 	dev->disable  = cs89x0_disable;
 	nic->poll     = cs89x0_poll;
 	nic->transmit = cs89x0_transmit;
+	nic->irq      = cs89x0_irq;
 
 	/* Based on PnP ISA map */
 	dev->devid.vendor_id = htons(ISAPNP_VENDOR('C','S','C'));
