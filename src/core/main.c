@@ -321,7 +321,7 @@ static int main_loop(int state)
 
 			firsttime = 0;
 		} 
-#ifdef EMERGENCYDISKBOOT
+#ifdef	EXIT_IF_NO_OFFER
 		else {
 			cleanup();
 			exit(0);

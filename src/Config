@@ -21,6 +21,9 @@
 #			(alternatives: BOOT_NIC, BOOT_DISK,
 #			 BOOT_FLOPPY, BOOT_NOTHING)
 #			See etherboot.h for prompt and answer strings.
+#			BOOT_DISK and BOOT_FLOPPY work only where a driver
+#			exists, e.g. in LinuxBIOS.
+#			They have no effect on PCBIOS.
 #	-DBOOT_INDEX	The device to boot from 0 == any device.
 #			1 == The first nic found.
 #			2 == The second nic found
@@ -41,6 +44,8 @@
 #				BOOT_NIC
 #				BOOT_DISK
 #				BOOT_FLOPPY
+#	BOOT_DISK and BOOT_FLOPPY work only where a driver exists,
+#	e.g. in LinuxBIOS.  They have no effect on PCBIOS.
 #
 #	Boot autoconfiguration protocol options:
 #
@@ -130,12 +135,13 @@
 #			sector from a floppy drive before booting from
 #			ROM. If successful, does a local boot.
 #			It assumes the floppy is bootable.
-#	-DEMERGENCYDISKBOOT
-#			If no BOOTP server can be found, then boot from
-#			local disk. The accessibility of the TFTP server
-#			has no effect, though! So configure your BOOTP
-#			server properly. You should probably reduce
-#			MAX_BOOTP_RETRIES to a small number like 3.
+#	-DEXIT_IF_NO_OFFER
+#			If no IP offer is obtained, exit and
+#			let the BIOS continue.
+#			The accessibility of the TFTP server has no effect,
+#			so configure your DHCP/BOOTP server properly.
+#			You should probably reduce MAX_BOOTP_RETRIES
+#			to a small number like 3.
 #
 #	Boot image options:
 #
@@ -372,6 +378,7 @@ CFLAGS+=	-DBACKOFF_LIMIT=7 -DCONGESTED
 
 # More optional features
 # CFLAGS+=	-DTRY_FLOPPY_FIRST=4
+# CFLAGS+=	-DEXIT_IF_NO_OFFER
 
 # For a serial console, which can run in parallel with FIRMWARE console
 # CFLAGS+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
