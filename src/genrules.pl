@@ -336,7 +336,9 @@ print "# Driver object files and ROM image files\n";
 print "IMGS\t:=\n";
 print "DOBJS\t:=\n";
 print "PCIOBJS\t:=\n";
-foreach my $pci (sort keys %pcient) {
+# Generate the PCI files in reverse so that 3c90x is in front of 3c595
+# as the latter misdetects many 3c90x NICs
+foreach my $pci (reverse sort keys %pcient) {
 	my $img = basename($pci);
 	print "DOBJS\t+= \$(BIN)/$img.o\n";
 	print "PCIOBJS\t+= \$(BIN)/$img.o\n";
