@@ -232,6 +232,9 @@ extern void nfs_umountall P((int));
 /* proto_slam.c */
 extern int url_slam P((const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)));
 
+/* proto_tftm.c */
+extern int url_tftm P((const char *name, int (*fnc)(unsigned char *, unsigned int, unsigned int, int)));
+
 /* config.c */
 extern void print_config(void);
 
