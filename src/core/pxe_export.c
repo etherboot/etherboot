@@ -560,7 +560,7 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 	 * called as part of an interrupt service routine.  Instead,
 	 * we should simply die if we're not READY.
 	 */
-	if ( ( pxe_stack == NULL ) || ( pxe_stack->state <= READY ) ) {
+	if ( ( pxe_stack == NULL ) || ( pxe_stack->state < READY ) ) {
 		undi_isr->Status = PXENV_STATUS_UNDI_INVALID_STATE;
 		return PXENV_EXIT_FAILURE;
 	}
