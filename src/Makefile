@@ -432,7 +432,7 @@ clean:
 
 tarball: ../index.html ../index-berlios.html
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
-	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude doc etherboot-$(VERSION))
+	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS etherboot-$(VERSION))
 	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
 	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
 
