@@ -202,4 +202,5 @@ int http(const char *url,
 		return 0;
 	}
 }
-#endif
+
+#endif /* DOWNLOAD_PROTO_HTTP */
