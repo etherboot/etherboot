@@ -244,8 +244,6 @@ cs89x0		-		Crystal Semiconductor CS89x0
 family		drivers/net/depca
 depca		-		Digital DE100 and DE200
 
-family		drivers/net/forcedeth
-
 family		drivers/net/sk_g16
 sk_g16		-		Schneider and Koch G16
 
