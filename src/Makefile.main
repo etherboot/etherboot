@@ -162,13 +162,15 @@ SRCS+=	core/serial.c
 SRCS+=	core/main.c core/pci.c core/osloader.c core/nfs.c
 SRCS+=	core/misc.c core/config.c core/relocate.c core/heap.c
 SRCS+=	drivers/disk/floppy.c core/nic.c core/disk.c core/timer.c
-SRCS+=	core/proto_slam.c core/proto_tftm.c 
+SRCS+=	core/proto_slam.c core/proto_tftm.c
+SRCS+=	core/isapnp.c
 
 BOBJS+=		$(BIN)/main.o $(BIN)/osloader.o $(BIN)/nfs.o $(BIN)/misc.o
 BOBJS+=		$(BIN)/proto_slam.o $(BIN)/proto_tftm.o
 BOBJS+=		$(BIN)/floppy.o
 BOBJS+=		$(BIN)/serial.o $(BIN)/timer.o  $(BIN)/relocate.o $(BIN)/heap.o
 BOBJS+=		$(BIN)/nic.o $(BIN)/disk.o
+BOBJS+=		$(BIN)/isapnp.o
 BOBJS+=		$(BIN)/pci.o
 BOBJS+=		$(BIN)/vsprintf.o
 BLIB=		$(BIN)/bootlib.a 

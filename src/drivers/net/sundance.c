@@ -385,7 +385,7 @@ static void sundance_reset(struct nic *nic)
     set_rx_mode(nic);
     outw(0, BASE + DownCounter);
     /* Set the chip to poll every N*30nsec */
-    outb(100, BASE + RxDescPoll);
+    outb(0, BASE + RxDescPoll);
     outb(127, BASE + TxDescPoll);
 
 
@@ -459,7 +459,7 @@ static int sundance_poll(struct nic *nic)
 
     sdc->cur_rx = (++sdc->cur_rx) % RX_RING_SIZE;
     sdc->rx_head_desc = &rx_ring[sdc->cur_rx];
-
+    outw(0x100, BASE + DMACtrl);
 
     return 1;
 
