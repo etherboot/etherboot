@@ -30,6 +30,7 @@
 /* Revision History */
 
 /*
+  06 Dec 2003  timlegge - Fixed relocation issue in 5.2
   04 Jan 2002  Chien-Yu Chen, Doug Ambrisko, Marty Connor  Patch to Etherboot 5.0.5
      Added support for the SiS 630ET plus various bug fixes from linux kernel
      source 2.4.17.
@@ -47,6 +48,7 @@
 #include "etherboot.h"
 #include "nic.h"
 #include "pci.h"
+#include "timer.h"
 
 #include "sis900.h"
 
@@ -274,7 +276,8 @@ static int sis635_get_mac_addr(struct pci_device * pci_dev __unused, struct nic 
 {
         u32 rfcrSave;
         u32 i;
-
+	
+	
         rfcrSave = inl(rfcr + ioaddr);
 
         outl(rfcrSave | RELOAD, ioaddr + cr);
@@ -1096,7 +1099,7 @@ sis900_transmit(struct nic  *nic,
         txb[s++] = '\0';
 
     /* set the transmit buffer descriptor and enable Transmit State Machine */
-    txd.bufptr = (u32) &txb[0];
+    txd.bufptr = virt_to_bus(&txb[0]);
     txd.cmdsts = (u32) OWN | s;
 
     /* restart the transmitter */
@@ -1168,7 +1171,7 @@ sis900_poll(struct nic *nic)
 
     /* return the descriptor and buffer to receive ring */
     rxd[cur_rx].cmdsts = RX_BUF_SIZE;
-    rxd[cur_rx].bufptr = (u32) &rxb[cur_rx*RX_BUF_SIZE];
+    rxd[cur_rx].bufptr = virt_to_bus(&rxb[cur_rx*RX_BUF_SIZE]);
         
     if (++cur_rx == NUM_RX_DESC)
         cur_rx = 0;
@@ -1177,6 +1180,7 @@ sis900_poll(struct nic *nic)
     outl(RxENA | inl(ioaddr + cr), ioaddr + cr);
 
     return retstat;
+
 }
 
 
