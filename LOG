@@ -2589,3 +2589,12 @@ uses no floppy emulation mode.
 reset properly, Timothy Legge improved it based in the Linux driver.
 
 Released as Etherboot 5.3.4 (development)
+
++ David D. Smith, with help from Georg Baum, sent in a patch for the
+eepro100 driver which might help unjam the NIC when the receiver has
+suspended reception.
+
++ Timothy Legge and Eric Biederman fixed a bug in the tg3 driver which
+caused some models to not receive DHCP replies.
+
+Released as Etherboot 5.3.5 (development)
