@@ -504,10 +504,10 @@ natsemi_init_txd(struct nic *nic)
 {
     txd.link   = (u32) 0;
     txd.cmdsts = (u32) 0;
-    txd.bufptr = (u32) &txb[0];
+    txd.bufptr = virt_to_bus(&txb[0]);
 
     /* load Transmit Descriptor Register */
-    outl((u32) &txd, ioaddr + TxRingPtr); 
+    outl(virt_to_bus(&txd), ioaddr + TxRingPtr); 
     if (natsemi_debug > 1)
         printf("natsemi_init_txd: TX descriptor register loaded with: %X\n", 
                inl(ioaddr + TxRingPtr));
@@ -531,16 +531,16 @@ natsemi_init_rxd(struct nic *nic)
 
     /* init RX descriptor */
     for (i = 0; i < NUM_RX_DESC; i++) {
-        rxd[i].link   = (i+1 < NUM_RX_DESC) ? (u32) &rxd[i+1] : (u32) &rxd[0];
+        rxd[i].link   = virt_to_bus((i+1 < NUM_RX_DESC) ? &rxd[i+1] : &rxd[0]);
         rxd[i].cmdsts = (u32) RX_BUF_SIZE;
-        rxd[i].bufptr = (u32) &rxb[i*RX_BUF_SIZE];
+        rxd[i].bufptr = virt_to_bus(&rxb[i*RX_BUF_SIZE]);
         if (natsemi_debug > 1)
             printf("natsemi_init_rxd: rxd[%d]=%X link=%X cmdsts=%X bufptr=%X\n", 
                    i, &rxd[i], rxd[i].link, rxd[i].cmdsts, rxd[i].bufptr);
     }
 
     /* load Receive Descriptor Register */
-    outl((u32) &rxd[0], ioaddr + RxRingPtr);
+    outl(virt_to_bus(&rxd[0]), ioaddr + RxRingPtr);
 
     if (natsemi_debug > 1)
         printf("natsemi_init_rxd: RX descriptor register loaded with: %X\n", 
@@ -610,7 +610,7 @@ natsemi_transmit(struct nic  *nic,
     outl(TxOff, ioaddr + ChipCmd);
 
     /* load Transmit Descriptor Register */
-    outl((u32) &txd, ioaddr + TxRingPtr);
+    outl(virt_to_bus(&txd), ioaddr + TxRingPtr);
     if (natsemi_debug > 1)
         printf("natsemi_transmit: TX descriptor register loaded with: %X\n", 
                inl(ioaddr + TxRingPtr));
@@ -632,7 +632,7 @@ natsemi_transmit(struct nic  *nic,
         txb[s++] = '\0';
 
     /* set the transmit buffer descriptor and enable Transmit State Machine */
-    txd.bufptr = (u32) &txb[0];
+    txd.bufptr = virt_to_bus(&txb[0]);
     txd.cmdsts = (u32) OWN | s;
 
     /* restart the transmitter */
@@ -700,7 +700,7 @@ natsemi_poll(struct nic *nic)
 
     /* return the descriptor and buffer to receive ring */
     rxd[cur_rx].cmdsts = RX_BUF_SIZE;
-    rxd[cur_rx].bufptr = (u32) &rxb[cur_rx*RX_BUF_SIZE];
+    rxd[cur_rx].bufptr = virt_to_bus(&rxb[cur_rx*RX_BUF_SIZE]);
         
     if (++cur_rx == NUM_RX_DESC)
         cur_rx = 0;
