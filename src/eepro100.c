@@ -260,7 +260,7 @@ static struct ConfCmd {
   (u32) & txfd,
   {22, 0x08, 0, 0,  0, 0x80, 0x32, 0x03,  1, /* 1=Use MII  0=Use AUI */
    0, 0x2E, 0,  0x60, 0,
-   0xf2, 0x48,   0, 0x40, 0xf2, 0x80,        /* 0x40=Force full-duplex */
+   0xf2, 0x48, 0, 0x40, 0xf2, 0x80,
    0x3f, 0x05, }
 };
 
@@ -583,7 +583,10 @@ struct nic *eepro100_probe(struct nic *nic, unsigned short *probeaddrs, struct p
   printf ("Setup_eaddr:\n");
   hd (&txfd, 0x20);
 #endif
-  /*      options = 0x40; */ /* 10mbps half duplex... */
+/*
+ *	0x30 force full duplex 100mbps
+ *	0x40 force full duplex 10mbps
+ */
   options = 0x00;            /* Autosense */
 
   promisc = 0;
