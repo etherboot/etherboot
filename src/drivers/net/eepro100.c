@@ -360,48 +360,48 @@ static void eepro100_transmit(struct nic *nic, const char *d, unsigned int t, un
 	} hdr;
 	unsigned short status;
 	int s1, s2;
-	
+
 	status = inw(ioaddr + SCBStatus);
 	/* Acknowledge all of the current interrupt sources ASAP. */
 	outw(status & 0xfc00, ioaddr + SCBStatus);
-	
+
 #ifdef	DEBUG
 	printf ("transmitting type %hX packet (%d bytes). status = %hX, cmd=%hX\n",
 		t, s, status, inw (ioaddr + SCBCmd));
 #endif
-	
+
 	memcpy (&hdr.dst_addr, d, ETH_ALEN);
 	memcpy (&hdr.src_addr, nic->node_addr, ETH_ALEN);
-	
+
 	hdr.type = htons (t);
-	
+
 	txfd.status = 0;
 	txfd.command = CmdSuspend | CmdTx | CmdTxFlex;
 	txfd.link   = virt_to_bus (&txfd);
 	txfd.count   = 0x02208000;
 	txfd.tx_desc_addr = virt_to_bus(&txfd.tx_buf_addr0);
-	
+
 	txfd.tx_buf_addr0 = virt_to_bus (&hdr);
 	txfd.tx_buf_size0 = sizeof (hdr);
-	
+
 	txfd.tx_buf_addr1 = virt_to_bus (p);
 	txfd.tx_buf_size1 = s;
-	
+
 #ifdef	DEBUG
 	printf ("txfd: \n");
 	hd (&txfd, sizeof (txfd));
 #endif
-	
+
 	outl(virt_to_bus(&txfd), ioaddr + SCBPointer);
 	outw(INT_MASK | CU_START, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
-	
+
 	s1 = inw (ioaddr + SCBStatus);
 	load_timer2(10*TICKS_PER_MS);		/* timeout 10 ms for transmit */
 	while (!txfd.status && timer2_running())
 		/* Wait */;
 	s2 = inw (ioaddr + SCBStatus);
-	
+
 #ifdef	DEBUG
 	printf ("s1 = %hX, s2 = %hX.\n", s1, s2);
 #endif
@@ -506,61 +506,58 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 		nic->node_addr[i] =  (eeprom[i/2] >> (8*(i&1))) & 0xff;
 	}
 	printf ("Ethernet addr: %!\n", nic->node_addr);
-	
+
 	if (sum != 0xBABA)
 		printf("eepro100: Invalid EEPROM checksum %#hX, "
 		       "check settings before activating this device!\n", sum);
 	outl(0, ioaddr + SCBPort);
 	udelay (10000);
-	
 	whereami ("Got eeprom.");
-	
-	outl(virt_to_bus(&lstats), ioaddr + SCBPointer);
-	outw(INT_MASK | CU_STATSADDR, ioaddr + SCBCmd);
-	wait_for_cmd_done(ioaddr + SCBCmd);
-	
-	whereami ("set stats addr.");
-	/* INIT RX stuff. */
-	
+
 	/* Base = 0 */
 	outl(0, ioaddr + SCBPointer);
 	outw(INT_MASK | RX_ADDR_LOAD, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
-	
 	whereami ("set rx base addr.");
-	
+
+	outl(virt_to_bus(&lstats), ioaddr + SCBPointer);
+	outw(INT_MASK | CU_STATSADDR, ioaddr + SCBCmd);
+	wait_for_cmd_done(ioaddr + SCBCmd);
+	whereami ("set stats addr.");
+
+	/* INIT RX stuff. */
 	ACCESS(rxfd)status  = 0x0001;
 	ACCESS(rxfd)command = 0x0000;
 	ACCESS(rxfd)link    = virt_to_bus(&(ACCESS(rxfd)status));
 	ACCESS(rxfd)rx_buf_addr = virt_to_bus(&nic->packet);
 	ACCESS(rxfd)count   = 0;
 	ACCESS(rxfd)size    = 1528;
-	
+
 	outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
 	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
-	
+
 	whereami ("started RX process.");
-	
+
 	/* Start the reciever.... */
 	ACCESS(rxfd)status = 0;
 	ACCESS(rxfd)command = 0xc000;
 	outl(virt_to_bus(&(ACCESS(rxfd)status)), ioaddr + SCBPointer);
 	outw(INT_MASK | RX_START, ioaddr + SCBCmd);
-	
+
 	/* INIT TX stuff. */
-	
+
 	/* Base = 0 */
 	outl(0, ioaddr + SCBPointer);
 	outw(INT_MASK | CU_CMD_BASE, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
-	
+
 	whereami ("set TX base addr.");
-	
+
 	txfd.command      = (CmdIASetup);
 	txfd.status       = 0x0000;
 	txfd.link         = virt_to_bus (&confcmd);
-	
+
 	{
 		char *t = (char *)&txfd.tx_desc_addr;
 		
@@ -582,7 +579,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 #else
 	rx_mode = 0;
 #endif
-	
+
 	if (   ((eeprom[6]>>8) & 0x3f) == DP83840
 	       || ((eeprom[6]>>8) & 0x3f) == DP83840A) {
 		int mdi_reg23 = mdio_read(eeprom[6] & 0x1f, 23) | 0x0422;
@@ -613,13 +610,13 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 	outl(virt_to_bus(&txfd), ioaddr + SCBPointer);
 	outw(INT_MASK | CU_START, ioaddr + SCBCmd);
 	wait_for_cmd_done(ioaddr + SCBCmd);
-	
+
 	whereami ("started TX thingy (config, iasetup).");
-	
+
 	load_timer2(10*TICKS_PER_MS);
 	while (!txfd.status && timer2_running())
 		/* Wait */;
-	
+
 	/* Read the status register once to disgard stale data */
 	mdio_read(eeprom[6] & 0x1f, 1);
 	/* Check to see if the network cable is plugged in.
@@ -646,7 +643,7 @@ static int eepro100_probe(struct dev *dev, struct pci_device *p)
 void hd (void *where, int n)
 {
 	int i;
-	
+
 	while (n > 0) {
 		printf ("%X ", where);
 		for (i=0;i < ( (n>16)?16:n);i++)
