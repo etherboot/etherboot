@@ -448,7 +448,14 @@ struct nic	nic =
 	arptable[ARP_CLIENT].node,	/* node_addr */
 	packet,			/* packet */
 	0,			/* packetlen */
-	{ NIC_ID_SIZE-1, PCI_BUS_TYPE, 0, 0 },	/* devid */
+	{
+		NIC_ID_SIZE-1,
+		RFC1533_VENDOR_NIC_DEV_ID,
+		5,
+		PCI_BUS_TYPE,
+		0,
+		0
+	},	/* devid */
 	0,			/* priv_data */
 };
 
