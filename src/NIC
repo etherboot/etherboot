@@ -94,6 +94,7 @@ eepro100	0x8086,0x1229	Intel EtherExpressPro100
 82562em	0x8086,0x2449	Intel EtherExpressPro100 82562EM
 82562-1	0x8086,0x2459	Intel 82562 based Fast Ethernet Connection
 82562-2	0x8086,0x245d	Intel 82562 based Fast Ethernet Connection
+82562ez	0x8086,0x1050	Intel 82562EZ Network Connection
 eepro100-5200	0x8086,0x5200	Intel EtherExpress PRO/100 Intelligent Server
 eepro100-5201	0x8086,0x5201	Intel EtherExpress PRO/100 Intelligent Server
 
