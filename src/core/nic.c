@@ -269,8 +269,10 @@ int eth_load(struct dev *dev __unused)
 			BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr);
 	if (arptable[ARP_GATEWAY].ipaddr.s_addr)
 		printf(", Gateway %@", arptable[ARP_GATEWAY].ipaddr.s_addr);
+#ifdef	DNS_RESOLVER
 	if (arptable[ARP_NAMESERVER].ipaddr.s_addr)
 		printf(", Nameserver %@", arptable[ARP_NAMESERVER].ipaddr.s_addr);
+#endif
 	putchar('\n');
 
 #ifdef	MDEBUG
