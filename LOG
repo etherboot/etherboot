@@ -2402,6 +2402,22 @@ substitute the real vendor ID before making the ROM.
 + Steal serial.c from Eric Biederman's work on 5.1.2. Good, one less
 assembler routine.
 
-+ Include fix from Michael Brown for traffic stopping after about
-20MB on downloads via Prism due to unacknowledged INFO events eating
-up memory.
++ Include fixes from Michael Brown for: Traffic stopping after about
+20MB on downloads via Prism due to unacknowledged INFO events eating up
+memory on the Prism; retry autojoins to accomodate Linksys WAP11
+behaviour.
+
++ Lester Vecsey pointed out comments about the media options in
+eepro100.c are conflicting and wrong. Changed comment to correct values.
+
++ Chris Ricker sent in the ID for another EEPRO100 variant, 0x1031.
+
++ Michael Brown found that gate A20 should be reset before exiting.
+Make a new routine eb_exit() and call that instead of exit() where
+appropriate.
+
++ Doug Ambrisko found an EEPRO100 with id 0x103b.
+
++ #ifdef out 386 testing code, causes problems with recent gas due
+to taking the difference between symbols in different sections,
+main and .rodata. Anybody with a 286 CPU deserves what they get.
