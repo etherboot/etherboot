@@ -5,7 +5,7 @@
 # CP='-cp /usr/local/lib/commons-httpclient-2.0-rc1.jar:/usr/local/lib/commons-logging-api.jar:/usr/local/lib/commons-logging.jar'
 
 # Edit and uncomment to use an alternate port
-PORT='-DT2hproxy.port=1069'
+# PORT='-DT2hproxy.port=1069'
 PREFIX='-DT2hproxy.prefix=http://localhost/'
 # Edit and uncomment to use a proxy
 # PROXY='-DT2hproxy.proxy=localhost:3128'
