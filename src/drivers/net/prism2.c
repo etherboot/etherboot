@@ -600,7 +600,7 @@ static int hfa384x_wait_for_event(hfa384x_t *hw, UINT16 event_mask, UINT16 event
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-static int prism2_poll(struct nic *nic)
+static int prism2_poll(struct nic *nic, int retrieve)
 {
   UINT16 reg;
   UINT16 rxfid;
@@ -614,6 +614,9 @@ static int prism2_poll(struct nic *nic)
     /* No packet received - return 0 */
     return 0;
   }
+
+  if ( ! retrieve ) return 1;
+
   /* Acknowledge RX event */
   hfa384x_setreg(hw, HFA384x_EVACK_RX_SET(1), HFA384x_EVACK);
   /* Get RX FID */  
@@ -727,7 +730,21 @@ DISABLE - Turn off ethernet interface
 static void prism2_disable(struct dev *dev __unused)
 {
   /* put the card in its initial state */
+}
 
+/**************************************************************************
+IRQ - Enable, Disable, or Force interrupts
+***************************************************************************/
+static void prism2_irq(struct nic *nic __unused, irq_action_t action __unused)
+{
+  switch ( action ) {
+  case DISABLE :
+    break;
+  case ENABLE :
+    break;
+  case FORCE :
+    break;
+  }
 }
 
 /**************************************************************************
@@ -752,9 +769,13 @@ static int prism2_pci_probe(struct dev *dev, struct pci_device *p)
   /* Find and intialise PLX Prism2 card */
 #if (WLAN_HOSTIF == WLAN_PLX)
   if ( ! prism2_find_plx ( hw, p ) ) return 0;
+  nic->ioaddr = hw->iobase;
 #elif (WLAN_HOSTIF == WLAN_PCI)
   if ( ! prism2_find_pci ( hw, p ) ) return 0;
+  nic->ioaddr = hw->membase;
 #endif
+
+  nic->irqno  = 0;
 
   /* Initialize card */
   result = hfa384x_docmd_wait(hw, HFA384x_CMDCODE_INIT, 0,0,0); /* Send initialize command */
@@ -839,6 +860,7 @@ static int prism2_pci_probe(struct dev *dev, struct pci_device *p)
   dev->disable  = prism2_disable; 
   nic->poll     = prism2_poll;
   nic->transmit = prism2_transmit;
+  nic->irq      = prism2_irq;
   return 1;
 }
 
