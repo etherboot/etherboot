@@ -148,33 +148,62 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxenv->PXEPtr.offset = OFFSET(pxe);
 	pxenv->Checksum -= byte_checksum ( pxenv, sizeof(*pxenv) );
 
+	/* Mark stack as inactive */
+	pxe_stack->active = 0;
+
 	/* Install PXE and RM callback code */
 	memcpy ( pxe_callback_code, &pxe_callback_interface,
 		 pxe_callback_interface_size );
 	install_rm_callback_interface ( rm_callback_code, 0 );
 
+	return pxe_stack;
+}
+
+/* Activate PXE stack (i.e. hook interrupt vectors).  The PXE stack
+ * *can* be used before it is activated, but it really shoudln't.
+ */
+void activate_pxe_stack ( void ) {
+	if ( pxe_stack == NULL ) return;
+	if ( pxe_stack->active ) return;
+
 	/* Hook INT15 handler */
 	*pxe_intercepted_int15 = *INT15_VECTOR;
 	(*pxe_hide_memory)[0].start = virt_to_phys(_text);
 	(*pxe_hide_memory)[0].length = _end - _text;
-	(*pxe_hide_memory)[1].start = heap_top;
-	(*pxe_hide_memory)[1].length = heap_bot - heap_top;
-	INT15_VECTOR->segment = SEGMENT(pxe_callback_code);
-	INT15_VECTOR->offset = (void*)pxe_intercept_int15 - pxe_callback_code;
+	/* IMPORTANT, possibly even FIXME:
+	 *
+	 * Etherboot has a tendency to claim a very large area of
+	 * memory as possible heap; enough to make it impossible to
+	 * load an OS if we hide all of it.  We hide only the portion
+	 * that's currently in use.  This means that we MUST NOT
+	 * perform further allocations from the heap while the PXE
+	 * stack is active.
+	 */
+	(*pxe_hide_memory)[1].start = heap_ptr;
+	(*pxe_hide_memory)[1].length = heap_bot - heap_ptr;
+	INT15_VECTOR->segment = SEGMENT(&pxe_stack->arch_data);
+	INT15_VECTOR->offset = (void*)pxe_intercept_int15
+		- (void*)&pxe_stack->arch_data;
 
 	/* Hook INT1A handler */
 	*pxe_intercepted_int1a = *INT1A_VECTOR;
 	pxe_pxenv_location->segment = SEGMENT(pxe_stack);
-	pxe_pxenv_location->offset = (void*)pxenv - (void*)pxe_stack;
-	INT1A_VECTOR->segment = SEGMENT(pxe_callback_code);
-	INT1A_VECTOR->offset = (void*)pxe_intercept_int1a - pxe_callback_code;
+	pxe_pxenv_location->offset = (void*)&pxe_stack->pxenv
+		- (void*)pxe_stack;
+	INT1A_VECTOR->segment = SEGMENT(&pxe_stack->arch_data);
+	INT1A_VECTOR->offset = (void*)pxe_intercept_int1a
+		- (void*)&pxe_stack->arch_data;
 
-	return pxe_stack;
+	/* Mark stack as active */
+	pxe_stack->active = 1;
 }
 
-/* remove_pxe_stack(): remove PXE stack installed by install_pxe_stack()
+/* Deactivate the PXE stack (i.e. unhook interrupt vectors).
  */
-void remove_pxe_stack ( void ) {
+void deactivate_pxe_stack ( void ) {
+	if ( pxe_stack == NULL ) return;
+	if ( ! pxe_stack->active ) return;
+
 	/* Restore original INT15 and INT1A handlers
 	 *
 	 * FIXME: should probably check that is safe to do so
@@ -184,6 +213,15 @@ void remove_pxe_stack ( void ) {
 	*INT15_VECTOR = *pxe_intercepted_int15;
 	*INT1A_VECTOR = *pxe_intercepted_int1a;
 
+	/* Mark stack as inactive */
+	pxe_stack->active = 0;
+}
+
+/* remove_pxe_stack(): remove PXE stack installed by install_pxe_stack()
+ */
+void remove_pxe_stack ( void ) {
+	/* Ensure stack is deactivated, then free up the memory */
+	deactivate_pxe_stack();
 	forget_base_memory ( pxe_stack, pxe_stack_size() );
 	pxe_stack = NULL;
 }

@@ -24,6 +24,8 @@ typedef struct {
 /* Function prototypes
  */
 pxe_stack_t * install_pxe_stack ( void *base );
+void activate_pxe_stack ( void );
+void deactivate_pxe_stack ( void );
 void remove_pxe_stack ( void );
 extern int xstartpxe ( void );
 

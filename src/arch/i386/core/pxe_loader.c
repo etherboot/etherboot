@@ -53,8 +53,9 @@ static sector_t pxe_download ( unsigned char *data,
 	/* Start up PXE NBP */
 	done ( 0 );
 
-	/* Install a PXE stack */
+	/* Install and activate a PXE stack */
 	pxe_stack = install_pxe_stack ( NULL );
+	activate_pxe_stack();
 
 	/* Invoke the NBP */
 	nbp_exit = xstartpxe();

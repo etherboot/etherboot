@@ -874,6 +874,7 @@ typedef struct {
 	pxe_t		pxe	__attribute__ ((aligned(16)));
 	pxenv_t		pxenv	__attribute__ ((aligned(16)));
 	BOOTPLAYER	cached_info;
+	uint8_t		active;
 	struct {}	arch_data __attribute__ ((aligned(16)));
 } pxe_stack_t;
 
