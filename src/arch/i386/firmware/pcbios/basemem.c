@@ -91,15 +91,45 @@ void * allot_base_memory ( size_t size ) {
  */
 
 void forget_base_memory ( void *ptr, size_t size ) {
-	free_base_memory_block_t *free_block = NULL;
-	uint16_t size_kb = ( size + 1023 ) >> 10;
+	uint16_t remainder = virt_to_phys(ptr) & 1023;
+	uint16_t size_kb = ( size + remainder + 1023 ) >> 10;
+	free_base_memory_block_t *free_block =
+		( free_base_memory_block_t * ) ( ptr - remainder );
 	
 	if ( ( ptr == NULL ) || ( size == 0 ) ) { return; }
 
-	/* Mark this block as unused */
-	free_block = ( free_base_memory_block_t * ) ptr;
-	free_block->magic = FREE_BLOCK_MAGIC;
-	free_block->size_kb = size_kb;
+#if DEBUG_BASEMEM
+	printf ( "Trying to free %d bytes base memory at 0x%x\n",
+		 size, virt_to_phys ( ptr ) );
+	if ( remainder > 0 ) {
+		printf ( "WARNING: destructively expanding free block "
+			 "downwards to 0x%x\n",
+			 virt_to_phys ( ptr - remainder ) );
+	}
+#endif
+
+	/* Mark every kilobyte within this block as free.  This is
+	 * overkill for normal purposes, but helps when something has
+	 * allocated base memory with a granularity finer than the
+	 * BIOS granularity of 1kB.  PXE ROMs tend to do this when
+	 * they allocate their own memory.  This method allows us to
+	 * free their blocks (admittedly in a rather dangerous,
+	 * tread-on-anything-either-side sort of way, but there's no
+	 * other way to do it).
+	 *
+	 * Since we're marking every kB as free, there's actually no
+	 * need for recording the size of the blocks.  However, we
+	 * keep this in so that debug messages are friendlier.  It
+	 * probably adds around 8 bytes to the overall code size.
+	 */
+	while ( size_kb > 0 ) {
+		/* Mark this block as unused */
+		free_block->magic = FREE_BLOCK_MAGIC;
+		free_block->size_kb = size_kb;
+		/* Move up by 1 kB */
+		(void *)free_block += ( 1 << 10 );
+		size_kb--;
+	}
 
 	/* Free up unused base memory */
 	free_unused_base_memory();
