@@ -1,6 +1,15 @@
-Etherboot 5.3.8
+Etherboot 5.3.9
 
-Here are some things you should be aware of:
+It should be possible to compile Etherboot with gcc >= 3.3.3 now that a
+couple of bugs have been tracked down. Please mail reports of success or
+failure to the etherboot-users list, together with the versions of gcc
+and binutils used.
+
+We know that these things do not work; they are being fixed:
+
+make bin/etherboot-pci.z*
+return from chained programs like menus (might be mknbi problem)
+support for ELF files (not mkelf images)
 
 ---
 
@@ -12,7 +21,6 @@ targets.
 
 binutils-2.14 is no longer needed in order to compile images. The
 symbolsrec feature is not used, so older binutils (ld) should work.
-
 
 ---
 
@@ -35,96 +43,9 @@ for more information.
 
 ---
 
-As of Etherboot 5.3.7 you will need binutils-2.14 in order to compile
-images. If you get a message like this:
-
-    objcopy -x -O symbolsrec --prefix-symbols=runtime_ bin/tulip.tmp bin/tulip.allsym
-    objcopy: unrecognized option `--prefix-symbols=runtime_'
-    Usage: objcopy [option(s)] in-file [out-file]
-
-You will need to update your copy of binutils. On an rpm-based
-distribution, you can check your version like this:
-
-    $ rpm -q binutils
-    binutils-2.13.90.0.2-2
-
-Or, you can do:
-
-    $ objcopy --version
-    GNU objcopy 2.13.90.0.2 20020802
-
-Redhat 8 is probably the most common system that this will fail on,
-and fortunately some helpful people have made updated RPMs that will
-update binutils to 2.14. One such site is:
-
-    http://www.haoli.org/rpm/
-
-Downloading the rpm for binutils 2.14 and doing:
-
-    rpm -Uvh binutils-2.14-1.i386.rpm
-
-Should work. You may have programs which claim to depend on the
-older version, so you may have to update them, delete them, or force
-the new version. You might also consider updating your distribution
-to something with more modern tools.
-
----
-
 In order to create .liso images (which are .iso images which contain
 legacy floppy emulation code), you will need to have the packages
 mtools-3.9.9 or later, and syslinux-2.08 or later installed on your
 system. These packages are available in various locations and formats.
 Join and ask on the etherboot-users mailing list if you need help
 finding them.
-
----
-
-Attempting to make an image with all etherboot drivers in it using the
-command:
-
-    make bin/etherboot.zdsk
-
-will currently fail because of code space limitations.
-
-    make bin/etherboot-pci.zdsk
-
-will work however, because it includes fewer (only PCI) drivers.
-
----
-
-There is a bug in the Perl supplied with RH9 (and possibly RH8). It
-assumes UTF-8 even with the use bytes pragma. Either get an updated Perl
-package or set LANG to en_US (or whatever your language name is, the
-important thing is without the .UTF-8 suffix).
-
-You can build an image that contains all the drivers. It's called
-etherboot.zdsk (and other suffixes). It is advisable to restrict the
-drivers to either ISA or PCI to reduce the footprint and also to avoid
-unnecessary probing of the bus you don't have. Also note that if the
-.com image is larger than 64kB, it will not work because .com images can
-only carry 64kB worth of code.
-
-The Quit option (formerly called Local) when ASK_PROMPT is defined will
-take you back to the invoking environment, which is the BIOS for .zrom
-images, DOS for .com images and nothing for .zdsk images.  Therefore if
-you are booting from floppy, the behaviour of Q is undefined.  It is
-unknown what LILO and other bootloaders do if a .zlilo image returns,
-probably they don't expect a return.  Also note that the Q option will
-also become undefined if anything is partially loaded that overwrites
-the return trail to the environment.
-
-The .lzdsk images used to work from a raw hard disk in 5.0 but the 5.2
-.zdsk doesn't any more because it's too hard to support large images
-with the old boot1a.s. Since very few people boot from a raw hard disk
-(flash disks and supporting BIOSes seem to have some kind of filesystem
-on it already rather than work like a raw hard disk) this is not going
-to be fixed. Instead, you should use a bootloader like LILO to launch
-Etherboot. If you feel inclined to write a hdload.S counterpart to
-floppyload.S, feel free.
-
-The Lance driver does not work under -DRELOCATE. This is due to the
-assumption of 24 bit registers in older NICs. The solution for now is to
-not define RELOCATE for Lance ROMs. The longer term solution for PCI
-Lances is to adapt the pcnet32 driver from Linux, which handles 32 bit
-register capability of the newer PCI Lance chips.
-

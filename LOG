@@ -2690,8 +2690,11 @@ Released as Etherboot 5.3.8 (development)
 unused functions and variables that are actually referenced from asm
 or in the linking stage. (Ken Yap)
 
-+ Removed non-relocation support, relocation is now always active. (Ken
-Yap)
++ Removed non-relocation support, relocation is now always active.
+Removed lance.c driver as this will not work with relocation. 32-bit
+Lance NIC users should use pcnet32. (Ken Yap)
 
 + Migrated SAFEBOOT to a patch set. This proof-of-concept code is
 incomplete and needs more work before becoming mainstream. (Ken Yap)
+
+Released as Etherboot 5.3.9 (development)
