@@ -263,7 +263,7 @@ struct FA311_DEV* dev = &fa311_dev;
         dev->cur_rx++;
         if (dev->cur_rx >= RX_RING_SIZE)
             dev->cur_rx = 0;
-        dev->rx_head_desc = &dev->rx_ring[dev->cur_rx];
+        dev->rx_head_desc = virt_to_le32desc(&dev->rx_ring[dev->cur_rx]);
     }
     /* Restart Rx engine if stopped. */
     writel(RxOn, dev->ioaddr + ChipCmd);
@@ -403,7 +403,7 @@ static void init_ring(struct FA311_DEV *dev)
     dev->cur_tx = 0;
 
 	dev->rx_buf_sz = PKT_BUF_SZ;
-	dev->rx_head_desc = &dev->rx_ring[0];
+	dev->rx_head_desc = virt_to_le32(&dev->rx_ring[0]);
 
 	/* Initialize all Rx descriptors. */
 	for (i = 0; i < RX_RING_SIZE; i++) {
@@ -415,7 +415,7 @@ static void init_ring(struct FA311_DEV *dev)
 
 	/* Fill in the Rx buffers.  Handle allocation failure gracefully. */
 	for (i = 0; i < RX_RING_SIZE; i++) {
-		dev->rx_ring[i].addr = (u32)(&rx_packet[PKT_BUF_SZ * i]);
+		dev->rx_ring[i].addr = virt_to_le32desc(&rx_packet[PKT_BUF_SZ * i]);
 	    dev->rx_ring[i].cmd_status = cpu_to_le32(dev->rx_buf_sz);
 	}
 
@@ -426,7 +426,7 @@ static void init_ring(struct FA311_DEV *dev)
 	dev->tx_ring[i-1].next_desc = virt_to_le32desc(&dev->tx_ring[0]);
 
 	for (i = 0; i < TX_RING_SIZE; i++)
-		dev->tx_ring[i].addr = (u32)(&tx_packet[PKT_BUF_SZ * i]);
+		dev->tx_ring[i].addr = virt_to_le32desc(&tx_packet[PKT_BUF_SZ * i]);
 	return;
 }
 
