@@ -1,3 +1,12 @@
+/*****************************************************************************
+ *
+ * THIS FILE IS NOW OBSOLETE.
+ *
+ * The functions of this file are now placed in init.S.
+ *
+ *****************************************************************************
+ */
+	
 #ifndef PCBIOS
 #error	"16bit code is only supported with the PCBIOS"
 #endif
