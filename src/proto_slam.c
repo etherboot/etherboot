@@ -111,6 +111,7 @@ struct slam_info {
 	uint16_t multicast_port;
 	uint16_t local_port;
 	int (*fnc)(unsigned char *, unsigned int, unsigned int, int);
+	int sent_nack;
 };
 
 #define SLAM_TIMEOUT 0
@@ -378,7 +379,6 @@ static void transmit_nack(unsigned char *ptr, struct slam_info *info)
 #endif
 }
 
-#define COUNT 0
 static void slam_send_nack(struct slam_info *info)
 {
 	unsigned char *ptr, *end;
@@ -420,13 +420,17 @@ static void slam_send_nack(struct slam_info *info)
 			}
 		}
 	}
+	info->sent_nack = 1;
 	transmit_nack(ptr, info);
 }
 
 static void slam_send_disconnect(struct slam_info *info)
 {
-	/* A disconnect is a packet with just the null terminator */
-	transmit_nack(&nack.data[0], info);
+	if (info->sent_nack) {
+		/* A disconnect is a packet with just the null terminator */
+		transmit_nack(&nack.data[0], info);
+	}
+	info->sent_nack = 0;
 }
 
 
@@ -518,6 +522,7 @@ int url_slam(const char *name, int (*fnc)(unsigned char *, unsigned int, unsigne
 	info.local_ip.s_addr     = arptable[ARP_CLIENT].ipaddr.s_addr;
 	info.local_port          = SLAM_LOCAL_PORT;
 	info.fnc                 = fnc;
+	info.sent_nack = 0;
 	/* Now parse the url */
 	if (name[0] != '/') {
 		/* server ip */
