@@ -153,6 +153,7 @@ __asm__ __volatile__("pushl %0 ; popfl": /* no output */ :"g" (x):"memory")
 # define PCI_DEVICE_ID_SMC_EPIC100	0x0005
 #endif
 #define PCI_VENDOR_ID_MACRONIX		0x10d9
+#define PCI_DEVICE_ID_MX987x3		0x0512
 #define PCI_DEVICE_ID_MX987x5		0x0531
 #define PCI_VENDOR_ID_LINKSYS		0x11AD
 #define PCI_DEVICE_ID_LC82C115		0xC115

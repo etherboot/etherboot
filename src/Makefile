@@ -91,8 +91,8 @@ STRIP=		strip
 OBJCOPY=	objcopy
 VERSION_MAJOR=	5
 VERSION_MINOR=	0
-VERSION_PATCH=	5
-EXTRAVERSION=
+VERSION_PATCH=	6
+EXTRAVERSION=	rc1
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 CFLAGS32+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
 		-DVERSION_MINOR=$(VERSION_MINOR) \
@@ -183,7 +183,7 @@ CHECKSIZE=	{ read d1; read d1 d2 d3 size d4; [ $$size -gt $(ROMLIMIT) ] &&\
 # Setting it to 0x94000 leaves about 45kB of space for the Etherboot program.
 # The check is done based running 'size' on the binary, not ROM size, but
 # roughly this means a ROM of 16kB or a partially used ROM of 32kB,
-# remembering to compressed ROM images into account.
+# remembering to take compressed ROM images into account.
 #
 # You may also set RELOCADDR to 0x84000 to avoid using 0x94000
 # because of other drivers (e.g. Disk On Chip). In that case, you may
@@ -203,8 +203,8 @@ endif
 # and for the Etherboot runtime stack.  Under normal situations, 2K of stack
 # are rarely needed.  If you experience strange behaviour in functions that use
 # many local variables or that call functions that do, check for stack overrun!
-# Make sure that the normal case needs no perl interpreter - if someone uses a
-# different RELOCADDR, then he has perl installed anyways (the shell cannot
+# Make sure that the normal case needs no Perl interpreter - if someone uses a
+# different RELOCADDR, then he has Perl installed anyways (the shell cannot
 # deal with hex numbers, as test/eval don't support non-decimal integers).
 ifeq ($(RELOCADDR),0x94000)
 ROMLIMIT=46080

@@ -116,8 +116,10 @@ mx98715		tulip		0x10d9,0x0531
 mx98725		tulip		0x10d9,0x0531
 # Another Macronix clone?
 mxic-98715	tulip		0x1113,0x1217
-# ADMtek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
+# ADMTek Centaur-P, found on stmicro NIC by Ranjan Parthasarathy
 an981		tulip		0x1317,0x0981
+# ADMTek Comet 983 (reported by RISKO Gergely)
+an983		tulip		0x1113,0x1216
 # ADMtek Centaur-P Tulip clones
 centaur-p	tulip		0x1317,0x0985
 centaur-c	tulip		0x1317,0x1985

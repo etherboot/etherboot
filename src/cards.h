@@ -180,6 +180,11 @@ extern struct nic	*natsemi_probe(struct nic *, unsigned short *
         PCI_ARG(struct pci_device *));
 #endif
 
+#ifdef	INCLUDE_FA311
+extern struct nic	*fa311_probe(struct nic *, unsigned short *
+        PCI_ARG(struct pci_device *));
+#endif
+
 #ifdef	INCLUDE_TLAN
 extern struct nic	*tlan_probe(struct nic *, unsigned short *
         PCI_ARG(struct pci_device *));

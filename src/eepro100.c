@@ -80,8 +80,8 @@
  *
  * Caveats:
  *
- * The etherboot framework moves the code to the 32k segment from
- * 0x98000 to 0xa0000. There is just a little room between the end of
+ * The Etherboot framework moves the code to the 48k segment from
+ * 0x94000 to 0xa0000. There is just a little room between the end of
  * this driver and the 0xa0000 address. If you compile in too many
  * features, this will overflow.
  * The number under "hex" in the output of size that scrolls by while

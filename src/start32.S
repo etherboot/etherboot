@@ -285,6 +285,35 @@ getshift:
 	popl	%ebx
 	ret
 
+/**************************************************************************
+INT15 - Call Interrupt 0x15
+**************************************************************************/
+	.globl	int15
+int15:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	8(%ebp),%ecx	/* _prot_to_real destroys %eax */
+	call	_prot_to_real
+	.code16
+	movw	%cx,%ax
+	stc			/* in case function not supported */
+	int	$0x15
+	jc	int15status
+	movb	$0,%ah
+int15status:
+	movb	%ah,%bl		/* _real_to_prot destroys %eax */
+	DATA32 call	_real_to_prot
+	.code32
+	movzbl	%bl,%eax
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
 #ifdef	POWERSAVE
 /**************************************************************************
 CPU_NAP - Save power by halting the CPU until the next interrupt

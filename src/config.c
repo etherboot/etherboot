@@ -9,7 +9,7 @@
 #include	"nic.h"
 
 #undef	INCLUDE_PCI
-#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_TLAN)
+#if	defined(INCLUDE_NS8390) || defined(INCLUDE_EEPRO100) || defined(INCLUDE_E1000) || defined(INCLUDE_LANCE) || defined(INCLUDE_EPIC100) || defined(INCLUDE_TULIP) || defined(INCLUDE_OTULIP) || defined(INCLUDE_3C90X) ||  defined(INCLUDE_3C595) || defined(INCLUDE_RTL8139) || defined(INCLUDE_VIA_RHINE) || defined(INCLUDE_W89C840) || defined(INCLUDE_DAVICOM) || defined(INCLUDE_SIS900) || defined(INCLUDE_NATSEMI) || defined(INCLUDE_FA311) || defined(INCLUDE_TLAN)
 	/* || others later */
 #define	INCLUDE_PCI
 #include	"pci.h"
@@ -153,6 +153,8 @@ static struct pci_device	pci_nic_list[] = {
 		"Digital Tulip+", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_DEC,		PCI_DEVICE_ID_DEC_21142,
 		"Digital Tulip 21142", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_MACRONIX,	PCI_DEVICE_ID_MX987x3,
+		"Macronix MX987x3", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_MACRONIX,	PCI_DEVICE_ID_MX987x5,
 		"Macronix MX987x5", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_LINKSYS,	PCI_DEVICE_ID_LC82C115,
@@ -167,6 +169,8 @@ static struct pci_device	pci_nic_list[] = {
 		"ADMtek Centaur-P", 0, 0, 0, 0},
 	{ PCI_VENDOR_ID_ADMTEK, 0x0981,
 		"ADMtek AN981 Comet", 0, 0, 0, 0},
+	{ PCI_VENDOR_ID_MACRONIX, 0x1216,
+		"ADMTek AN983 Comet", 0, 0, 0, 0},
         { 0x125B, 0x1400,
 		"ASIX AX88140", 0, 0, 0, 0 },
         { 0x11F6, 0x9881,
@@ -200,6 +204,11 @@ static struct pci_device	pci_nic_list[] = {
 #endif
 
 #ifdef INCLUDE_NATSEMI
+       { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
+         "DP83815", 0, 0, 0, 0},
+#endif
+
+#ifdef INCLUDE_FA311
        { PCI_VENDOR_ID_NS,	     	PCI_DEVICE_ID_DP83815,
          "DP83815", 0, 0, 0, 0},
 #endif
@@ -244,6 +253,9 @@ static const struct dispatch_table	NIC[] =
 #endif
 #ifdef INCLUDE_NATSEMI
 	{ "NATSEMI", natsemi_probe, pci_ioaddrs },	
+#endif
+#ifdef INCLUDE_FA311
+	{ "FA311", fa311_probe, pci_ioaddrs },	
 #endif
 #ifdef	INCLUDE_WD
 	{ "WD", wd_probe, 0 },

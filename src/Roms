@@ -63,6 +63,7 @@ BINS32	+= bin32/82562em.rom bin32/82562em.lzrom
 BINS32	+= bin32/82c168.rom bin32/82c168.lzrom
 BINS32	+= bin32/amdhomepna.rom bin32/amdhomepna.lzrom
 BINS32	+= bin32/an981.rom bin32/an981.lzrom
+BINS32	+= bin32/an983.rom bin32/an983.lzrom
 BINS32	+= bin32/ax88140.rom bin32/ax88140.lzrom
 BINS32	+= bin32/ax88141.rom bin32/ax88141.lzrom
 BINS32	+= bin32/centaur-c.rom bin32/centaur-c.lzrom
@@ -937,6 +938,26 @@ bin32/an981.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
 	bin/makerom -x $(MAKEROM_$*) -p 0x1317,0x0981 -i$(IDENT32) $@
 
 bin32/an981.ebi:	bin32/tulip.elf
+	cp bin32/tulip.elf $@
+	$(STRIP) -R .comment -R .note $@
+
+bin32/an983.rom:	bin32/tulip.img $(PRLOADER)
+	cat $(PRLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983.lzrom:	bin32/tulip.huf $(PRZLOADER)
+	cat $(PRZLOADER) $< > $@
+	bin/makerom $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983.pxe:	bin32/tulip.img $(PXELOADER)
+	cat $(PXELOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983.lzpxe:	bin32/tulip.huf $(PXEZLOADER)
+	cat $(PXEZLOADER) $< > $@
+	bin/makerom -x $(MAKEROM_$*) -p 0x1113,0x1216 -i$(IDENT32) $@
+
+bin32/an983.ebi:	bin32/tulip.elf
 	cp bin32/tulip.elf $@
 	$(STRIP) -R .comment -R .note $@
 

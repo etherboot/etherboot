@@ -244,8 +244,6 @@ static void lance_reset(struct nic *nic)
 #ifdef DEBUG
                 printf("media changed to %d\n", media) ;
 #endif
-                media &= ~3 ;
-                media |= 1 ;
                 outw(49, ioaddr+0x12) ;
                 outw(media, ioaddr+0x16) ;
                 outw(49, ioaddr+0x12) ;

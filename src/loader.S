@@ -157,6 +157,8 @@ PnP:
  *	we need another #define to take care of that.
  */
 over: 
+/* Omit this test for ISA cards anyway */
+#ifdef	PCI_PNP_HEADER
 /* Accept old name too for backward compatibility */
 #if	!defined(BBS_BUT_NOT_PNP_COMPLIANT) && !defined(PNP_BUT_NOT_BBS_COMPLIANT)
 	cmpw	$'$'+'P'*256,%es:0(%di)
@@ -166,6 +168,7 @@ over:
 #endif	/* BBS_BUT_NOT_PNP_COMPLIANT */
 	movw	$0x20,%ax
 	lret
+#endif	/* PCI_PNP_HEADER */
 notpnp:
 #ifndef NO_DELAYED_INT
 	pushw	%ax

@@ -525,6 +525,7 @@ extern int console_getc P((void));
 extern void console_putc P((int));
 extern int console_ischar P((void));
 extern int getshift P((void));
+extern int int15 P((int));
 #ifdef	POWERSAVE
 extern void cpu_nap P((void));
 #endif	/* POWERSAVE */

@@ -244,6 +244,10 @@ int getdec(char **ptr)
 					   enable output buffer full interrupt
 					   enable data line
 					   disable clock line */
+
+enum { Disable_A20 = 0x2400, Enable_A20 = 0x2401, Query_A20_Status = 0x2402,
+	Query_A20_Support = 0x2403 } Int0x15Arg;
+
 #ifndef	IBM_L40
 static void empty_8042(void)
 {
@@ -263,6 +267,10 @@ static void empty_8042(void)
  */
 void gateA20_set(void)
 {
+	if (int15(Enable_A20) == 0) {
+		printf("A20 enabled via BIOS\n");
+		return;
+	}
 #ifdef	IBM_L40
 	outb(0x2, 0x92);
 #else	/* IBM_L40 */
@@ -281,6 +289,10 @@ void gateA20_set(void)
  */
 void gateA20_unset(void)
 {
+	if (int15(Disable_A20) == 0) {
+		printf("A20 disabled via BIOS\n");
+		return;
+	}
 #ifdef	IBM_L40
 	outb(0x0, 0x92);
 #else	/* IBM_L40 */
