@@ -2772,9 +2772,6 @@ static int tg3_get_invariants(struct tg3 *tp)
 	tg3_read_partno(tp);
 
 
-	/* FIXME do I need to do something with TG3_FLAG_USE_MI_INTERRUPT? */
-	/* FIXME do I need to do something with TG3_FLAG_USE_LINKCHG_REG? */
-	
 	/* 5700 BX chips need to have their TX producer index mailboxes
 	 * written twice to workaround a bug.
 	 * In etherboot we do this unconditionally to simplify things.
@@ -2784,10 +2781,6 @@ static int tg3_get_invariants(struct tg3 *tp)
 	 * 4GB address boundary in some cases.
 	 * 
 	 * In etherboot we can ignore the problem as etherboot lives below 4GB.
-	 */
-
-	/* FIXME rx_offset is 2 and then under some special conditions is
-	 * adjusted to 0, is is this something I need to deal with?
 	 */
 
 	/* In etherboot wake-on-lan is unconditionally disabled */
@@ -3215,14 +3208,12 @@ static int tg3_probe(struct dev *dev, struct pci_device *pdev)
 		((tp->tg3_flags & TG3_FLAG_PCI_32BIT) ? "32-bit" : "64-bit"));
 
 
-	/* REVIEW IS HERE ... */
 	err = tg3_setup_hw(tp); 
 	if (err) {
 		goto err_out_disable;
 	} 
 	tp->tg3_flags |= TG3_FLAG_INIT_COMPLETE;
 
-	/* Review is HERE */
 	/* Wait for a reasonable time for the link to come up */
 	tg3_poll_link(tp);
 	for(i = 0; !tp->carrier_ok && (i < VALID_LINK_TIMEOUT*100); i++) {
