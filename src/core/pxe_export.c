@@ -30,6 +30,8 @@
 #include "pxe_export.h"
 #include "pxe_callbacks.h"
 #include "nic.h"
+#include "pci.h"
+#include "dev.h"
 
 #if TRACE_PXE
 #define DBG(...) printf ( __VA_ARGS__ )
@@ -40,67 +42,259 @@
 /* Global pointer to currently installed PXE stack */
 pxe_stack_t *pxe_stack = NULL;
 
+/* Various startup/shutdown routines.  The startup/shutdown call
+ * sequence is incredibly badly defined in the Intel PXE spec, for
+ * example:
+ *
+ *   PXENV_UNDI_INITIALIZE says that the parameters used to initialize
+ *   the adaptor should be those supplied to the most recent
+ *   PXENV_UNDI_STARTUP call.  PXENV_UNDI_STARTUP takes no parameters.
+ *
+ *   PXENV_UNDI_CLEANUP says that the rest of the API will not be
+ *   available after making this call.  Figure 3-3 ("Early UNDI API
+ *   usage") shows a call to PXENV_UNDI_CLEANUP being followed by a
+ *   call to the supposedly now unavailable PXENV_STOP_UNDI.
+ *
+ *   PXENV_UNLOAD_BASE_STACK talks about freeing up the memory
+ *   occupied by the PXE stack.  Figure 4-3 ("PXE IPL") shows a call
+ *   to PXENV_STOP_UNDI being made after the call to
+ *   PXENV_UNLOAD_BASE_STACK, by which time the entire PXE stack
+ *   should have been freed (and, potentially, zeroed).
+ *
+ *   Nothing, anywhere, seems to mention who's responsible for freeing
+ *   up the base memory allocated for the stack segment.  It's not
+ *   even clear whether or not this is expected to be in free base
+ *   memory rather than claimed base memory.
+ *
+ * Consequently, we adopt a rather defensive strategy, designed to
+ * work with any conceivable sequence of initialisation or shutdown
+ * calls.  We have only two things that we care about:
+ *
+ *   1. Have we hooked INT 1A and INT 15,E820(etc.)?
+ *   2. Is the NIC initialised?
+ *
+ * The NIC should never be initialised without the vectors being
+ * hooked, similarly the vectors should never be unhooked with the NIC
+ * still initialised.  We do, however, want to be able to have the
+ * vectors hooked with the NIC shutdown.  We therefore have three
+ * possible states:
+ *
+ *   1. Ready to unload: interrupts unhooked, NIC shutdown.
+ *   2. Midway: interrupts hooked, NIC shutdown.
+ *   3. Fully ready: interrupts hooked, NIC initialised.
+ *
+ * We provide the three states CAN_UNLOAD, MIDWAY and READY to define
+ * these, and the call pxe_ensure_state() to ensure that the stack is
+ * in the specified state.  All our PXE API call implementations
+ * should use this call to ensure that the state is as required for
+ * that PXE API call.  This enables us to cope with whatever the
+ * end-user's interpretation of the PXE spec may be.  It even allows
+ * for someone calling e.g. PXENV_START_UNDI followed by
+ * PXENV_UDP_WRITE, without bothering with any of the intervening
+ * calls.
+ *
+ * pxe_ensure_state() returns 1 for success, 0 for failure.  In the
+ * event of failure (which can arise from e.g. asking for state READY
+ * when we don't know where our NIC is), the error code
+ * PXENV_STATUS_UNDI_INVALID_STATE should be returned to the user.
+ * The macros ENSURE_XXX() can be used to achieve this without lots of
+ * duplicated code.
+ */
+
+/* pxe_[un]hook_stack are architecture-specific and provided in
+ * pxe_callbacks.c
+ */
+
+/* Dummy PCI driver.  This is used in order to hack the probe
+ * mechanism; we need to be able to set dev.driver != NULL to fool it
+ * into not starting from the beginning, so we need somewhere to point
+ * dev.driver.
+ *
+ * __pci_driver is deliberately omitted so that this *doesn't* show up
+ * in the normal drivers list.
+ */
+static struct pci_driver dummy_driver = {
+        .type     = NIC_DRIVER,
+        .name     = "DUMMY",
+        .probe    = NULL,
+        .ids      = NULL,
+        .id_count = 0,
+        .class    = 0,
+};
+
+int pxe_initialise_nic ( void ) {
+	if ( pxe_stack->state >= READY ) return 1;
+
+	/* Check if NIC is initialised.  nic.dev.disable is set to 0
+	 * when disable() is called, so we use this.
+	 */
+	if ( nic.dev.disable ) {
+		/* NIC may have been initialised independently
+		 * (e.g. when we set up the stack prior to calling the
+		 * NBP).
+		 */
+		pxe_stack->state = READY;
+		return 1;
+	}
+
+	/* If we already have a NIC defined, reuse that one with
+	 * PROBE_AWAKE.  If one was specifed via PXENV_START_UNDI, try
+	 * that one first.  Otherwise, set PROBE_FIRST.
+	 */
+	if ( nic.dev.state.pci.dev.driver == &dummy_driver ) {
+		nic.dev.how_probe = PROBE_NEXT;
+	} else if ( nic.dev.state.pci.dev.driver ) {
+		nic.dev.how_probe = PROBE_AWAKE;
+	} else {
+		nic.dev.how_probe = PROBE_FIRST;
+	}
+	
+	/* Call probe routine to bring up the NIC */
+	if ( eth_probe ( &nic.dev ) != PROBE_WORKED ) {
+		return 0;
+	}
+	pxe_stack->state = READY;
+	return 1;
+}
+
+int pxe_shutdown_nic ( void ) {
+	if ( pxe_stack->state <= MIDWAY ) return 1;
+
+	eth_disable();
+	pxe_stack->state = MIDWAY;
+	return 1;
+}
+
+int ensure_pxe_state ( pxe_stack_state_t wanted ) {
+	int success = 1;
+
+	if ( ! pxe_stack ) return 0;
+	if ( wanted >= MIDWAY )
+		success = success & hook_pxe_stack();
+	if ( wanted > MIDWAY ) {
+		success = success & pxe_initialise_nic();
+	} else {
+		success = success & pxe_shutdown_nic();
+	}
+	if ( wanted < MIDWAY )
+		success = success & unhook_pxe_stack();
+	return success;
+}
+
+#define ENSURE_CAN_UNLOAD(structure) if ( ! ensure_pxe_state(CAN_UNLOAD) ) { \
+			structure->Status = PXENV_STATUS_UNDI_INVALID_STATE; \
+			return PXENV_EXIT_FAILURE; }
+#define ENSURE_MIDWAY(structure) if ( ! ensure_pxe_state(MIDWAY) ) { \
+			structure->Status = PXENV_STATUS_UNDI_INVALID_STATE; \
+			return PXENV_EXIT_FAILURE; }
+#define ENSURE_READY(structure) if ( ! ensure_pxe_state(READY) ) { \
+			structure->Status = PXENV_STATUS_UNDI_INVALID_STATE; \
+			return PXENV_EXIT_FAILURE; }
+
+/*****************************************************************************
+ *
+ * Actual PXE API calls
+ *
+ *****************************************************************************/
+
 /* PXENV_START_UNDI
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_start_undi ( t_PXENV_START_UNDI *start_undi ) {
+	unsigned char bus, devfn;
+	struct pci_probe_state *pci = &nic.dev.state.pci;
+
 	DBG ( "PXENV_START_UNDI" );
-	start_undi->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_MIDWAY(start_undi);
+
+	/* Record PCI bus & devfn passed by caller, so we know which
+	 * NIC they want to use.
+	 *
+	 * If they don't match our already-existing NIC structure, set
+	 * values to ensure that the specified NIC is used at the next
+	 * call to pxe_intialise_nic().
+	 */
+	bus = ( start_undi->ax >> 8 ) & 0xff;
+	devfn = start_undi->ax & 0xff;
+
+	if ( ( pci->dev.driver == NULL ) ||
+	     ( pci->dev.bus != bus ) || ( pci->dev.devfn != devfn ) ) {
+		/* This is quite a bit of a hack and relies on
+		 * knowledge of the internal operation of Etherboot's
+		 * probe mechanism.
+		 */
+		DBG ( " set PCI %hhx:%hhx.%hhx",
+		      bus, PCI_SLOT(devfn), PCI_FUNC(devfn) );
+		pci->advance = 1;
+		pci->dev.driver = &dummy_driver;
+		pci->dev.bus = bus;
+		pci->dev.devfn = devfn;
+	}
+
+	start_undi->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_STARTUP
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_startup ( t_PXENV_UNDI_STARTUP *undi_startup ) {
 	DBG ( "PXENV_UNDI_STARTUP" );
-	undi_startup->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_MIDWAY(undi_startup);
+
+	undi_startup->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_CLEANUP
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_cleanup ( t_PXENV_UNDI_CLEANUP *undi_cleanup ) {
 	DBG ( "PXENV_UNDI_CLEANUP" );
-	undi_cleanup->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_CAN_UNLOAD ( undi_cleanup );
+
+	undi_cleanup->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_INITIALIZE
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_initialize ( t_PXENV_UNDI_INITIALIZE
 				     *undi_initialize ) {
 	DBG ( "PXENV_UNDI_INITIALIZE" );
-	undi_initialize->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_MIDWAY ( undi_initialize );
+
+	undi_initialize->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_RESET_ADAPTER
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_reset_adapter ( t_PXENV_UNDI_RESET_ADAPTER
 					*undi_reset_adapter ) {
 	DBG ( "PXENV_UNDI_RESET_ADAPTER" );
-	undi_reset_adapter->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+
+	ENSURE_MIDWAY ( undi_reset_adapter );
+	ENSURE_READY ( undi_reset_adapter );
+
+	undi_reset_adapter->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_SHUTDOWN
  *
- * Status: placeholder
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_shutdown ( t_PXENV_UNDI_SHUTDOWN *undi_shutdown ) {
 	DBG ( "PXENV_UNDI_SHUTDOWN" );
-
-	/* Ensure interrupts are unhooked, so OS can boot safely */
-	deactivate_pxe_stack();
+	ENSURE_MIDWAY ( undi_shutdown );
 
 	undi_shutdown->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
@@ -108,22 +302,26 @@ PXENV_EXIT_t pxenv_undi_shutdown ( t_PXENV_UNDI_SHUTDOWN *undi_shutdown ) {
 
 /* PXENV_UNDI_OPEN
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_open ( t_PXENV_UNDI_OPEN *undi_open ) {
 	DBG ( "PXENV_UNDI_OPEN" );
-	undi_open->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_READY ( undi_open );
+
+	undi_open->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_CLOSE
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_close ( t_PXENV_UNDI_CLOSE *undi_close ) {
 	DBG ( "PXENV_UNDI_CLOSE" );
-	undi_close->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	ENSURE_MIDWAY ( undi_close );
+
+	undi_close->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_TRANSMIT
@@ -149,11 +347,24 @@ PXENV_EXIT_t pxenv_undi_set_mcast_address ( t_PXENV_UNDI_SET_MCAST_ADDRESS
 
 /* PXENV_UNDI_SET_STATION_ADDRESS
  *
- * Status: stub
+ * Status: working (deliberately incomplete)
  */
 PXENV_EXIT_t pxenv_undi_set_station_address ( t_PXENV_UNDI_SET_STATION_ADDRESS
 					      *undi_set_station_address ) {
 	DBG ( "PXENV_UNDI_SET_STATION_ADDRESS" );
+
+	/* We don't offer a facility to set the MAC address; this
+	 * would require adding extra code to all the Etherboot
+	 * drivers, for very little benefit.  If we're setting it to
+	 * the current value anyway then return success, otherwise
+	 * return UNSUPPORTED.
+	 */
+	if ( memcmp ( nic.node_addr,
+		      &undi_set_station_address->StationAddress,
+		      ETH_ALEN ) == 0 ) {
+		undi_set_station_address->Status = PXENV_STATUS_SUCCESS;
+		return PXENV_EXIT_SUCCESS;
+	}
 	undi_set_station_address->Status = PXENV_STATUS_UNSUPPORTED;
 	return PXENV_EXIT_FAILURE;
 }
@@ -171,13 +382,35 @@ PXENV_EXIT_t pxenv_undi_set_packet_filter ( t_PXENV_UNDI_SET_PACKET_FILTER
 
 /* PXENV_UNDI_GET_INFORMATION
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_get_information ( t_PXENV_UNDI_GET_INFORMATION
 					  *undi_get_information ) {
 	DBG ( "PXENV_UNDI_GET_INFORMATION" );
-	undi_get_information->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+
+	undi_get_information->BaseIo = nic.ioaddr;
+	undi_get_information->IntNumber = nic.irqno;
+	/* Cheat: assume all cards can cope with this */
+	undi_get_information->MaxTranUnit = ETH_MAX_MTU;
+	/* Cheat: we only ever have Ethernet cards */
+	undi_get_information->HwType = ETHER_TYPE;
+	undi_get_information->HwAddrLen = ETH_ALEN;
+	/* Cheat: assume card is always configured with its permanent
+	 * node address.  This is a valid assumption within Etherboot
+	 * at the time of writing.
+	 */
+	memcpy ( &undi_get_information->CurrentNodeAddress, nic.node_addr,
+		 ETH_ALEN );
+	memcpy ( &undi_get_information->PermNodeAddress, nic.node_addr,
+		 ETH_ALEN );
+	undi_get_information->ROMAddress = nic.rom_info->rom_segment;
+	/* We only provide the ability to receive or transmit a single
+	 * packet at a time.  This is a bootloader, not an OS.
+	 */
+	undi_get_information->RxBufCt = 1;
+	undi_get_information->TxBufCt = 1;
+	undi_get_information->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_GET_STATISTICS
@@ -237,24 +470,71 @@ PXENV_EXIT_t pxenv_undi_get_mcast_address ( t_PXENV_UNDI_GET_MCAST_ADDRESS
 
 /* PXENV_UNDI_GET_NIC_TYPE
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_get_nic_type ( t_PXENV_UNDI_GET_NIC_TYPE
 				       *undi_get_nic_type ) {
+	struct dev *dev = &nic.dev;
+	
 	DBG ( "PXENV_UNDI_GET_NIC_TYPE" );
-	undi_get_nic_type->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+	
+	if ( dev->to_probe == PROBE_PCI ) {
+		struct pci_device *pci = &dev->state.pci.dev;
+
+		undi_get_nic_type->NicType = PCI_NIC;
+		undi_get_nic_type->info.pci.Vendor_ID = pci->vendor;
+		undi_get_nic_type->info.pci.Dev_ID = pci->dev_id;
+		undi_get_nic_type->info.pci.Base_Class = pci->class >> 8;
+		undi_get_nic_type->info.pci.Sub_Class = pci->class & 0xff;
+		undi_get_nic_type->info.pci.BusDevFunc =
+			( pci->bus << 8 ) | pci->devfn;
+		/* Cheat: these fields are probably unnecessary, and
+		 * would require adding extra code to pci.c.
+		 */
+		undi_get_nic_type->info.pci.Prog_Intf = 0;
+		undi_get_nic_type->info.pci.Rev = 0;
+		undi_get_nic_type->info.pci.SubVendor_ID = 0xffff;
+		undi_get_nic_type->info.pci.SubDevice_ID = 0xffff;
+	} else if ( dev->to_probe == PROBE_ISA ) {
+		/* const struct isa_driver *isa = dev->state.isa.driver; */
+
+		undi_get_nic_type->NicType = PnP_NIC;
+		/* Don't think anything fills these fields in, and
+		 * probably no-one will ever be interested in them.
+		 */
+		undi_get_nic_type->info.pnp.EISA_Dev_ID = 0;
+		undi_get_nic_type->info.pnp.Base_Class = 0;
+		undi_get_nic_type->info.pnp.Sub_Class = 0;
+		undi_get_nic_type->info.pnp.Prog_Intf = 0;
+		undi_get_nic_type->info.pnp.CardSelNum = 0;
+	} else {
+		/* PXESPEC: There doesn't seem to be an "unknown type"
+		 * defined.
+		 */
+		undi_get_nic_type->NicType = 0;
+	}
+	undi_get_nic_type->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_GET_IFACE_INFO
  *
- * Status: stub
+ * Status: working
  */
 PXENV_EXIT_t pxenv_undi_get_iface_info ( t_PXENV_UNDI_GET_IFACE_INFO
 					 *undi_get_iface_info ) {
 	DBG ( "PXENV_UNDI_GET_IFACE_INFO" );
-	undi_get_iface_info->Status = PXENV_STATUS_UNSUPPORTED;
-	return PXENV_EXIT_FAILURE;
+
+	/* Just hand back some info, doesn't really matter what it is.
+	 * Most PXE stacks seem to take this approach.
+	 */
+	sprintf ( undi_get_iface_info->IfaceType, "Etherboot" );
+	undi_get_iface_info->LinkSpeed = 10000000; /* 10 Mbps */
+	undi_get_iface_info->ServiceFlags = 0;
+	memset ( undi_get_iface_info->Reserved, 0,
+		 sizeof(undi_get_iface_info->Reserved) );
+	undi_get_iface_info->Status = PXENV_STATUS_SUCCESS;
+	return PXENV_EXIT_SUCCESS;
 }
 
 /* PXENV_UNDI_ISR
@@ -269,13 +549,11 @@ PXENV_EXIT_t pxenv_undi_isr ( t_PXENV_UNDI_ISR *undi_isr ) {
 
 /* PXENV_STOP_UNDI
  *
- * Status: placeholder
+ * Status: working
  */
 PXENV_EXIT_t pxenv_stop_undi ( t_PXENV_STOP_UNDI *stop_undi ) {
 	DBG ( "PXENV_STOP_UNDI" );
-
-	/* Ensure interrupts are unhooked, so OS can boot safely */
-	deactivate_pxe_stack();
+	ENSURE_CAN_UNLOAD ( stop_undi );
 
 	stop_undi->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
@@ -465,17 +743,24 @@ PXENV_EXIT_t pxenv_udp_write ( t_PXENV_UDP_WRITE *udp_write ) {
 
 /* PXENV_UNLOAD_STACK
  *
- * Status: placeholder
+ * Status: working
  */
 PXENV_EXIT_t pxenv_unload_stack ( t_PXENV_UNLOAD_STACK *unload_stack ) {
 	DBG ( "PXENV_UNLOAD_STACK" );
-	/* NOTE FOR REFERENCE: we probably need to call cleanup(),
-	 * since we avoided calling it in the usual place (as part of
-	 * done()).
-	 */
+	ENSURE_CAN_UNLOAD ( unload_stack );
 
-	/* Ensure interrupts are unhooked, so OS can boot safely */
-	deactivate_pxe_stack();
+	/* We need to call cleanup() at some point.  The network card
+	 * has already been disabled by ENSURE_CAN_UNLOAD(), but for
+	 * the sake of completeness we should call the console_fini()
+	 * etc. that are part of cleanup().
+	 *
+	 * There seems to be a lack of consensus on which is the final
+	 * PXE API call to make, but it's a fairly safe bet that all
+	 * the potential shutdown sequences will include a call to
+	 * PXENV_UNLOAD_STACK at some point, so we may as well do it
+	 * here.
+	 */
+	cleanup();
 
 	unload_stack->Status = PXENV_STATUS_SUCCESS;
 	return PXENV_EXIT_SUCCESS;
