@@ -214,7 +214,8 @@ invoke:
 	/* Relocate to free base memory, switch stacks */
 	pushw	$6			/* Preserve exit code & far ret addr */
 	call	prelocate
-	addw	$2, %sp
+	/* leave "6" on stack as padding out to 4-byte alignment */
+	pushl	$8			/* Preserve exit code & far ret addr */
 	pushw	$0			/* Set null return address */
 	jmp	_start
 	
@@ -222,6 +223,7 @@ invoke:
 	.section ".text16", "ax", @progbits
 	.globl	prefix_exit
 prefix_exit:
+	popw	%ax			/* padding */
 	popw	%ax			/* %ax = exit code */
 	cmpw	$EXIT_VIA_LRET, %ax
 	jne	1f
@@ -236,6 +238,7 @@ prefix_exit:
 	int	$0x18			/* As per BIOS Boot Spec, next dev */
 	.globl	prefix_exit_end
 prefix_exit_end:
+	.previous
 
 	
 	
