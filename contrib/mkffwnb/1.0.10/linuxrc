@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# floppyfw initfile
+#
+# nicked from:
+# hal91's initfile (/linuxrc), the bootup script of the system
+#
+
+VERSION=1.2
+
+#
+echo "Booting floppyfw" 
+
+PATH="/bin"
+TERM=linux
+ignoreeof=10
+no_exit_on_failed_exec=yes
+export PATH TERM ignoreeof
+umask 022
+
+echo -n "Generating hardlinks. (Thanks to LRP, and busybox.lineo.com)"
+# Thanks to:
+# Copymyfoot Dave 'Kill a Cop' Cinege - LRP  GPL2
+#
+ln /bin/ln /bin/cat
+LINKS="`cat /hlinks`"
+for f in ${LINKS}; do
+  ln /bin/ln /$f
+done
+# /Thanks
+
+echo -n "mounting proc: "
+mount -t proc /proc /proc
+
+[ -f /floppyfw.ini ] && chmod 777 /floppyfw.ini
+[ -f /floppyfw.ini ] && exec /floppyfw.ini
+
+echo
+echo "** floppyfw.ini failed.. starting a shell"
+echo
+exec ash
