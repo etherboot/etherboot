@@ -637,7 +637,7 @@ struct nic *t515_probe(struct nic *nic, unsigned short *probe_addrs)
     static int ioaddr;
 #ifdef ISA_PNP
     config_pnp_device();
-    DELAY(10000);
+/*    DELAY(10000); */
 #endif
     /* Check all locations on the ISA bus -- evil! */
     for (ioaddr = 0x100; ioaddr < 0x400; ioaddr += 0x20) {
@@ -653,6 +653,7 @@ struct nic *t515_probe(struct nic *nic, unsigned short *probe_addrs)
 	    /* Pause for at least 162 us. for the read to take place. */
 	    for (timer = 4; timer >= 0; timer--) {
 		udelay(162);
+		DELAY(350);
 		if ((inw(ioaddr + Wn0EepromCmd) & 0x0200) == 0)
 		    break;
 	    }
