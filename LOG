@@ -2664,3 +2664,7 @@ ISA .o files for etherboot-pci.
 support port I/O.  Enabled port io for the reset.  Without the patch
 the e1000 could not reliably boot Linux on some cards.  Thanks to 
 James Pearson, Georg Baum and Marty Connor for help resolving this issue.
+
++ Update to lance.c chip_table from Helge Wagner
+
+
