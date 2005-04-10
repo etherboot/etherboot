@@ -168,11 +168,8 @@ typedef struct {				// 0x0018_000U _=0,1,2,3
 	volatile unsigned int TMAC_DMA_DATA;	// 0x00000FF8U
 	volatile unsigned int TMAC_DMA_ADR;	// 0x00000FFCU
 } *P2001_ETH_regs_ptr;
-#define P2001_EU0 ((volatile P2001_ETH_regs_ptr) 0x00180000)
-#define P2001_EU1 ((volatile P2001_ETH_regs_ptr) 0x00181000)
-#define P2001_EU2 ((volatile P2001_ETH_regs_ptr) 0x00182000)
-#define P2001_EU3 ((volatile P2001_ETH_regs_ptr) 0x00183000)
-#define P2001_MU  P2001_EU0
+#define P2001_EU(x) ((volatile P2001_ETH_regs_ptr) ((unsigned int) 0x00180000UL+(0x1000UL*(x)))) /* x = 0..3 */
+#define P2001_MU  P2001_EU(0)
 
 #endif
 
