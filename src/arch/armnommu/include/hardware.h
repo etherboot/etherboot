@@ -100,10 +100,7 @@ typedef struct {					// 0x00130000U
 
 typedef union {						// 0x00140000U
 	struct {	// write
-		volatile unsigned int TX1;		// 0x00000000U
-		volatile unsigned int TX2;		// 0x00000004U
-		volatile unsigned int TX3;		// 0x00000008U
-		volatile unsigned int TX4;		// 0x0000000CU
+		volatile unsigned int TX[4];		// 0x00000000-0x000CU
 		volatile unsigned int Baudrate;		// 0x00000010U
 		volatile unsigned int reserved1[0x3];
 		volatile unsigned int Config;		// 0x00000020U
@@ -113,10 +110,7 @@ typedef union {						// 0x00140000U
 	} w;		// write
 	
 	struct {	// read
-		volatile unsigned int RX1;		// 0x00000000U
-		volatile unsigned int RX2;		// 0x00000004U
-		volatile unsigned int RX3;		// 0x00000008U
-		volatile unsigned int RX4;		// 0x0000000CU
+		volatile unsigned int RX[4];		// 0x00000000-0x000CU
 		volatile unsigned int reserved1[0x4];
 		volatile unsigned int PRE_STATUS;	// 0x00000020U
 		volatile unsigned int STATUS;		// 0x00000024U
