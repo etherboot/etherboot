@@ -66,7 +66,7 @@ static struct mii_chip_info {
 	unsigned int physid;	// (MII_PHYSID2 << 16) | MII_PHYSID1
 } mii_chip_table[] = {
 	{ "Intel LXT971A",	0x78e20013 },
-	{ "Altera AC104-QF",	0x55410022 },
+	{ "Altima AC104-QF",	0x55410022 },
 	{NULL,0},
 };
 
@@ -273,7 +273,7 @@ static void p2001_eth_transmit(
 	// TMAC_CNTL.ATP does the same
 
 #ifdef DEBUG_NIC
-	printf("p2001_eth_transmit: packet from %! to %! sent\n", txb+ETH_ALEN, txb);
+	printf("p2001_eth_transmit: packet from %! to %! sent (size: %d)\n", txb+ETH_ALEN, txb, s);
 #endif
 
 	/* configure descriptor */
@@ -288,7 +288,7 @@ static void p2001_eth_transmit(
 #ifdef DEBUG_NIC
 	/* check status */
 	status = EU->TMAC_DMA_STAT;
-	if (status & ~(0x40))
+	if (status & ~(0x40))	// not END
 		printf("p2001_eth_transmit: dma status=0x%hx\n", status);
 
 	printf("TMAC_MIB6..7: %d:%d\n", EU->TMAC_MIB6, EU->TMAC_MIB7);
@@ -378,7 +378,7 @@ static void p2001_eth_init()
 
 	/* set transmitter mode */
 	EU->TMAC_CNTL = (1<<4) |	/* COI: Collision ignore */
-			//(1<<3) |	/* CSI: Carrier Sense ignore */
+			(1<<3) |	/* CSI: Carrier Sense ignore */
 			(1<<2);		/* ATP: Automatic Transmit Padding */
 
 	/* set receive mode */
@@ -437,7 +437,7 @@ static int p2001_eth_check_link(unsigned int phy)
 		printf("(unknown).\n");
 
 	/* Use 0x3300 for restarting NWay */
-	printf("Starting auto-negotiation...\n");
+	printf("Starting auto-negotiation... ");
 	p2001_eth_mdio_write(phy, MII_BMCR, 0x3300);
 
 	/* Bits 1.5 is set to 1 once the Auto-Negotiation process to completed. */
@@ -454,8 +454,10 @@ static int p2001_eth_check_link(unsigned int phy)
 		if (physid == 0x78e20013)
 			/* Bits 17.14 and 17.9 can be used to determine the link operation conditions (speed and duplex). */
 			printf("  Valid link, operating at: %sMb-%s\n",
-				(p2001_eth_mdio_read(phy, 0x17) & (1<<14)) ? "100" : "10",
-				(p2001_eth_mdio_read(phy, 0x17) & (1<< 9)) ? "FD" : "HD");
+				(p2001_eth_mdio_read(phy, 17) & (1<<14)) ? "100" : "10",
+				(p2001_eth_mdio_read(phy, 17) & (1<< 9)) ? "FD" : "HD");
+		else
+			printf("  Valid link\n");
 		return 1;
 	}
 
@@ -500,8 +502,6 @@ static int p2001_eth_probe(struct dev *dev, unsigned short *probe_addrs __unused
 {
 	struct nic *nic = (struct nic *)dev;
 	/* if probe_addrs is 0, then routine can use a hardwired default */
-	static int board_found;
-	static int valid_link;
 
 	/* reset phys and configure mdio clk */
 	printf("Resetting PHYs...\n");
@@ -540,12 +540,10 @@ static int p2001_eth_probe(struct dev *dev, unsigned short *probe_addrs __unused
 #endif
 
 		/* first a non destructive test for initial value RMAC_TLEN=1518 */
-		board_found = (EU->RMAC_TLEN == 1518);
-		if (board_found) {
+		if (EU->RMAC_TLEN == 1518) {
 			printf("Checking EU%d...\n", cur_channel);
 
-			valid_link = p2001_eth_check_link(cur_phy);
-			if (valid_link) {
+			if (p2001_eth_check_link(cur_phy)) {
 				/* initialize device */
 				p2001_eth_init(nic);
 
