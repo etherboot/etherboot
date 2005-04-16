@@ -26,8 +26,6 @@
 /* NIC specific static variables go here */
 static unsigned char MAC_HW_ADDR[6]={MAC_HW_ADDR_DRV};
 
-#define P2001_ETH_PHY_AUTO_DETECT
-
 /* DMA descriptors and buffers */
 #define NUM_RX_DESC     4	/* Number of Rx descriptor registers. */
 #define DMA_BUF_SIZE	2048	/* Buffer size */
@@ -57,6 +55,7 @@ static void         p2001_eth_init      ();
 static void         p2001_eth_disable   (struct dev *dev);
 
 static int          p2001_eth_check_link(unsigned int phy);
+static int          link;
 static void         p2001_eth_phyreset  ();
 static int          p2001_eth_probe     (struct dev *dev, unsigned short *probe_addrs __unused);
 
@@ -283,7 +282,7 @@ static void p2001_eth_transmit(
 
 	/* restart the transmitter */
 	EU->TMAC_DMA_EN = 0x01;		/* set run bit */
-	while(EU->TMAC_DMA_EN & 0x01) ;	/* wait */
+	while(EU->TMAC_DMA_EN & 0x01);	/* wait */
 
 #ifdef DEBUG_NIC
 	/* check status */
@@ -341,6 +340,23 @@ static void p2001_eth_init()
 {
 	static int i;
 
+	/* activate MII 3 */
+	if (cur_channel == 3)
+		P2001_GPIO->PIN_MUX |= (1<<8);	// MII_3_en = 1
+
+#ifdef RMII
+	/* RMII init sequence */
+	if (link & LPA_100) {
+		EU->CONF_RMII = (1<<2) | (1<<1);		// softres | 100Mbit
+		EU->CONF_RMII = (1<<2) | (1<<1) | (1<<0);	// softres | 100Mbit | RMII
+		EU->CONF_RMII = (1<<1) | (1<<0);		// 100 Mbit | RMII
+	} else {
+		EU->CONF_RMII = (1<<2);				// softres
+		EU->CONF_RMII = (1<<2) | (1<<0);		// softres | RMII
+		EU->CONF_RMII = (1<<0);				// RMII
+	}
+#endif
+
 	/* disable transceiver */
 //	EU->TMAC_DMA_EN = 0;		/* clear run bit */
 //	EU->RMAC_DMA_EN = 0;		/* clear run bit */
@@ -377,9 +393,12 @@ static void p2001_eth_init()
 	EU->RMAC_DMA_DESC = &rxd[0];
 
 	/* set transmitter mode */
-	EU->TMAC_CNTL = (1<<4) |	/* COI: Collision ignore */
-			(1<<3) |	/* CSI: Carrier Sense ignore */
-			(1<<2);		/* ATP: Automatic Transmit Padding */
+	if (link & LPA_DUPLEX)
+		EU->TMAC_CNTL =	(1<<4) |	/* COI: Collision ignore */
+				(1<<3) |	/* CSI: Carrier Sense ignore */
+				(1<<2);		/* ATP: Automatic Transmit Padding */
+	else
+		EU->TMAC_CNTL =	(1<<2);		/* ATP: Automatic Transmit Padding */
 
 	/* set receive mode */
 	EU->RMAC_CNTL = (1<<3) |	/* BROAD: Broadcast packets */
@@ -440,7 +459,7 @@ static int p2001_eth_check_link(unsigned int phy)
 	printf("Starting auto-negotiation... ");
 	p2001_eth_mdio_write(phy, MII_BMCR, 0x3300);
 
-	/* Bits 1.5 is set to 1 once the Auto-Negotiation process to completed. */
+	/* Bit 1.5 is set once the Auto-Negotiation process is completed. */
 	i = 0;
 	do {
 		mdelay(500);
@@ -449,15 +468,13 @@ static int p2001_eth_check_link(unsigned int phy)
 			goto failed;
 	} while (!(status & BMSR_ANEGCOMPLETE));
 
-	/* Bits 1.2 is set to 1 once the link is established. */
+	/* Bits 1.2 is set once the link is established. */
 	if ((status = p2001_eth_mdio_read(phy, MII_BMSR)) & BMSR_LSTATUS) {
-		if (physid == 0x78e20013)
-			/* Bits 17.14 and 17.9 can be used to determine the link operation conditions (speed and duplex). */
-			printf("  Valid link, operating at: %sMb-%s\n",
-				(p2001_eth_mdio_read(phy, 17) & (1<<14)) ? "100" : "10",
-				(p2001_eth_mdio_read(phy, 17) & (1<< 9)) ? "FD" : "HD");
-		else
-			printf("  Valid link\n");
+		link = p2001_eth_mdio_read(phy, MII_ADVERTISE) &
+		       p2001_eth_mdio_read(phy, MII_LPA);
+		printf("  Valid link, operating at: %sMb-%s\n",
+			(link & LPA_100) ? "100" : "10",
+			(link & LPA_DUPLEX) ? "FD" : "HD");
 		return 1;
 	}
 
@@ -490,6 +507,15 @@ static void p2001_eth_phyreset()
 	P2001_GPIO->GPIO2_Out &= ~0x0400;
 	mdelay(500);
 	P2001_GPIO->GPIO2_Out |= 0x0400;
+
+#ifdef RMII
+	/* RMII_clk_sel = 0xxb  no RMII (default) */
+	/* RMII_clk_sel = 100b	COL_0 */
+	/* RMII_clk_sel = 101b	COL_1 */
+	/* RMII_clk_sel = 110b	COL_2 */
+	/* RMII_clk_sel = 111b	COL_3 */
+	P2001_GPIO->PIN_MUX |= (4 << 13);
+#endif
 }
 
 
@@ -509,9 +535,6 @@ static int p2001_eth_probe(struct dev *dev, unsigned short *probe_addrs __unused
 
 	/* set management unit clock divisor */
 	// max. MDIO CLK = 2.048 MHz (EU.doc)
-	// max. MDIO CLK = 8.000 MHz (LXT971A)
-	// sysclk/(2*(n+1)) = MDIO CLK <= 2.048 MHz
-	// n >= sysclk/4.096 MHz - 1
 	P2001_MU->MU_DIV = (SYSCLK/4096000)-1;	// 2.048 MHz
 	//asm("nop \n nop");
 
@@ -520,7 +543,8 @@ static int p2001_eth_probe(struct dev *dev, unsigned short *probe_addrs __unused
 	cur_phy = -1;
 	for (cur_channel=0; cur_channel<4; cur_channel++) {
 		EU = P2001_EU(cur_channel);
-#ifdef P2001_ETH_PHY_AUTO_DETECT
+
+		/* find next phy */
 		while (++cur_phy < 16) {
 			//printf("phy detect %d\n", cur_phy);
 			if (p2001_eth_mdio_read(cur_phy, MII_BMSR) != 0)
@@ -530,14 +554,6 @@ static int p2001_eth_probe(struct dev *dev, unsigned short *probe_addrs __unused
 			printf("no more MII PHYs found\n");
 			break;
 		}
-#else
-		cur_phy = cur_channel;		/* for MAZBR LPEC2001 */
-//		cur_phy = cur_channel | 4;	/* for ELMEG D@VOS */
-		if (p2001_eth_mdio_read(cur_phy, MII_BMSR) == 0) {
-			printf("no more MII PHYs found\n");
-			break;
-		}
-#endif
 
 		/* first a non destructive test for initial value RMAC_TLEN=1518 */
 		if (EU->RMAC_TLEN == 1518) {
