@@ -2851,3 +2851,6 @@ Should not affect other image types since it modifies only one file.
 The part of the patch relating to osloader.c was already present.
 
 Released as Etherboot 5.4.0 (production)
+
++ Added PCI ID for Fujistu Siemens Futro C200 by Martin Vogt
+
