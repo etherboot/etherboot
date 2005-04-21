@@ -131,3 +131,5 @@ family		arch/armnommu/drivers/net/p2001_eth
 family		drivers/net/mtd80x
 
 family		drivers/net/dmfe
+
+family		drivers/net/amd8111e

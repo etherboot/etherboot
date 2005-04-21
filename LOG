@@ -2854,3 +2854,7 @@ Released as Etherboot 5.4.0 (production)
 
 + Added PCI ID for Fujistu Siemens Futro C200 by Martin Vogt
 
++ Liu Tao contributed a driver for the AMD8111 based on the Linux 
+driver
+
+
