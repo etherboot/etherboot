@@ -259,8 +259,8 @@ static unsigned eeprom_reg = EEPROM_REG_PRO;
 #define eeprom_delay() { udelay(40); }
 #define EE_READ_CMD (6 << 6)
 
-/* do a full reset */
-#define eepro_full_reset(ioaddr)	outb(RESET_CMD, ioaddr); udelay(40);
+/* do a full reset; data sheet asks for 250us delay */
+#define eepro_full_reset(ioaddr)	outb(RESET_CMD, ioaddr); udelay(255);
 
 /* do a nice reset */
 #define eepro_sel_reset(ioaddr) 	{ \
@@ -328,6 +328,9 @@ static void eepro_reset(struct nic *nic)
 	rx_start = (unsigned int)bus_to_virt(RCV_LOWER_LIMIT << 8);
 	outw(RCV_LOWER_LIMIT << 8, ioaddr + RCV_BAR);
 	outw(((RCV_UPPER_LIMIT << 8) | 0xFE), ioaddr + RCV_STOP);
+	/* Make sure 1st poll won't find a valid packet header */
+	outw((RCV_LOWER_LIMIT << 8), ioaddr + HOST_ADDRESS_REG);
+	outw(0,                      ioaddr + IO_PORT);
 	/* Intialise XMT */
 	outw((XMT_LOWER_LIMIT << 8), ioaddr + xmt_bar);
 	eepro_sel_reset(ioaddr);

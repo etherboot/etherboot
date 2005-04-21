@@ -2857,4 +2857,5 @@ Released as Etherboot 5.4.0 (production)
 + Liu Tao contributed a driver for the AMD8111 based on the Linux 
 driver
 
++ Till Straumann patch for Sporadic eepro(10)  RX problems after reboot
 
