@@ -2859,3 +2859,5 @@ driver
 
 + Till Straumann patch for Sporadic eepro(10)  RX problems after reboot
 
++ Hermann Gausterer sent a patch to support additional Broadcom PHYs
+
