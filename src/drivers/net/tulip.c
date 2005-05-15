@@ -152,7 +152,7 @@ static const char * const medianame[32] = {
 enum tulip_chips {
     DC21040=0, DC21041=1, DC21140=2, DC21142=3, DC21143=3,
     LC82C168, MX98713, MX98715, MX98725, AX88141, AX88140, PNIC2, COMET,
-    COMPEX9881, I21145, XIRCOM, SGThomson	/*Ramesh Chander*/
+    COMPEX9881, I21145, XIRCOM, SGThomson,	/*Ramesh Chander*/
 };
 
 enum pci_id_flags_bits {
@@ -2057,7 +2057,7 @@ PCI_ROM(0x125b, 0x1400, "ax88140",     "ASIX AX88140"),
 PCI_ROM(0x11f6, 0x9881, "rl100tx",     "Compex RL100-TX"),
 PCI_ROM(0x115d, 0x0003, "xircomtulip", "Xircom Tulip"),
 PCI_ROM(0x104a, 0x0981, "tulip-0981",  "Tulip 0x104a 0x0981"),
-PCI_ROM(0x104a, 0x2774, "SGThomson STE10/100A ","Tulip 0x104a 0x2774"),	/*Modified by Ramesh Chander*/
+PCI_ROM(0x104a, 0x2774, "SGThomson-STE10100A", "Tulip 0x104a 0x2774"),	/*Modified by Ramesh Chander*/
 PCI_ROM(0x1113, 0x9511, "tulip-9511",  "Tulip 0x1113 0x9511"),
 PCI_ROM(0x1186, 0x1561, "tulip-1561",  "Tulip 0x1186 0x1561"),
 PCI_ROM(0x1259, 0xa120, "tulip-a120",  "Tulip 0x1259 0xa120"),
