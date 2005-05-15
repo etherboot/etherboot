@@ -1425,14 +1425,14 @@ static struct pci_id forcedeth_nics[] = {
 	PCI_ROM(0x10de, 0x01C3, "nforce", "nForce NVENET_1 Ethernet Controller"),
 	PCI_ROM(0x10de, 0x0066, "nforce2", "nForce NVENET_2 Ethernet Controller"),
 	PCI_ROM(0x10de, 0x00D6, "nforce3", "nForce NVENET_3 Ethernet Controller"),
-	PCI_ROM(0x10de, 0x0086, "nforce", "nForce NVENET_4 Ethernet Controller"),
-	PCI_ROM(0x10de, 0x008c, "nforce2", "nForce NVENET_5 Ethernet Controller"),
-	PCI_ROM(0x10de, 0x00e6, "nforce3", "nForce NVENET_6 Ethernet Controller"),
-	PCI_ROM(0x10de, 0x00df, "nforce", "nForce NVENET_7 Ethernet Controller"),
-	PCI_ROM(0x10de, 0x0056, "nforce2", "nForce NVENET_8 Ethernet Controller"),
-	PCI_ROM(0x10de, 0x0057, "nforce3", "nForce NVENET_9 Ethernet Controller"),
-	PCI_ROM(0x10de, 0x0037, "nforce", "nForce NVENET_10 Ethernet Controller"),
-	PCI_ROM(0x10de, 0x0038, "nforce2", "nForce NVENET_11 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0086, "nforce4", "nForce NVENET_4 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x008c, "nforce5", "nForce NVENET_5 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x00e6, "nforce6", "nForce NVENET_6 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x00df, "nforce7", "nForce NVENET_7 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0056, "nforce8", "nForce NVENET_8 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0057, "nforce9", "nForce NVENET_9 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0037, "nforce10", "nForce NVENET_10 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0038, "nforce11", "nForce NVENET_11 Ethernet Controller"),
 };
 static struct pci_driver forcedeth_driver __pci_driver = {
 	.type = NIC_DRIVER,.name = "forcedeth",.probe =
