@@ -65,10 +65,6 @@ static void t3c515_wait(unsigned int nticks)
 #endif
 /* TJL definations */
 #define HZ      100
-#define u16 unsigned short
-#define u32 unsigned long
-#define s16 signed short
-#define s32 signed long
 static unsigned short eth_nic_base;
 #define BASE 	(eth_nic_base)
 static int if_port;
