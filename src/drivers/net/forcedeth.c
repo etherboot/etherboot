@@ -499,26 +499,18 @@ static int mii_rw(struct nic *nic __unused, int addr, int miireg,
 		  int value)
 {
 	u8 *base = (u8 *) BASE;
-	int was_running;
 	u32 reg;
 	int retval;
 
 	writel(NVREG_MIISTAT_MASK, base + NvRegMIIStatus);
-	was_running = 0;
-	reg = readl(base + NvRegAdapterControl);
-	if (reg & NVREG_ADAPTCTL_RUNNING) {
-		was_running = 1;
-		writel(reg & ~NVREG_ADAPTCTL_RUNNING,
-		       base + NvRegAdapterControl);
-	}
+
 	reg = readl(base + NvRegMIIControl);
 	if (reg & NVREG_MIICTL_INUSE) {
 		writel(NVREG_MIICTL_INUSE, base + NvRegMIIControl);
 		udelay(NV_MIIBUSY_DELAY);
 	}
 
-	reg =
-	    NVREG_MIICTL_INUSE | (addr << NVREG_MIICTL_ADDRSHIFT) | miireg;
+	reg = (addr << NVREG_MIICTL_ADDRSHIFT) | miireg;
 	if (value != MII_READ) {
 		writel(value, base + NvRegMIIData);
 		reg |= NVREG_MIICTL_WRITE;
@@ -540,16 +532,9 @@ static int mii_rw(struct nic *nic __unused, int addr, int miireg,
 			 miireg, addr));
 		retval = -1;
 	} else {
-		/* FIXME: why is that required? */
-		udelay(50);
 		retval = readl(base + NvRegMIIData);
 		dprintf(("mii_rw read from reg %d at PHY %d: 0x%x.\n",
 			 miireg, addr, retval));
-	}
-	if (was_running) {
-		reg = readl(base + NvRegAdapterControl);
-		writel(reg | NVREG_ADAPTCTL_RUNNING,
-		       base + NvRegAdapterControl);
 	}
 	return retval;
 }
