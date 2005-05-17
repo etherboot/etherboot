@@ -1042,7 +1042,6 @@ static int forcedeth_reset(struct nic *nic)
 	udelay(10);
 	writel(readl(base + NvRegPowerState) | NVREG_POWERSTATE_VALID,
 	       base + NvRegPowerState);
-	writel(NVREG_ADAPTCTL_RUNNING, base + NvRegAdapterControl);
 
 	writel(0, base + NvRegIrqMask);
 	pci_push(base);
