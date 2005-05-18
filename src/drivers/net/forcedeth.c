@@ -605,24 +605,12 @@ static int phy_init(struct nic *nic)
 		}
 	} else
 		np->gigabit = 0;
-
-#if 1             
-        mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
-
-         printf("before phy reset status=%x\n",  mii_status);
-#endif
 #if 0
 	/* reset the phy */
 	if (phy_reset(nic)) {
 		printf("phy reset failed\n");
 		return PHY_ERROR;
 	}
-#endif
-
-#if 1             
-        mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
-
-         printf("after phy reset status=%x\n",  mii_status);
 #endif
 
 	/* phy vendor specific configuration */
@@ -653,11 +641,6 @@ static int phy_init(struct nic *nic)
 		}
 	}
 
-#if 1
-        mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
-
-         printf("before auto nego status=%x\n",  mii_status);
-#endif
 #if 0
 	/* restart auto negotiation */
 	mii_control = mii_rw(nic, np->phyaddr, MII_BMCR, MII_READ);
@@ -665,13 +648,10 @@ static int phy_init(struct nic *nic)
 	if (mii_rw(nic, np->phyaddr, MII_BMCR, mii_control)) {
 		return PHY_ERROR;
 	}
+	mdelay(3000);	
+
 #endif
 
-#if 1
-        mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
-
-         printf("after auto nego status=%x\n",  mii_status);
-#endif
 	return 0;
 }
 
