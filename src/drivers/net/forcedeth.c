@@ -751,9 +751,10 @@ static int update_linkspeed(struct nic *nic)
 	u32 newls;
 	int newdup = np->duplex;
 	u32 mii_status;
-	int retval = 0;
+	int retval = 0; 
 	u32 control_1000, status_1000, phyreg;
 	u8 *base = (u8 *) BASE;
+	int i;
 
 	/* BMSR_LSTATUS is latched, read it twice:
 	 * we want the current value.
@@ -762,12 +763,12 @@ static int update_linkspeed(struct nic *nic)
 	mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
 
 #if 1
-        //yhlu
-        for(i=0;i<30;i++) {
-           	mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
-           	if((mii_status & BMSR_LSTATUS) && (mii_status & BMSR_ANEGCOMPLETE)) break;
-                mdelay(100);
-        }
+	//yhlu
+	for(i=0;i<30;i++) {
+		mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
+		if((mii_status & BMSR_LSTATUS) && (mii_status & BMSR_ANEGCOMPLETE)) break;
+		mdelay(100);
+	}
 #endif
 
 	if (!(mii_status & BMSR_LSTATUS)) {
@@ -799,7 +800,7 @@ static int update_linkspeed(struct nic *nic)
 		if ((control_1000 & ADVERTISE_1000FULL) &&
 		    (status_1000 & LPA_1000FULL)) {
 			printf
-			    ("nv_update_linkspeed: GBit ethernet detected.\n");
+			    ("update_linkspeed: GBit ethernet detected.\n");
 			newls =
 			    NVREG_LINKSPEED_FORCE | NVREG_LINKSPEED_1000;
 			newdup = 1;
@@ -836,8 +837,8 @@ static int update_linkspeed(struct nic *nic)
 	if (np->duplex == newdup && np->linkspeed == newls)
 		return retval;
 
-	printf("changing link setting from %d/%d to %d/%d.\n",
-	       np->linkspeed, np->duplex, newls, newdup);
+	dprintf(("changing link setting from %d/%d to %d/%d.\n",
+	       np->linkspeed, np->duplex, newls, newdup));
 
 	np->duplex = newdup;
 	np->linkspeed = newls;
@@ -1079,7 +1080,7 @@ static int forcedeth_reset(struct nic *nic)
 		u32 miistat;
 		miistat = readl(base + NvRegMIIStatus);
 		writel(NVREG_MIISTAT_MASK, base + NvRegMIIStatus);
-		printf("startup: got 0x%hX.\n", miistat);
+		dprintf(("startup: got 0x%hX.\n", miistat));
 	}
 	ret = update_linkspeed(nic);
 
@@ -1250,8 +1251,8 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 	if (pci->ioaddr == 0)
 		return 0;
 
-	printf("forcedeth.c: Found %s, vendor=0x%hX, device=0x%hX\n",
-	       pci->name, pci->vendor, pci->dev_id);
+	dprintf(("forcedeth.c: Found %s, vendor=0x%hX, device=0x%hX\n",
+	       pci->name, pci->vendor, pci->dev_id));
 
 	nic->irqno = 0;
 	nic->ioaddr = pci->ioaddr & ~3;
@@ -1383,9 +1384,9 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 			continue;
 		id1 = (id1 & PHYID1_OUI_MASK) << PHYID1_OUI_SHFT;
 		id2 = (id2 & PHYID2_OUI_MASK) >> PHYID2_OUI_SHFT;
-		printf
-		    ("%s: open: Found PHY %hX:%hX at address %d.\n",
-		     pci->name, id1, id2, i);
+		dprintf
+		    (("%s: open: Found PHY %hX:%hX at address %d.\n",
+		     pci->name, id1, id2, i));
 		np->phyaddr = i;
 		np->phy_oui = id1 | id2;
 		break;
@@ -1404,7 +1405,7 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 	}
 	dprintf(("%s: forcedeth.c: subsystem: %hX:%hX bound to %s\n",
 		 pci->name, pci->vendor, pci->dev_id, pci->name));
-	forcedeth_reset(nic);
+	if(!forcedeth_reset(nic)) return 0; // no valid link
 //      if (board_found && valid_link)
 	/* point to NIC specific routines */
 	dev->disable = forcedeth_disable;
