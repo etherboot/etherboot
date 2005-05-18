@@ -421,19 +421,19 @@ struct forcedeth_private {
 	/* rx specific fields.
 	 * Locking: Within irq hander or disable_irq+spin_lock(&np->lock);
 	 */
-	struct ring_desc *rx_ring;
+//yhlu	struct ring_desc *rx_ring;
 	unsigned int cur_rx, refill_rx;
-	struct sk_buff *rx_skbuff[RX_RING];
-	u32 rx_dma[RX_RING];
-	unsigned int rx_buf_sz;
+//yhlu	struct sk_buff *rx_skbuff[RX_RING];
+//yhlu	u32 rx_dma[RX_RING];
+//yhlu	unsigned int rx_buf_sz;
 
 	/*
 	 * tx specific fields.
 	 */
-	struct ring_desc *tx_ring;
+//yhlu	struct ring_desc *tx_ring;
 	unsigned int next_tx, nic_tx;
-	struct sk_buff *tx_skbuff[TX_RING];
-	u32 tx_dma[TX_RING];
+//yhlu	struct sk_buff *tx_skbuff[TX_RING];
+//yhlu	u32 tx_dma[TX_RING];
 	u32 tx_flags;
 } npx;
 
@@ -510,7 +510,8 @@ static int mii_rw(struct nic *nic __unused, int addr, int miireg,
 		udelay(NV_MIIBUSY_DELAY);
 	}
 
-	reg = (addr << NVREG_MIICTL_ADDRSHIFT) | miireg;
+	reg =
+	    (addr << NVREG_MIICTL_ADDRSHIFT) | miireg;
 	if (value != MII_READ) {
 		writel(value, base + NvRegMIIData);
 		reg |= NVREG_MIICTL_WRITE;
@@ -586,6 +587,7 @@ static int phy_init(struct nic *nic)
 
 	/* see if gigabit phy */
 	mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
+
 	if (mii_status & PHY_GIGABIT) {
 		np->gigabit = PHY_GIGABIT;
 		mii_control_1000 =
@@ -604,11 +606,24 @@ static int phy_init(struct nic *nic)
 	} else
 		np->gigabit = 0;
 
+#if 1             
+        mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
+
+         printf("before phy reset status=%x\n",  mii_status);
+#endif
+#if 0
 	/* reset the phy */
 	if (phy_reset(nic)) {
 		printf("phy reset failed\n");
 		return PHY_ERROR;
 	}
+#endif
+
+#if 1             
+        mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
+
+         printf("after phy reset status=%x\n",  mii_status);
+#endif
 
 	/* phy vendor specific configuration */
 	if ((np->phy_oui == PHY_OUI_CICADA) && (phyinterface & PHY_RGMII)) {
@@ -638,13 +653,25 @@ static int phy_init(struct nic *nic)
 		}
 	}
 
+#if 1
+        mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
+
+         printf("before auto nego status=%x\n",  mii_status);
+#endif
+#if 0
 	/* restart auto negotiation */
 	mii_control = mii_rw(nic, np->phyaddr, MII_BMCR, MII_READ);
 	mii_control |= (BMCR_ANRESTART | BMCR_ANENABLE);
 	if (mii_rw(nic, np->phyaddr, MII_BMCR, mii_control)) {
 		return PHY_ERROR;
 	}
+#endif
 
+#if 1
+        mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
+
+         printf("after auto nego status=%x\n",  mii_status);
+#endif
 	return 0;
 }
 
@@ -748,7 +775,7 @@ static int update_linkspeed(struct nic *nic)
 	int adv, lpa;
 	u32 newls;
 	int newdup = np->duplex;
-	int mii_status;
+	u32 mii_status;
 	int retval = 0;
 	u32 control_1000, status_1000, phyreg;
 	u8 *base = (u8 *) BASE;
@@ -859,7 +886,7 @@ static int update_linkspeed(struct nic *nic)
 	writel(np->linkspeed, base + NvRegLinkSpeed);
 	pci_push(base);
 
-	return 0;
+	return retval;
 }
 
 static void nv_linkchange(struct nic *nic)
@@ -953,6 +980,7 @@ static int forcedeth_reset(struct nic *nic)
 
 	writel(0, base + NvRegAdapterControl);
 
+	/* 2) initialize descriptor rings */
 	oom = init_ring(nic);
 
 	writel(0, base + NvRegLinkSpeed);
@@ -960,7 +988,6 @@ static int forcedeth_reset(struct nic *nic)
 	txrx_reset(nic);
 	writel(0, base + NvRegUnknownSetupReg6);
 
-	/* 2) initialize descriptor rings */
 	np->in_shutdown = 0;
 
 	/* 3) set mac address */
@@ -977,7 +1004,7 @@ static int forcedeth_reset(struct nic *nic)
 		writel(mac[1], base + NvRegMacAddrB);
 	}
 
-	/* 4) start packet processing */
+	/* 4) give hw rings */
 	writel((u32) virt_to_le32desc(&rx_ring[0]),
 	       base + NvRegRxRingPhysAddr);
 	writel((u32) virt_to_le32desc(&tx_ring[0]),
@@ -1003,10 +1030,12 @@ static int forcedeth_reset(struct nic *nic)
 	writel(0, base + NvRegUnknownSetupReg4);
 //       writel(NVREG_IRQSTAT_MASK, base + NvRegIrqStatus);
 	writel(NVREG_MIISTAT_MASK2, base + NvRegMIIStatus);
-
+#if 0
 	printf("%d-Mbs Link, %s-Duplex\n",
 	       np->linkspeed & NVREG_LINKSPEED_10 ? 10 : 100,
 	       np->duplex ? "Full" : "Half");
+#endif
+
 	/* 6) continue setup */
 	writel(NVREG_MISC1_FORCE | NVREG_MISC1_HD, base + NvRegMisc1);
 	writel(readl(base + NvRegTransmitterStatus),
@@ -1044,8 +1073,6 @@ static int forcedeth_reset(struct nic *nic)
 	       base + NvRegPowerState);
 
 	writel(0, base + NvRegIrqMask);
-	pci_push(base);
-	writel(NVREG_IRQSTAT_MASK, base + NvRegIrqStatus);
 	pci_push(base);
 	writel(NVREG_MIISTAT_MASK2, base + NvRegMIIStatus);
 	writel(NVREG_IRQSTAT_MASK, base + NvRegIrqStatus);
@@ -1104,8 +1131,8 @@ static int forcedeth_poll(struct nic *nic, int retrieve)
 	i = np->cur_rx % RX_RING;
 //      prd = &rx_ring[i];
 
-	Flags = le32_to_cpu(np->rx_ring[i].FlagLen);
-	len = nv_descr_getlength(&np->rx_ring[i], np->desc_ver);
+	Flags = le32_to_cpu(rx_ring[i].FlagLen);
+	len = nv_descr_getlength(&rx_ring[i], np->desc_ver);
 
 	if (Flags & NV_RX_AVAIL)
 		return 0;	/* still owned by hardware, */
@@ -1170,7 +1197,7 @@ static void forcedeth_transmit(struct nic *nic, const char *d,	/* Destination */
 
 	writel(NVREG_TXRXCTL_KICK | np->desc_ver, base + NvRegTxRxControl);
 	pci_push(base);
-	tx_ring[nr].FlagLen = np->tx_flags;
+//yhlu	tx_ring[nr].FlagLen = np->tx_flags;
 	np->next_tx++;
 }
 
