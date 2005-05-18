@@ -605,13 +605,12 @@ static int phy_init(struct nic *nic)
 		}
 	} else
 		np->gigabit = 0;
-#if 0
+
 	/* reset the phy */
 	if (phy_reset(nic)) {
 		printf("phy reset failed\n");
 		return PHY_ERROR;
 	}
-#endif
 
 	/* phy vendor specific configuration */
 	if ((np->phy_oui == PHY_OUI_CICADA) && (phyinterface & PHY_RGMII)) {
@@ -641,16 +640,12 @@ static int phy_init(struct nic *nic)
 		}
 	}
 
-#if 0
 	/* restart auto negotiation */
 	mii_control = mii_rw(nic, np->phyaddr, MII_BMCR, MII_READ);
 	mii_control |= (BMCR_ANRESTART | BMCR_ANENABLE);
 	if (mii_rw(nic, np->phyaddr, MII_BMCR, mii_control)) {
 		return PHY_ERROR;
 	}
-	mdelay(3000);	
-
-#endif
 
 	return 0;
 }
@@ -765,6 +760,15 @@ static int update_linkspeed(struct nic *nic)
 	 */
 	mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
 	mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
+
+#if 1
+        //yhlu
+        for(i=0;i<30;i++) {
+           	mii_status = mii_rw(nic, np->phyaddr, MII_BMSR, MII_READ);
+           	if((mii_status & BMSR_LSTATUS) && (mii_status & BMSR_ANEGCOMPLETE)) break;
+                mdelay(100);
+        }
+#endif
 
 	if (!(mii_status & BMSR_LSTATUS)) {
 		printf
