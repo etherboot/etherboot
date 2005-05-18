@@ -837,8 +837,8 @@ static int update_linkspeed(struct nic *nic)
 	if (np->duplex == newdup && np->linkspeed == newls)
 		return retval;
 
-	dprintf(("changing link setting from %d/%d to %d/%d.\n",
-	       np->linkspeed, np->duplex, newls, newdup));
+	dprintf(("changing link setting from %d/%s to %d/%s.\n",
+	       np->linkspeed, np->duplex ? "Full-Duplex": "Half-Duplex", newls, newdup ? "Full-Duplex": "Half-Duplex"));
 
 	np->duplex = newdup;
 	np->linkspeed = newls;
@@ -1031,8 +1031,8 @@ static int forcedeth_reset(struct nic *nic)
 	writel(readl(base + NvRegReceiverStatus),
 	       base + NvRegReceiverStatus);
 
-	/* FIXME: I cheated and used the calculator to get a random number */
-	i = 75963081;
+	/* Get a random number */
+	i = random();
 	writel(NVREG_RNDSEED_FORCE | (i & NVREG_RNDSEED_MASK),
 	       base + NvRegRandomSeed);
 	writel(NVREG_UNKSETUP1_VAL, base + NvRegUnknownSetupReg1);
@@ -1093,13 +1093,13 @@ static int forcedeth_reset(struct nic *nic)
 		printf("no link during initialization.\n");
 	}
 
-	udelay(10000);
       out_drain:
 	return ret;
 }
 
-//extern void hex_dump(const char *data, const unsigned int len);
-
+/* 
+ * extern void hex_dump(const char *data, const unsigned int len);
+*/
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
@@ -1114,7 +1114,6 @@ static int forcedeth_poll(struct nic *nic, int retrieve)
 	u32 Flags;
 
 	i = np->cur_rx % RX_RING;
-//      prd = &rx_ring[i];
 
 	Flags = le32_to_cpu(rx_ring[i].FlagLen);
 	len = nv_descr_getlength(&rx_ring[i], np->desc_ver);
@@ -1135,9 +1134,10 @@ static int forcedeth_poll(struct nic *nic, int retrieve)
 
 	/* got a valid packet - forward it to the network core */
 	nic->packetlen = len;
-	//hex_dump(rxb + (i * RX_NIC_BUFSIZE), len);
 	memcpy(nic->packet, rxb + (i * RX_NIC_BUFSIZE), nic->packetlen);
-
+/*
+ * 	hex_dump(rxb + (i * RX_NIC_BUFSIZE), len);
+*/
 	wmb();
 	np->cur_rx++;
 	alloc_rx(nic);
@@ -1156,7 +1156,6 @@ static void forcedeth_transmit(struct nic *nic, const char *d,	/* Destination */
 	/* send the packet to destination */
 	u8 *ptxb;
 	u16 nstype;
-	//u16 status;
 	u8 *base = (u8 *) BASE;
 	int nr = np->next_tx % TX_RING;
 
@@ -1182,7 +1181,6 @@ static void forcedeth_transmit(struct nic *nic, const char *d,	/* Destination */
 
 	writel(NVREG_TXRXCTL_KICK | np->desc_ver, base + NvRegTxRxControl);
 	pci_push(base);
-//yhlu	tx_ring[nr].FlagLen = np->tx_flags;
 	np->next_tx++;
 }
 
