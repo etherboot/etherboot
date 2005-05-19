@@ -19,6 +19,12 @@ has 34 pins, the top row of 2 are not used.
 ***************************************************************************/
 
 /*
+
+ timlegge	2005-05-18	remove the relocation changes cards that 
+				write directly to the hardware don't need it
+*/
+
+/*
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation; either version 2, or (at
@@ -325,8 +331,7 @@ static void eepro_reset(struct nic *nic)
 	eepro_sw2bank0(ioaddr);	/* Switch back to bank 0 */
 	eepro_clear_int(ioaddr);
 	/* Initialise RCV */
-	rx_start = (unsigned int)bus_to_virt(RCV_LOWER_LIMIT << 8);
-	outw(RCV_LOWER_LIMIT << 8, ioaddr + RCV_BAR);
+	outw(rx_start = (RCV_LOWER_LIMIT << 8), ioaddr + RCV_BAR);
 	outw(((RCV_UPPER_LIMIT << 8) | 0xFE), ioaddr + RCV_STOP);
 	/* Make sure 1st poll won't find a valid packet header */
 	outw((RCV_LOWER_LIMIT << 8), ioaddr + HOST_ADDRESS_REG);
@@ -334,17 +339,19 @@ static void eepro_reset(struct nic *nic)
 	/* Intialise XMT */
 	outw((XMT_LOWER_LIMIT << 8), ioaddr + xmt_bar);
 	eepro_sel_reset(ioaddr);
-	tx_start = tx_end = (unsigned int)bus_to_virt(XMT_LOWER_LIMIT << 8);
+	tx_start = tx_end = (XMT_LOWER_LIMIT << 8);
 	tx_last = 0;
 	eepro_en_rx(ioaddr);
 }
+
+/* extern void hex_dump(const char *data, const unsigned int len); */
 
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
 static int eepro_poll(struct nic *nic, int retrieve)
 {
-	unsigned int	rcv_car = virt_to_bus((void *)rx_start);
+	unsigned int	rcv_car = rx_start;
 	unsigned int	rcv_event, rcv_status, rcv_next_frame, rcv_size;
 
 	/* return true if there's an ethernet packet ready to read */
@@ -388,8 +395,12 @@ static int eepro_poll(struct nic *nic, int retrieve)
 }
 #endif
 	nic->packetlen = rcv_size;
-	rcv_car  = virt_to_bus((void *) (rx_start + RCV_HEADER + rcv_size));
-	rx_start = (unsigned int)bus_to_virt(rcv_next_frame << 8);
+	rcv_car  = (rx_start + RCV_HEADER + rcv_size);
+	rx_start = rcv_next_frame;
+/* 
+	hex_dump(rcv_car, nic->packetlen); 
+*/
+
 	if (rcv_car == 0)
 		rcv_car = ((RCV_UPPER_LIMIT << 8) | 0xff);
 	outw(rcv_car - 1, ioaddr + RCV_STOP);
@@ -464,7 +475,7 @@ static void eepro_disable(struct dev *dev __unused)
 	eepro_sw2bank0(ioaddr);	/* Switch to bank 0 */
 	/* Flush the Tx and disable Rx */
 	outb(STOP_RCV_CMD, ioaddr);
-	tx_start = tx_end = (unsigned int) (bus_to_virt(XMT_LOWER_LIMIT << 8));
+	tx_start = tx_end = (XMT_LOWER_LIMIT << 8);
 	tx_last = 0;
 	/* Reset the 82595 */
 	eepro_full_reset(ioaddr);
