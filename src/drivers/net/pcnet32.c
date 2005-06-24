@@ -493,6 +493,19 @@ static void pcnet32_reset(struct nic *nic)
 		lp->a.write_csr(ioaddr, 3, val);
 	}
 #endif
+	if (1)
+	{
+		//disable interrupts
+		val = lp->a.read_csr(ioaddr, 3);
+		val = val
+			| (1 << 14) //BABLM intr disabled
+			| (1 << 12) //MISSM missed frame mask intr disabled
+			| (1 << 10) //RINTM receive intr disabled
+			| (1 << 9) //TINTM transmit intr disabled
+			| (1 << 8) //IDONM init done intr disabled
+			;
+		lp->a.write_csr(ioaddr, 3, val);
+	}
 
 	if (lp->ltint) {	/* Enable TxDone-intr inhibitor */
 		val = lp->a.read_csr(ioaddr, 5);
@@ -891,8 +904,9 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 	 */
 	/* Trigger an initialization just for the interrupt. */
 
-	a->write_csr(ioaddr, 0, 0x41);
-	mdelay(1);
+	
+//	a->write_csr(ioaddr, 0, 0x41); 
+//	mdelay(1);
 
 	cards_found++;
 
