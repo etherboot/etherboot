@@ -2870,3 +2870,9 @@ that it supports the Gigabit nVidia NICs
 + Timothy Legge fixed relocation issues with the eepro driver
 
 + Jan Kiszka provided a patch for the smc9000 for missing phy-setup
+
++ Timothy Legge fixed TX Underrun on centaur-p models of tulip that 
+caused the card to stall
+
++ Krzysztof Lichota provided a patch to pcnet32 that fixed a long standing 
+issue on certain models of HP Vectra
