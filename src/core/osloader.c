@@ -350,9 +350,9 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 	else {
 		len -= (skip_sectors << 9) + skip_bytes;
 		data += (skip_sectors << 9) + skip_bytes;
+		skip_sectors = os_download(data, len, eof);
+		skip_bytes = 0;
 	}
-	skip_sectors = os_download(data, len, eof);
-	skip_bytes = 0;
 	
 	return 1;
 }
