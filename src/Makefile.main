@@ -117,9 +117,6 @@ FILO_PROGRAM_VERSION = 0.4.1
 FILO_BUILD_INFO = ($(shell whoami)@$(shell hostname)) $(shell LANG=C date)
 
 GCCINCDIR = $(shell $(CC) -print-search-dirs | head -n 1 | cut -d' ' -f2)include
-CPPFLAGS = -nostdinc -imacros filo/config.h 
-#-Ifilo/include -I$(GCCINCDIR) -MD
-ASFLAGS_X = -D__ASSEMBLY__
 
 IDENT=		'$(@F) $(VERSION) (GPL) etherboot.org'
 
@@ -344,7 +341,7 @@ $(BIN)/%.o:     $(FILO)/$(ARCH)/%.c $(MAKEDEPS) $(FILO)/config.h
 	$(CC) $(CFLAGS) -imacros $(FILO)/config.h -o $@ -c $<
 
 $(BIN)/%.o:     $(FILO)/$(ARCH)/%.S $(MAKEDEPS) $(FILO)/config.h
-	$(CC) $(ASFLAGS_X) $(CPPFLAGS) -c $< -o $@
+	$(CPP) $(CFLAGS) -Ui386 -D ASSEMBLY $< | $(AS) $(ASFLAGS) -o $@
 
 $(BIN)/%.o:     $(FILO)/main/%.c $(MAKEDEPS) $(FILO)/config.h filo_version
 	$(CC) $(CFLAGS) -imacros $(FILO)/config.h -o $@ -c $<

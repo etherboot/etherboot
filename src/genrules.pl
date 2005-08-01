@@ -321,7 +321,7 @@ foreach my $pci (sort keys %drivers) {
 	\$(CC) \$(CFLAGS) \$(\U$macro\EFLAGS) -o \$@ -c \$<
 
 \$(BIN)/$obj--%.o:	\$(BIN)/%.o \$(BIN)/$obj.o \$(MAKEDEPS)
-	\$(LD) -r \$(BIN)/$obj.o \$< -o \$@
+	\$(LD) \$(LDFLAGS) -r \$(BIN)/$obj.o \$< -o \$@
 
 EOF
 }
@@ -336,7 +336,7 @@ foreach my $isa (sort keys %isalist) {
 	\$(CC) \$(CFLAGS) \$(\U$macro\EFLAGS) -o \$@ -c \$<
 
 \$(BIN)/$isa--%.o:	\$(BIN)/%.o \$(BIN)/$isa.o \$(MAKEDEPS)
-	\$(LD) -r \$(BIN)/$isa.o \$< -o \$@ 
+	\$(LD) \$(LDFLAGS) -r \$(BIN)/$isa.o \$< -o \$@ 
 EOF
 }
 
