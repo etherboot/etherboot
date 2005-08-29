@@ -2876,3 +2876,9 @@ caused the card to stall
 
 + Krzysztof Lichota provided a patch to pcnet32 that fixed a long standing 
 issue on certain models of HP Vectra
+
++ Jorge L. deLyra contributed an improved version of contrib/3c90xutil/cromutil.c
+  which enables programming of flash chips on various 3COM 3C905 cards.
+
+Released as Etherboot 5.4.1 (production)
+
