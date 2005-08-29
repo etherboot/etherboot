@@ -379,6 +379,22 @@ int eth_load(struct dev *dev __unused)
 		NULL
 #endif
 		: KERNEL_BUF;
+#ifdef  ZPXE_SUFFIX_STRIP
+        {
+          int i = 0;
+          while (kernel[i++]);
+          if(i > 5) {
+            if(kernel[i - 6] == '.' &&
+               kernel[i - 5] == 'z' &&
+               kernel[i - 4] == 'p' &&
+               kernel[i - 3] == 'x' &&
+               kernel[i - 2] == 'e') {
+              printf("Trimming .zpxe extension\n");
+              kernel[i - 6] = 0;
+            }
+          }
+        }
+#endif
 	if ( kernel ) {
 		loadkernel(kernel); /* We don't return except on error */
 		printf("Unable to load file.\n");
