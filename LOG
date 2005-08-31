@@ -2855,30 +2855,39 @@ Released as Etherboot 5.4.0 (production)
 + Added PCI ID for Fujistu Siemens Futro C200 by Martin Vogt
 
 + Liu Tao contributed a driver for the AMD8111 based on the Linux 
-driver
+  driver
 
 + Till Straumann patch for Sporadic eepro(10)  RX problems after reboot
 
 + Hermann Gausterer sent a patch to support additional Broadcom PHYs
 
 + Timothy Legge updated the forcedeth driver to the latest Linux version
-2.6.10 (untested and broken)
+  2.6.10 (untested and broken)
 
 + YhLu fixed the updated forcedeth driver so that it worked and confirmed 
-that it supports the Gigabit nVidia NICs
+  that it supports the Gigabit nVidia NICs
 
 + Timothy Legge fixed relocation issues with the eepro driver
 
 + Jan Kiszka provided a patch for the smc9000 for missing phy-setup
 
 + Timothy Legge fixed TX Underrun on centaur-p models of tulip that 
-caused the card to stall
+  caused the card to stall
 
 + Krzysztof Lichota provided a patch to pcnet32 that fixed a long standing 
-issue on certain models of HP Vectra
+  issue on certain models of HP Vectra
 
 + Jorge L. deLyra contributed an improved version of contrib/3c90xutil/cromutil.c
   which enables programming of flash chips on various 3COM 3C905 cards.
+
++ Marcel Ritter contributed a patch to r8169.c to recognize USR and D-Link
+  cards that use rtl8169 chips
+
++ Per Dalgas Jakobsen contributed a patch to allow booting directly from
+  a hard disk partition
+
++ Patrik Reali contributed a network driver patch to 3c90x.c to enable support
+  for 3C556 "hurricane" cards
 
 Released as Etherboot 5.4.1 (production)
 
