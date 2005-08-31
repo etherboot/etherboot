@@ -18,6 +18,7 @@ START=	$(BIN)/start32.o $(BIN)/linuxbios.o \
 	$(BIN)/realmode.o $(BIN)/realmode_asm.o \
 	$(BIN)/callbacks.o $(BIN)/pxe_callbacks.o
 
+SRCS+=	arch/i386/prefix/hdprefix.S
 SRCS+=	arch/i386/prefix/floppyprefix.S
 SRCS+=	arch/i386/prefix/unhuf.S
 SRCS+=	arch/i386/prefix/unnrv2b.S
@@ -72,6 +73,9 @@ TARGETENTRY=$($(TARGETTYPE)ENTRY)
 TARGETEXIT=$($(TARGETTYPE)EXIT)
 
 # Other real-mode entry loaders
+hdPREFIX=	$(BIN)/hdprefix.o
+hdENTRY=	$(BIN)/hdprefix.entry.o
+hdEXIT=		$(BIN)/hdprefix.exit.o
 dskPREFIX=	$(BIN)/floppyprefix.o
 dskENTRY=	$(BIN)/floppyprefix.entry.o
 dskEXIT=	$(BIN)/floppyprefix.exit.o
@@ -338,6 +342,19 @@ $(BIN)/%.dsk: $(BIN)/%.dsk.prf
 	$(OBJCOPY) -O binary $< $@
 
 $(BIN)/%.zdsk: $(BIN)/%.dsk.zprf
+	$(OBJCOPY) -O binary $< $@
+
+# rules to generate the .hd/.zhd harddisk images
+SUFFIXES +=	hd zhd
+
+$(BIN)/%.hd.rt: $(BIN)/%.rt.o $(hdENTRY) $(hdEXIT) $(LDSCRIPT) $(MAKEDEPS)
+	$(LD) $(LDFLAGS) -T $(LDSCRIPT) -o $@ $< $(hdEXIT)
+	@$(SIZE) $@ | $(CHECKSIZE)
+
+$(BIN)/%.hd: $(BIN)/%.hd.prf
+	$(OBJCOPY) -O binary $< $@
+
+$(BIN)/%.zhd: $(BIN)/%.hd.zprf
 	$(OBJCOPY) -O binary $< $@
 
 # rules to write the .dsk/.zdsk image onto a blank floppy
