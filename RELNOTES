@@ -1,4 +1,4 @@
-Etherboot 5.4.0
+Etherboot 5.4.1
 
 PXE is now supported.  You will also need to configure your server to
 provide a pxelinux.0 loader file, kernel and initrd images, and a
