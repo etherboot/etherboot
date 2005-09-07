@@ -230,7 +230,7 @@ noargs:	$(BIN)/toolcheck
 	@echo
 	@echo '    $(MAKE) bin/<rom-name>.<output-format> '
 	@echo
-	@echo 'where <output-format> is one of {zdsk, hd, zhd, zrom, iso, liso, zlilo, zpxe, elf, com}'
+	@echo 'where <output-format> is one of {zdsk, zhd, zrom, iso, liso, zlilo, zpxe, elf, com}'
 	@echo
 	@echo 'or: '
 	@echo
