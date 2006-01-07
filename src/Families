@@ -133,3 +133,10 @@ family		drivers/net/mtd80x
 family		drivers/net/dmfe
 
 family		drivers/net/amd8111e
+
+# Mellanox Technologies mt23108 HCA
+family      drivers/net/mlx_ipoib/mt23108
+
+# Mellanox Technologies mt25218 HCA
+family      drivers/net/mlx_ipoib/mt25218
+

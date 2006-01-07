@@ -2891,3 +2891,10 @@ Released as Etherboot 5.4.0 (production)
 
 Released as Etherboot 5.4.1 (production)
 
++ Timothy Legge updated the r8169 driver with changes to RTL8169_VERSION 2.2
+  <2004/08/09>
+
++ Committed patch from Eli Cohen of Mellanox Technologies Ltd for Infiniband
+  support for their cards.  Thanks to Mellanox for their support of the 
+  Etherboot project
+
