@@ -999,9 +999,8 @@ static int ipoib_init(struct pci_device *pci)
 	ipoib_data.ipoib_qph = qph;
 	ipoib_data.ipoib_qpn = ib_get_qpn(qph);
 
-	/* we need to print this so the system administrator
-	   can use this to create dhcpd.conf file */
-	printf("\nlocal ipoib qpn=0x%x\n", ipoib_data.ipoib_qpn);
+	if(print_info)
+		printf("local ipoib qpn=0x%x\n", ipoib_data.ipoib_qpn);
 
 	ipoib_data.bcast_av = ib_data.bcast_av;
 	ipoib_data.port_gid_raw = ib_data.port_gid.raw;

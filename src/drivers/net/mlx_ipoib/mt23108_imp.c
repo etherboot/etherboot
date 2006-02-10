@@ -3,6 +3,7 @@ typedef uint16_t __u16;
 typedef uint8_t __u8;
 
 static int verbose_messages=0;
+static int print_info=0;
 static int fatal_condition=0;
 static int fw_fatal;
 

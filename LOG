@@ -2898,3 +2898,7 @@ Released as Etherboot 5.4.1 (production)
   support for their cards.  Thanks to Mellanox for their support of the 
   Etherboot project
 
++ Eli Cohen sent a patch for Infiniband to add a readme file, sample files to 
+  help configuring a DHCP server for use with Infiniband and add an option for
+  the user to print information that is helpful in configuring a DHCP server
+

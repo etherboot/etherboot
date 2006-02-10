@@ -651,6 +651,13 @@ static int setup_hca(__u8 port, void **eq_p)
 	else {
 		tprintf("cmd_query_fw() success");
 
+		if (print_info) {
+			printf("FW ver = %d.%d.%d\n",
+			qfw.fw_rev_major,
+			qfw.fw_rev_minor,
+			qfw.fw_rev_subminor);
+		}
+
 		tprintf("fw_rev_major=%d", qfw.fw_rev_major);
 		tprintf("fw_rev_minor=%d", qfw.fw_rev_minor);
 		tprintf("fw_rev_subminor=%d", qfw.fw_rev_subminor);

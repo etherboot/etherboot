@@ -90,6 +90,9 @@ static int ib_driver_init(struct pci_device *pci, udqp_t * ipoib_qph_p)
 
 	ib_data.port = port;
 
+	if(print_info)
+		printf("boot port = %d\n", ib_data.port);
+
 	rc = wait_logic_link_up(port);
 	if (rc)
 		return rc;
@@ -106,6 +109,18 @@ static int ib_driver_init(struct pci_device *pci, udqp_t * ipoib_qph_p)
 	}
 
 	tprintf("get_guid_info() success");
+
+	/* this to flush stdout that contains previous chars */
+	printf("    \n");
+	if(print_info) {
+		__u8 *gid=ib_data.port_gid.raw;
+
+		printf("\n");
+		printf("port GID=%hhx:%hhx:%hhx:%hhx:%hhx:%hhx:%hhx:%hhx:"
+		       "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx:%hhx:%hhx\n",
+		       gid[0],gid[1],gid[2],gid[3],gid[4],gid[5],gid[6],gid[7],
+		       gid[8],gid[9],gid[10],gid[11],gid[12],gid[13],gid[14],gid[15]);
+	}
 
 	rc = get_pkey_tbl(NULL, &status);
 	if (rc) {

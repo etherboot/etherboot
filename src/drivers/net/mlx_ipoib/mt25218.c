@@ -24,13 +24,23 @@ Skeleton NIC driver for Etherboot
 
 /* NIC specific static variables go here */
 
-int prompt_key(int secs, int ch)
+int prompt_key(int secs, unsigned char *ch_p)
 {
 	unsigned long tmo;
+	unsigned char ch;
 
 	for (tmo = currticks() + secs * TICKS_PER_SEC; currticks() < tmo;) {
-		if (iskey() && (ch = getchar(), tolower(ch) == 'v')) {
-			return 1;
+		if (iskey()) {
+			ch = getchar();
+			/* toupper does not work ... */
+			if (ch == 'v')
+				ch = 'V';
+			if (ch == 'i')
+				ch = 'I';
+			if ((ch=='V') || (ch=='I')) {
+				*ch_p = ch;
+				return 1;
+			}
 		}
 	}
 
@@ -167,6 +177,7 @@ static int mt25218_probe(struct dev *dev, struct pci_device *pci)
 {
 	struct nic *nic = (struct nic *)dev;
 	int rc;
+	unsigned char user_request;
 
 	if (pci->vendor != MELLANOX_VENDOR_ID) {
 		eprintf("");
@@ -178,9 +189,19 @@ static int mt25218_probe(struct dev *dev, struct pci_device *pci)
 	printf("Build version = %s\n\n", build_revision);
 
 	verbose_messages = 0;
-	printf("Press 'V' within 3 seconds to increase verbosity ... ");
-	if (prompt_key(3, 'v')) {
-		verbose_messages = 1;
+        print_info = 0;
+	printf("Press within 3 seconds:\n");
+	printf("V - to increase verbosity\n");
+	printf("I - to print information\n");
+	if (prompt_key(3, &user_request)) {
+		if (user_request == 'V') {
+			printf("User selected verbose messages\n");
+			verbose_messages = 1;
+		}
+		else if (user_request == 'I') {
+			printf("User selected to print information\n");
+			print_info = 1;
+		}
 	}
 	printf("\n");
 
@@ -188,6 +209,11 @@ static int mt25218_probe(struct dev *dev, struct pci_device *pci)
 
 	nic->priv_data = NULL;
 	rc = probe_imp(pci, nic);
+
+	/* give the user a chance to look at the info */
+	if (print_info)
+		sleep(5);
+
 	if (!rc) {
 		/* store NIC parameters */
 		nic->ioaddr = pci->ioaddr & ~3;
