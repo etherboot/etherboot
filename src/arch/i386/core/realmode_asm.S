@@ -521,7 +521,7 @@ _real_to_prot:
 	movl	%eax, %cr0
 
 	/* flush prefetch queue, and reload %cs:%eip */
-	DATA32 ljmp %ds:(r2p_paddr-1b)(%bx)
+	DATA32 ljmp %ds:*(r2p_paddr-1b)(%bx)
 	.code32
 2:
 	

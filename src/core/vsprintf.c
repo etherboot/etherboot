@@ -12,8 +12,8 @@ PRINTF and friends
 	Formats:
 		%[#]x	- 4 bytes int (8 hex digits, lower case)
 		%[#]X	- 4 bytes int (8 hex digits, upper case)
-		%[#]lx  - 8 bytes long (16 hex digits, lower case)
-		%[#]lX  - 8 bytes long (16 hex digits, upper case)
+		%[#]lx	- 8 bytes long (16 hex digits, lower case)
+		%[#]lX	- 8 bytes long (16 hex digits, upper case)
 		%[#]hx	- 2 bytes int (4 hex digits, lower case)
 		%[#]hX	- 2 bytes int (4 hex digits, upper case)
 		%[#]hhx	- 1 byte int (2 hex digits, lower case)
@@ -44,7 +44,7 @@ static int vsprintf(char *buf, const char *fmt, va_list args)
 		while (*fmt >= '0' && *fmt <= '9')
 			fmt++;
 		if (*fmt == 's') {
-			for(p = va_arg(args, char *); *p != '\0'; p++) 
+			for(p = va_arg(args, char *); *p != '\0'; p++)
 				buf ? *s++ = *p : putchar(*p);
 		}
 		else {	/* Length of item is bounded */
@@ -67,7 +67,7 @@ static int vsprintf(char *buf, const char *fmt, va_list args)
 					fmt++;
 				}
 			}
-			
+
 			/*
 			 * Before each format q points to tmp buffer
 			 * After each format q points past end of item
@@ -156,11 +156,12 @@ int sprintf(char *buf, const char *fmt, ...)
 	return i;
 }
 
-void printf(const char *fmt, ...)
+int printf(const char *fmt, ...)
 {
 	va_list args;
 	int i;
 	va_start(args, fmt);
 	i=vsprintf(0, fmt, args);
 	va_end(args);
+	return i;
 }

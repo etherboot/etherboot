@@ -123,7 +123,7 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 					result = xstart32(tctx.img.execaddr,
 						virt_to_phys(&loaderinfo),
 						tctx.linlocation,
-						virt_to_phys(BOOTP_DATA_ADDR));
+						virt_to_phys(&bootp_data));
 					printf("Secondary program returned %d\n",
 						result);
 					if (!TAGGED_PROGRAM_RETURNS) {
@@ -138,7 +138,7 @@ static sector_t tagged_download(unsigned char *data, unsigned int len, int eof)
 					gateA20_unset();
 					xstart16(tctx.img.execaddr, 
 						 tctx.img.u.segoff,
-						 BOOTP_DATA_ADDR);
+						 &bootp_data);
 					longjmp(restart_etherboot, -2);
 				}
 			}

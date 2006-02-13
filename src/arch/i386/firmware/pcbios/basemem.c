@@ -16,8 +16,9 @@
 #define FREE_BASE_MEMORY ( (uint32_t) ( *fbms << 10 ) )
 
 /* Prototypes */
-void * _allot_base_memory ( size_t size );
-void _forget_base_memory ( void *ptr, size_t size );
+static void * _allot_base_memory ( size_t size );
+static void _forget_base_memory ( void *ptr, size_t size );
+static void free_unused_base_memory ( void );
 
 typedef struct free_base_memory_block {
 	uint32_t	magic;

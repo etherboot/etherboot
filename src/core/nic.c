@@ -31,6 +31,14 @@ char *hostname = "";
 int hostnamelen = 0;
 static uint32_t xid;
 unsigned char *end_of_rfc1533 = NULL;
+unsigned char *addparam;
+int addparamlen;
+
+#ifdef IMAGE_FREEBSD
+int freebsd_howto = 0;
+char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
+#endif /* IMAGE_FREEBSD */
+
 static int vendorext_isvalid;
 static const unsigned char vendorext_magic[] = {0xE4,0x45,0x74,0x68}; /* äEth */
 static const unsigned char broadcast[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
@@ -353,9 +361,8 @@ int eth_load(struct dev *dev __unused)
 #endif /* PXE_EXPORT */
 #endif /* ! NO_DHCP_SUPPORT */
 	printf(", TFTP: %@", arptable[ARP_SERVER].ipaddr.s_addr);
-	if (BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr)
-		printf(", Relay: %@",
-			BOOTP_DATA_ADDR->bootp_reply.bp_giaddr.s_addr);
+	if (bootp_data.bootp_reply.bp_giaddr.s_addr)
+		printf(", Relay: %@", bootp_data.bootp_reply.bp_giaddr.s_addr);
 	if (arptable[ARP_GATEWAY].ipaddr.s_addr)
 		printf(", Gateway %@", arptable[ARP_GATEWAY].ipaddr.s_addr);
 #ifdef	DNS_RESOLVER
@@ -903,8 +910,8 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 #endif	/* NO_DHCP_SUPPORT */
 		netmask = default_netmask();
 		/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
-		memcpy((char *)BOOTP_DATA_ADDR, (char *)bootpreply, sizeof(struct bootpd_t));
-		decode_rfc1533(BOOTP_DATA_ADDR->bootp_reply.bp_vend, 0,
+		memcpy((char *)&bootp_data, (char *)bootpreply, sizeof(struct bootpd_t));
+		decode_rfc1533(bootp_data.bootp_reply.bp_vend, 0,
 #ifdef	NO_DHCP_SUPPORT
 			       BOOTP_VENDOR_LEN + MAX_BOOTP_EXTLEN, 
 #else
@@ -988,6 +995,8 @@ static int bootp(void)
 #else
 		while ( remaining_time > 0 ) {
 			if (await_reply(await_bootp, 0, NULL, remaining_time)){
+				if (arptable[ARP_CLIENT].ipaddr.s_addr)
+					break;
 			}
 			remaining_time = stop_time - currticks();
 		}
@@ -1646,6 +1655,8 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 #else
 		vendorext_isvalid = 0;
 #endif
+		addparam = NULL;
+		addparamlen = 0;
 		if (memcmp(p, rfc1533_cookie, 4))
 			return(0); /* no RFC 1533 header found */
 		p += 4;
@@ -1656,7 +1667,7 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 				return(0); /* no RFC 1533 header found */
 			p += 4;
 			len -= 4; }
-		if (extend + len <= (unsigned char *)&(BOOTP_DATA_ADDR->bootp_extension[MAX_BOOTP_EXTLEN])) {
+		if (extend + len <= (unsigned char *)&(bootp_data.bootp_extension[MAX_BOOTP_EXTLEN])) {
 			memcpy(extend, p, len);
 			extend += len;
 		} else {
@@ -1713,6 +1724,17 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 			  p[6] == RFC1533_VENDOR_MAJOR
 			)
 			vendorext_isvalid++;
+		else if (c == RFC1533_VENDOR_ADDPARM) {
+			/* This tag intentionally works for BOTH the encapsulated and
+			 * non-encapsulated case, since the current menu code (in mknbi)
+			 * creates this tag without encapsulation.  In the future both the
+			 * menu from mknbi and this code should learn about the proper
+			 * encapsulation (which will require substantial changes to various
+			 * stuff from mknbi, which will break compatibility with older
+			 * versions of Etherboot).  */
+			addparam = p + 2;
+			addparamlen = *(p + 1);
+		}
 		else if (NON_ENCAP_OPT c == RFC1533_VENDOR_ETHERBOOT_ENCAP) {
 			in_encapsulated_options = 1;
 			decode_rfc1533(p+2, 0, TAG_LEN(p), -1);

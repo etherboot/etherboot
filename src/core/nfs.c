@@ -60,9 +60,13 @@ static void rpc_printerror(struct rpc_t *rpc)
 AWAIT_RPC - Wait for an rpc packet
 **************************************************************************/
 static int await_rpc(int ival, void *ptr,
-	unsigned short ptype, struct iphdr *ip, struct udphdr *udp)
+	unsigned short ptype, struct iphdr *ip, struct udphdr *udp, struct tcphdr *tcp)
 {
 	struct rpc_t *rpc;
+
+	(void)ptype;
+	(void)tcp;
+
 	if (!udp) 
 		return 0;
 	if (arptable[ARP_CLIENT].ipaddr.s_addr != ip->dest.s_addr)
@@ -305,6 +309,7 @@ static int nfs_readlink(int server, int port, char *fh, char *path, char *nfh,
 	int retries;
 	int pathlen = strlen(path);
 
+	(void)fh;
 	id = rpc_id++;
 	buf.u.call.id = htonl(id);
 	buf.u.call.type = htonl(MSG_CALL);
@@ -518,7 +523,7 @@ nfssymlink:
 		fname--;
 	}
 	if (fname < dirname) {
-		printf("can't parse file name %s\n", name);
+		printf("\nError: can't parse file name %s\n", name);
 		return 0;
 	}
 
@@ -529,14 +534,14 @@ nfssymlink:
 		nfs_port = rpc_lookup(ARP_SERVER, PROG_NFS, 2, sport);
 	}
 	if (nfs_port == -1 || mount_port == -1) {
-		printf("can't get nfs/mount ports from portmapper\n");
+		printf("\nError: can't get nfs/mount ports from portmapper\n");
 		return 0;
 	}
 
 
 	err = nfs_mount(ARP_SERVER, mount_port, dirname, dirfh, sport);
 	if (err) {
-		printf("mounting %s: ", dirname);
+		printf("\nError mounting %s: ", dirname);
 		nfs_printerror(err);
 		/* just to be sure... */
 		nfs_umountall(ARP_SERVER);
@@ -545,7 +550,7 @@ nfssymlink:
 
 	err = nfs_lookup(ARP_SERVER, nfs_port, dirfh, fname, filefh, sport);
 	if (err) {
-		printf("looking up %s: ", fname);
+		printf("\nError looking up %s: ", fname);
 		nfs_printerror(err);
 		nfs_umountall(ARP_SERVER);
 		return 0;
@@ -572,7 +577,7 @@ nfssymlink:
 			return 0;
 		}
 		if (err) {
-			printf("reading at offset %d: ", offs);
+			printf("\nError reading at offset %d: ", offs);
 			nfs_printerror(err);
 			nfs_umountall(ARP_SERVER);
 			return 0;

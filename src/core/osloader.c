@@ -77,7 +77,8 @@ static sector_t dead_download ( unsigned char *data __unused, unsigned int len _
 #ifdef	IMAGE_MULTIBOOT
 #include "../arch/i386/core/multiboot_loader.c"
 #else
-#define multiboot_probe(data, len) do {} while(0)
+#define multiboot_init() do {} while(0)
+#define multiboot_peek(data, len) do {} while(0)
 #define multiboot_boot(entry) do {} while(0)
 #endif
 
@@ -336,6 +337,12 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 			return 0;
 		}
 	} /* end of block zero processing */
+
+#if defined(ELF_IMAGE) && defined(IMAGE_MULTIBOOT)
+	if (os_download == elf32_download) {
+		multiboot_peek(data, len);
+	}
+#endif /* defined(ELF_IMAGE) && defined(IMAGE_MULTIBOOT) */
 
 	/* Either len is greater or the skip is greater */
 	if ((skip_sectors > (len >> 9)) ||

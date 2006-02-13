@@ -1,9 +1,12 @@
 /* NOTE: this boot sector contains instructions that need at least an 80186.
  * Yes, as86 has a bug somewhere in the valid instruction set checks.
  *
- * SYS_SIZE is the number of clicks (16 bytes) to be loaded.
+ * SYS_SIZE is the number of clicks (16 bytes) to be loaded.  For Etherboot
+ * purposes, we need to load everything but the boot sector itself, i.e. 32
+ * clicks less than the size of the entire (verbatim) image.  The image size
+ * is practically limited only by the available base memory size.
  */
-.equ	SYSSIZE, 8192	# 8192 * 16 bytes = 128kB maximum size of .ROM file
+.equ	SYSSIZE, _verbatim_size_pgh - 32
 
 /*	floppyload.S Copyright (C) 1991, 1992 Linus Torvalds
  *	modified by Drew Eckhardt
@@ -37,7 +40,7 @@ go:
 	movw	$BOOTSEG, %ax
 	movw	%ax,%ds
 	movw	%ax,%es
-	movw	%ax,%ss			/* put stack at BOOTSEG:0x4000-12. */
+	movw	%ax,%ss			/* put stack at initial position */
 	movw	%di,%sp
 
 /* Many BIOS's default disk parameter tables will not recognize multi-sector

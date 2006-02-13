@@ -129,12 +129,11 @@ _in_call_far:
 	pushl	%eax
 	/* IC_OFFSET_*(%esp) are now valid */
 
-	/* Switch to virtual addresses */
-	call	_phys_to_virt
-
-	/* Fixup the va_list pointer */
-	movl	virt_offset, %ebp
-	subl	%ebp, IC_OFFSET_VA_LIST_PTR(%esp)
+	/* Determine the offset between physical and virtual address */
+	call	1f
+1:	popl	%ebp
+	subl	$1b, %ebp
+	movl	%ebp, virt_offset(%ebp)
 
 	/* Check opcode for EB_USE_INTERNAL_STACK flag */
 	movl	IC_OFFSET_OPCODE(%esp), %eax
@@ -142,8 +141,8 @@ _in_call_far:
 	je	2f
 	/* Use internal stack flag set */
 	/* Check %esp is not already in internal stack range */
-	leal	_stack, %esi		/* %esi = bottom of internal stack */
-	leal	_estack, %edi		/* %edi = top of internal stack */
+	leal	_stack(%ebp), %esi	/* %esi = bottom of internal stack */
+	leal	_estack(%ebp), %edi	/* %edi = top of internal stack */
 	cmpl	%esi, %esp
 	jb	1f
 	cmpl	%edi, %esp
@@ -155,6 +154,13 @@ _in_call_far:
 	movl	%edi, %esp		/*  = new %esp */
 	rep movsb			/* Copy data to internal stack */
 2:
+
+	/* Switch to virtual addresses */
+	call	_phys_to_virt
+
+	/* Fixup the va_list pointer */
+	movl	virt_offset, %ebp
+	subl	%ebp, IC_OFFSET_VA_LIST_PTR(%esp)
 
 	/* Call to C code */
 	call	i386_in_call
@@ -347,8 +353,9 @@ os_regs_ptr:
 	movl	%esp, %ebp
 	subl	$os_regs, %ebp
 	
-	/* Load the stack pointer */
+	/* Load the stack pointer and convert it to physical address */
 	movl	52(%esp), %esp
+	addl	%ebp, %esp
 
 	/* Enable the virtual addresses */
 	leal	_phys_to_virt(%ebp), %eax
@@ -604,7 +611,6 @@ _virt_to_phys:
 	popfl
 	ret
 
-
 /**************************************************************************
 _PHYS_TO_VIRT - Transition from using physical to virtual addresses
 		Preserves all preservable registers and flags
@@ -618,7 +624,6 @@ _phys_to_virt:
 	call	1f
 1:	popl	%ebp
 	subl	$1b, %ebp
-	movl	%ebp, virt_offset(%ebp)
 
 	/* Fixup the gdt */
 	leal	_pmcs(%ebp), %eax
@@ -650,7 +655,6 @@ _phys_to_virt:
 	popl	%ebp
 	popfl
 	ret
-	
 
 /**************************************************************************
 SET_SEG_BASE - Set the base address of a segment register

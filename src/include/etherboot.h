@@ -181,7 +181,7 @@ struct igmptable_t {
 	unsigned long time;
 } PACKED;
 
-#define	KERNEL_BUF	(BOOTP_DATA_ADDR->bootp_reply.bp_file)
+#define	KERNEL_BUF	(bootp_data.bootp_reply.bp_file)
 
 #define	FLOPPY_BOOT_LOCATION	0x7c00
 
@@ -292,7 +292,7 @@ extern void poll_interruptions P((void));
 extern int strcasecmp P((const char *a, const char *b));
 extern char *substr P((const char *a, const char *b));
 extern unsigned long strtoul P((const char *p, const char **, int base));
-extern void printf P((const char *, ...));
+extern int printf P((const char *, ...));
 extern int sprintf P((char *, const char *, ...));
 extern int inet_aton P((const char *p, in_addr *i));
 #ifdef PCBIOS
@@ -322,7 +322,6 @@ extern void allot_real_mode_stack ( void );
 extern void forget_real_mode_stack ( void );
 extern void * allot_base_memory ( size_t );
 extern void forget_base_memory ( void*, size_t );
-extern void free_unused_base_memory ( void );
 extern void forget_prefix_base_memory ( void );
 extern void forget_runtime_base_memory ( uint32_t old_addr );
 
@@ -420,31 +419,23 @@ extern int pxe_in_call ( in_call_data_t *in_call_data, va_list params );
 External variables
 ***************************************************************************/
 /* main.c */
-extern struct rom_info rom;
-extern char *hostname;
-extern int hostnamelen;
 extern jmp_buf restart_etherboot;
 extern int url_port;
+/* nic.c */
+extern struct rom_info rom;
 extern struct arptable_t arptable[MAX_ARP];
 extern struct igmptable_t igmptable[MAX_IGMP];
-#ifdef	IMAGE_MENU
-extern int menutmo,menudefault;
-extern unsigned char *defparams;
-extern int defparams_max;
-#endif
-#ifdef	MOTD
-extern unsigned char *motd[RFC1533_VENDOR_NUMOFMOTD];
-#endif
+extern char *hostname;
+extern int hostnamelen;
+extern unsigned char *addparam;
+extern int addparamlen;
 extern struct bootpd_t bootp_data;
-#define	BOOTP_DATA_ADDR	(&bootp_data)
 extern unsigned char *end_of_rfc1533;
 #ifdef	IMAGE_FREEBSD
 extern int freebsd_howto;
 #define FREEBSD_KERNEL_ENV_SIZE 256
 extern char freebsd_kernel_env[FREEBSD_KERNEL_ENV_SIZE];
 #endif
-
-/* bootmenu.c */
 
 /* osloader.c */
 
