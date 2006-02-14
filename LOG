@@ -2902,3 +2902,13 @@ Released as Etherboot 5.4.1 (production)
   help configuring a DHCP server for use with Infiniband and add an option for
   the user to print information that is helpful in configuring a DHCP server
 
+Not yet Released as Etherboot 5.4.2 (production)
+
++ Klaus Espenlaub contributed a patch that fixed Multiboot image probing,
+  parameter passing to kernels with external boot menu, parsing of DHCP tags
+  and other miscellaneous cleanups. Changed DHCP offer processing slightly to
+  avoid always dropping the first offer. Because of a fixed pcnet32 driver and
+  various small changes Etherboot now works again with VMware (tested up to
+  version 5.0.0). Also the floppy image no longer loads a fixed 128KByte
+  portion but only what is necessary.
+
