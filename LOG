@@ -2910,3 +2910,7 @@ Released as Etherboot 5.4.1 (production)
   version 5.0.0). Also the floppy image no longer loads a fixed 128KByte
   portion but only what is necessary.
 
++ Timothy Legge contributed the via-velocity driver for the VIA Velocity 
+  6120/6122 based Gigabit cards based on the Linux 2.6.15.4 driver
+
+
