@@ -15,6 +15,14 @@
  * 
  */
 
+/* Align any virt_offset on this power-of-two boundary, so
+ * virt_to_phys() et al. will not alter the less significant bits.
+ * This should match the maximum DMA alignment that might be required
+ * by on the system, so drivers can assume that aligned virtual
+ * addresses will be similarly aligned in bus address space.
+ */
+#define VIRT_ALIGN 4096 /* PCI Express forbids DMA's across 4KB boundaries */
+
 void relocate(void)
 {
 	unsigned long addr, eaddr, size;
@@ -30,7 +38,11 @@ void relocate(void)
 	addr = virt_to_phys(_text);
 	eaddr = virt_to_phys(_end);
 	size = (eaddr - addr + 0xf) & ~0xf;
-
+#ifdef HAVE_VIRT_OFFSET
+	/* Allocate an oversized block so we can realign within it. */
+	size += VIRT_ALIGN;
+#endif /* HAVE_VIRT_OFFSET */
+ 
 	/* If the current etherboot is beyond MAX_ADDR pretend it is
 	 * at the lowest possible address.
 	 */
@@ -85,9 +97,26 @@ void relocate(void)
 		}
 		if (eaddr < r_end - size) {
 			addr = r_end - size;
-			eaddr = r_end;
+			eaddr = addr + (_end - _text);
 		}
 	}
+
+#ifdef HAVE_VIRT_OFFSET
+	/* Adjust the relocation to align virt_offset.
+	 *
+	 * relocate_to(addr) sets virt_offset=addr-_text, so without
+	 * any adjustment, the misalignment would be
+	 * (addr-_text)&(VIRT_ALIGN-1).  We force this misalignment to
+	 * be zero here.
+	 */
+	{
+		unsigned long delta = (((unsigned long) _text - addr)
+				       & (VIRT_ALIGN-1));
+		addr += delta;
+		eaddr += delta;
+	}
+#endif /* HAVE_VIRT_OFFSET */
+	
 	if (addr != virt_to_phys(_text)) {
 		unsigned long old_addr = virt_to_phys(_text);
 		printf("Relocating _text from: [%lx,%lx) to [%lx,%lx)\n",
