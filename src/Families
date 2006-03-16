@@ -142,3 +142,4 @@ family      drivers/net/mlx_ipoib/mt25218
 
 family		drivers/net/via-velocity
 
+family		drivers/net/etherfabric
