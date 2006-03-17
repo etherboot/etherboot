@@ -2913,4 +2913,5 @@ Released as Etherboot 5.4.1 (production)
 + Timothy Legge contributed the via-velocity driver for the VIA Velocity 
   6120/6122 based Gigabit cards based on the Linux 2.6.15.4 driver
 
-
++ Michael Brown contributed the etherfabric driver for the Etherfabric
+  series of cards produced by Level 5 Networks Inc.
