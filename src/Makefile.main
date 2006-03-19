@@ -395,9 +395,19 @@ clean:
 
 tarball: ../index.html ../index-berlios.html
 	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
-	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude doc etherboot-$(VERSION))
+	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude etherboot-$(VERSION))
 	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
 	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
+
+cvs-tarball: ../index.html ../index-berlios.html
+	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
+	rm -rf /tmp/etherboot-$(MM_VERSION)cvs
+	mkdir /tmp/etherboot-$(MM_VERSION)cvs
+	cp -rP .. /tmp/etherboot-$(MM_VERSION)cvs
+	( cd /tmp; tar cf /tmp/etherboot-$(MM_VERSION)cvs.tar --exclude CVS --exclude "#*" \
+            --exclude "*~" etherboot-$(MM_VERSION)cvs )
+	bzip2 -9 < /tmp/etherboot-$(MM_VERSION)cvs.tar > /tmp/etherboot-$(MM_VERSION)cvs.tar.bz2
+	gzip -9 < /tmp/etherboot-$(MM_VERSION)cvs.tar > /tmp/etherboot-$(MM_VERSION)cvs.tar.gz
 
 # Auto-incrementing build serial number.  Is auto-incremented for each
 # make run that specifies a final image file (e.g. bin/undi.zpxe) as a
