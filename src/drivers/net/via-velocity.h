@@ -46,7 +46,7 @@ typedef signed int s32;
 
 #define PKT_BUF_SZ          1564
 
-#define MAX_UNITS           8
+#define MAX_UNITS           1
 #define OPTION_DEFAULT      { [0 ... MAX_UNITS-1] = -1}
 
 #define REV_ID_VT6110       (0)
@@ -1775,23 +1775,12 @@ struct velocity_opt {
 #define TX_DESC_DEF     4
 
 struct velocity_info {
-//      struct list_head list;
-
 	struct pci_device *pdev;
-//      struct net_device *dev;
-//      struct net_device_stats stats;
 
 #ifdef CONFIG_PM
 	u32 pci_state[16];
 #endif
 
-//      dma_addr_t rd_pool_dma;
-//      dma_addr_t td_pool_dma[TX_QUEUE_NO];
-
-//      dma_addr_t tx_bufs_dma;
-	u8 *tx_bufs;
-
-	u8 ip_addr[4];
 	enum chip_type chip_id;
 
 	struct mac_regs *mac_regs;
@@ -1805,9 +1794,7 @@ struct velocity_info {
 
 	int num_txq;
 
-	volatile int td_used[TX_QUEUE_NO];
 	int td_curr;
-	int td_tail[TX_QUEUE_NO];
 	unsigned char *TxDescArrays;	/* Index of Tx Descriptor buffer */
 	unsigned char *RxDescArrays;	/* Index of Rx Descriptor buffer */
 	unsigned char *tx_buffs;
@@ -1816,16 +1803,13 @@ struct velocity_info {
 	unsigned char *txb;
 	unsigned char *rxb;
 	struct tx_desc *td_rings;
-	struct velocity_td_info *td_infos[TX_QUEUE_NO];
 
 	int rd_curr;
 	int rd_dirty;
 	u32 rd_filled;
 	struct rx_desc *rd_ring;
-	struct velocity_rd_info *rd_info;	/* It's an array */
 
 #define GET_RD_BY_IDX(vptr, idx)   (vptr->rd_ring[idx])
-	u32 mib_counter[MAX_HW_MIB_COUNTER];
 	struct velocity_opt options;
 
 	u32 int_mask;
@@ -1840,15 +1824,7 @@ struct velocity_info {
 	u8 vCAMmask[(VCAM_SIZE / 8)];
 	u8 mCAMmask[(MCAM_SIZE / 8)];
 
-//      spinlock_t lock;
-
 	int wol_opts;
-	u8 wol_passwd[6];
-
-	struct velocity_context context;
-
-	u32 ticks;
-	u32 rx_bytes;
 
 } vptx;
 

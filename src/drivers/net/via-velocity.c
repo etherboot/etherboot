@@ -35,6 +35,7 @@
 *    ================
 *
 *    v1.0	03-06-2006	timlegge	Initial port of Linux driver
+*    v1.1	03-19-2006	timlegge	Cleanup and enabled multicast
 *    
 *    Indent Options: indent -kr -i8
 *************************************************************************/
@@ -48,6 +49,13 @@
 
 
 #include "via-velocity.h"
+
+//#define EDEBUG
+#ifdef EDEBUG
+#define dprintf(x) printf x
+#else
+#define dprintf(x)
+#endif
 
 typedef int pci_power_t;
 
@@ -213,6 +221,9 @@ static u8 rx_ring[RX_DESC_DEF * sizeof(struct rx_desc) + 64];
    All descriptors point to a part of this buffer */
 static u8 rxb[(RX_DESC_DEF * PKT_BUF_SZ) + 64];
 
+static void velocity_init_cam_filter(struct velocity_info *vptr);
+static inline void velocity_give_many_rx_descs(struct velocity_info *vptr);
+static int velocity_rx_refill(struct velocity_info *vptr);
 static void velocity_init_info(struct pci_device *pdev,
 			       struct velocity_info *vptr,
 			       struct velocity_info_tbl *info);
@@ -221,7 +232,6 @@ static int velocity_get_pci_info(struct velocity_info *,
 static int velocity_open(struct nic *nic, struct pci_device *pci);
 
 static int velocity_soft_reset(struct velocity_info *vptr);
-static void velocity_init_cam_filter(struct velocity_info *vptr);
 static void mii_init(struct velocity_info *vptr, u32 mii_status);
 static u32 velocity_get_opt_media_mode(struct velocity_info *vptr);
 static void velocity_print_link_status(struct velocity_info *vptr);
@@ -266,8 +276,8 @@ static void velocity_set_int_opt(int *opt, int val, int min, int max,
 				 int def, char *name, char *devname)
 {
 	if (val == -1) {
-		printf("%s: set value of parameter %s to %d\n",
-		       devname, name, def);
+		dprintf(("%s: set value of parameter %s to %d\n",
+		       devname, name, def));
 		*opt = def;
 	} else if (val < min || val > max) {
 		printf
@@ -275,8 +285,8 @@ static void velocity_set_int_opt(int *opt, int val, int min, int max,
 		     devname, name, min, max);
 		*opt = def;
 	} else {
-		printf("%s: set value of parameter %s to %d\n",
-		       devname, name, val);
+		dprintf(("%s: set value of parameter %s to %d\n",
+		       devname, name, val));
 		*opt = val;
 	}
 }
@@ -300,8 +310,8 @@ static void velocity_set_bool_opt(u32 * opt, int val, int def, u32 flag,
 {
 	(*opt) &= (~flag);
 	if (val == -1) {
-		printf("%s: set parameter %s to %s\n",
-		       devname, name, def ? "TRUE" : "FALSE");
+		dprintf(("%s: set parameter %s to %s\n",
+		       devname, name, def ? "TRUE" : "FALSE"));
 		*opt |= (def ? flag : 0);
 	} else if (val < 0 || val > 1) {
 		printf
@@ -309,8 +319,8 @@ static void velocity_set_bool_opt(u32 * opt, int val, int def, u32 flag,
 		     devname, name);
 		*opt |= (def ? flag : 0);
 	} else {
-		printf("%s: set parameter %s to %s\n",
-		       devname, name, val ? "TRUE" : "FALSE");
+		dprintf(("%s: set parameter %s to %s\n",
+		       devname, name, val ? "TRUE" : "FALSE"));
 		*opt |= (val ? flag : 0);
 	}
 }
@@ -330,7 +340,7 @@ static void velocity_get_options(struct velocity_opt *opts, int index,
 {
 
 	/* FIXME Do the options need to be configurable */
-	velocity_set_int_opt(&opts->rx_thresh, -1, RX_THRESH_MIN,
+	velocity_set_int_opt(&opts->rx_thresh, rx_thresh[index], RX_THRESH_MIN,
 			     RX_THRESH_MAX, RX_THRESH_DEF, "rx_thresh",
 			     devname);
 	velocity_set_int_opt(&opts->DMA_length, DMA_length[index],
@@ -433,7 +443,7 @@ static inline void velocity_give_many_rx_descs(struct velocity_info *vptr)
 	dirty = vptr->rd_dirty - unusable;
 	for (avail = vptr->rd_filled & 0xfffc; avail; avail--) {
 		dirty = (dirty > 0) ? dirty - 1 : vptr->options.numrx - 1;
-//              printf("return dirty: %d\n", dirty);
+//              dprintf(("return dirty: %d\n", dirty));
 		vptr->rd_ring[dirty].rdesc0.owner = OWNED_BY_NIC;
 	}
 
@@ -445,14 +455,14 @@ static int velocity_rx_refill(struct velocity_info *vptr)
 {
 	int dirty = vptr->rd_dirty, done = 0, ret = 0;
 
-//      printf("rx_refill - rd_curr = %d, dirty = %d\n", vptr->rd_curr, dirty);
+//      dprintf(("rx_refill - rd_curr = %d, dirty = %d\n", vptr->rd_curr, dirty));
 	do {
 		struct rx_desc *rd = vptr->rd_ring + dirty;
 
 		/* Fine for an all zero Rx desc at init time as well */
 		if (rd->rdesc0.owner == OWNED_BY_NIC)
 			break;
-//              printf("rx_refill - after owner %d\n", dirty);
+//              dprintf(("rx_refill - after owner %d\n", dirty));
 
 		rd->inten = 1;
 		rd->pa_high = 0;
@@ -463,7 +473,7 @@ static int velocity_rx_refill(struct velocity_info *vptr)
 	} while (dirty != vptr->rd_curr);
 
 	if (done) {
-//              printf("\nGive Back Desc\n");
+//              dprintf(("\nGive Back Desc\n"));
 		vptr->rd_dirty = dirty;
 		vptr->rd_filled += done;
 		velocity_give_many_rx_descs(vptr);
@@ -472,12 +482,10 @@ static int velocity_rx_refill(struct velocity_info *vptr)
 	return ret;
 }
 
-extern void hex_dump(const char *data, const unsigned int len);
 /**************************************************************************
 POLL - Wait for a frame
 ***************************************************************************/
-//EB53 static int velocity_poll(struct nic *nic, int retrieve)
-static int velocity_poll(struct nic *nic __unused)
+static int velocity_poll(struct nic *nic __unused, int retrieve)
 {
 	/* Work out whether or not there's an ethernet packet ready to
 	 * read.  Return 0 if not.
@@ -489,6 +497,9 @@ static int velocity_poll(struct nic *nic __unused)
 	if (rd->rdesc0.owner == OWNED_BY_NIC)
 		return 0;
 	rmb();
+
+	if ( ! retrieve )
+		return 1;
 
 	/*
 	 *      Don't drop CE or RL error frame although RXOK is off
@@ -545,9 +556,8 @@ static void velocity_transmit(struct nic *nic, const char *dest,	/* Destination 
 		ptxb[size++] = '\0';
 
 	if (size < ETH_ZLEN) {
-//              printf("Padd that packet\n");
+//              dprintf(("Pad that packet\n"));
 		pktlen = ETH_ZLEN;
-//                memcpy(ptxb, skb->data, skb->len);
 		memset(ptxb + size, 0, ETH_ZLEN - size);
 
 		vptr->td_rings[entry].tdesc0.pktsize = pktlen;
@@ -558,7 +568,7 @@ static void velocity_transmit(struct nic *nic, const char *dest,	/* Destination 
 		    vptr->td_rings[entry].tdesc0.pktsize;
 		vptr->td_rings[entry].tdesc1.CMDZ = 2;
 	} else {
-//              printf("Correct size packet\n");
+//              dprintf(("Correct size packet\n"));
 		td_ptr->tdesc0.pktsize = size;
 		td_ptr->td_buf[0].pa_low = virt_to_bus(ptxb);
 		td_ptr->td_buf[0].pa_high = 0;
@@ -595,7 +605,6 @@ static void velocity_transmit(struct nic *nic, const char *dest,	/* Destination 
 	if (currticks() >= to) {
 		printf("TX Time Out");
 	}
-
 }
 
 /**************************************************************************
@@ -673,7 +682,7 @@ static int velocity_probe(struct dev *dev, struct pci_device *pci)
 	int ret, i;
 	struct mac_regs *regs;
 
-	printf("via-velocity.c: Found %s Vendor=0x%hX Device=0x%hX\n",
+	printf("Found %s Vendor=0x%hX Device=0x%hX",
 	       pci->name, pci->vendor, pci->dev_id);
 
 	/* point to private storage */
@@ -701,15 +710,15 @@ static int velocity_probe(struct dev *dev, struct pci_device *pci)
 
 	BASE = vptr->ioaddr;
 
-	printf("Chip ID: %hX\n", vptr->chip_id);
+//	dprintf(("Chip ID: %hX\n", vptr->chip_id));
 
 	for (i = 0; i < 6; i++)
 		nic->node_addr[i] = readb(&regs->PAR[i]);
 
 	/* Print out some hardware info */
-	printf("%s: %! at ioaddr %hX, ", pci->name, nic->node_addr, BASE);
+	printf(" %! at ioaddr %hX, ", nic->node_addr, BASE);
 
-	velocity_get_options(&vptr->options, 0, pci->name);
+	velocity_get_options(&vptr->options, 0, (char *) pci->name);
 
 	/* 
 	 *      Mask out the options cannot be set to the chip
@@ -729,10 +738,6 @@ static int velocity_probe(struct dev *dev, struct pci_device *pci)
 
 	vptr->phy_id = MII_GET_PHY_ID(vptr->mac_regs);
 
-	if (vptr->flags & VELOCITY_FLAGS_TX_CSUM) {
-		printf("features missing\n");
-	}
-
 	/* and leave the chip powered down */
 // FIXME:       pci_set_power_state(pci, PCI_D3hot);
 
@@ -750,8 +755,6 @@ static int velocity_probe(struct dev *dev, struct pci_device *pci)
 	nic->transmit = velocity_transmit;
 	return 1;
 }
-
-//#define IORESOURCE_IO              0x00000100      /* Resource type */
 
 /**
  *	velocity_init_info	-	init private data
@@ -775,41 +778,27 @@ static void velocity_init_info(struct pci_device *pdev,
 	vptr->num_txq = info->txqueue;
 	vptr->multicast_limit = MCAM_SIZE;
 
-	printf
-	    ("chip_id: 0x%hX, io_size: %d, num_txq %d, multicast_limit: %d\n",
+	dprintf
+	    (("chip_id: 0x%hX, io_size: %d, num_txq %d, multicast_limit: %d\n",
 	     vptr->chip_id, vptr->io_size, vptr->num_txq,
-	     vptr->multicast_limit);
-	printf("Name: %s\n", info->name);
+	     vptr->multicast_limit));
+	dprintf(("Name: %s\n", info->name));
 
-//      spin_lock_init(&vptr->lock);
-//      INIT_LIST_HEAD(&vptr->list);
+
 }
 
-/**
- *	velocity_get_pci_info	-	retrieve PCI info for device
- *	@vptr: velocity device
- *	@pdev: PCI device it matches
- *
- *	Retrieve the PCI configuration space data that interests us from
- *	the kernel PCI layer
- */
-
-#define IORESOURCE_IO   0x00000100	/* Resource type */
-#define IORESOURCE_PREFETCH        0x00001000	/* No side effects */
-
-#define IORESOURCE_MEM             0x00000200
-#define BAR_0           0
-#define BAR_1           1
-#define BAR_5           5
-#define  PCI_BASE_ADDRESS_SPACE 0x01	/* 0 = memory, 1 = I/O */
-#define  PCI_BASE_ADDRESS_SPACE_IO 0x01
-#define  PCI_BASE_ADDRESS_SPACE_MEMORY 0x00
-#define  PCI_BASE_ADDRESS_MEM_TYPE_MASK 0x06
-#define  PCI_BASE_ADDRESS_MEM_TYPE_32   0x00	/* 32 bit address */
-#define  PCI_BASE_ADDRESS_MEM_TYPE_1M   0x02	/* Below 1M [obsolete] */
-#define  PCI_BASE_ADDRESS_MEM_TYPE_64   0x04	/* 64 bit address */
-#define  PCI_BASE_ADDRESS_MEM_PREFETCH  0x08	/* prefetchable? */
-//#define  PCI_BASE_ADDRESS_MEM_MASK      (~0x0fUL)
+#define IORESOURCE_IO			0x00000100	/* Resource type */
+#define IORESOURCE_MEM			0x00000200
+#define IORESOURCE_PREFETCH		0x00001000	/* No side effects */
+#define  PCI_BASE_ADDRESS_SPACE		0x01	/* 0 = memory, 1 = I/O */
+#define  PCI_BASE_ADDRESS_SPACE_MEMORY	0x00
+// #define  PCI_BASE_ADDRESS_SPACE_IO 0x01
+// #define  PCI_BASE_ADDRESS_MEM_TYPE_MASK 0x06
+// #define  PCI_BASE_ADDRESS_MEM_TYPE_32   0x00	/* 32 bit address */
+// #define  PCI_BASE_ADDRESS_MEM_TYPE_1M   0x02	/* Below 1M [obsolete] */
+// #define  PCI_BASE_ADDRESS_MEM_TYPE_64   0x04	/* 64 bit address */
+#define  PCI_BASE_ADDRESS_MEM_PREFETCH	0x08	/* prefetchable? */
+// #define  PCI_BASE_ADDRESS_MEM_MASK      (~0x0fUL)
 // #define  PCI_BASE_ADDRESS_IO_MASK       (~0x03UL)
 
 unsigned long pci_resource_flags(struct pci_device *pdev, unsigned int bar)
@@ -832,20 +821,18 @@ unsigned long pci_resource_flags(struct pci_device *pdev, unsigned int bar)
 		   continue;
 		   res->start = l & PCI_BASE_ADDRESS_MEM_MASK;
 		 */ flags |= l & ~PCI_BASE_ADDRESS_MEM_MASK;
-		printf("Memory Resource\n");
+//		dprintf(("Memory Resource\n"));
 	} else {
 		//            sz = pci_size(l, sz, PCI_BASE_ADDRESS_IO_MASK & 0xffff);
 		///         if (!sz)
 		///              continue;
 //              res->start = l & PCI_BASE_ADDRESS_IO_MASK;
 		flags |= l & ~PCI_BASE_ADDRESS_IO_MASK;
-		printf("I/O Resource\n");
+//		dprintf(("I/O Resource\n"));
 	}
 	if (flags & PCI_BASE_ADDRESS_SPACE_IO) {
-		printf("Why is it here\n");
 		flags |= IORESOURCE_IO;
 	} else {
-		printf("here\n");
 //flags &= ~IORESOURCE_IO;
 	}
 
@@ -853,9 +840,17 @@ unsigned long pci_resource_flags(struct pci_device *pdev, unsigned int bar)
 	if (flags & PCI_BASE_ADDRESS_MEM_PREFETCH)
 		flags |= IORESOURCE_MEM | IORESOURCE_PREFETCH;
 
-
 	return flags;
 }
+
+/**
+ *	velocity_get_pci_info	-	retrieve PCI info for device
+ *	@vptr: velocity device
+ *	@pdev: PCI device it matches
+ *
+ *	Retrieve the PCI configuration space data that interests us from
+ *	the kernel PCI layer
+ */
 static int velocity_get_pci_info(struct velocity_info *vptr,
 				 struct pci_device *pdev)
 {
@@ -869,7 +864,7 @@ static int velocity_get_pci_info(struct velocity_info *vptr,
 	vptr->ioaddr = pci_bar_start(pdev, PCI_BASE_ADDRESS_0);
 	vptr->memaddr = pci_bar_start(pdev, PCI_BASE_ADDRESS_1);
 
-	printf("Looking for I/O Resource - Found:");
+	dprintf(("Looking for I/O Resource - Found:"));
 	if (!
 	    (pci_resource_flags(pdev, PCI_BASE_ADDRESS_0) & IORESOURCE_IO))
 	{
@@ -878,7 +873,7 @@ static int velocity_get_pci_info(struct velocity_info *vptr,
 		return -1;
 	}
 
-	printf("Looking for Memory Resource - Found:");
+	dprintf(("Looking for Memory Resource - Found:"));
 	if ((pci_resource_flags(pdev, PCI_BASE_ADDRESS_1) & IORESOURCE_IO)) {
 		printf("DEBUG: region #1 is an I/O resource, aborting.\n");
 		return -1;
@@ -956,8 +951,6 @@ static void velocity_rx_reset(struct velocity_info *vptr)
 	struct mac_regs *regs = vptr->mac_regs;
 	int i;
 
-//ptr->rd_dirty = vptr->rd_filled = vptr->rd_curr = 0;
-
 	/*
 	 *      Init state, all RD entries belong to the NIC
 	 */
@@ -985,14 +978,13 @@ static void velocity_init_registers(struct nic *nic,
 {
 	struct mac_regs *regs = vptr->mac_regs;
 	int i, mii_status;
+	u8 rx_mode;
 
 	mac_wol_reset(regs);
 
 	switch (type) {
 	case VELOCITY_INIT_RESET:
 	case VELOCITY_INIT_WOL:
-
-//netif_stop_queue(vptr->dev);
 
 		/*
 		 *      Reset RX to prevent RX pointer not on the 4X location
@@ -1008,14 +1000,12 @@ static void velocity_init_registers(struct nic *nic,
 			velocity_print_link_status(vptr);
 			if (!(vptr->mii_status & VELOCITY_LINK_FAIL))
 				printf("Link Failed\n");
-//                              netif_wake_queue(vptr->dev);
 		}
 
 		enable_flow_control_ability(vptr);
 
 		mac_clear_isr(regs);
 		writel(CR0_STOP, &regs->CR0Clr);
-		//writel((CR0_DPOLL | CR0_TXON | CR0_RXON | CR0_STRT), 
 		writel((CR0_DPOLL | CR0_TXON | CR0_RXON | CR0_STRT),
 		       &regs->CR0Set);
 		break;
@@ -1055,7 +1045,19 @@ static void velocity_init_registers(struct nic *nic,
 		/*
 		 *      Set packet filter: Receive directed and broadcast address
 		 */
-//FIXME Multicast               velocity_set_multi(nic);
+		
+		/* 
+		 * Enable Multicast by default 
+		 * from velocity_set_multi(nic)
+		 */
+		writel(0xffffffff, &regs->MARCAM[0]);
+		writel(0xffffffff, &regs->MARCAM[4]);
+		rx_mode = (RCR_AM | RCR_AB | RCR_PROM);
+		/* Not necessary (no where to set mtu)
+		if (dev->mtu > 1500)
+                	rx_mode |= RCR_AL;
+		*/
+		BYTE_REG_BITS_ON(rx_mode, &regs->RCR);
 
 		/*
 		 *      Enable MII auto-polling
@@ -1084,7 +1086,6 @@ static void velocity_init_registers(struct nic *nic,
 		       &regs->CR0Set);
 
 		mii_status = velocity_get_opt_media_mode(vptr);
-//              netif_stop_queue(vptr->dev);
 
 		mii_init(vptr, mii_status);
 
@@ -1092,8 +1093,7 @@ static void velocity_init_registers(struct nic *nic,
 		    VELOCITY_LINK_CHANGE) {
 			velocity_print_link_status(vptr);
 			if (!(vptr->mii_status & VELOCITY_LINK_FAIL))
-				printf("Link Faaailll\n");
-//                              netif_wake_queue(vptr->dev);
+				printf("Link Failed\n");
 		}
 
 		enable_flow_control_ability(vptr);
@@ -1240,12 +1240,12 @@ static int velocity_open(struct nic *nic, struct pci_device *pci __unused)
 
 	/* Tx Descriptor needs 64 bytes alignment; */
 	TxPhyAddr = virt_to_bus(vptr->TxDescArrays);
-	printf("Unaligned Address : %lX\n", TxPhyAddr);
+	dprintf(("Unaligned Address : %lX\n", TxPhyAddr));
 	diff = 64 - (TxPhyAddr - ((TxPhyAddr >> 6) << 6));
 	TxPhyAddr += diff;
 	vptr->td_rings = (struct tx_desc *) (vptr->TxDescArrays + diff);
 
-	printf("Aligned Address: %lX\n", virt_to_bus(vptr->td_rings));
+	dprintf(("Aligned Address: %lX\n", virt_to_bus(vptr->td_rings)));
 	vptr->tx_buffs = txb;
 	/* Rx Buffer needs 64 bytes alignment; */
 	TxBufPhyAddr = virt_to_bus(vptr->tx_buffs);
