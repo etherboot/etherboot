@@ -71,6 +71,8 @@ family		drivers/net/w89c840
 
 family		drivers/net/sis900
 
+family		drivers/net/myri10ge
+
 family		drivers/net/natsemi
 
 family		drivers/net/prism2_plx

@@ -2915,3 +2915,6 @@ Released as Etherboot 5.4.1 (production)
 
 + Michael Brown contributed the etherfabric driver for the Etherfabric
   series of cards produced by Level 5 Networks Inc.
+  
++ Glenn Brown provided the myri10ge driver for Myricom 10Gbit Ethernet NICs,
+  thanks to Myricom, Inc.
