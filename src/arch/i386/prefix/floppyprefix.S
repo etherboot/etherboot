@@ -6,6 +6,7 @@
  * clicks less than the size of the entire (verbatim) image.  The image size
  * is practically limited only by the available base memory size.
  */
+.globl	SYSSIZE
 .equ	SYSSIZE, _verbatim_size_pgh - 32
 
 /*	floppyload.S Copyright (C) 1991, 1992 Linus Torvalds
@@ -155,7 +156,7 @@ sigok:
 	.globl	prefix_exit
 prefix_exit:
 	xchgw	%bx, %bx
-	int	$0x19		/* should try to boot machine */
+	int	$0x18		/* should try to boot machine */
 	.globl	prefix_exit_end
 prefix_exit_end:
 	.previous
