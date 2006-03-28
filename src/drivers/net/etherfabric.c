@@ -191,219 +191,206 @@ struct efab_nic {
 
 /**************************************************************************
  *
- * EEPROM access
+ * i2c EEPROM access
  *
  **************************************************************************
  */
 
-#define EFAB_EEPROM_SDA		0x80000000u
-#define EFAB_EEPROM_SCL		0x40000000u
-#define ARIZONA_24xx00_SLAVE	0xa0
-#define EFAB_EEPROM_READ_SELECT	( ARIZONA_24xx00_SLAVE | 1 )
-#define EFAB_EEPROM_WRITE_SELECT ( ARIZONA_24xx00_SLAVE | 0 )
+struct efab_i2c_interface;
 
-static void eeprom_release ( uint32_t *eeprom_reg ) {
-	unsigned int dev;
+/** i2c bus direct control methods */
+struct efab_i2c_bit_operations {
+	/** Set state of SDA line */
+	void ( * setsda ) ( struct efab_i2c_interface *i2c );
+	/** Set state of SCL line */
+	void ( * setscl ) ( struct efab_i2c_interface *i2c );
+	/** Get state of SDA line */
+	int ( * getsda ) ( struct efab_i2c_interface *i2c );
+	/** Get state of SCL line */
+	int ( * getscl ) ( struct efab_i2c_interface *i2c );
+	/** Delay between each bit operation */
+	unsigned int udelay;
+	/** Delay between each byte write */
+	unsigned int mdelay;
+};
 
-	udelay ( 10 );
-	dev = readl ( eeprom_reg );
-	writel ( dev | ( EFAB_EEPROM_SDA | EFAB_EEPROM_SCL ),
-		 eeprom_reg );
-	udelay ( 10 );
+/** An i2c interface */
+struct efab_i2c_interface {
+	/** Attached Etherfabric NIC */
+	struct efab_nic *efab;
+	/** I2C bus control methods */
+	struct efab_i2c_bit_operations *op;
+	/** Current output state of SDA line */
+	unsigned int sda : 1;
+	/** Current output state of SCL line */
+	unsigned int scl : 1;
+};
+
+/*
+ * SDA and SCL line read/writes
+ *
+ */
+
+static inline void setsda ( struct efab_i2c_interface *i2c, int state ) {
+	udelay ( i2c->op->udelay );
+	i2c->sda = state;
+	i2c->op->setsda ( i2c );
+	udelay ( i2c->op->udelay );
 }
 
-static void eeprom_start ( uint32_t *eeprom_reg ) {
-	unsigned int dev;
-	
-	udelay ( 10 );
-	dev = readl ( eeprom_reg );
-	
-	if ( ( dev & ( EFAB_EEPROM_SDA | EFAB_EEPROM_SCL ) ) !=
-	     ( EFAB_EEPROM_SDA | EFAB_EEPROM_SCL ) ) {
-		udelay ( 10 );
-		writel ( dev | ( EFAB_EEPROM_SDA | EFAB_EEPROM_SCL ),
-			 eeprom_reg );
-		udelay ( 1 );
-	}
-	dev &=~ ( EFAB_EEPROM_SDA | EFAB_EEPROM_SCL );
-	
-	udelay ( 10 );
-	writel ( dev | EFAB_EEPROM_SCL, eeprom_reg) ;
-	udelay ( 1) ;
-
-	udelay ( 10 );
-	writel ( dev, eeprom_reg );
-	udelay ( 10 );
+static inline void setscl ( struct efab_i2c_interface *i2c, int state ) {
+	udelay ( i2c->op->udelay );
+	i2c->scl = state;
+	i2c->op->setscl ( i2c );
+	udelay ( i2c->op->udelay );
 }
 
-static void eeprom_stop ( uint32_t *eeprom_reg ) { 
-	unsigned int dev;
-	
-	udelay ( 10 );
-	dev = readl ( eeprom_reg );
-	EFAB_ASSERT ( ! ( dev & EFAB_EEPROM_SCL ) );
-	
-	if ( dev & ( EFAB_EEPROM_SDA | EFAB_EEPROM_SCL ) ) {
-		dev &=~ ( EFAB_EEPROM_SDA | EFAB_EEPROM_SCL );
-		udelay ( 10 );
-		writel ( dev, eeprom_reg );
-		udelay ( 10 );
-	}
-	
-	udelay ( 10 );
-	dev |= EFAB_EEPROM_SCL;
-	writel ( dev, eeprom_reg );
-	udelay ( 10 );
-	
-	udelay ( 10 );
-	dev |= EFAB_EEPROM_SDA;
-	writel ( dev, eeprom_reg );
-	udelay ( 10 );
+static inline int getsda ( struct efab_i2c_interface *i2c ) {
+	int sda;
+
+	udelay ( i2c->op->udelay );
+	sda = i2c->op->getsda ( i2c );
+	udelay ( i2c->op->udelay );
+	return sda;
 }
 
-static void eeprom_write ( uint32_t *eeprom_reg, unsigned char data ) {
+static inline int getscl ( struct efab_i2c_interface *i2c ) {
+	int scl;
+
+	udelay ( i2c->op->udelay );
+	scl = i2c->op->getscl ( i2c );
+	udelay ( i2c->op->udelay );
+	return scl;
+}
+
+/*
+ * i2c low-level protocol operations
+ *
+ */
+
+static inline void i2c_release ( struct efab_i2c_interface *i2c ) {
+	EFAB_ASSERT ( i2c->scl );
+	EFAB_ASSERT ( i2c->sda );
+	/* Just in case */
+	setscl ( i2c, 1 );
+	setsda ( i2c, 1 );
+	EFAB_ASSERT ( getsda ( i2c ) == 1 );
+	EFAB_ASSERT ( getscl ( i2c ) == 1 );
+}
+
+static inline void i2c_start ( struct efab_i2c_interface *i2c ) {
+	/* We may be restarting immediately after a {send,recv}_bit,
+	 * so SCL will not necessarily already be high.
+	 */
+	EFAB_ASSERT ( i2c->sda );
+	setscl ( i2c, 1 );
+	setsda ( i2c, 0 );
+	setscl ( i2c, 0 );
+	setsda ( i2c, 1 );
+}
+
+static inline void i2c_send_bit ( struct efab_i2c_interface *i2c, int bit ) {
+	EFAB_ASSERT ( ! i2c->scl );
+	setsda ( i2c, bit );
+	setscl ( i2c, 1 );
+	setscl ( i2c, 0 );
+	setsda ( i2c, 1 );
+}
+
+static inline int i2c_recv_bit ( struct efab_i2c_interface *i2c ) {
+	int bit;
+
+	EFAB_ASSERT ( ! i2c->scl );
+	EFAB_ASSERT ( i2c->sda );
+	setscl ( i2c, 1 );
+	bit = getsda ( i2c );
+	setscl ( i2c, 0 );
+	return bit;
+}
+
+static inline void i2c_stop ( struct efab_i2c_interface *i2c ) {
+	EFAB_ASSERT ( ! i2c->scl );
+	setsda ( i2c, 0 );
+	setscl ( i2c, 1 );
+	setsda ( i2c, 1 );
+}
+
+/*
+ * i2c mid-level protocol operations
+ *
+ */
+
+static int i2c_send_byte ( struct efab_i2c_interface *i2c, uint8_t byte ) {
 	int i;
-	unsigned int dev;
 	
-	udelay ( 10 );
-	dev = readl ( eeprom_reg );
-	udelay ( 10 );
-	EFAB_ASSERT ( ! ( dev & EFAB_EEPROM_SCL ) );
-	
-	for ( i = 0 ; i < 8 ; i++, data <<= 1 ) {
-		if ( data & 0x80 ) {
-			dev |=  EFAB_EEPROM_SDA;
-		} else {
-			dev &=~ EFAB_EEPROM_SDA;
-		}
-		udelay ( 10 );
-		writel ( dev, eeprom_reg );
-		udelay ( 10 );
-		
-		udelay ( 10 );
-		writel ( dev | EFAB_EEPROM_SCL, eeprom_reg );
-		udelay ( 10 );
-		
-		udelay ( 10 );
-		writel ( dev, eeprom_reg );
-		udelay ( 10 );
-	}
-	
-	if( ! ( dev & EFAB_EEPROM_SDA ) ) {
-		udelay ( 10 );
-		writel ( dev | EFAB_EEPROM_SDA, eeprom_reg );
-		udelay ( 10 );
-	}
-}
-
-static unsigned char eeprom_read ( uint32_t *eeprom_reg ) {
-	unsigned int i, dev, rd;
-	unsigned char val = 0;
-	
-	udelay ( 10 );
-	dev = readl ( eeprom_reg );
-	udelay ( 10 );
-	EFAB_ASSERT ( ! ( dev & EFAB_EEPROM_SCL ) );
-	
-	if( ! ( dev & EFAB_EEPROM_SDA ) ) {
-		dev |= EFAB_EEPROM_SDA;
-		udelay ( 10 );
-		writel ( dev, eeprom_reg );
-		udelay ( 10 );
-	}
-	
-	for( i = 0 ; i < 8 ; i++ ) {
-		udelay ( 10 );
-		writel ( dev | EFAB_EEPROM_SCL, eeprom_reg );
-		udelay ( 10 );
-		
-		udelay ( 10 );
-		rd = readl ( eeprom_reg );
-		udelay ( 10 );
-		val = ( val << 1 ) | ( ( rd & EFAB_EEPROM_SDA ) != 0 );
-		
-		udelay ( 10 );
-		writel ( dev, eeprom_reg );
-		udelay ( 10 );
+	/* Send byte */
+	for ( i = 0 ; i < 8 ; i++ ) {
+		i2c_send_bit ( i2c, !! ( byte & 0x80 ) );
+		byte <<= 1;
 	}
 
-	return val;
+	/* Check for acknowledgement from slave */
+	return ( i2c_recv_bit ( i2c ) == 0 ? 1 : 0 );
 }
 
-static int eeprom_check_ack ( uint32_t *eeprom_reg ) {
-	int ack;
-	unsigned int dev;
-	
-	udelay ( 10 );
-	dev = readl ( eeprom_reg );
-	EFAB_ASSERT ( ! ( dev & EFAB_EEPROM_SCL ) );
-	
-	writel ( dev | EFAB_EEPROM_SCL, eeprom_reg );
-	udelay ( 10 );
-	
-	udelay ( 10 );
-	ack = readl ( eeprom_reg ) & EFAB_EEPROM_SDA;
-	
-	udelay ( 10 );
-	writel ( ack & ~EFAB_EEPROM_SCL, eeprom_reg );
-	udelay ( 10 );
-	
-	return ( ack == 0 );
-}
-
-static void eeprom_send_ack ( uint32_t *eeprom_reg ) {
-	unsigned int dev;
-	
-	udelay ( 10 );
-	dev = readl ( eeprom_reg );
-	EFAB_ASSERT ( ! ( dev & EFAB_EEPROM_SCL ) );
-	
-	udelay ( 10 );
-	dev &= ~EFAB_EEPROM_SDA;	
-	writel ( dev, eeprom_reg );
-	udelay ( 10 );
-	
-	udelay ( 10 );
-	dev |= EFAB_EEPROM_SCL;     
-	writel ( dev, eeprom_reg );
-	udelay ( 10 );
-	
-	udelay ( 10 );
-	dev |= EFAB_EEPROM_SDA;	
-	writel ( dev & ~EFAB_EEPROM_SCL, eeprom_reg );
-	udelay ( 10 );
-}
-
-static int efab_eeprom_read_mac ( uint32_t *eeprom_reg, uint8_t *mac_addr ) {
+static uint8_t i2c_recv_byte ( struct efab_i2c_interface *i2c, int ack ) {
+	uint8_t value = 0;
 	int i;
 
-	eeprom_start ( eeprom_reg );
-
-	eeprom_write ( eeprom_reg, EFAB_EEPROM_WRITE_SELECT );
-	if ( ! eeprom_check_ack ( eeprom_reg ) )
-		return 0;
-	
-	eeprom_write ( eeprom_reg, 0 );
-	if ( ! eeprom_check_ack ( eeprom_reg ) )
-		return 0;
-	
-	eeprom_stop ( eeprom_reg );
-	eeprom_start ( eeprom_reg );
-	
-	eeprom_write ( eeprom_reg, EFAB_EEPROM_READ_SELECT );
-	if ( ! eeprom_check_ack ( eeprom_reg ) )
-		return 0;
-	
-	for ( i = 0 ; i < ETH_ALEN ; i++ ) {
-		mac_addr[i] = eeprom_read ( eeprom_reg );
-		eeprom_send_ack ( eeprom_reg );
+	/* Receive byte */
+	for ( i = 0 ; i < 8 ; i++ ) {
+		value = ( value << 1 ) | i2c_recv_bit ( i2c );
 	}
+
+	/* Send ACK/NACK */
+	i2c_send_bit ( i2c, ( ack ? 0 : 1 )  );
+
+	return value;
+}
+
+static inline uint8_t i2c_read_cmd ( uint8_t device_id ) {
+	return ( ( device_id << 1 ) | 1 );
+}
+
+static inline uint8_t i2c_write_cmd ( uint8_t device_id ) {
+	return ( ( device_id << 1 ) | 0 );
+}
+
+static int efab_i2c_fast_read ( struct efab_i2c_interface *i2c,
+				uint8_t device_id, uint8_t offset,
+				uint8_t *data, unsigned int len ) {
+	unsigned int i;
+	int rc = 0;
+
+	EFAB_ASSERT ( getsda ( i2c ) == 1 );
+	EFAB_ASSERT ( getscl ( i2c ) == 1 );
+	EFAB_ASSERT ( data != NULL );
+	EFAB_ASSERT ( len >= 1 );
+
+	/* Select device and starting offset */
+	i2c_start ( i2c );
+	if ( ! i2c_send_byte ( i2c, i2c_write_cmd ( device_id ) ) )
+		goto out;
+	if ( ! i2c_send_byte ( i2c, offset ) )
+		goto out;
+
+	/* Read data from device */
+	i2c_start ( i2c );
+	if ( ! i2c_send_byte ( i2c, i2c_read_cmd ( device_id ) ) )
+		goto out;
+	for ( i = 0 ; i < ( len - 1 ); i++ ) {
+		/* Read and acknowledge all but the last byte */
+		data[i] = i2c_recv_byte ( i2c, 1 );
+	}
+	/* Read last byte with no acknowledgement */
+	data[i] = i2c_recv_byte ( i2c, 0 );
 	
-	eeprom_stop ( eeprom_reg );
-	
-	eeprom_release ( eeprom_reg );
-	
-	return 1;
+	rc = 1;
+ out:
+	i2c_stop ( i2c );
+	i2c_release ( i2c );
+
+	return rc;
 }
 
 /**************************************************************************
@@ -1313,13 +1300,66 @@ static int ef1002_init_nic ( struct efab_nic *efab ) {
 	return 1;
 }
 
+/** I2C ID of the EEPROM */
+#define EF1002_EEPROM_I2C_ID 0x50
+
+/** Offset of MAC address within EEPROM */
+#define EF1002_EEPROM_HWADDR_OFFSET 0x0
+
+/** Set status of i2c outputs */
+static void ef1002_setsdascl ( struct efab_i2c_interface *i2c ) {
+	efab_dword_t eeprom_reg;
+
+	EFAB_POPULATE_DWORD_2 ( eeprom_reg,
+				EF1_EEPROM_SDA, i2c->sda,
+				EF1_EEPROM_SCL, i2c->scl );
+	ef1002_writel ( i2c->efab, &eeprom_reg, EF1_EEPROM_REG );
+}
+
+/** Get status of i2c SDA line */
+static int ef1002_getsda ( struct efab_i2c_interface *i2c ) {
+	efab_dword_t eeprom_reg;
+
+	ef1002_readl ( i2c->efab, &eeprom_reg, EF1_EEPROM_REG );
+	return EFAB_DWORD_FIELD ( eeprom_reg, EF1_EEPROM_SDA );
+}
+
+/** Get status of i2c SCL line */
+static int ef1002_getscl ( struct efab_i2c_interface *i2c ) {
+	efab_dword_t eeprom_reg;
+
+	ef1002_readl ( i2c->efab, &eeprom_reg, EF1_EEPROM_REG );
+	return EFAB_DWORD_FIELD ( eeprom_reg, EF1_EEPROM_SCL );
+}
+
+/** i2c bit-bashing data structure template */
+static struct efab_i2c_bit_operations ef1002_i2c_bit_operations = {
+	.setsda		= ef1002_setsdascl,
+	.setscl		= ef1002_setsdascl,
+	.getsda		= ef1002_getsda,
+	.getscl		= ef1002_getscl,
+	.udelay		= 20,
+	.mdelay		= 10,
+};
+
 /**
  * Read MAC address from EEPROM
  *
  */
 static int ef1002_read_eeprom ( struct efab_nic *efab ) {
-	return efab_eeprom_read_mac ( efab->membase + EF1_EEPROM_REG,
-				      efab->mac_addr );
+	struct efab_i2c_interface i2c = {
+		.efab = efab,
+		.op = &ef1002_i2c_bit_operations,
+		.sda = 1,
+		.scl = 1,
+	};
+
+	if ( ! efab_i2c_fast_read ( &i2c, EF1002_EEPROM_I2C_ID,
+				    EF1002_EEPROM_HWADDR_OFFSET,
+				    efab->mac_addr, ETH_ALEN ) )
+		return 0;
+	efab->mac_addr[ETH_ALEN-1] += efab->port;
+	return 1;
 }
 
 /** RX descriptor */
@@ -2807,7 +2847,6 @@ static int efab_init_nic ( struct efab_nic *efab ) {
 	/* Read MAC address from EEPROM */
 	if ( ! efab->op->read_eeprom ( efab ) )
 		return 0;
-	efab->mac_addr[ETH_ALEN-1] += efab->port;
 
 	/* Initialise MAC and wait for link up */
 	if ( ! efab_init_mac ( efab ) )
