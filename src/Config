@@ -60,6 +60,36 @@
 #			Use BOOTP instead of DHCP.
 #	-DRARP_NOT_BOOTP
 #			Use RARP instead of BOOTP/DHCP.
+#
+#	-DUSE_STATIC_BOOT_INFO	
+#			Use static ip insted of dynamic protocols
+#			When USE_STATIC_BOOT_INFO is defined, the following
+#			must also be defined:
+#			-DSTATIC_CLIENT_IP
+#			-DSTATIC_SUBNET_MASK
+#			-DSTATIC_SERVER_IP
+#			-DSTATIC_GATEWAY_IP
+#			-DSTATIC_BOOTFILE
+#
+#	-DSTATIC_CLIENT_IP=\"1.2.3.4\"
+#			Static client IP address.  Requires -DUSE_STATIC_BOOT_INFO
+#			be set to be used.
+#	-DSTATIC_SUBNET_MASK=\"255.255.255.0\"
+#			Static subnet address.  Requires -DUSE_STATIC_BOOT_INFO
+#			be set to be used.
+#	-DSTATIC_SERVER_IP=\"1.2.4.5\"
+#			Static server IP address.  Requires -DUSE_STATIC_BOOT_INFO
+#			be set to be used.
+#	-DSTATIC_GATEWAY_IP=\"1.2.3.254\"
+#			Static gateway IP address.  Requires -DUSE_STATIC_BOOT_INFO
+#			be set to be used.
+#	-DSTATIC_BOOTFILE=\"tftp://1.2.4.5/pxelinux.0\"
+#			Static gateway IP address.  Requires -DUSE_STATIC_BOOT_INFO
+#			be set to be used.
+#
+#	-DEXIT_ON_FILE_LOAD_ERROR
+#			Exit Etherboot if unable to load the requested boot file
+#
 #	-DREQUIRE_VCI_ETHERBOOT
 #			Require an encapsulated Vendor Class Identifier
 #			of "Etherboot" in the DHCP reply
@@ -83,8 +113,9 @@
 #			encapsulated Etherboot options.
 #	-DDEFAULT_BOOTFILE=\"default_bootfile_name\"
 #			Define a default bootfile for the case where your DHCP
-#			server does not provide the information.  Example:
-#			  -DDEFAULT_BOOTFILE="tftp:///tftpboot/kernel"
+#			server does not provide the information.  Examples:
+#			  -DDEFAULT_BOOTFILE=\"tftp:///tftpboot/kernel.nbi\"
+#			  -DDEFAULT_BOOTFILE-\"tftp://1.2.4.5/lts/pxelinux.0\"
 #			If you do not specify this option, then DHCP offers that
 #			do not specify bootfiles will be ignored.
 #
@@ -379,10 +410,24 @@ CFLAGS+=	-DALLOW_ONLY_ENCAPSULATED
 # Disable DHCP support
 # CFLAGS+=	-DNO_DHCP_SUPPORT
 
+# Set to enable static boot information
+# CFLAGS+=	-DUSE_STATIC_BOOT_INFO
+
+# Specify the static boot values
+# All must be specified, if -DUSE_STATIC_BOOT_INFO is defined
+# CFLAGS+=	-DSTATIC_CLIENT_IP=\"192.168.25.25\"
+# CFLAGS+=	-DSTATIC_SUBNET_MASK=\"255.255.255.0\"
+# CFLAGS+=	-DSTATIC_SERVER_IP=\"192.168.25.101\"
+# CFLAGS+=	-DSTATIC_GATEWAY_IP=\"192.168.25.1\"
+# CFLAGS+=	-DSTATIC_BOOTFILE=\"tftp://192.168.25.101/pxelinux.0\"
+
 # Specify a default bootfile to be used if the DHCP server does not
 # provide the information.  If you do not specify this option, then
 # DHCP offers that do not contain bootfiles will be ignored.
-# CFLAGS+=	-DDEFAULT_BOOTFILE=\"tftp:///tftpboot/kernel\"
+# CFLAGS+=	-DDEFAULT_BOOTFILE=\"tftp://192.168.1.254/lts/pxelinux.0\"
+
+# Exit if there is an error loading the boot file
+# CFLAGS+=	-DEXIT_ON_FILE_LOAD_ERROR
 
 # Limit the delay on packet loss/congestion to a more bearable value. See
 # description above.  If unset, do not limit the delay between resend.

@@ -29,7 +29,9 @@ static unsigned long	netmask;
 /* Used by nfs.c */
 char *hostname = "";
 int hostnamelen = 0;
+#ifndef USE_STATIC_BOOT_INFO
 static uint32_t xid;
+#endif /* USE_STATIC_BOOT_INFO */
 unsigned char *end_of_rfc1533 = NULL;
 unsigned char *addparam;
 int addparamlen;
@@ -51,9 +53,10 @@ static unsigned char	rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
 #else	/* !NO_DHCP_SUPPORT */
 static int dhcp_reply;
 static in_addr dhcp_server = { 0L };
-static in_addr dhcp_addr = { 0L };
 static unsigned char	rfc1533_cookie[] = { RFC1533_COOKIE };
 #define DHCP_MACHINE_INFO_SIZE (sizeof dhcp_machine_info)
+#ifndef USE_STATIC_BOOT_INFO
+static in_addr dhcp_addr = { 0L };
 static unsigned char dhcp_machine_info[] = {
 	/* Our enclosing DHCP tag */
 	RFC1533_VENDOR_ETHERBOOT_ENCAP, 11,
@@ -68,6 +71,7 @@ static unsigned char dhcp_machine_info[] = {
 #define DHCP_MACHINE_INFO_SIZE (sizeof(dhcp_machine_info) - (EM_CURRENT_64_PRESENT? 0: 4))
 #endif /* EM_CURRENT_64 */
 };
+#endif /* USE_STATIC_BOOT_INFO */
 static const unsigned char dhcpdiscover[] = {
 	RFC2132_MSG_TYPE,1,DHCPDISCOVER,
 	RFC2132_MAX_SIZE,2,	/* request as much as we can */
@@ -278,7 +282,11 @@ struct nic	nic =
 #ifdef RARP_NOT_BOOTP
 static int rarp(void);
 #else
+#ifdef USE_STATIC_BOOT_INFO
+static int get_static_boot_info(void);
+#else	
 static int bootp(void);
+#endif
 #endif
 static unsigned short tcpudpchksum(struct iphdr *ip);
 
@@ -322,6 +330,9 @@ int eth_load_configuration(struct dev *dev __unused)
 {
 	int server_found;
 	/* Find a server to get BOOTP reply from */
+#ifdef  USE_STATIC_BOOT_INFO
+	printf("Using Static IP Information...");
+#else	
 #ifdef	RARP_NOT_BOOTP
 	printf("Searching for server (RARP)...");
 #else
@@ -331,11 +342,16 @@ int eth_load_configuration(struct dev *dev __unused)
 	printf("Searching for server (BOOTP)...");
 #endif
 #endif
-
+#endif
+	
+#ifdef  USE_STATIC_BOOT_INFO
+	server_found = get_static_boot_info();
+#else	
 #ifdef	RARP_NOT_BOOTP
 	server_found = rarp();
 #else
 	server_found = bootp();
+#endif
 #endif
 	if (!server_found) {
 		printf("No Server found\n");
@@ -352,6 +368,7 @@ int eth_load(struct dev *dev __unused)
 {
 	const char	*kernel;
 	printf("\nMe: %@", arptable[ARP_CLIENT].ipaddr.s_addr );
+#ifndef USE_STATIC_BOOT_INFO
 #ifndef NO_DHCP_SUPPORT
 	printf(", DHCP: %@", dhcp_server );
 #ifdef PXE_EXPORT       
@@ -360,6 +377,7 @@ int eth_load(struct dev *dev __unused)
 		       arptable[ARP_PROXYDHCP].ipaddr.s_addr);
 #endif /* PXE_EXPORT */
 #endif /* ! NO_DHCP_SUPPORT */
+#endif /* USE_STATIC_BOOT_INFO */	
 	printf(", TFTP: %@", arptable[ARP_SERVER].ipaddr.s_addr);
 	if (bootp_data.bootp_reply.bp_giaddr.s_addr)
 		printf(", Relay: %@", bootp_data.bootp_reply.bp_giaddr.s_addr);
@@ -379,13 +397,23 @@ int eth_load(struct dev *dev __unused)
 #ifdef	DOWNLOAD_PROTO_NFS
 	rpc_init();
 #endif
-	kernel = KERNEL_BUF[0] == '\0' ? 
-#ifdef	DEFAULT_BOOTFILE
-		DEFAULT_BOOTFILE
+
+	/* Handle boot filename static and default cases */
+
+	if ( KERNEL_BUF[0] != '\0' ) {
+	  kernel = KERNEL_BUF;
+	} else {
+#if defined(USE_STATIC_BOOT_INFO) && defined(STATIC_BOOTFILE)
+	  kernel = STATIC_BOOTFILE;
+#elif defined(DEFAULT_BOOTFILE)
+	  kernel = DEFAULT_BOOTFILE;
 #else
-		NULL
+	  kernel = NULL;
 #endif
-		: KERNEL_BUF;
+	}
+
+	/* Remove .zpxe from filename if it exists */
+
 #ifdef  ZPXE_SUFFIX_STRIP
         {
           int i = 0;
@@ -402,9 +430,13 @@ int eth_load(struct dev *dev __unused)
           }
         }
 #endif
+
 	if ( kernel ) {
 		loadkernel(kernel); /* We don't return except on error */
 		printf("Unable to load file.\n");
+#ifdef EXIT_ON_FILE_LOAD_ERROR
+		longjmp(restart_etherboot, 255);
+#endif
 	} else {	
 		printf("No filename\n");
 	}
@@ -795,7 +827,33 @@ int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
 }
 #endif	/* DOWNLOAD_PROTO_TFTP */
 
+#ifdef  USE_STATIC_BOOT_INFO
+/***************************************************************************
+get_static_boot_info - construct bootp response from supplied CFLAG values
+***************************************************************************/
+static int get_static_boot_info (void)
+{
+	in_addr client_addr, server_addr, gateway_addr, netmask_addr;
+
+	inet_aton( STATIC_CLIENT_IP, &client_addr );
+	memcpy ( &arptable[ARP_CLIENT].ipaddr, &client_addr.s_addr, sizeof(in_addr) );
+
+	inet_aton( STATIC_SERVER_IP, &server_addr );
+	memcpy( &arptable[ARP_SERVER].ipaddr, &server_addr.s_addr, sizeof(in_addr) );
+
+	inet_aton( STATIC_GATEWAY_IP, &gateway_addr );
+	memcpy( &arptable[ARP_GATEWAY].ipaddr, &gateway_addr.s_addr, sizeof(in_addr) );
+
+	inet_aton( STATIC_SUBNET_MASK, &netmask_addr );
+	netmask = ntohl( netmask_addr.s_addr );
+
+	bootp_data.bootp_reply.bp_op = BOOTP_REPLY;
+
+	return (1);
+}
+#else
 #ifdef	RARP_NOT_BOOTP
+
 /**************************************************************************
 RARP - Get my IP address and load information
 **************************************************************************/
@@ -858,7 +916,6 @@ static int rarp(void)
 }
 
 #else
-
 /**************************************************************************
 BOOTP - Get my IP address and load information
 **************************************************************************/
@@ -1057,6 +1114,8 @@ static int bootp(void)
 	return(0);
 }
 #endif	/* RARP_NOT_BOOTP */
+
+#endif
 
 static uint16_t tcpudpchksum(struct iphdr *ip)
 {
