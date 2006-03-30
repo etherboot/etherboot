@@ -2894,9 +2894,8 @@ Released as Etherboot 5.4.1 (production)
 + Timothy Legge updated the r8169 driver with changes to RTL8169_VERSION 2.2
   <2004/08/09>
 
-+ Committed patch from Eli Cohen of Mellanox Technologies Ltd for Infiniband
-  support for their cards.  Thanks to Mellanox for their support of the 
-  Etherboot project
++ Eli Cohen of Mellanox Technologies Ltd contributed a patch for Infiniband
+  support. Thanks to Mellanox for their support of the Etherboot project
 
 + Eli Cohen sent a patch for Infiniband to add a readme file, sample files to 
   help configuring a DHCP server for use with Infiniband and add an option for
@@ -2918,3 +2917,12 @@ Released as Etherboot 5.4.1 (production)
   
 + Glenn Brown provided the myri10ge driver for Myricom 10Gbit Ethernet NICs,
   thanks to Myricom, Inc.
+
++ Michael Lamontagne contributed a patch to exit Etherboot if boot file
+  loading failed.  Added CFLAG: -DEXIT_ON_FILE_LOAD_ERROR
+
++ Ricardo Carrillo Cruz contributed a patch which provides support for
+  statip boot information rather than DHCP/BOOTP/RARP. Added CFLAGS:
+  -DUSE_STATIC_BOOT_INFO, -DSTATIC_CLIENT_IP, -DSTATIC_SUBNET_MASK,
+  -DSTATIC_SERVER_IP, -DSTATIC_GATEWAY_IP, -DSTATIC_BOOTFILE
+
