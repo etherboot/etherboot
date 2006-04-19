@@ -2926,3 +2926,19 @@ Released as Etherboot 5.4.1 (production)
   -DUSE_STATIC_BOOT_INFO, -DSTATIC_CLIENT_IP, -DSTATIC_SUBNET_MASK,
   -DSTATIC_SERVER_IP, -DSTATIC_GATEWAY_IP, -DSTATIC_BOOTFILE
 
+Released (limited distribution) as Etherboot 5.4.2pre1
+
++ Roland Kuhn contributed a patch which improves PXE_DHCP_STRICT
+  to provide better support for PXE menus and encapsulated options
+  handling.
+
++ Added e1000 variant 0x107c, "e1000-82541pi", based on a message from
+  Arno Wagner, who reported successfully booting by adding the PCI ID
+
+Released (limited distribution) as Etherboot 5.4.2pre2
+
++ Anders Larsen contributed a patch to the 3c90x driver to fix a problem
+  compiling with CFG_3C90X_BOOTROM_FIX enabled.
+
+Released as Etherboot 5.4.2
+
