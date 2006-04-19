@@ -211,6 +211,7 @@
 #			Support for resolving hostnames in bootfile name (experimental)
 #	-DDOWNLOAD_PROTO_TFTP
 #			If defined, includes TFTP support (recommended).
+#			TFTP support is required if PXE support is selected.
 #	-DDOWNLOAD_PROTO_NFS
 #			If defined, includes NFS support.
 #	-DDEFAULT_PROTO_NFS
@@ -465,6 +466,7 @@ CFLAGS+=	-DDOWNLOAD_PROTO_TFTP
 # CFLAGS+=	-DALLMULTI -DMULTICAST_LEVEL1 -DMULTICAST_LEVEL2 -DDOWNLOAD_PROTO_TFTM
 
 # Etherboot as a PXE network protocol ROM
+# (Requires TFTP protocol support)
 CFLAGS+=	-DPXE_IMAGE -DPXE_EXPORT
 # Etherboot stricter as a PXE network protocol ROM
 # CFLAGS+=	-DPXE_DHCP_STRICT
