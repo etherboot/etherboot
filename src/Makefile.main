@@ -103,7 +103,7 @@ MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	4
 VERSION_PATCH=	2
-EXTRAVERSION=   pre1
+EXTRAVERSION=
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 MM_VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR)
 CFLAGS+=	-DVERSION_MAJOR=$(VERSION_MAJOR) \
@@ -434,6 +434,19 @@ endif
 
 ifeq ($(findstring -DSTATIC_BOOTFILE, $(CFLAGS)),)
 $(error "-DUSE_STATIC_BOOT_INFO defined, but -DSTATIC_BOOTFILE not defined!")
+endif
+
+endif
+
+# PXE Support requires TFTP protocol
+ifeq ($(findstring -DDOWNLOAD_PROTO_TFTP, $(CFLAGS)),)
+
+ifneq ($(findstring -DPXE_IMAGE,  $(CFLAGS)),)
+$(error "-DPXE_IMAGE support requires TFTP support (-DDOWNLOAD_PROTO_TFTP)")
+endif
+
+ifneq ($(findstring -DPXE_EXPORT, $(CFLAGS)),)
+$(error "-DPXE_EXPORT support requires TFTP support (-DDOWNLOAD_PROTO_TFTP)")
 endif
 
 endif
