@@ -488,4 +488,4 @@ int opt_get_multicast(struct tftp_t *tr, unsigned short *len,
 		return 0;
 	return i;
 }
-#endif				/* DOWNLOAD_PROTO_TFTP */
+#endif				/* DOWNLOAD_PROTO_TFTM */
