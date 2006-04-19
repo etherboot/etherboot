@@ -319,7 +319,7 @@ a3c90x_internal_ReadEeprom(int ioaddr, int address)
     }
 
 
-#if 0
+#ifdef	CFG_3C90X_BOOTROM_FIX
 /*** a3c90x_internal_WriteEepromWord - write a physical word of
  *** data to the onboard serial eeprom (not the BIOS prom, but the
  *** nvram in the card that stores, among other things, the MAC
@@ -355,7 +355,7 @@ a3c90x_internal_WriteEepromWord(int ioaddr, int address, unsigned short value)
     }
 #endif
 
-#if 0
+#ifdef	CFG_3C90X_BOOTROM_FIX
 /*** a3c90x_internal_WriteEeprom - write data to the serial eeprom,
  *** and re-compute the eeprom checksum.
  ***/
