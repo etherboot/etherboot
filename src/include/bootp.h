@@ -19,6 +19,8 @@
 #define BOOTP_CLIENT	68
 #endif
 #define PROXYDHCP_SERVER	4011 /* For PXE */
+#define PXE_BOOT_SERVER 4011
+#define PXE_BOOT_CLIENT 4011
 
 #define BOOTP_REQUEST	1
 #define BOOTP_REPLY	2
@@ -104,6 +106,23 @@
 #define RFC3679_PXE_CLIENT_ARCH_LENGTH 2
 #define RFC3679_PXE_CLIENT_NDI_LENGTH 3
 #define RFC3679_PXE_CLIENT_UUID_LENGTH 17
+
+/*
+ * The following define the encapsulated vendor-specific PXE options
+ */
+#define PXE_MTFTP_IP 1
+#define PXE_MTFTP_CPORT 2
+#define PXE_MTFTP_SPORT 3
+#define PXE_MTFTP_TMOUT 4
+#define PXE_MTFTP_DELAY 5
+#define PXE_DISCOVERY_CONTROL 6
+#define PXE_MCAST_ADDR 7
+#define PXE_BOOT_SERVERS 8
+#define PXE_BOOT_MENU 9
+#define PXE_MENU_PROMPT 10
+#define PXE_MCAST_ADDRS_ALLOC 11
+#define PXE_CREDENTIAL_TYPES 12
+#define PXE_BOOT_ITEM 71
 
 /*
  * Values of RFC3679_PXE_CLIENT_ARCH can apparently be one of the

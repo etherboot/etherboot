@@ -31,7 +31,8 @@ char *hostname = "";
 int hostnamelen = 0;
 #ifndef USE_STATIC_BOOT_INFO
 static uint32_t xid;
-#endif /* USE_STATIC_BOOT_INFO */
+#endif
+static uint16_t sport;
 unsigned char *end_of_rfc1533 = NULL;
 unsigned char *addparam;
 int addparamlen;
@@ -48,9 +49,20 @@ static const in_addr zeroIP = { 0L };
 
 struct bootpd_t bootp_data;
 
+#ifdef PXE_DHCP_STRICT
+#define MAX_BOOT_MENU 5
+#define MAX_BOOT_ENTRY_LENGTH 60
+struct {
+  uint16_t id;
+  unsigned char text[MAX_BOOT_ENTRY_LENGTH+1];
+  in_addr ip;
+} pxe_boot_menu[MAX_BOOT_MENU];
+static unsigned char num_boot_menu = 0;
+#endif /* PXE_DHCP_STRICT */
+
 #ifdef	NO_DHCP_SUPPORT
 static unsigned char	rfc1533_cookie[5] = { RFC1533_COOKIE, RFC1533_END };
-#else	/* !NO_DHCP_SUPPORT */
+#else	/* NO_DHCP_SUPPORT */
 static int dhcp_reply;
 static in_addr dhcp_server = { 0L };
 static unsigned char	rfc1533_cookie[] = { RFC1533_COOKIE };
@@ -228,6 +240,17 @@ static const unsigned char proxydhcprequest [] = {
 };
 #endif
 
+#ifdef PXE_DHCP_STRICT
+static const unsigned char pxedhcprequest [] = {
+	RFC2132_MSG_TYPE,1,DHCPREQUEST,
+	RFC1533_VENDOR,6,PXE_BOOT_ITEM,4,0,0,0,0,
+	RFC3679_PXE_CLIENT_UUID,RFC3679_PXE_CLIENT_UUID_LENGTH,RFC3679_PXE_CLIENT_UUID_DEFAULT,
+	RFC3679_PXE_CLIENT_ARCH,RFC3679_PXE_CLIENT_ARCH_LENGTH,RFC3679_PXE_CLIENT_ARCH_IAX86PC,
+	RFC3679_PXE_CLIENT_NDI, RFC3679_PXE_CLIENT_NDI_LENGTH, RFC3679_PXE_CLIENT_NDI_21,
+	RFC2132_VENDOR_CLASS_ID,RFC2132_VENDOR_CLASS_ID_PXE_LENGTH,RFC2132_VENDOR_CLASS_ID_PXE
+};
+#endif /* PXE_DHCP_STRICT */
+
 #ifdef	REQUIRE_VCI_ETHERBOOT
 int	vci_etherboot;
 #endif
@@ -284,10 +307,10 @@ static int rarp(void);
 #else
 #ifdef USE_STATIC_BOOT_INFO
 static int get_static_boot_info(void);
-#else	
+#else
 static int bootp(void);
-#endif
-#endif
+#endif /* USE_STATIC_BOOT_INFO */
+#endif /* RARP_NOT_BOOTP */
 static unsigned short tcpudpchksum(struct iphdr *ip);
 
 
@@ -611,6 +634,7 @@ UDP_TRANSMIT - Send an UDP datagram
 int udp_transmit(unsigned long destip, unsigned int srcsock,
 	unsigned int destsock, int len, const void *buf)
 {
+	sport = srcsock;
 	build_udp_hdr(destip, srcsock, destsock, 60, len, buf);
 	return ip_transmit(len, buf);
 }
@@ -851,7 +875,7 @@ static int get_static_boot_info (void)
 
 	return (1);
 }
-#else
+#endif
 #ifdef	RARP_NOT_BOOTP
 
 /**************************************************************************
@@ -916,6 +940,23 @@ static int rarp(void)
 }
 
 #else
+
+#ifdef PXE_DHCP_STRICT
+/**************************************************************************
+FIND_VCI_PXECLIENT - Looks for "PXEClient" Vendor Class Identifier
+Upon entry p points after rfc1533_cookie.
+**************************************************************************/
+static int find_vci_pxeclient(unsigned char*p)
+{
+	for (; *p != RFC1533_END; p += TAG_LEN(p) + 2)
+		if (*p == RFC2132_VENDOR_CLASS_ID)
+			if (memcmp(p + 2, "PXEClient", 9) == 0)
+				return 1;
+	return 0;
+}
+#endif
+
+#ifndef USE_STATIC_BOOT_INFO
 /**************************************************************************
 BOOTP - Get my IP address and load information
 **************************************************************************/
@@ -939,12 +980,30 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 		) {
 		return 0;
 	}
-	if (udp->dest != htons(BOOTP_CLIENT))
+	if (udp->dest != htons(sport))
 		return 0;
 	if (bootpreply->bp_op != BOOTP_REPLY)
 		return 0;
 	if (bootpreply->bp_xid != xid)
 		return 0;
+#ifdef PXE_DHCP_STRICT
+	/* in principle one could check here:
+	 *
+	 * - DHCPACK
+	 * - BOOT_ITEM
+	 * - RFC2132_SRV_ID
+	 * - UUID
+	 */
+	if (sport == PXE_BOOT_CLIENT) {
+		if (!find_vci_pxeclient(bootpreply->bp_vend + sizeof rfc1533_cookie)) {
+			return 0;
+		}
+		/* we only solicited this packet for the options and the bp_file */
+		memcpy((char*)&bootp_data, (char*)bootpreply, sizeof(struct bootpd_t));
+		memcpy(KERNEL_BUF, bootpreply->bp_file, sizeof(KERNEL_BUF));
+		return 1;
+	}			
+#endif /* PXE_DHCP_STRICT */
 	if (memcmp(&bootpreply->bp_siaddr, &zeroIP, sizeof(in_addr)) == 0)
 		return 0;
 	if ((memcmp(broadcast, bootpreply->bp_hwaddr, ETH_ALEN) != 0) &&
@@ -964,7 +1023,7 @@ static int await_bootp(int ival __unused, void *ptr __unused,
 		arptable[ARP_CLIENT].ipaddr.s_addr = bootpreply->bp_yiaddr.s_addr;
 #ifndef	NO_DHCP_SUPPORT
 		dhcp_addr.s_addr = bootpreply->bp_yiaddr.s_addr;
-#endif	/* NO_DHCP_SUPPORT */
+#endif	/* !NO_DHCP_SUPPORT */
 		netmask = default_netmask();
 		/* bootpreply->bp_file will be copied to KERNEL_BUF in the memcpy */
 		memcpy((char *)&bootp_data, (char *)bootpreply, sizeof(struct bootpd_t));
@@ -996,7 +1055,7 @@ static int bootp(void)
 	int retry;
 #ifndef	NO_DHCP_SUPPORT
 	int reqretry;
-#endif	/* NO_DHCP_SUPPORT */
+#endif	/* !NO_DHCP_SUPPORT */
 	struct bootpip_t ip;
 	unsigned long  starttime;
 	unsigned char *bp_vend;
@@ -1007,7 +1066,7 @@ static int bootp(void)
 	dhcp_machine_info[6] = ((nic.dev.devid.vendor_id) >> 8) & 0xff;
 	dhcp_machine_info[7] = nic.dev.devid.device_id & 0xff;
 	dhcp_machine_info[8] = ((nic.dev.devid.device_id) >> 8) & 0xff;
-#endif	/* NO_DHCP_SUPPORT */
+#endif	/* !NO_DHCP_SUPPORT */
 	memset(&ip, 0, sizeof(struct bootpip_t));
 	ip.bp.bp_op = BOOTP_REQUEST;
 	ip.bp.bp_htype = 1;
@@ -1046,6 +1105,9 @@ static int bootp(void)
 			sizeof(struct bootpip_t), &ip);
 		remaining_time = rfc2131_sleep_interval(BOOTP_TIMEOUT, retry++);
 		stop_time = currticks() + remaining_time;
+#ifdef PXE_DHCP_STRICT
+		num_boot_menu = 0;
+#endif /* PXE_DHCP_STRICT */
 #ifdef	NO_DHCP_SUPPORT
 		if (await_reply(await_bootp, 0, NULL, remaining_time))
 			return(1);
@@ -1092,6 +1154,10 @@ static int bootp(void)
 			dhcp_reply = 0;
 #ifdef PXE_EXPORT			
 			if ( arptable[ARP_PROXYDHCP].ipaddr.s_addr ) {
+#ifdef PXE_DHCP_STRICT
+				/* boot menu items must not be mixed from different servers */
+				num_boot_menu = 0;
+#endif /* PXE_DHCP_STRICT */
 				/* Construct the ProxyDHCPREQUEST packet */
 				memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
 				memcpy(ip.bp.bp_vend + sizeof rfc1533_cookie, proxydhcprequest, sizeof proxydhcprequest);
@@ -1105,6 +1171,36 @@ static int bootp(void)
 					}
 				}
 			}
+#ifdef PXE_DHCP_STRICT
+			if (num_boot_menu) {
+				int i;
+				printf("\nreceived PXE boot menu:\n");
+				for (i = 0; i < num_boot_menu; ++i) {
+					printf("%d %s %@\n", pxe_boot_menu[i].id, pxe_boot_menu[i].text, pxe_boot_menu[i].ip.s_addr);
+				}
+				ip.bp.bp_siaddr.s_addr = zeroIP.s_addr;
+				ip.bp.bp_yiaddr.s_addr = zeroIP.s_addr;
+				ip.bp.bp_ciaddr.s_addr = arptable[ARP_CLIENT].ipaddr.s_addr;
+				memcpy(ip.bp.bp_vend, rfc1533_cookie, sizeof rfc1533_cookie);
+				bp_vend = ip.bp.bp_vend + sizeof rfc1533_cookie;
+				/* for now simply select the first entry */
+				*(uint16_t*)(pxedhcprequest + 7) = htons(pxe_boot_menu[0].id);
+				memcpy(bp_vend, pxedhcprequest, sizeof pxedhcprequest);
+				bp_vend += sizeof pxedhcprequest;
+				*bp_vend = RFC1533_END;
+				for (reqretry = 0; reqretry < MAX_BOOTP_RETRIES; ) {
+					printf("\nselecting boot item [%s] ... ", pxe_boot_menu[0].text);
+					arptable[ARP_SERVER].ipaddr.s_addr = pxe_boot_menu[0].ip.s_addr;
+					memset(&arptable[ARP_SERVER].node, 0, ETH_ALEN);
+					udp_transmit(pxe_boot_menu[0].ip.s_addr, PXE_BOOT_CLIENT,
+						     PXE_BOOT_SERVER, sizeof(struct bootpip_t), &ip);
+					timeout = rfc2131_sleep_interval(TIMEOUT, reqretry++);
+					if (await_reply(await_bootp, 0, NULL, timeout)) {
+						break;
+					}
+				}
+			}
+#endif /* PXE_DHCP_STRICT */
 #endif /* PXE_EXPORT */
 			return(1);
 		}
@@ -1113,9 +1209,10 @@ static int bootp(void)
 	}
 	return(0);
 }
-#endif	/* RARP_NOT_BOOTP */
 
-#endif
+#endif /* USE_STATIC_BOOT_INFO */
+
+#endif	/* RARP_NOT_BOOTP */
 
 static uint16_t tcpudpchksum(struct iphdr *ip)
 {
@@ -1677,6 +1774,64 @@ static int find_vci_etherboot(unsigned char *p)
 }
 #endif	/* REQUIRE_VCI_ETHERBOOT */
 
+#ifdef PXE_DHCP_STRICT
+/**************************************************************************
+DECODE_PXE_BOOT_SERVERS - Decodes the IP addresses of boot servers
+**************************************************************************/
+static void decode_pxe_boot_servers(unsigned char*p)
+{
+	unsigned short item = ntohs(*(unsigned short*)p);
+	unsigned char i;
+
+	for (i = 0; i < num_boot_menu; ++i) {
+		if (pxe_boot_menu[i].id == item)
+			break;
+	}
+	if (i == MAX_BOOT_MENU) return;
+	if (i == num_boot_menu) {
+		++num_boot_menu;
+		pxe_boot_menu[i].id = item;
+	}
+	memcpy(&pxe_boot_menu[i].ip, p + 3, sizeof(in_addr));
+}
+
+/**************************************************************************
+DECODE_PXE_BOOT_MENU - Decodes the boot menu items
+**************************************************************************/
+static void decode_pxe_boot_menu(unsigned char*p)
+{
+	unsigned short item = ntohs(*(unsigned short*)p);
+	unsigned char i, size;
+
+	for (i = 0; i < num_boot_menu; ++i) {
+		if (pxe_boot_menu[i].id == item)
+			break;
+	}
+	if (i == MAX_BOOT_MENU) return;
+	if (i == num_boot_menu) {
+		++num_boot_menu;
+		pxe_boot_menu[i].id = item;
+	}
+	memset(pxe_boot_menu[i].text, 0, sizeof(pxe_boot_menu[i].text));
+	size = p[2];
+	if (size > MAX_BOOT_ENTRY_LENGTH)
+		size = MAX_BOOT_ENTRY_LENGTH;
+	memcpy(pxe_boot_menu[i].text, p + 3, size);
+}
+#endif /* PXE_DHCP_STRICT */
+
+#if 0
+static void dump(unsigned char*p, unsigned char len)
+{
+	unsigned char*end = p+len;
+	printf("\n");
+	while (p<end) {
+		printf("%hhX ",*p);
+		++p;
+	}
+}
+#endif
+
 /**************************************************************************
 DECODE_RFC1533 - Decodes RFC1533 header
 **************************************************************************/
@@ -1686,6 +1841,10 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 	unsigned char	     *extpath = NULL;
 	unsigned char	     *endp;
 	static unsigned char in_encapsulated_options = 0;
+#ifdef PXE_DHCP_STRICT
+	static unsigned char in_pxe_encapsulated_options = 0;
+	unsigned char        pxeclient;
+#endif
 
 	if (eof == -1) {
 		/* Encapsulated option block */
@@ -1738,6 +1897,9 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 	}
 	if (!eof)
 		return 1;
+#ifdef PXE_DHCP_STRICT
+	pxeclient = find_vci_pxeclient(p);
+#endif
 	while (p < endp) {
 		unsigned char c = *p;
 		if (c == RFC1533_PAD) {
@@ -1772,11 +1934,34 @@ int decode_rfc1533(unsigned char *p, unsigned int block, unsigned int len, int e
 			dhcp_reply=*(p+2);
 		else if (NON_ENCAP_OPT c == RFC2132_SRV_ID)
 			memcpy(&dhcp_server, p+2, sizeof(in_addr));
-#endif	/* NO_DHCP_SUPPORT */
+#endif	/* !NO_DHCP_SUPPORT */
 		else if (NON_ENCAP_OPT c == RFC1533_HOSTNAME) {
 			hostname = p + 2;
 			hostnamelen = *(p + 1);
 		}
+#ifdef PXE_DHCP_STRICT
+		else if (PXE_ENCAP_OPT c == PXE_BOOT_SERVERS) {
+			unsigned char *q = p + 2;
+			unsigned char *end = q + TAG_LEN(p);
+			while (q < end) {
+				decode_pxe_boot_servers(q);
+				q += q[2] * 4 + 3;
+			}
+		}
+		else if (PXE_ENCAP_OPT c == PXE_BOOT_MENU) {
+			unsigned char *q = p + 2;
+			unsigned char *end = q + TAG_LEN(p);
+			while (q < end) {
+				decode_pxe_boot_menu(q);
+				q += q[2] + 3;
+			}
+		}
+		else if (NON_ENCAP_OPT c == RFC1533_VENDOR && pxeclient) {
+			in_pxe_encapsulated_options = 1;
+			decode_rfc1533(p+2, 0, TAG_LEN(p), -1);
+			in_pxe_encapsulated_options = 0;
+		}
+#endif /* PXE_DHCP_STRICT */
 		else if (ENCAP_OPT c == RFC1533_VENDOR_MAGIC
 			 && TAG_LEN(p) >= 6 &&
 			  !memcmp(p+2,vendorext_magic,4) &&

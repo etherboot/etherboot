@@ -155,11 +155,20 @@ enum {
 #define MULTICAST_NETWORK 0xE0000000
 
 /* Helper macros used to identify when DHCP options are valid/invalid in/outside of encapsulation */
-#define NON_ENCAP_OPT in_encapsulated_options == 0 &&
+/* helpers for decoding RFC1533_VENDOR encapsulated options */
+#ifdef PXE_DHCP_STRICT
+#define PXE_ENCAP_OPT in_pxe_encapsulated_options == 1 &&
+#define PXE_NONENCAP_OPT in_pxe_encapsulated_options == 0 &&
+#else
+#define PXE_ENCAP_OPT
+#define PXE_NONENCAP_OPT
+#endif /* PXE_DHCP_STRICT */
+
+#define NON_ENCAP_OPT in_encapsulated_options == 0 && PXE_NONENCAP_OPT
 #ifdef ALLOW_ONLY_ENCAPSULATED
 #define ENCAP_OPT in_encapsulated_options == 1 &&
 #else
-#define ENCAP_OPT
+#define ENCAP_OPT PXE_NONENCAP_OPT
 #endif
 
 #include	"if_arp.h"
