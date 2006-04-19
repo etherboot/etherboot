@@ -3732,6 +3732,7 @@ PCI_ROM(0x8086, 0x1078, "e1000-82541er",	     "Intel EtherExpressPro1000 82541ER
 PCI_ROM(0x8086, 0x1079, "e1000-82546gb-copper",	     "Intel EtherExpressPro1000 82546GB Copper"),
 PCI_ROM(0x8086, 0x107a, "e1000-82546gb-fiber",	     "Intel EtherExpressPro1000 82546GB Fiber"),
 PCI_ROM(0x8086, 0x107b, "e1000-82546gb-serdes",	     "Intel EtherExpressPro1000 82546GB SERDES"),
+PCI_ROM(0x8086, 0x107c, "e1000-82541pi",	     "Intel EtherExpressPro1000 82541PI"),
 };
 
 static struct pci_driver e1000_driver __pci_driver = {
