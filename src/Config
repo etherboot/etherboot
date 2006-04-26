@@ -249,14 +249,14 @@ CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
 #CFLAGS+=	-DCONFIG_PCMCIA
 
 # For prompting and default on timeout
-CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
+CFLAGS+=	-DASK_BOOT=-1 -DBOOT_FIRST=BOOT_NIC
 # If you would like to attempt to boot from other devices as well as the network.
 # CFLAGS+=	-DBOOT_SECOND=BOOT_FLOPPY
 # CFLAGS+=	-DBOOT_THIRD=BOOT_DISK
 # CFLAGS+=	-DBOOT_INDEX=0
 
 # If you prefer the old style rotating bar progress display
-# CFLAGS+=	-DBAR_PROGRESS
+CFLAGS+=	-DBAR_PROGRESS
 
 # Enabling this creates non-standard images which use ports 1067 and 1068
 # for DHCP/BOOTP

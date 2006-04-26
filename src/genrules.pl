@@ -270,6 +270,8 @@ family		drivers/disk/ide_disk
 ide_disk	0x0000,0x0000	Generic IDE disk support
 
 family		drivers/disk/pc_floppy
+
+family		drivers/net/etherfabric
 EOF
 
 $curfam = '';
