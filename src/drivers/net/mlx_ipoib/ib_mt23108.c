@@ -799,6 +799,20 @@ static int setup_hca(__u8 port, void **eq_p)
 	return ret;
 }
 
+
+static int unset_hca(void)
+{
+	int rc = 0;
+
+	if (!fw_fatal) {
+		rc = cmd_sys_dis();
+		if (rc)
+			eprintf("");
+	}
+
+	return rc;
+}
+
 static void *get_inprm_buf(void)
 {
 	return dev_buffers_p->inprm_buf;
