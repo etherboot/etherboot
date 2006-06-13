@@ -439,6 +439,26 @@ struct forcedeth_private {
 
 static struct forcedeth_private *np;
 
+static void drop_rx(void);
+static void nv_udelay(unsigned long delay)
+{
+	if (!np->in_shutdown) {
+		udelay(delay);
+	} else while(delay) {
+		/* Don't allow an rx_ring overflow to happen
+		 * while shutting down the NIC it will
+		 * kill the receive function.
+		 */
+		unsigned long sleep;
+		drop_rx();
+		sleep = 3;
+		if (sleep > delay)
+			sleep = delay;
+		udelay(sleep);
+		delay -= sleep;
+	}
+}
+
 static inline void pci_push(u8 * base)
 {
 	/* force out pending posted writes */
@@ -458,7 +478,7 @@ static int reg_delay(int offset, u32 mask,
 
 	pci_push(base);
 	do {
-		udelay(delay);
+		nv_udelay(delay);
 		delaymax -= delay;
 		if (delaymax < 0) {
 			if (msg)
@@ -507,7 +527,7 @@ static int mii_rw(struct nic *nic __unused, int addr, int miireg,
 	reg = readl(base + NvRegMIIControl);
 	if (reg & NVREG_MIICTL_INUSE) {
 		writel(NVREG_MIICTL_INUSE, base + NvRegMIIControl);
-		udelay(NV_MIIBUSY_DELAY);
+		nv_udelay(NV_MIIBUSY_DELAY);
 	}
 
 	reg =
@@ -676,7 +696,7 @@ static void stop_rx(void)
 		  NV_RXSTOP_DELAY1, NV_RXSTOP_DELAY1MAX,
 		  "stop_rx: ReceiverStatus remained busy");
 
-	udelay(NV_RXSTOP_DELAY2);
+	nv_udelay(NV_RXSTOP_DELAY2);
 	writel(0, base + NvRegLinkSpeed);
 }
 
@@ -699,7 +719,7 @@ static void stop_tx(void)
 		  NV_TXSTOP_DELAY1, NV_TXSTOP_DELAY1MAX,
 		  "stop_tx: TransmitterStatus remained busy");
 
-	udelay(NV_TXSTOP_DELAY2);
+	nv_udelay(NV_TXSTOP_DELAY2);
 	writel(0, base + NvRegUnknownTransmitterReg);
 }
 
@@ -713,7 +733,7 @@ static void txrx_reset(struct nic *nic __unused)
 	       base + NvRegTxRxControl);
 
 	pci_push(base);
-	udelay(NV_TXRX_RESET_DELAY);
+	nv_udelay(NV_TXRX_RESET_DELAY);
 	writel(NVREG_TXRXCTL_BIT2 | np->desc_ver, base + NvRegTxRxControl);
 	pci_push(base);
 }
@@ -723,26 +743,47 @@ static void txrx_reset(struct nic *nic __unused)
  * Return 1 if the allocations for the skbs failed and the
  * rx engine is without Available descriptors
  */
-static int alloc_rx(struct nic *nic __unused)
+static void alloc_rx(struct nic *nic __unused)
 {
 	unsigned int refill_rx = np->refill_rx;
-	int i;
-	//while (np->cur_rx != refill_rx) {
-	for (i = 0; i < RX_RING; i++) {
-		//int nr = refill_rx % RX_RING;
-		rx_ring[i].PacketBuffer =
-		    virt_to_le32desc(&rxb[i * RX_NIC_BUFSIZE]);
+	while (np->cur_rx != refill_rx) {
+		int nr = refill_rx % RX_RING;
+		rx_ring[nr].PacketBuffer =
+		    virt_to_le32desc(&rxb[nr * RX_NIC_BUFSIZE]);
 		wmb();
-		rx_ring[i].FlagLen =
+		rx_ring[nr].FlagLen =
 		    cpu_to_le32(RX_NIC_BUFSIZE | NV_RX_AVAIL);
 		/*      printf("alloc_rx: Packet  %d marked as Available\n",
 		   refill_rx); */
 		refill_rx++;
 	}
 	np->refill_rx = refill_rx;
-	if (np->cur_rx - refill_rx == RX_RING)
-		return 1;
-	return 0;
+}
+
+static void drop_rx(void)
+{
+	u32 events;
+	u8 *base = (u8 *)BASE;
+
+	events = readl(base + NvRegIrqStatus);
+	if (events)
+		writel(events, base + NvRegIrqStatus);
+	if (!(events & (NVREG_IRQ_RX_ERROR|NVREG_IRQ_RX|NVREG_IRQ_RX_NOBUF)))
+		return;
+	for (;;) {
+		int i, len;
+		u32 Flags;
+		i = np->cur_rx % RX_RING;
+
+		Flags = le32_to_cpu(rx_ring[i].FlagLen);
+		len = nv_descr_getlength(&rx_ring[i], np->desc_ver);
+
+		if (Flags & NV_RX_AVAIL)
+			break;  /* still owned by hardware, */
+		wmb();
+		np->cur_rx++;
+		alloc_rx(NULL);
+	}
 }
 
 static int update_linkspeed(struct nic *nic)
@@ -894,7 +935,7 @@ static void nv_linkchange(struct nic *nic)
 }
 
 
-static int init_ring(struct nic *nic)
+static void init_ring(struct nic *nic)
 {
 	int i;
 
@@ -902,11 +943,11 @@ static int init_ring(struct nic *nic)
 	for (i = 0; i < TX_RING; i++)
 		tx_ring[i].FlagLen = 0;
 
-	np->cur_rx = 0;
+	np->cur_rx = RX_RING;
 	np->refill_rx = 0;
 	for (i = 0; i < RX_RING; i++)
 		rx_ring[i].FlagLen = 0;
-	return alloc_rx(nic);
+	alloc_rx(nic);
 }
 
 static void set_multicast(struct nic *nic)
@@ -948,7 +989,7 @@ RESET - Reset the NIC to prepare for use
 static int forcedeth_reset(struct nic *nic)
 {
 	u8 *base = (u8 *) BASE;
-	int ret, oom, i;
+	int ret, i;
 	ret = 0;
 	dprintf(("forcedeth: open\n"));
 
@@ -966,7 +1007,7 @@ static int forcedeth_reset(struct nic *nic)
 	writel(0, base + NvRegAdapterControl);
 
 	/* 2) initialize descriptor rings */
-	oom = init_ring(nic);
+	init_ring(nic);
 
 	writel(0, base + NvRegLinkSpeed);
 	writel(0, base + NvRegUnknownTransmitterReg);
@@ -1053,7 +1094,7 @@ static int forcedeth_reset(struct nic *nic)
 		       base + NvRegPowerState);
 
 	pci_push(base);
-	udelay(10);
+	nv_udelay(10);
 	writel(readl(base + NvRegPowerState) | NVREG_POWERSTATE_VALID,
 	       base + NvRegPowerState);
 
@@ -1112,7 +1153,9 @@ static int forcedeth_poll(struct nic *nic, int retrieve)
 	int len;
 	int i;
 	u32 Flags;
+	u32 valid;
 
+top:
 	i = np->cur_rx % RX_RING;
 
 	Flags = le32_to_cpu(rx_ring[i].FlagLen);
@@ -1129,6 +1172,7 @@ static int forcedeth_poll(struct nic *nic, int retrieve)
 			return 0;
 	}
 
+	valid = 1;
 	if (!retrieve)
 		return 1;
 
@@ -1140,6 +1184,8 @@ static int forcedeth_poll(struct nic *nic, int retrieve)
 */
 	wmb();
 	np->cur_rx++;
+	if (!valid)
+		goto top;
 	alloc_rx(nic);
 	return 1;
 }
