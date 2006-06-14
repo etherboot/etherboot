@@ -2942,3 +2942,8 @@ Released (limited distribution) as Etherboot 5.4.2pre2
 
 Released as Etherboot 5.4.2
 
++ Added  support for new variant of e1000 - PCI ID 0x1096, 80003ES2LAN 
+  Gigabit controller (copper). Eric's B. ring buffer fixes for both 
+  forcedeth and e1000, since the buffers were getting overflowed 
+  with both controllers on subnets with heavy multicast traffic at 
+  gigabit speeds.
