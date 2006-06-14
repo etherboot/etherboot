@@ -87,11 +87,14 @@ typedef enum {
 
 #include "e1000_hw.h"
 
+#define RX_BUFS 	8
+#define MAX_PACKET 	2096
+
 /* NIC specific static variables go here */
 static struct e1000_hw hw;
 static char tx_pool[128 + 16];
 static char rx_pool[128 + 16];
-static char packet[2096];
+static char packets[MAX_PACKET * RX_BUFS];
 
 static struct e1000_tx_desc *tx_base;
 static struct e1000_rx_desc *rx_base;
@@ -215,6 +218,11 @@ e1000_set_phy_type(struct e1000_hw *hw)
 	case IGP01E1000_I_PHY_ID:
 		hw->phy_type = e1000_phy_igp;
 		break;
+	case GG82563_E_PHY_ID:
+		if (hw->mac_type == e1000_80003es2lan) {
+			hw->phy_type = e1000_phy_gg82563;
+			break;
+		}
 	default:
 		/* Should never have loaded on this device */
 		hw->phy_type = e1000_phy_undefined;
@@ -378,6 +386,9 @@ e1000_set_mac_type(struct e1000_hw *hw)
 		break;
 	case E1000_DEV_ID_82547GI:
 		hw->mac_type = e1000_82547_rev_2;
+		break;
+	case E1000_DEV_ID_80003ES2LAN_COPPER_DPT:
+		hw->mac_type = e1000_80003es2lan;
 		break;
 	default:
 		/* Should never have loaded on this device */
@@ -640,6 +651,21 @@ e1000_init_hw(struct e1000_hw *hw)
 		case e1000_82545_rev_3:
 		case e1000_82546_rev_3:
 			break;
+		case e1000_80003es2lan:
+		{
+			int32_t timeout = 200;
+			while(timeout) {
+				if (E1000_READ_REG(hw, EECD) & E1000_EECD_AUTO_RD) 
+					break;
+				else mdelay(10);
+				timeout--;
+			}
+			if(!timeout) {
+				/* We don't want to continue accessing MAC registers. */
+				return -E1000_ERR_RESET;
+			}
+			break;
+		}
 		default:
 			if (hw->mac_type >= e1000_82543) {
 				/* See e1000_get_bus_info() of the Linux driver */
@@ -1001,6 +1027,159 @@ e1000_setup_fiber_serdes_link(struct e1000_hw *hw)
 	return E1000_SUCCESS;
 }
 
+int32_t
+e1000_read_kmrn_reg(struct e1000_hw *hw,
+			uint32_t reg_addr,
+			uint16_t *data)
+{
+	uint32_t reg_val;
+	DEBUGFUNC("e1000_read_kmrn_reg");
+	
+	/* Write register address */
+	reg_val = ((reg_addr << E1000_KUMCTRLSTA_OFFSET_SHIFT) &
+			E1000_KUMCTRLSTA_OFFSET) |
+			E1000_KUMCTRLSTA_REN;
+	E1000_WRITE_REG(hw, KUMCTRLSTA, reg_val);
+	udelay(2);
+
+	/* Read the data returned */
+	reg_val = E1000_READ_REG(hw, KUMCTRLSTA);
+	*data = (uint16_t)reg_val;
+
+	return E1000_SUCCESS;
+}
+
+int32_t
+e1000_write_kmrn_reg(struct e1000_hw *hw,
+			uint32_t reg_addr,
+			uint16_t data)
+{
+	uint32_t reg_val;
+	DEBUGFUNC("e1000_write_kmrn_reg");
+
+	reg_val = ((reg_addr << E1000_KUMCTRLSTA_OFFSET_SHIFT) &
+			E1000_KUMCTRLSTA_OFFSET) | data;
+	E1000_WRITE_REG(hw, KUMCTRLSTA, reg_val);
+	udelay(2);
+
+	return E1000_SUCCESS;
+}
+
+/********************************************************************
+* Copper link setup for e1000_phy_gg82563 series.
+*
+* hw - Struct containing variables accessed by shared code
+*********************************************************************/
+
+static int32_t
+e1000_copper_link_ggp_setup(struct e1000_hw *hw)
+{
+	int32_t ret_val;
+	uint16_t phy_data;
+	uint32_t reg_data;
+
+	DEBUGFUNC("e1000_copper_link_ggp_setup\n");
+
+	/* Enable CRS on TX for half-duplex operation. */
+	ret_val = e1000_read_phy_reg(hw, GG82563_PHY_MAC_SPEC_CTRL,
+	                             &phy_data);
+	if(ret_val)
+		return ret_val;
+
+	phy_data |= GG82563_MSCR_ASSERT_CRS_ON_TX;
+	/* Use 25MHz for both link down and 1000BASE-T for Tx clock */
+	phy_data |= GG82563_MSCR_TX_CLK_1000MBPS_25MHZ;
+
+	ret_val = e1000_write_phy_reg(hw, GG82563_PHY_MAC_SPEC_CTRL,
+                                      phy_data);
+	if(ret_val)
+		return ret_val;
+	/* Options:
+	 *   MDI/MDI-X = 0 (default)
+	 *   0 - Auto for all speeds
+	 *   1 - MDI mode
+	 *   2 - MDI-X mode
+	 *   3 - Auto for 1000Base-T only (MDI-X for 10/100Base-T modes)
+	 */
+	ret_val = e1000_read_phy_reg(hw, GG82563_PHY_SPEC_CTRL, &phy_data);
+	if(ret_val)
+		return ret_val;
+
+	phy_data &= ~GG82563_PSCR_CROSSOVER_MODE_MASK;
+
+	phy_data |= GG82563_PSCR_CROSSOVER_MODE_AUTO;
+
+	/* Options:
+	 *   disable_polarity_correction = 0 (default)
+	 *       Automatic Correction for Reversed Cable Polarity
+	 *   0 - Disabled
+	 *   1 - Enabled
+	 */
+	phy_data &= ~GG82563_PSCR_POLARITY_REVERSAL_DISABLE;
+	ret_val = e1000_write_phy_reg(hw, GG82563_PHY_SPEC_CTRL, phy_data);
+
+	if(ret_val)
+		return ret_val;
+
+	/* SW Reset the PHY so all changes take effect */
+	ret_val = e1000_phy_reset(hw);
+	if (ret_val) {
+	    DEBUGOUT("Error Resetting the PHY\n");
+	    return ret_val;
+	}
+
+	if (hw->mac_type == e1000_80003es2lan) {
+		/* Bypass RX and TX FIFO's */
+		ret_val = e1000_write_kmrn_reg(hw, E1000_KUMCTRLSTA_OFFSET_FIFO_CTRL,
+	        				E1000_KUMCTRLSTA_FIFO_CTRL_RX_BYPASS |
+	        				E1000_KUMCTRLSTA_FIFO_CTRL_TX_BYPASS);
+		if (ret_val)
+       		 	return ret_val;
+
+		ret_val = e1000_read_phy_reg(hw, GG82563_PHY_SPEC_CTRL_2, &phy_data);
+		if (ret_val)
+			ret_val;
+
+		phy_data &= ~GG82563_PSCR2_REVERSE_AUTO_NEG;
+		ret_val = e1000_write_phy_reg(hw, GG82563_PHY_SPEC_CTRL_2, phy_data);
+
+		if (ret_val)
+			return ret_val;
+
+		reg_data = E1000_READ_REG(hw, CTRL_EXT);
+		reg_data &= ~(E1000_CTRL_EXT_LINK_MODE_MASK);
+		E1000_WRITE_REG(hw, CTRL_EXT, reg_data);
+	
+		ret_val = e1000_read_phy_reg(hw, GG82563_PHY_PWR_MGMT_CTRL,
+        						&phy_data);
+		if (ret_val)
+			return ret_val;
+
+		/* Enable Electrical Idle on the PHY */
+		phy_data |= GG82563_PMCR_ENABLE_ELECTRICAL_IDLE;
+		ret_val = e1000_write_phy_reg(hw, GG82563_PHY_PWR_MGMT_CTRL,
+							phy_data);
+	
+		if (ret_val)
+			return ret_val;
+
+		ret_val = e1000_read_phy_reg(hw, GG82563_PHY_KMRN_MODE_CTRL,
+        						&phy_data);
+		if (ret_val)
+			return ret_val;
+
+		/* Disable Pass False Carrier on the PHY */
+		phy_data &= ~GG82563_KMCR_PASS_FALSE_CARRIER;
+
+		ret_val = e1000_write_phy_reg(hw, GG82563_PHY_KMRN_MODE_CTRL,
+            						phy_data);
+		if (ret_val)
+			return ret_val;
+	}
+
+	return E1000_SUCCESS;
+}
+
 /******************************************************************************
 * Detects which PHY is present and the speed and duplex
 *
@@ -1017,6 +1196,33 @@ e1000_setup_copper_link(struct e1000_hw *hw)
 	DEBUGFUNC("e1000_setup_copper_link");
 	
 	ctrl = E1000_READ_REG(hw, CTRL);
+
+	if(hw->mac_type == e1000_80003es2lan) {
+		uint16_t reg_data;
+		/* Set the mac to wait the maximum time between each
+		 * iteration and increase the max iterations when
+		 * polling the phy; this fixes erroneous timeouts at 10Mbps. */
+		ret_val = e1000_write_kmrn_reg(hw, GG82563_REG(0x34, 4), 0xFFFF);
+		if (ret_val)
+			return ret_val;
+		ret_val = e1000_read_kmrn_reg(hw, GG82563_REG(0x34, 9), &reg_data);
+		if (ret_val)
+			return ret_val;
+		reg_data |= 0x3F;
+		ret_val = e1000_write_kmrn_reg(hw, GG82563_REG(0x34, 9), reg_data);
+		if (ret_val)
+			return ret_val;
+		ret_val = e1000_read_kmrn_reg(hw, E1000_KUMCTRLSTA_OFFSET_INB_CTRL,
+									&reg_data);
+		if (ret_val)
+			return ret_val;
+		reg_data |= E1000_KUMCTRLSTA_INB_CTRL_DIS_PADDING;
+		ret_val = e1000_write_kmrn_reg(hw, E1000_KUMCTRLSTA_OFFSET_INB_CTRL,
+									reg_data);
+		if (ret_val)
+			return ret_val;
+	}
+
 	/* With 82543, we need to force speed and duplex on the MAC equal to what
 	 * the PHY speed and duplex configuration is. In addition, we need to
 	 * perform a hardware reset on the PHY to take it out of reset.
@@ -1038,6 +1244,12 @@ e1000_setup_copper_link(struct e1000_hw *hw)
 	}
 	DEBUGOUT1("Phy ID = %x \n", hw->phy_id);
 
+	if (hw->phy_type == e1000_phy_gg82563) {
+		ret_val = e1000_copper_link_ggp_setup(hw);
+		if(ret_val)
+			return ret_val;
+	}
+
 	if(hw->mac_type <= e1000_82543 ||
 	   hw->mac_type == e1000_82541 || hw->mac_type == e1000_82547 ||
 #if 0
@@ -1046,9 +1258,10 @@ e1000_setup_copper_link(struct e1000_hw *hw)
 
 	if(!hw->phy_reset_disable) {
 #else
-	   hw->mac_type == e1000_82541_rev_2 || hw->mac_type == e1000_82547_rev_2) {
+	   hw->mac_type == e1000_82541_rev_2 || hw->mac_type == e1000_82547_rev_2 || 
+						hw->mac_type == e1000_80003es2lan) {
 #endif
-	if (hw->phy_type == e1000_phy_igp) {
+	if (hw->phy_type == e1000_phy_igp || hw->phy_type == e1000_phy_gg82563) {
 
 		if((ret_val = e1000_phy_reset(hw))) {
 			DEBUGOUT("Error Resetting the PHY\n");
@@ -2553,6 +2766,15 @@ e1000_detect_gig_phy(struct e1000_hw *hw)
 
 	DEBUGFUNC("e1000_detect_gig_phy");
 	
+	/* ESB-2 PHY reads require e1000_phy_gg82563 to be set because of a work-
+	 * around that forces PHY page 0 to be set or the reads fail.  The rest of
+	 * the code in this routine uses e1000_read_phy_reg to read the PHY ID.
+	 * So for ESB-2 we need to have this set so our reads won't fail.  If the
+	 * attached PHY is not a e1000_phy_gg82563, the routines below will figure
+	 * this out as well. */
+	if (hw->mac_type == e1000_80003es2lan)
+		hw->phy_type = e1000_phy_gg82563;
+	
 	/* Read the PHY ID Registers to identify which PHY is onboard. */
 	if((ret_val = e1000_read_phy_reg(hw, PHY_ID1, &phy_id_high)))
 		return ret_val;
@@ -2586,6 +2808,9 @@ e1000_detect_gig_phy(struct e1000_hw *hw)
 	case e1000_82547:
 	case e1000_82547_rev_2:
 		if(hw->phy_id == IGP01E1000_I_PHY_ID) match = TRUE;
+		break;
+	case e1000_80003es2lan:
+		if (hw->phy_id == GG82563_E_PHY_ID) match = TRUE;
 		break;
 	default:
 		DEBUGOUT1("Invalid MAC type %d\n", hw->mac_type);
@@ -3273,6 +3498,8 @@ e1000_reset(struct e1000_hw *hw)
 
 	if(hw->mac_type < e1000_82547) {
 		pba = E1000_PBA_48K;
+	} else if (hw->mac_type == e1000_80003es2lan) {
+		pba = E1000_PBA_38K;
 	} else {
 		pba = E1000_PBA_30K;
 	}
@@ -3386,11 +3613,10 @@ e1000_io_write(struct e1000_hw *hw __unused, uint32_t port, uint32_t value)
 static void fill_rx (void)
 {
 	struct e1000_rx_desc *rd;
-	rx_last = rx_tail;
 	rd = rx_base + rx_tail;
-	rx_tail = (rx_tail + 1) % 8;
 	memset (rd, 0, 16);
-	rd->buffer_addr = virt_to_bus(&packet);
+	rd->buffer_addr = virt_to_bus(&packets[MAX_PACKET*(rx_tail%RX_BUFS)]);
+	rx_tail = (rx_tail + 1) % 8;
 	E1000_WRITE_REG (&hw, RDT, rx_tail);
 }
 
@@ -3398,6 +3624,7 @@ static void init_descriptor (void)
 {
 	unsigned long ptr;
 	unsigned long tctl;
+	int i;
 
 	ptr = virt_to_phys(tx_pool);
 	if (ptr & 0xf)
@@ -3458,7 +3685,8 @@ static void init_descriptor (void)
 		E1000_RCTL_BAM | 
 		E1000_RCTL_SZ_2048 | 
 		E1000_RCTL_MPE);
-	fill_rx();
+	for (i = 0; i < RX_BUFS; i++)
+		fill_rx();
 }
 
 
@@ -3473,6 +3701,7 @@ e1000_poll (struct nic *nic, int retrieve)
 	/* nic->packet should contain data on return */
 	/* nic->packetlen should contain length of data */
 	struct e1000_rx_desc *rd;
+	char *packet = &packets[MAX_PACKET*(rx_last%RX_BUFS)];
 	uint32_t icr;
 
 	rd = rx_base + rx_last;
@@ -3484,6 +3713,7 @@ e1000_poll (struct nic *nic, int retrieve)
 	//      printf("recv: packet %! -> %! len=%d \n", packet+6, packet,rd->Length);
 	memcpy (nic->packet, packet, rd->length);
 	nic->packetlen = rd->length;
+	rx_last = (rx_last + 1) %8;
 	fill_rx ();
 
 	/* Acknowledge interrupt. */
@@ -3733,6 +3963,7 @@ PCI_ROM(0x8086, 0x1079, "e1000-82546gb-copper",	     "Intel EtherExpressPro1000 
 PCI_ROM(0x8086, 0x107a, "e1000-82546gb-fiber",	     "Intel EtherExpressPro1000 82546GB Fiber"),
 PCI_ROM(0x8086, 0x107b, "e1000-82546gb-serdes",	     "Intel EtherExpressPro1000 82546GB SERDES"),
 PCI_ROM(0x8086, 0x107c, "e1000-82541pi",	     "Intel EtherExpressPro1000 82541PI"),
+PCI_ROM(0x8086, 0x1096, "e1000_80003es2lan",	     "Intel EtherExpressPro1000 GB COPPER"),
 };
 
 static struct pci_driver e1000_driver __pci_driver = {

@@ -54,6 +54,7 @@ typedef enum {
     e1000_82541_rev_2,
     e1000_82547,
     e1000_82547_rev_2,
+    e1000_80003es2lan,
     e1000_num_macs
 } e1000_mac_type;
 
@@ -187,6 +188,7 @@ typedef enum {
 typedef enum {
     e1000_phy_m88 = 0,
     e1000_phy_igp,
+    e1000_phy_gg82563,
     e1000_phy_undefined = 0xFF
 } e1000_phy_type;
 
@@ -247,6 +249,7 @@ struct e1000_eeprom_info {
 #define E1000_ERR_PHY_TYPE 6
 #define E1000_ERR_NOLINK   7
 #define E1000_ERR_TIMEOUT  8
+#define E1000_ERR_RESET    9
 
 #define E1000_READ_REG_IO(a, reg) \
 	e1000_read_reg_io((a), E1000_##reg)
@@ -284,6 +287,7 @@ struct e1000_eeprom_info {
 #define E1000_DEV_ID_82546GB_FIBER       0x107A
 #define E1000_DEV_ID_82546GB_SERDES      0x107B
 #define E1000_DEV_ID_82547EI             0x1019
+#define E1000_DEV_ID_80003ES2LAN_COPPER_DPT     0x1096
 
 #define NODE_ADDRESS_SIZE 6
 #define ETH_LENGTH_OF_ADDRESS 6
@@ -689,6 +693,7 @@ struct e1000_ffvt_entry {
 #define E1000_FFLT     0x05F00  /* Flexible Filter Length Table - RW Array */
 #define E1000_FFMT     0x09000  /* Flexible Filter Mask Table - RW Array */
 #define E1000_FFVT     0x09800  /* Flexible Filter Value Table - RW Array */
+#define E1000_KUMCTRLSTA 0x00034 /* MAC-PHY interface - RW */
 
 /* Register Set (82542)
  *
@@ -823,6 +828,7 @@ struct e1000_ffvt_entry {
 #define E1000_82542_TDFT     0x08018
 #define E1000_82542_FFMT     E1000_FFMT
 #define E1000_82542_FFVT     E1000_FFVT
+#define E1000_82542_KUMCTRLSTA E1000_KUMCTRLSTA
 
 /* Statistics counters collected by the MAC */
 struct e1000_hw_stats {
@@ -1059,6 +1065,7 @@ struct e1000_hw {
 #ifndef E1000_EEPROM_GRANT_ATTEMPTS
 #define E1000_EEPROM_GRANT_ATTEMPTS 1000 /* EEPROM # attempts to gain grant */
 #endif
+#define E1000_EECD_AUTO_RD   0x00000200  /* EEPROM Auto Read done */
 
 /* EEPROM Read */
 #define E1000_EERD_START      0x00000001 /* Start Read */
@@ -1284,6 +1291,7 @@ struct e1000_hw {
 #define E1000_TXDCTL_GRAN    0x01000000 /* TXDCTL Granularity */
 #define E1000_TXDCTL_LWTHRESH 0xFE000000 /* TXDCTL Low Threshold */
 #define E1000_TXDCTL_FULL_TX_DESC_WB 0x01010000 /* GRAN=1, WTHRESH=1 */
+#define E1000_TXDCTL_COUNT_DESC 0x00400000 /* Enable the counting of desc.still to be processed. */
 
 /* Transmit Configuration Word */
 #define E1000_TXCW_FD         0x00000020        /* TXCW full duplex */
@@ -1374,7 +1382,7 @@ struct e1000_hw {
 #define E1000_MANC_IPV6_EN       0x00000800 /* Enable IPv6 */
 #define E1000_MANC_SNAP_EN       0x00001000 /* Accept LLC/SNAP */
 #define E1000_MANC_ARP_EN        0x00002000 /* Enable ARP Request Filtering */
-#define E1000_MANC_NEIGHBOR_EN   0x00004000 /* Enable Neighbor Discovery 
+#define E1000_MANC_NEIGHBOR_EN   0x00004000 /* Enable Neighbor Discovery
                                              * Filtering */
 #define E1000_MANC_TCO_RESET     0x00010000 /* TCO Reset Occurred */
 #define E1000_MANC_RCV_TCO_EN    0x00020000 /* Receive TCO Packets Enabled */
@@ -1393,6 +1401,32 @@ struct e1000_hw {
 #define E1000_WUPL_LENGTH_MASK 0x0FFF   /* Only the lower 12 bits are valid */
 
 #define E1000_MDALIGN          4096
+
+#define E1000_KUMCTRLSTA_MASK           0x0000FFFF
+#define E1000_KUMCTRLSTA_OFFSET         0x001F0000
+#define E1000_KUMCTRLSTA_OFFSET_SHIFT   16
+#define E1000_KUMCTRLSTA_REN            0x00200000
+
+#define E1000_KUMCTRLSTA_OFFSET_FIFO_CTRL      0x00000000
+#define E1000_KUMCTRLSTA_OFFSET_CTRL           0x00000001
+#define E1000_KUMCTRLSTA_OFFSET_INB_CTRL       0x00000002
+#define E1000_KUMCTRLSTA_OFFSET_DIAG           0x00000003
+#define E1000_KUMCTRLSTA_OFFSET_TIMEOUTS       0x00000004
+#define E1000_KUMCTRLSTA_OFFSET_INB_PARAM      0x00000009
+#define E1000_KUMCTRLSTA_OFFSET_HD_CTRL        0x00000010
+#define E1000_KUMCTRLSTA_OFFSET_M2P_SERDES     0x0000001E
+#define E1000_KUMCTRLSTA_OFFSET_M2P_MODES      0x0000001F
+
+/* FIFO Control */
+#define E1000_KUMCTRLSTA_FIFO_CTRL_RX_BYPASS   0x00000008
+#define E1000_KUMCTRLSTA_FIFO_CTRL_TX_BYPASS   0x00000800
+
+/* In-Band Control */
+#define E1000_KUMCTRLSTA_INB_CTRL_DIS_PADDING  0x00000010
+
+/* Half-Duplex Control */
+#define E1000_KUMCTRLSTA_HD_CTRL_10_100_DEFAULT 0x00000004
+#define E1000_KUMCTRLSTA_HD_CTRL_1000_DEFAULT  0x00000000
 
 /* EEPROM Commands - Microwire */
 #define EEPROM_READ_OPCODE_MICROWIRE  0x6  /* EEPROM read opcode */
@@ -1533,6 +1567,7 @@ struct e1000_hw {
 #define E1000_PBA_22K 0x0016
 #define E1000_PBA_24K 0x0018
 #define E1000_PBA_30K 0x001E
+#define E1000_PBA_38K 0x0026
 #define E1000_PBA_40K 0x0028
 #define E1000_PBA_48K 0x0030    /* 48KB, default RX allocation */
 
@@ -2019,6 +2054,43 @@ struct e1000_hw {
 #define IGP01E1000_ANALOG_FUSE_FINE_1               0x0080
 #define IGP01E1000_ANALOG_FUSE_FINE_10              0x0500
 
+
+/* GG82563 PHY Specific Status Register (Page 0, Register 16 */
+#define GG82563_PSCR_POLARITY_REVERSAL_DISABLE  0x0002 /* 1=Polarity Reversal Disabled */
+#define GG82563_PSCR_POWER_DOWN                 0x0004 /* 1=Power Down */
+#define GG82563_PSCR_COPPER_TRANSMITER_DISABLE  0x0008 /* 1=Transmitter Disabled */
+#define GG82563_PSCR_CROSSOVER_MODE_MASK        0x0060
+#define GG82563_PSCR_CROSSOVER_MODE_MDI         0x0000 /* 00=Manual MDI configuration */
+#define GG82563_PSCR_CROSSOVER_MODE_MDIX        0x0020 /* 01=Manual MDIX configuration */
+#define GG82563_PSCR_CROSSOVER_MODE_AUTO        0x0060 /* 11=Automatic crossover */
+
+/* PHY Specific Control Register 2 (Page 0, Register 26) */
+#define GG82563_PSCR2_REVERSE_AUTO_NEG              0x2000 /* 1=Reverse Auto-Negotiation */
+#define GG82563_PSCR2_TRANSMITER_TYPE_MASK          0x8000
+#define GG82563_PSCR2_TRANSMITTER_TYPE_CLASS_B      0x0000 /* 0=Class B */
+#define GG82563_PSCR2_TRANSMITTER_TYPE_CLASS_A      0x8000 /* 1=Class A */
+
+/* MAC Specific Control Register (Page 2, Register 21) */
+/* Tx clock speed for Link Down and 1000BASE-T for the following speeds */
+#define GG82563_MSCR_TX_CLK_MASK                    0x0007
+#define GG82563_MSCR_TX_CLK_10MBPS_2_5MHZ           0x0004
+#define GG82563_MSCR_TX_CLK_100MBPS_25MHZ           0x0005
+#define GG82563_MSCR_TX_CLK_1000MBPS_2_5MHZ         0x0006
+#define GG82563_MSCR_TX_CLK_1000MBPS_25MHZ          0x0007
+#define GG82563_MSCR_ASSERT_CRS_ON_TX               0x0010 /* 1=Assert */
+
+/* Kumeran Mode Control Register (Page 193, Register 16) */
+#define GG82563_KMCR_PHY_LEDS_EN                    0x0020 /* 1=PHY LEDs, 0=Kumeran Inband LEDs */
+#define GG82563_KMCR_FORCE_LINK_UP                  0x0040 /* 1=Force Link Up */
+#define GG82563_KMCR_PASS_FALSE_CARRIER             0x0800
+
+/* Power Management Control Register (Page 193, Register 20) */
+#define GG82563_PMCR_ENABLE_ELECTRICAL_IDLE         0x0001 /* 1=Enalbe SERDES Electrical Idle */
+#define GG82563_PMCR_FORCE_POWER_STATE              0x0080 /* 1=Force Power State */
+
+/* In-Band Control Register (Page 194, Register 18) */
+#define GG82563_ICR_DIS_PADDING                     0x0010 /* Disable Padding Use */
+
 /* Bit definitions for valid PHY IDs. */
 #define M88E1000_E_PHY_ID  0x01410C50
 #define M88E1000_I_PHY_ID  0x01410C30
@@ -2027,6 +2099,7 @@ struct e1000_hw {
 #define M88E1000_12_PHY_ID M88E1000_E_PHY_ID
 #define M88E1000_14_PHY_ID M88E1000_E_PHY_ID
 #define M88E1011_I_REV_4   0x04
+#define GG82563_E_PHY_ID   0x01410CA0
 
 /* Miscellaneous PHY bit definitions. */
 #define PHY_PREAMBLE        0xFFFFFFFF
@@ -2054,5 +2127,36 @@ struct e1000_hw {
 #define AUTONEG_ADVERTISE_SPEED_DEFAULT 0x002F  /* Everything but 1000-Half */
 #define AUTONEG_ADVERTISE_10_100_ALL    0x000F	/* All 10/100 speeds*/
 #define AUTONEG_ADVERTISE_10_ALL        0x0003	/* 10Mbps Full & Half speeds*/
+
+#define GG82563_PAGE_SHIFT        5
+#define GG82563_REG(page, reg)    \
+        (((page) << GG82563_PAGE_SHIFT) | ((reg) & MAX_PHY_REG_ADDRESS))
+#define GG82563_MIN_ALT_REG       30
+
+/* GG82563 Specific Registers */
+#define GG82563_PHY_SPEC_CTRL           \
+        GG82563_REG(0, 16) /* PHY Specific Control */
+#define GG82563_PHY_SPEC_STATUS_2       \
+        GG82563_REG(0, 19) /* PHY Specific Status 2 */
+#define GG82563_PHY_SPEC_CTRL_2         \
+        GG82563_REG(0, 26) /* PHY Specific Control 2 */
+#define GG82563_PHY_MAC_SPEC_CTRL       \
+        GG82563_REG(2, 21) /* MAC Specific Control Register */
+#define GG82563_PHY_MAC_SPEC_CTRL_2     \
+        GG82563_REG(2, 26) /* MAC Specific Control 2 */
+
+/* Page 193 - Port Control Registers */
+#define GG82563_PHY_KMRN_MODE_CTRL   \
+        GG82563_REG(193, 16) /* Kumeran Mode Control */
+#define GG82563_PHY_DEVICE_ID           \
+        GG82563_REG(193, 19) /* Device ID */
+#define GG82563_PHY_PWR_MGMT_CTRL       \
+        GG82563_REG(193, 20) /* Power Management Control */
+
+/* Page 194 - KMRN Registers */
+#define GG82563_PHY_KMRN_CTRL           \
+        GG82563_REG(194, 17) /* Control */
+#define GG82563_PHY_INBAND_CTRL         \
+        GG82563_REG(194, 18) /* Inband Control */
 
 #endif /* _E1000_HW_H_ */
