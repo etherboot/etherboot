@@ -5,6 +5,7 @@
 
 #include "etherboot.h"
 #include "hidemem.h"
+#include <pxe_export.h>
 
 #ifdef	CODE16
 
@@ -33,9 +34,11 @@ int install_e820mangler ( void *new_mangler ) {
 int hide_etherboot ( void ) {
 	if ( mangling ) return 1;
 	if ( !mangler ) return 0;
+	printf("hide etherboot!\n");
 
 	/* Hook INT15 handler */
 	*intercepted_int15 = *INT15_VECTOR;
+	printf("hook = %0x %0x\n", intercepted_int15->segment, intercepted_int15->offset);
 	(*hide_memory)[0].start = virt_to_phys(_text);
 	(*hide_memory)[0].length = _end - _text;
 	/* IMPORTANT, possibly even FIXME:
@@ -49,8 +52,26 @@ int hide_etherboot ( void ) {
 	 */
 	(*hide_memory)[1].start = heap_ptr;
 	(*hide_memory)[1].length = heap_bot - heap_ptr;
+
+	/* Hide pxe_stack if it is loaded */
+	if(pxe_stack != NULL) {
+		(*hide_memory)[2].start = pxe_stack->pxe.UNDIData.Phy_Addr;
+		(*hide_memory)[2].length = pxe_stack->pxe.UNDIData.Seg_Size;
+		(*hide_memory)[3].start = pxe_stack->pxe.UNDICode.Phy_Addr;
+		(*hide_memory)[3].length = pxe_stack->pxe.UNDICode.Seg_Size;
+	}
+
 	INT15_VECTOR->segment = SEGMENT(mangler);
 	INT15_VECTOR->offset = 0;
+
+#if 1
+	printf("ranges: (%08x)\n", (int)virt_to_phys(&(*hide_memory)[0]));
+	int i;
+	for(i=0; i < 4; i++) {
+		printf("[%x,%x],", (*hide_memory)[i].start,
+		       (*hide_memory)[i].start + (*hide_memory)[i].length);
+	}
+#endif
 
 	mangling = 1;
 	return 1;
@@ -58,6 +79,9 @@ int hide_etherboot ( void ) {
 
 int unhide_etherboot ( void ) {
 	if ( !mangling ) return 1;
+#if 1
+	printf("unhide etherboot!\n");
+#endif
 
 	/* Restore original INT15 handler
 	 */

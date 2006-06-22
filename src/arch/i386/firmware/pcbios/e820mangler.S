@@ -186,6 +186,8 @@ exclude_hidden_memory_ranges:
 _hide_memory:
 	.long	0,0			/* Etherboot text (base,length) */
 	.long	0,0			/* Heap (base,length) */
+	.long	0,0			/* UNDI Code Segment */
+	.long	0,0			/* UNDI Data Segment */
 _hide_memory_end:
 
 /****************************************************************************

@@ -94,6 +94,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	/* Round address up to 16-byte physical alignment */
 	pxe_stack = (pxe_stack_t *)
 		( phys_to_virt ( ( virt_to_phys(base) + 0xf ) & ~0xf ) );
+	printf("Installing pxe stack at %08x\n", pxe_stack);
 	/* Zero out allocated stack */
 	memset ( pxe_stack, 0, sizeof(*pxe_stack) );
 	

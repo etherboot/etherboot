@@ -1279,6 +1279,10 @@ PXENV_EXIT_t pxe_api_call ( int opcode, t_PXENV_ANY *params ) {
 
 	DBG ( "[" );
 
+	if(opcode != 0x32 && opcode != 0x33) {
+		printf("API Call: %x\n", opcode);
+	}
+
 	/* Hand off to relevant API routine */
 	switch ( opcode ) {
 	case PXENV_START_UNDI:

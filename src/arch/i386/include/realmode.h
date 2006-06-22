@@ -102,6 +102,15 @@ extern void _pxe_intercept_int1a ( void );
 extern segoff_t _pxe_intercepted_int1a;
 extern segoff_t _pxe_pxenv_location;
 
+/* 32-bit entry point bits */
+// Location of !PXE structure
+// This should be filled in with a pointer
+extern uint32_t pxe_location;
+// Offset of selector offset within !PXE structure
+// This should be filled in with a uint32_t
+// The firstSelector itself is a x86 selector
+extern uint32_t pxe_first_selector_offset;
+
 /* Global variables
  */
 extern uint32_t real_mode_stack;

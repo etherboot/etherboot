@@ -55,7 +55,7 @@
 #
 #	Extended cpu options
 
-#	-DCONFIG_X86_64	
+#	-DCONFIG_X86_64
 #			Compile in support for booting x86_64 64bit binaries.
 #
 #	PXE loader options:
@@ -68,7 +68,7 @@
 #			circumstances when using the Etherboot UNDI
 #			driver; these are complex and best practice is
 #			not yet established.
-#			
+#
 #	Obscure options you probably don't need to touch:
 #
 #	-DIGNORE_E820_MAP
@@ -93,7 +93,7 @@ CFLAGS+=	-DPCBIOS
 # CFLAGS+=	-DCONFIG_X86_64
 
 # Options to make a version of Etherboot that will work under linuxBIOS.
-# CFLAGS+=	-DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE 
+# CFLAGS+=	-DLINUXBIOS -DCONFIG_TSC_CURRTICKS  -DCONSOLE_SERIAL -DCOMCONSOLE=0x3f8 -DCOMPRESERVE -DCONFIG_PCI_DIRECT -DELF_IMAGE
 
 # These options affect the loader that is prepended to the Etherboot image
 # LCONFIG+=	-DBBS_BUT_NOT_PNP_COMPLIANT
@@ -129,3 +129,7 @@ endif
 
 # An alternate location for isolinux.bin can be set here
 # ISOLINUX_BIN=/path/to/isolinux.bin
+CFLAGS += -DCONFIG_PCI_DIRECT
+
+CFLAGS += -DPXELOADER_KEEP_ALL
+

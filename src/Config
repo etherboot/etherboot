@@ -8,7 +8,7 @@
 #	User interaction options:
 #
 #	-DASK_BOOT=n
-#			Ask "Boot from (N)etwork ... or (Q)uit? " 
+#			Ask "Boot from (N)etwork ... or (Q)uit? "
 #			at startup, timeout after n seconds (0 = no timeout).
 #			If unset or negative, don't ask and boot immediately
 #			using the default.
@@ -28,7 +28,7 @@
 #			1 == The first nic found.
 #			2 == The second nic found
 #			...
-#			BOOT_INDEX only applies to the BOOT_FIRST.  BOOT_SECOND 
+#			BOOT_INDEX only applies to the BOOT_FIRST.  BOOT_SECOND
 #			and BOOT_THIRD search through all of the boot devices.
 #	-DBAR_PROGRESS
 #			Use rotating bar instead of sequential dots
@@ -61,7 +61,7 @@
 #	-DRARP_NOT_BOOTP
 #			Use RARP instead of BOOTP/DHCP.
 #
-#	-DUSE_STATIC_BOOT_INFO	
+#	-DUSE_STATIC_BOOT_INFO
 #			Use static ip insted of dynamic protocols
 #			When USE_STATIC_BOOT_INFO is defined, the following
 #			must also be defined:
@@ -309,7 +309,7 @@
 #			-DBUILD_SERIAL.
 #
 #	BUS options:
-#	
+#
 #	-DCONFIG_PCI
 #			Include support for devices using the pci bus.
 #	-DCONFIG_ISA
@@ -327,7 +327,7 @@ CFLAGS+=	-DCONFIG_PCI -DCONFIG_ISA
 # CFLAGS+=	-DCONFIG_PCMCIA
 
 # For prompting and default on timeout
-CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
+CFLAGS+=	-DASK_BOOT=300 -DBOOT_FIRST=BOOT_NIC
 # If you would like to attempt to boot from other devices as well as the network.
 # CFLAGS+=	-DBOOT_SECOND=BOOT_FLOPPY
 # CFLAGS+=	-DBOOT_THIRD=BOOT_DISK
@@ -391,8 +391,8 @@ CFLAGS+=	-DASK_BOOT=3 -DBOOT_FIRST=BOOT_NIC
 #		-DDHCP_USER_CLASS_LEN=11
 
 # for btext console support
-# CFLAGS+=	-DCONSOLE_BTEXT 
-# for direct PC kbd support 
+# CFLAGS+=	-DCONSOLE_BTEXT
+# for direct PC kbd support
 # CFLAGS+=	-DCONSOLE_PC_KBD
 # Set to enable FILO support
 # for FILO support it will make main call pci_init
@@ -439,14 +439,15 @@ CFLAGS+=	-DBACKOFF_LIMIT=7 -DCONGESTED
 # CFLAGS+=	-DEXIT_IF_NO_OFFER
 
 # For a serial console, which can run in parallel with FIRMWARE console
-# CFLAGS+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
+#CFLAGS+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=9600
+CFLAGS+=	-DCONSOLE_DUAL -DCOMCONSOLE=0x3F8 -DCONSPEED=57600
 
 # Enable tagged image, generic ELF, Multiboot ELF
 # or FreeBSD ELF/a.out boot image support
 CFLAGS+=	-DTAGGED_IMAGE -DELF_IMAGE
 # CFLAGS+=	-DAOUT_IMAGE -DIMAGE_MULTIBOOT -DIMAGE_FREEBSD
 # CFLAGS+=	-DAOUT_IMAGE -DAOUT_LYNX_KDI
-# CFLAGS+=	-DCOFF_IMAGE 
+# CFLAGS+=	-DCOFF_IMAGE
 # CFLAGS+=	-DRAW_IMAGE
 
 # Download files via TFTP

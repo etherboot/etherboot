@@ -83,6 +83,9 @@ int in_call ( in_call_data_t *data, uint32_t opcode, va_list params ) {
 	return ret;
 }
 
+#define GDT_SEGMENT_IS_PRESENT(gdt_segment) \
+	((gdt_segment)->gdt_segment->accessed__type__sflag__dpl__present & 0x80)
+
 static inline unsigned long ask_boot(unsigned *index)
 {
 	unsigned long order = DEFAULT_BOOT_ORDER;
@@ -94,6 +97,31 @@ static inline unsigned long ask_boot(unsigned *index)
 #if ASK_BOOT >= 0
 	while(1) {
 		int c = 0;
+		// GDT_SEGMENT_IS_PRESENT();
+		gdt_descriptor_t curr_gdt;
+		int cs,ds,es,ss, esp;
+		__asm__ ("sgdt %0" : "=m" (curr_gdt) );
+		__asm__ ("movl %%esp, %0\n"
+			 "push %%cs\n"
+			 "push %%ds\n"
+			 "push %%es\n"
+			 "push %%ss\n"
+			 "pop %4\n"
+			 "pop %3\n"
+			 "pop %2\n"
+			 "pop %1\n" : "=g" (esp),"=r" (cs),  "=r" (ds), "=r" (es), "=r" (ss));
+		printf("gdt %08x (%d)\n", curr_gdt.address, curr_gdt.limit);
+		printf("cs %04x ds %04x es %04x ss %04x:%08x\n",
+		       cs, ds, es, ss, esp);
+
+		gdt_segment_t *segs = (gdt_segment_t *)phys_to_virt(curr_gdt.address);
+		int i;
+		for(i=0; &segs[i + 1] <= (char *)segs + curr_gdt.limit + 1; i++) {
+			printf("seg[%d]: %08x (%08x) [%08x:%08x]\n", i, 
+			       GDT_SEGMENT_BASE(&segs[i]),
+			       GDT_SEGMENT_LIMIT(&segs[i]) * ( GDT_SEGMENT_GRANULARITY(&segs[i]) ? 4096 : 1),
+			       *(int*)&segs[i], *((int*)&segs[i] + 1));
+		}
 		printf(ASK_PROMPT);
 #if ASK_BOOT > 0
 		{

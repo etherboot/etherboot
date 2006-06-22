@@ -247,7 +247,7 @@ static int hunt_pixie ( void ) {
 
 	printf ( "Hunting for pixies..." );
 	if ( ptr == 0 ) ptr = 0xa0000;
-	while ( ptr > 0x10000 ) {
+	while ( ptr > 0x100000 ) {
 		ptr -= 16;
 		pxe = (pxe_t *) phys_to_virt ( ptr );
 		if ( memcmp ( pxe->Signature, "!PXE", 4 ) == 0 ) {
