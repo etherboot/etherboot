@@ -717,11 +717,11 @@ pxe_call32:
 	call	cs_base
 cs_base:	popl	%ebx
 
-	movl	(pxe_location - cs_base) (%cs:%ebx), %edx
-	addl	(pxe_first_selector_offset - cs_base) (%cs:%ebx), %edx
-	movl	%cs:0(%edx), %edx
+	movl	%cs: (pxe_location - cs_base)(%ebx), %edx
+	addl	%cs: (pxe_first_selector_offset - cs_base)(%ebx), %edx
+	movw	%cs: 0(%edx), %dx
 
-	/*	%ebx now contains first selector */
+	/*	%dx now contains first selector */
 	/* 
 		PXE Selector layout:	
 		[0] = Stack
@@ -736,18 +736,18 @@ cs_base:	popl	%ebx
 		TI 	2
 		RPL 	1:0
 	 */
-	/* XXX As a temporary hack, we UNDICodeWrite as the CS selector, 
+	/* XXX As a temporary hack, we BC_Data as the CS selector, 
 	BC_Code as the SS=DS=ES selector */
-	movw %edx, %ax
-	addw $(3 << 3), %ax
+	movw %dx, %ax
+	addw $(4 << 3), %ax
 	movw %ax, %ss
 	movw %ax, %ds
 	movw %ax, %es
 	/* Setup CS */
-	movw %edx, %ax
-	addw $(2 << 3), %ax
+	movw %dx, %ax
+	addw $(3 << 3), %ax
 	movw %ax, (call32_tail_lptr - cs_base)
-	lcall %cs:	(call32_tail_lptr - cs_base)
+	lcall *%cs:(call32_tail_lptr - cs_base)
 
 	/*  The location of the !PXE structure. Filled in before copying */
 	.globl pxe_location
@@ -757,7 +757,8 @@ pxe_location:	.long 0
 pxe_first_selector_offset:	.long 0
 
 	/* Long pointer */
-call32_tail_lptr:	.word 0 .long _pxe_call32_tail
+call32_tail_lptr:	.word 0 
+	.long _pxe_call32_tail
 
 _pxe_call32_end:
 
@@ -806,7 +807,7 @@ _pxe_call32_tail:
 2:	/* Continuation point */
 	
 	/* Restore segments */
-	popw	%cs
+	popw	%ss /* Saved CS value -- ignore it */
 	popw	%ss
 	popw	%ds
 	popw	%es

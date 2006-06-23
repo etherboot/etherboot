@@ -145,9 +145,20 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxe->UNDICode.Phy_Addr = virt_to_phys(pxe_stack);
 	pxe->UNDICode.Seg_Size = end - (void*)pxe_stack;
 	/* No base code loaded */
+#if 0
 	pxe->BC_Data.Seg_Addr = 0;
 	pxe->BC_Data.Phy_Addr = 0;
 	pxe->BC_Data.Seg_Size = 0;
+#else
+	// alancshieh: temporarily use BC_Data to export extent of PXE driver
+	// Seg_Addr is the top 16 bits of segment length
+	int base_addr = virt_to_phys(_text);
+	int length = virt_to_phys(_end) - base_addr;
+	printf("Exporting [%x:%d]\n", base_addr, length);
+	pxe->BC_Data.Seg_Addr = length >> 16;
+	pxe->BC_Data.Phy_Addr = base_addr;
+	pxe->BC_Data.Seg_Size = length & 0xffff;
+#endif
 	pxe->BC_Code.Seg_Addr = 0;
 	pxe->BC_Code.Phy_Addr = 0;
 	pxe->BC_Code.Seg_Size = 0;
