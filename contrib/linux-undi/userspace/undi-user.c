@@ -208,6 +208,11 @@ typedef struct {
 		printf("UNDI segment alignment is weird!\n");
 		return -1;
 	}
+
+	uint32_t pxe_base = pxe->BC_Data.Phy_Addr;
+	uint32_t pxe_length = (pxe->BC_Data.Seg_Addr << 16) | pxe->BC_Data.Seg_Size;
+	printf("PXE segment is %p:%d\n", pxe_base, pxe_length);
+
 	int i;
 	printf("Updating PXE with first selector %x\n", first_selector);
 	pxe->FirstSelector = first_selector;
