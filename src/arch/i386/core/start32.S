@@ -239,7 +239,7 @@ _in_call_32:
 	/* Store general-purpose register values */
 	pushal
 	/* Store va_list pointer */
-	leal	(IC_OFFSET_VA_LIST)(%esp), %eax
+	leal	(IC_OFFSET_VA_LIST - IC_OFFSET_VA_LIST_PTR_E)(%esp), %eax
 	pushl	%eax
 	/* IC_OFFSET_*(%esp) are now valid */
 
@@ -309,14 +309,16 @@ _in_call_32:
 		
 	/* Check for EB_SKIP_OPCODE */
 	pushfl
-	testl	$EB_SKIP_OPCODE, 8(%esp)
+	testl	$EB_SKIP_OPCODE, 12(%esp) /* 4 for flag, 8 for fake far call */
 	jnz	1f
 	/* Normal return */
 	popfl
-	ret	$4 // undo stack adjustment for far call
+	addl $4, %esp /* compensate for faked up far call */
+	ret
 1:	/* Return and skip opcode */
 	popfl
-	ret	$(4 + 4) // undo stack adjustment for far call and skip opcode
+	addl $4, %esp /* compensate for faked up far call */
+	ret	$4 /* stack adjustment for skip opcode */
 
 		
 /**************************************************************************

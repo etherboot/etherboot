@@ -343,7 +343,7 @@ int pxe_in_call ( in_call_data_t *in_call_data, va_list params ) {
 		opcode = pxe_params.opcode;
 		segoff = pxe_params.segoff;
 		if(pxe_stack->caller_log_buf != NULL) {
-			printf("opcode = %d segoff = %x:%x\n", opcode, opcode, 
+			printf("opcode = %d segoff = %x:%x\n", opcode, 
 			       segoff.segment, segoff.offset);
 		}
 	} else {

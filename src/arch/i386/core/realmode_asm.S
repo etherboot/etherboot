@@ -699,7 +699,7 @@ pxe_callback_interface_size:
  * similarly named functions in other entry points 
  */
 	
-#define CALL32_INSERT_LENGTH 	( 4 )
+#define CALL32_INSERT_LENGTH 	( 0 )
 
 .section ".text", "ax", @progbits
 	.code32
@@ -707,41 +707,36 @@ pxe_callback_interface_size:
 /* pxe_call32_tail has segments fully configured. It is possible to access globals from here */
 
 	/* 6 segment registers, esp, + 8 *4 bytes for pushal, 4 byte
-	flags, 6 byte lcall return address */
-#define CALL32_ORIG_RETADDR (( (6 * 2) + 4 + 8 * 4 + 4 ) + 6)
-#define CALL32_ORIG_STACK (CALL32_ORIG_RETADDR + 4)
+	flags */
+#define CALL32_ORIG_RETADDR (( 4 + 4 + 8 * 4 + (6 * 2) ))
+	/* 8 byte lcall return address */
+#define CALL32_ORIG_STACK (CALL32_ORIG_RETADDR + 8)
 
 _pxe_call32_tail:
-	movw (CALL32_ORIG_STACK + 4)(%esp), %bx
+#if 0
+	movw (CALL32_ORIG_STACK + 4 + 4)(%esp), %bx
 	pushw %bx
-	movw (CALL32_ORIG_STACK + 2 + 2)(%esp), %bx
+	movw (CALL32_ORIG_STACK + 4 + 2 + 2)(%esp), %bx
 	pushw %bx
-	movw (CALL32_ORIG_STACK + 0 + 4)(%esp), %bx
+	movw (CALL32_ORIG_STACK + 4 + 0 + 4)(%esp), %bx
 	pushw %bx
+
+	pushl $0x0baadaad
+#endif
+	lea (CALL32_ORIG_STACK)(%esp), %esi
+	movl $10, %ecx
+	subl %ecx, %esp
+	lea (%esp), %edi
+	rep movsb
 
 	subl $(CALL32_INSERT_LENGTH), %esp
 
 	/* Set CPL flag to disable attempts to perform privileged
 	operations (such as calling real-mode bios */
 	movl $1, in_cpl3
-	
-	
-	/* Push on Etherboot-internal arguments (cribbed from _pxe_in_call_far) */
+
 	pushl	$0x201
-	pushl	$EB_OPCODE_PXE
-
-	/* ASHIEH: 07/04:	 I think these are supposed to be in the VA_LIST */
-
-	/* Copy opcode, set EB_CALL_FROM_REAL_MODE and EP_SKIP_OPCODE.
-	 * Copy it because _in_call() and i386_in_call() expect it at
-	 * a fixed position, not as part of the va_list.
-	 */
-	/* Load original opcode (above (EB_OPCODE_PXE, 0x201, modified opcode, return address)) */
-	xorl 	%eax, %eax
-	movw	18(%esp), %ax
-//	orl	$(EB_CALL_FROM_REAL_MODE|EB_SKIP_OPCODE), %eax
-	orl	$(EB_SKIP_OPCODE), %eax
-	movl	%eax, (8)(%esp) /* Set modified opcode */
+	pushl	$(EB_OPCODE_PXE | EB_SKIP_OPCODE)
 	
 	/* Set up call and return addresses */
 #define CALL_NEXT_INSN() .byte 0xe8, 0x00, 0x00, 0x00, 0x00
@@ -767,7 +762,7 @@ _pxe_call32_tail:
 
 2:	/* Continuation point */
 	
-	addl 	$(4 + 4 + 6), %esp /* Discard !PXE (0x201), modified opcode (4) copied arguments (6) */
+	addl 	$(4 + 4 + 6), %esp /* Discard !PXE (0x201), fake return value copied arguments (6) */
 	lret  /* return to head */
 
 ////////////////////////////

@@ -287,7 +287,8 @@ typedef struct modify_ldt_ldt_s {
 	printf("PXE test call (press any key)\n");
 	char buf[100];
 	fgets(buf, sizeof(buf), stdin);
-	call_pxe(0, NULL);
+	call_pxe(0xdead, 0xbeef);
+	print_log();
 	return 0;
 }
 
