@@ -108,6 +108,8 @@ extern segoff_t _pxe_pxenv_location;
 extern void pxe_call32;
 extern uint32_t pxe_call32_size;
 
+extern int in_cpl3;
+
 // Location of !PXE structure
 // This should be filled in with a pointer
 extern uint32_t pxe_location;

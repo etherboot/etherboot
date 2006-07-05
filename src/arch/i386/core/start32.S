@@ -227,6 +227,8 @@ _in_call_32:
 	pushfl
 	/* Store the GDT */
 	subl 	$8, %esp
+	movl	$0xdeadbeef, (0)(%esp)
+	movl	$0xbeefdead, (4)(%esp)
 	/* Store segment register values */
 	pushw	%gs
 	pushw	%fs
@@ -286,12 +288,15 @@ _in_call_32:
 	/* Reload general-purpose registers to be returned */
 	popal
 	/* Reload segment registers as passed in from caller */
-	popw	%ss /* Skip CS */
+	addl	$2, %esp /* Skip CS */
 	popw	%ss
 	popw	%ds
 	popw	%es
 	popw	%fs
 	popw	%gs
+
+	/* Skip GDT */
+	addl $8, %esp
 	/* Restore flags (including revert of interrupt status) */
 	popfl
 

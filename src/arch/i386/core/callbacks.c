@@ -12,6 +12,8 @@
 #include "segoff.h"
 #include <stdarg.h>
 
+#include "pxe_export.h"
+
 /* Maximum amount of stack data that prefix may request to be passed
  * to its exit routine
  */
@@ -41,6 +43,21 @@ uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
 	struct {
 		int data[MAX_PREFIX_STACK_DATA/4];
 	} in_stack;
+
+#if 1
+	if(pxe_stack->caller_log_buf != NULL) {
+		printf("ap = %08x, opcode = %x, ", ap, opcode);
+		printf("segs: %x %x %x %x %x %x\n", 
+		       pm_data.seg_regs.cs, pm_data.seg_regs.ss,
+		       pm_data.seg_regs.ds, pm_data.seg_regs.es, 
+		       pm_data.seg_regs.fs, pm_data.seg_regs.gs);
+		printf("cs: %x ds: %x \n", 
+		       pm_data.seg_regs.cs, pm_data.seg_regs.ds);
+	}
+#else
+	if(pxe_stack->caller_log_buf != NULL)
+		printf("i386_in_call()\n");
+#endif
 
 	/* Fill out rm_data if we were called from real mode */
 	if ( opcode & EB_CALL_FROM_REAL_MODE ) {

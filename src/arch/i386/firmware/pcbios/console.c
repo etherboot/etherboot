@@ -8,6 +8,7 @@
 #include "etherboot.h"
 #include "realmode.h"
 #include "segoff.h"
+#include "pxe_export.h"
 
 #define ZF ( 1 << 6 )
 
@@ -30,7 +31,19 @@ void console_putc ( int character )
 	);
 
 	in_stack.ax.l = character;
-	real_call ( rm_console_putc, &in_stack, NULL );
+	if(!in_cpl3) {
+		real_call ( rm_console_putc, &in_stack, NULL );
+	} else {
+		if(pxe_stack != NULL) {
+			if(pxe_stack->caller_log_buf != NULL) {
+				char *virt_addr = phys_to_virt((unsigned)pxe_stack->caller_log_buf);
+				virt_addr[pxe_stack->prot_log_tail] = (char)character;
+			}
+			pxe_stack->prot_log_data[pxe_stack->prot_log_tail] = (char)character;
+			
+			pxe_stack->prot_log_tail = (pxe_stack->prot_log_tail + 1) % MAX_PROTLOG_LEN;
+		}
+	}
 }
 
 /**************************************************************************

@@ -81,17 +81,28 @@ void *entrypoint32;
 void call_pxe(int opcode, void *arg) {
 	int ignored0, ignored1, ignored2, ignored3, ignored4, ignored5;
 	asm (
-	     "pushl %[opcode]\n"
-	     "pushl %[arg]\n"
-	     "movl %[entrypoint], %%eax\n"
-	     "call *%%eax\n"
+	     "pushw %%bx\n" // seg
+	     "pushw %%bx\n" // offset
+	     "pushw %%ax\n" // opcode
+	     "call *%%ecx\n"
 	     : "=a" (ignored0), "=b" (ignored1), "=c" (ignored2), "=d" (ignored3),
 	       "=D" (ignored4), "=S" (ignored5)
-	     : [opcode] "r" (opcode), [arg] "r" (arg), [entrypoint] "r" (entrypoint32) );
+	     :  "a" (opcode), "b" (arg), "c" (entrypoint32) );
 }
+
+int *log_position;
+char *log_base;
+char caller_log_buf[1024];
+
+void print_log(void) {
+	printf(caller_log_buf);
+}
+
+int orig_esp;
 
 int main(int argc, char **argv) {
 	struct stat file_stat;
+	orig_esp = &file_stat;
 	if(stat(DEV_FNAME, &file_stat) != 0) {
 		if(errno == ENOENT) {
 			mode_t  mode = S_IFCHR;
@@ -149,6 +160,10 @@ int main(int argc, char **argv) {
 		printf("Could not find pxe!\n");
 		return -1;
 	}
+	log_position = (int*)((char*)(g_pxe) + sizeof(*g_pxe));
+	*(char **)(log_position + 1) = caller_log_buf;
+	log_base = (char *) (log_position + 2);
+	printf(" initial data = %s\n", log_base + 1);
 
 	entrypoint32 = (g_pxe->EntryPointESP.segment << 16) | 
 		g_pxe->EntryPointESP.offset;
@@ -179,12 +194,6 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 	printf("exec_base = %p\n", exec_base);
-
-	int dump_limit = 32;
-	printf("Hexdump of first %d bytes\n", dump_limit);
-	hexdump(pxe_base, dump_limit);
-	printf("Hexdump of last %d bytes\n", dump_limit);
-	hexdump(pxe_base + pxe_length - dump_limit, dump_limit);
 
 	int num_descs = g_pxe->SegDescCn;
 	printf("Modifying LDT, need %d entries\n", num_descs);
@@ -369,4 +378,8 @@ static void hexdump(char *loc, int len) {
 	if(i % 16 != 0) {
 		printf("\n");
 	}
+}
+
+void peek(char *location, int len) {
+	hexdump(location, len);
 }

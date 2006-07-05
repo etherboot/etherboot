@@ -703,9 +703,29 @@ pxe_callback_interface_size:
 
 .section ".text", "ax", @progbits
 	.code32
+
+/* pxe_call32_tail has segments fully configured. It is possible to access globals from here */
+
+	/* 6 segment registers, esp, + 8 *4 bytes for pushal, 4 byte
+	flags, 6 byte lcall return address */
+#define CALL32_ORIG_RETADDR (( (6 * 2) + 4 + 8 * 4 + 4 ) + 6)
+#define CALL32_ORIG_STACK (CALL32_ORIG_RETADDR + 4)
+
 _pxe_call32_tail:
+	movw (CALL32_ORIG_STACK + 4)(%esp), %bx
+	pushw %bx
+	movw (CALL32_ORIG_STACK + 2 + 2)(%esp), %bx
+	pushw %bx
+	movw (CALL32_ORIG_STACK + 0 + 4)(%esp), %bx
+	pushw %bx
+
 	subl $(CALL32_INSERT_LENGTH), %esp
 
+	/* Set CPL flag to disable attempts to perform privileged
+	operations (such as calling real-mode bios */
+	movl $1, in_cpl3
+	
+	
 	/* Push on Etherboot-internal arguments (cribbed from _pxe_in_call_far) */
 	pushl	$0x201
 	pushl	$EB_OPCODE_PXE
@@ -716,9 +736,9 @@ _pxe_call32_tail:
 	 * Copy it because _in_call() and i386_in_call() expect it at
 	 * a fixed position, not as part of the va_list.
 	 */
-	/* Load original opcode (above (EB_OPCODE_PXE, 0x201, modified opcode),  and return value) */
+	/* Load original opcode (above (EB_OPCODE_PXE, 0x201, modified opcode, return address)) */
 	xorl 	%eax, %eax
-	movw	16(%esp), %ax
+	movw	18(%esp), %ax
 //	orl	$(EB_CALL_FROM_REAL_MODE|EB_SKIP_OPCODE), %eax
 	orl	$(EB_SKIP_OPCODE), %eax
 	movl	%eax, (8)(%esp) /* Set modified opcode */
@@ -730,13 +750,7 @@ _pxe_call32_tail:
 
 	movl 	$2f, %eax			/* continuation address */
 	pushl	%eax
-#if 0
-	movl	rm_etherboot_location(%ebp), %eax  /* Etherboot phys addr */
-	subl	$_text, %eax
-	addl	$_in_call_32, %eax			/* _in_call phys addr */
-#else
 	movl	$_in_call_32, %eax			/* _in_call phys addr */
-#endif
 	pushl	%eax	/* build trampoline on stack */
 
 	/* Call to _in_call_32 */
@@ -753,26 +767,12 @@ _pxe_call32_tail:
 
 2:	/* Continuation point */
 	
-	addl 	$(4 + 6), %esp /* Discard !PXE (0x201), copied arguments (6) */
-	/* Restore registers and segments */
-	popw	%ax /* Saved CS value -- ignore it */
-
-	lss %ds:(%esp), %esp
-	addl $4, %esp
-
-	popw	%ds
-	popw	%es
-	popw	%fs
-	popw	%gs
-	popal
-	popfl
-	lret  /* Far return to pxe_call32 */
+	addl 	$(4 + 4 + 6), %esp /* Discard !PXE (0x201), modified opcode (4) copied arguments (6) */
+	lret  /* return to head */
 
 ////////////////////////////
-	/* 6 segment registers, esp, + 8 *4 for pushal, 32 bit flags */ 
-#define CALL32_ORIG_RETADDR ( (6 * 2) + 4 + 8 * 4 + 4 )
-#define CALL32_ORIG_STACK (CALL32_ORIG_RETADDR + 4)
 
+/* pxe_call32 is in a restricted environment, with segments partially set up, or not at all */
 .globl	pxe_call32
 pxe_call32:
 	pushfl
@@ -817,6 +817,7 @@ cs_base:
 		TI 	2
 		RPL 	1:0
 	 */
+
 	/* XXX As a temporary hack, we BC_Data as the CS selector, 
 	BC_Code as the SS=DS=ES selector */
 	movw %dx, %ax
@@ -824,23 +825,40 @@ cs_base:
 	movw %ax, %ss
 	movw %ax, %ds
 	movw %ax, %es
-	/* Setup CS */
-	movw %dx, %ax
-	addw $(3 << 3), %ax
 
-	movw %ax, %cs:(call32_tail_lptr - cs_base + 4)(%ebx)
 
 	/* Adjust %ESP (restore in callee) */
 	subl %cs:(call32_etherboot_location - cs_base)(%ebx), %esp
-	movw (CALL32_ORIG_STACK + 4)(%esp), %ax
-	pushw %ax
-	movw (CALL32_ORIG_STACK + 2 + 2)(%esp), %ax
-	pushw %ax
-	movw (CALL32_ORIG_STACK + 0 + 4)(%esp), %ax
-	pushw %ax
+
+	/* Setup CS */
+	xor %eax, %eax
+	movw %dx, %ax
+	addw $(3 << 3), %ax
+#if 0
+	/* Push on stack for trampoline */
+	pushl %eax
+	pushl $_pxe_call32_tail
+	lret
+#else
+	/* lcall */
+	movw %ax, %cs:(call32_tail_lptr - cs_base + 4)(%ebx)
 
 	lcall *%cs:(call32_tail_lptr - cs_base)(%ebx)
-	ret // near return to caller
+#endif
+	/* Restore registers and segments */
+	popw	%ax /* Saved CS value -- ignore it */
+
+	lss %ds:(%esp), %esp
+	addl $2, %esp // %esp was saved when only %ss was pushed on, so compensate jsut for %ss
+
+	popw	%ds
+	popw	%es
+	popw	%fs
+	popw	%gs
+	popal
+	popfl
+
+	ret
 
 	/*  The location of the !PXE structure. Filled in before copying */
 	.globl pxe_location

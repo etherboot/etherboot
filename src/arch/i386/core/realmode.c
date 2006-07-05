@@ -30,6 +30,9 @@ uint32_t real_mode_stack = 0;
 size_t real_mode_stack_size = RM_STACK_SIZE;
 int lock_real_mode_stack = 0;	/* Set to make stack immobile */
 
+ // If in_cpl3, then real-mode transfers can't occur
+int in_cpl3 = 0;
+
 /* Make a call to a real-mode code block.
  */
 

@@ -906,6 +906,11 @@ typedef enum {
 #define PXE_TFTP_MAGIC_COOKIE ( ( 'P'<<24 ) | ( 'x'<<16 ) | ( 'T'<<8 ) | 'f' )
 typedef struct {
 	pxe_t		pxe	__attribute__ ((aligned(16)));
+#define MAX_PROTLOG_LEN (1024)
+	int prot_log_tail;
+	char *caller_log_buf;
+	char prot_log_data[MAX_PROTLOG_LEN];
+
 	pxenv_t		pxenv	__attribute__ ((aligned(16)));
 	pxe_stack_state_t state;
 	union {
