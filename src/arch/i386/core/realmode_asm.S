@@ -694,29 +694,110 @@ pxe_callback_interface_size:
 		
 #endif	/* CODE16 */
 
+/* Careful. These values are not necessarily usable in any location in
+ * the function, and their location differ slightly from
+ * similarly named functions in other entry points 
+ */
+	
+#define CALL32_INSERT_LENGTH 	( 4 )
+
+.section ".text", "ax", @progbits
 	.code32
-.globl	pxe_call32
-pxe_call32:
-	/* Store segment registers.  Order matches that of seg_regs_t */
-	pushw	%gs
-	pushw	%fs
-	pushw	%es
-	pushw	%ds
-	pushw	%ss
-	pushw	%cs
+_pxe_call32_tail:
+	subl $(CALL32_INSERT_LENGTH), %esp
 
 	/* Push on Etherboot-internal arguments (cribbed from _pxe_in_call_far) */
 	pushl	$0x201
 	pushl	$EB_OPCODE_PXE
 
+	/* ASHIEH: 07/04:	 I think these are supposed to be in the VA_LIST */
+
+	/* Copy opcode, set EB_CALL_FROM_REAL_MODE and EP_SKIP_OPCODE.
+	 * Copy it because _in_call() and i386_in_call() expect it at
+	 * a fixed position, not as part of the va_list.
+	 */
+	/* Load original opcode (above (EB_OPCODE_PXE, 0x201, modified opcode),  and return value) */
+	xorl 	%eax, %eax
+	movw	16(%esp), %ax
+//	orl	$(EB_CALL_FROM_REAL_MODE|EB_SKIP_OPCODE), %eax
+	orl	$(EB_SKIP_OPCODE), %eax
+	movl	%eax, (8)(%esp) /* Set modified opcode */
+	
+	/* Set up call and return addresses */
+#define CALL_NEXT_INSN() .byte 0xe8, 0x00, 0x00, 0x00, 0x00
+	// call	1f // call 1f gets an absolute relocation with my assembler, which is not what we want
+
+
+	movl 	$2f, %eax			/* continuation address */
+	pushl	%eax
+#if 0
+	movl	rm_etherboot_location(%ebp), %eax  /* Etherboot phys addr */
+	subl	$_text, %eax
+	addl	$_in_call_32, %eax			/* _in_call phys addr */
+#else
+	movl	$_in_call_32, %eax			/* _in_call phys addr */
+#endif
+	pushl	%eax	/* build trampoline on stack */
+
+	/* Call to _in_call_32 */
+
+	/* in_call32 expects opcode in ESP + 8 */
+
+	ret
+
+	/* XXX Need to stuff the return value into the right place for
+	!PXE, and perform translation */
+	
+	/* opcode will be popped automatically thanks to
+	EB_SKIP_OPCODE */
+
+2:	/* Continuation point */
+	
+	addl 	$(4 + 6), %esp /* Discard !PXE (0x201), copied arguments (6) */
+	/* Restore registers and segments */
+	popw	%ax /* Saved CS value -- ignore it */
+
+	lss %ds:(%esp), %esp
+	addl $4, %esp
+
+	popw	%ds
+	popw	%es
+	popw	%fs
+	popw	%gs
+	popal
+	popfl
+	lret  /* Far return to pxe_call32 */
+
+////////////////////////////
+	/* 6 segment registers, esp, + 8 *4 for pushal, 32 bit flags */ 
+#define CALL32_ORIG_RETADDR ( (6 * 2) + 4 + 8 * 4 + 4 )
+#define CALL32_ORIG_STACK (CALL32_ORIG_RETADDR + 4)
+
+.globl	pxe_call32
+pxe_call32:
+	pushfl
+	pushal
+	pushw	%gs
+	pushw	%fs
+	pushw	%es
+	pushw	%ds
+
+	pushw	%ss
+	pushl	%esp
+	/* ss and esp will be restored with lss */
+	
+	pushw	%cs
+
 	/* Segment register setup */
 
 	/* Get the DS that the user set for UNDIData */
 	/* Find the offset within the code segment that I am running at */
-	xorl	%ebx, %ebx
-	call	cs_base
-cs_base:	popl	%ebx
+	//call	1f // call 1f gets an absolute relocation with my assembler, which is not what we want
+	CALL_NEXT_INSN()
+cs_base:
+1:	popl	%ebx
 
+	/* Compute selectors to use */
 	movl	%cs: (pxe_location - cs_base)(%ebx), %edx
 	addl	%cs: (pxe_first_selector_offset - cs_base)(%ebx), %edx
 	movw	%cs: 0(%edx), %dx
@@ -746,8 +827,20 @@ cs_base:	popl	%ebx
 	/* Setup CS */
 	movw %dx, %ax
 	addw $(3 << 3), %ax
-	movw %ax, (call32_tail_lptr - cs_base)
-	lcall *%cs:(call32_tail_lptr - cs_base)
+
+	movw %ax, %cs:(call32_tail_lptr - cs_base + 4)(%ebx)
+
+	/* Adjust %ESP (restore in callee) */
+	subl %cs:(call32_etherboot_location - cs_base)(%ebx), %esp
+	movw (CALL32_ORIG_STACK + 4)(%esp), %ax
+	pushw %ax
+	movw (CALL32_ORIG_STACK + 2 + 2)(%esp), %ax
+	pushw %ax
+	movw (CALL32_ORIG_STACK + 0 + 4)(%esp), %ax
+	pushw %ax
+
+	lcall *%cs:(call32_tail_lptr - cs_base)(%ebx)
+	ret // near return to caller
 
 	/*  The location of the !PXE structure. Filled in before copying */
 	.globl pxe_location
@@ -757,60 +850,18 @@ pxe_location:	.long 0
 pxe_first_selector_offset:	.long 0
 
 	/* Long pointer */
-call32_tail_lptr:	.word 0 
+call32_tail_lptr:	
 	.long _pxe_call32_tail
+	.word 0 
 
-_pxe_call32_end:
-
-	.globl pxe_call32_len
- 	.equ	_pxe_call32_size, _pxe_call32_end - pxe_call32
 pxe_call32_size: .long _pxe_call32_size
 
+	.globl call32_etherboot_location
+call32_etherboot_location: 
+	.long 0
 
-.section ".text", "ax", @progbits
-_pxe_call32_tail:	
-	/* Code below is cribbed from .code32 portion of _real_in_cal_far */
-	/* Allow space for expanded stack */
-	subl	$RIC_INSERT_LENGTH, %esp
-	
-	/* Store temporary registers */
-	pushl	%ebp
-	pushl	%eax
+/* This comes after all code to be copied to arch_data */
+_pxe_call32_end:
+	.globl pxe_call32_size
+ 	.equ	_pxe_call32_size, _pxe_call32_end - pxe_call32
 
-	/* Copy opcode, set EB_CALL_FROM_REAL_MODE and EP_SKIP_OPCODE.
-	 * Copy it because _in_call() and i386_in_call() expect it at
-	 * a fixed position, not as part of the va_list.
-	 */
-	movl	RIC_OFFSET_ORIG_OPCODE(%esp), %eax
-	orl	$(EB_CALL_FROM_REAL_MODE|EB_SKIP_OPCODE), %eax
-	movl	%eax, RIC_OFFSET_OPCODE(%esp)
-	
-	/* Set up call and return addresses */
-	call	1f
-1:	popl	%ebp
-	subl	$1b, %ebp			/* %ebp = offset */
-	movl	rm_etherboot_location(%ebp), %eax  /* Etherboot phys addr */
-	subl	$_text, %eax
-	addl	$_in_call, %eax			/* _in_call phys addr */
-	movl	%eax, RIC_OFFSET_CALLADDR(%esp)
-	leal	2f(%ebp), %eax			/* continuation address */
-	movl	%eax, RIC_OFFSET_CONTADDR(%esp)
-	
-	/* Restore temporary registers */
-	popl	%eax
-	popl	%ebp
-
-	/* Call to _in_call */
-	ret
-	/* opcode will be popped automatically thanks to EB_SKIP_OPCODE */
-
-2:	/* Continuation point */
-	
-	/* Restore segments */
-	popw	%ss /* Saved CS value -- ignore it */
-	popw	%ss
-	popw	%ds
-	popw	%es
-	popw	%fs
-	popw	%gs
-	lret  /* Far return to caller */

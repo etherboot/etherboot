@@ -216,6 +216,104 @@ _in_call_far:
 	popfl
 	lret	$4
 	
+
+/* In call variant for 32 bit source entry point */
+.globl _in_call_32
+_in_call_32:
+	/* Simulate far call -- IC_OFFSET * assumes that return address is 8 bytes long */
+	subl $4, %esp
+
+	/* Store flags */
+	pushfl
+	/* Store the GDT */
+	subl 	$8, %esp
+	/* Store segment register values */
+	pushw	%gs
+	pushw	%fs
+	pushw	%es
+	pushw	%ds
+	pushw	%ss
+	pushw	%cs
+	/* Store general-purpose register values */
+	pushal
+	/* Store va_list pointer */
+	leal	(IC_OFFSET_VA_LIST)(%esp), %eax
+	pushl	%eax
+	/* IC_OFFSET_*(%esp) are now valid */
+
+#if 0
+	/* not needed by Linux UNDI driver */
+	/* Determine the offset between physical and virtual address */
+	call	1f
+1:	popl	%ebp
+	subl	$1b, %ebp
+	movl	%ebp, virt_offset(%ebp)
+#endif
+
+	/* Check opcode for EB_USE_INTERNAL_STACK flag */
+	movl	IC_OFFSET_OPCODE(%esp), %eax
+	testl	$EB_USE_INTERNAL_STACK, %eax
+	je	2f
+
+	lgdt 0 /* Intentional GPF -- this code path is not tested */
+	
+	/* Use internal stack flag set */
+	/* Check %esp is not already in internal stack range */
+	leal	_stack(%ebp), %esi	/* %esi = bottom of internal stack */
+	leal	_estack(%ebp), %edi	/* %edi = top of internal stack */
+	cmpl	%esi, %esp
+	jb	1f
+	cmpl	%edi, %esp
+	jbe	2f
+1:	/* %esp not currently in internal stack range */
+	movl	%esp, %esi		/* %esi = original stack */
+	movl	$IC_OFFSET_OPCODE_E, %ecx /* %ecx = length to transfer */
+	subl	%ecx, %edi		/* %edi = internal stack pos */
+	movl	%edi, %esp		/*  = new %esp */
+	rep movsb			/* Copy data to internal stack */
+2:
+
+	/* Call to C code */
+	call	i386_in_call
+
+	/* Set %eax (return code from C) in registers structure on
+	 * stack, so that we return it to the caller.
+	 */
+	movl	%eax, (IC_OFFSET_REGISTERS + 28)(%esp)
+
+	/* Skip va_list ptr */
+	popl	%eax
+	/* Reload general-purpose registers to be returned */
+	popal
+	/* Reload segment registers as passed in from caller */
+	popw	%ss /* Skip CS */
+	popw	%ss
+	popw	%ds
+	popw	%es
+	popw	%fs
+	popw	%gs
+	/* Restore flags (including revert of interrupt status) */
+	popfl
+
+#if 0
+	/* Restore physical %esp from entry.  It will only be
+	 * different if EB_USE_INTERNAL_STACK was specified.
+	 */
+	movl	( 12 + IC_OFFSET_REGISTERS - IC_OFFSET_RETADDR )(%esp), %esp
+#endif
+		
+	/* Check for EB_SKIP_OPCODE */
+	pushfl
+	testl	$EB_SKIP_OPCODE, 8(%esp)
+	jnz	1f
+	/* Normal return */
+	popfl
+	ret	$4 // undo stack adjustment for far call
+1:	/* Return and skip opcode */
+	popfl
+	ret	$(4 + 4) // undo stack adjustment for far call and skip opcode
+
+		
 /**************************************************************************
 RELOCATE_TO - relocate etherboot to the specified address
 **************************************************************************/

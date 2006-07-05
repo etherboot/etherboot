@@ -103,13 +103,19 @@ extern segoff_t _pxe_intercepted_int1a;
 extern segoff_t _pxe_pxenv_location;
 
 /* 32-bit entry point bits */
+
+// Location & length of code
+extern void pxe_call32;
+extern uint32_t pxe_call32_size;
+
 // Location of !PXE structure
 // This should be filled in with a pointer
 extern uint32_t pxe_location;
 // Offset of selector offset within !PXE structure
 // This should be filled in with a uint32_t
-// The firstSelector itself is a x86 selector
+// The firstSelector is interpreted as a x86 selector
 extern uint32_t pxe_first_selector_offset;
+extern uint32_t call32_etherboot_location;
 
 /* Global variables
  */

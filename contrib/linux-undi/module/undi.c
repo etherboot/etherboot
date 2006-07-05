@@ -3,6 +3,7 @@
 #include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/miscdevice.h>
+#include <asm/uaccess.h>
 
 #include "undi.h"
 
@@ -121,7 +122,7 @@ union UNDI_Mem_Ctl {
 		// No arguments
 	} pxe_search;
 	struct UNDI_Exec_Ctl undi_exec;
-};
+} mem_ctl;
 
 static int undi_mem_ioctl(struct inode *inode, struct file *file,
 			 unsigned int cmd, unsigned long arg)
@@ -133,9 +134,14 @@ static int undi_mem_ioctl(struct inode *inode, struct file *file,
 		map_mode  = MAP_MODE_PXE_SEARCH;
 		break;
 	case UNDI_MEM_MAP_UNDI_EXEC: {
-		// copy_from_user(
-		printk("ioctl(UNDI_MEM_MAP_UNDI_EXEC) not implemented yet!\n");
-		return -ENOSYS;
+		printk("map_undi_exec (%p)!\n", arg);
+		if(copy_from_user(&mem_ctl.undi_exec, (void *)arg, sizeof(mem_ctl.undi_exec))) {
+			printk("access error\n");
+			return -EACCES;
+		}
+		map_mode = MAP_MODE_UNDI_EXEC;
+		printk("will attempt to map %p-%d\n",mem_ctl.undi_exec.mem_base,
+		       mem_ctl.undi_exec.mem_length);
 		break;
 	}
 	default:
@@ -145,18 +151,21 @@ static int undi_mem_ioctl(struct inode *inode, struct file *file,
 }
 
 static int undi_mem_mmap(struct file *file, struct vm_area_struct *vma) {
-	printk("in undi_mem_mmap\n");
-	// Based on mmtimer.c
 	unsigned int addr;
 	unsigned int size;
+
+	printk("in undi_mem_mmap\n");
+	// Based on mmtimer.c
+
 	switch(map_mode) {
 	case MAP_MODE_PXE_SEARCH:
 		addr = 0;
 		size = PXE_SEARCH_MAP_LENGTH;
 		break;
 	case MAP_MODE_UNDI_EXEC:
-		printk("undi_exec not implemented!\n");
-		// break;
+		addr  = mem_ctl.undi_exec.mem_base;
+		size = mem_ctl.undi_exec.mem_length;
+		break;
 	default:
 		printk("Invalid mmap mode\n");
 		return -ENOSYS;

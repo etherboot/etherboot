@@ -63,6 +63,14 @@ uint8_t byte_checksum ( void *address, size_t size ) {
 	return (uint8_t)sum;
 }
 
+static void install_call32_interface(void *dest) {
+	pxe_location = virt_to_phys(&(pxe_stack->pxe));
+	pxe_first_selector_offset = (uint32_t)&((pxe_t*)0)->FirstSelector;
+	call32_etherboot_location = virt_to_phys(_text);
+	memcpy(dest, &pxe_call32, pxe_call32_size);
+}
+
+
 /* install_pxe_stack(): install PXE stack.
  * 
  * Use base = NULL for auto-allocation of base memory
@@ -78,6 +86,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	void (*pxe_in_call_far)(void);
 	void (*pxenv_in_call_far)(void);
 	void *rm_callback_code;
+	void *pxe_call32_code;
 	void *e820mangler_code;
 	void *end;
 
@@ -108,8 +117,10 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 		( pxe_callback_code - &pxe_callback_interface );
 	rm_callback_code = pxe_callback_code + pxe_callback_interface_size;
 	
-	e820mangler_code = (void*)(((int)rm_callback_code +
-				    rm_callback_interface_size + 0xf ) & ~0xf);
+	pxe_call32_code = (void*)(((int)rm_callback_code +
+				    rm_callback_interface_size ));
+	e820mangler_code = (void*)(((int)pxe_call32_code +
+				    pxe_call32_size + 0xf ) & ~0xf);
 	end = e820mangler_code + e820mangler_size;
 
 	/* Initialise !PXE data structures */
@@ -126,8 +137,8 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	pxe->EntryPointSP.segment = SEGMENT(pxe_stack);
 	pxe->EntryPointSP.offset = (void*)pxe_in_call_far - (void*)pxe_stack;
 	/* No %esp-compatible entry point yet */
-	pxe->EntryPointESP.segment = 0;
-	pxe->EntryPointESP.offset = 0;
+	pxe->EntryPointESP.segment = (((uint32_t) virt_to_phys(pxe_call32_code)) >> 16) & 0xffff;
+	pxe->EntryPointESP.offset = ((uint32_t) virt_to_phys(pxe_call32_code)) & 0xffff;
 	pxe->StatusCallout.segment = -1;
 	pxe->StatusCallout.offset = -1;
 	pxe->reserved_2 = 0;
@@ -195,6 +206,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	memcpy ( pxe_callback_code, &pxe_callback_interface,
 		 pxe_callback_interface_size );
 	install_rm_callback_interface ( rm_callback_code, 0 );
+	install_call32_interface(pxe_call32_code);
 	install_e820mangler ( e820mangler_code );
 
 	return pxe_stack;
