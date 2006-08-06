@@ -1415,6 +1415,11 @@ PXENV_EXIT_t pxe_api_call ( int opcode, t_PXENV_ANY *params ) {
 		break;
 	}
 
+	if(opcode != 0x32 && opcode != 0x33) {
+		printf("ret = %x\n", ret);
+	}
+
+
 	if ( params->Status != PXENV_STATUS_SUCCESS ) {
 		DBG ( " %hx", params->Status );
 	}

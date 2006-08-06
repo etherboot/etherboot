@@ -911,6 +911,9 @@ typedef struct {
 	char *caller_log_buf;
 	char prot_log_data[MAX_PROTLOG_LEN];
 
+	// memory reserved for communications between UNDI user app and Etherboot
+	char scratch_basemem[4096];
+
 	pxenv_t		pxenv	__attribute__ ((aligned(16)));
 	pxe_stack_state_t state;
 	union {

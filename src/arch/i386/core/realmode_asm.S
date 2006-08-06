@@ -841,7 +841,13 @@ cs_base:
 	lcall *%cs:(call32_tail_lptr - cs_base)(%ebx)
 #endif
 	/* Restore registers and segments */
-	popw	%ax /* Saved CS value -- ignore it */
+
+	/* Override %ax */
+	/* 6 segment registers * 2, ESP (4), + 7 * 4 (GPRs) */
+	movl %eax, (6 * 2 + 4 + 7 * 4)(%esp)
+	
+	/* Don't overwrite %ax (return value lives there) */
+	popw	%bx /* Saved CS value -- ignore it */
 
 	lss %ds:(%esp), %esp
 	addl $2, %esp // %esp was saved when only %ss was pushed on, so compensate jsut for %ss
