@@ -18,6 +18,8 @@
 #include <linux/if.h>
 #include <linux/if_tun.h>
 
+#include <pthread.h>
+
 // build process does not support including the following header
 // #include <linux/if_arp.h>
 // so we copy the definition we need
@@ -102,6 +104,10 @@ pxe_t *g_pxe;
 int tx_ring_head = 0;
 int tx_ring_tail = 0;
 int tx_pending = 0;
+
+int use_multithreaded_driver = 0;
+int tap_poll_interval = 1;
+int undi_poll_interval = 1;
 
 struct RingEntry {
 	char data[PKT_BUF_SIZE];
@@ -390,7 +396,7 @@ static int undi_isr(void) {
 	return !success;
 }
 
-static int do_poll(void) {
+static int do_undi_poll(void) {
 	// Based on Etherboot undi_poll()
 
 	undi.pxs->undi_isr.FuncFlag = PXENV_UNDI_ISR_IN_START;
@@ -483,8 +489,66 @@ static int undi_startup(void) {
 	return 1;
 }
 
+pthread_mutex_t dev_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+struct tap_ctl {
+	int fd;
+};
+
+void do_tap_poll(int tap_fd) {
+	struct pollfd poll_ctl[1] = {
+		{
+			.fd = tap_fd,
+			.events = POLLIN,
+			.revents = 0
+		}
+	};
+	poll(poll_ctl, 1, tap_poll_interval);
+
+	if(poll_ctl[0].revents & POLLIN) {
+		// Get packet, and queue for send
+		if((tx_ring_tail + 1) % TX_RING_LEN == tx_ring_head) {
+			printf("About to overflow tx ring\n");
+			return;
+		}
+		char send_buf[sizeof(struct tun_pi) + PKT_BUF_SIZE];
+		struct tun_pi *tp = (struct tun_pi *)send_buf;
+		char *pkt_data = send_buf + 4;
+
+		int len = read(tap_fd, send_buf, sizeof(send_buf));
+		if(tp->flags & TUN_PKT_STRIP) {
+			printf("Truncated packet!\n");
+			return;
+		}
+		len -= 4;
+		assert(len >= 0);
+
+		pthread_mutex_lock(&dev_mutex);
+		memcpy(tx_ring[tx_ring_tail].data, pkt_data, len);
+		tx_ring[tx_ring_tail].len = len;
+		tx_ring_tail = (tx_ring_tail + 1) % TX_RING_LEN;
+
+		transmit_next();
+		pthread_mutex_unlock(&dev_mutex);
+	}
+}
+
+void *tap_loop(void *_tap_ctl) {
+	struct tap_ctl *tap_ctl = (struct tap_ctl*)_tap_ctl;
+	int tap_fd = tap_ctl->fd;
+
+	while(1) {
+		do_tap_poll(tap_fd);
+	}
+}
+
 int main(int argc, char **argv) {
 	struct stat file_stat;
+	if(argc >= 2) {
+		use_multithreaded_driver = 1;
+	}
+	printf("Using multithreaded driver: %s\n", use_multithreaded_driver ? "yes" : "no");
+
 	if(stat(DEV_FNAME, &file_stat) != 0) {
 		if(errno == ENOENT) {
 			mode_t  mode = S_IFCHR;
@@ -659,42 +723,44 @@ int main(int argc, char **argv) {
 	}
 	printf("Using tap device %s\n", tapdev_name);
 
-	printf("Entering polling loop\n");
-	while(1) {
-		struct pollfd poll_ctl[1] = {
-			{
-				.fd = tap_fd,
-				.events = POLLIN,
-				.revents = 0
-			}
+	if(use_multithreaded_driver) {
+		tap_poll_interval = -1;
+		undi_poll_interval = 10;
+
+		pthread_t tap_thread;
+		struct tap_ctl tap_ctl = {
+			.fd = tap_fd
 		};
-		poll(poll_ctl, 1, 1);
 
-		if(poll_ctl[0].revents & POLLIN) {
-			// Get packet, and queue for send
-			if((tx_ring_tail + 1) % TX_RING_LEN == tx_ring_head) {
-				printf("About to overflow tx ring\n");
-				goto bad_packet;
-			}
-			char send_buf[sizeof(struct tun_pi) + PKT_BUF_SIZE];
-			struct tun_pi *tp = (struct tun_pi *)send_buf;
-			char *pkt_data = send_buf + 4;
-
-			int len = read(tap_fd, send_buf, sizeof(send_buf));
-			if(tp->flags & TUN_PKT_STRIP) {
-				printf("Truncated packet!\n");
-				goto bad_packet;
-			}
-			len -= 4;
-			assert(len >= 0);
-			memcpy(tx_ring[tx_ring_tail].data, pkt_data, len);
-			tx_ring[tx_ring_tail].len = len;
-			tx_ring_tail = (tx_ring_tail + 1) % TX_RING_LEN;
-
-			transmit_next();
+		printf("Forking tap thread\n");
+		int rv = pthread_create(&tap_thread, NULL, tap_loop, &tap_ctl);
+		if(rv != 0) {
+			printf("Could not fork tap thread\n");
+			exit(-1);
 		}
-	bad_packet:
-		do_poll();
+		printf("Entering device loop\n");
+
+		while(1) {
+			pthread_mutex_lock(&dev_mutex);
+
+			struct timespec ts = {
+				.tv_sec = 0,
+				.tv_nsec = undi_poll_interval * 1000000
+			};
+			nanosleep(&ts, NULL);
+
+			do_undi_poll();
+			pthread_mutex_unlock(&dev_mutex);
+		}
+	} else {
+		tap_poll_interval = 1;
+		undi_poll_interval = 0;
+
+		printf("Entering device loop\n");
+		while(1) {
+			do_tap_poll(tap_fd);
+			do_undi_poll();
+		}
 	}
 	print_log();
 	return 0;
