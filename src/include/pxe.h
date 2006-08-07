@@ -603,6 +603,58 @@ typedef struct {
 	PXENV_STATUS_t	Status;
 } PACKED t_PXENV_STOP_BASE;
 
+
+// Etherboot extensions
+
+#define	PXENV_EB_UNDI_CHECK32 		0x0100
+	#define	PXENV_EB_UNDI_CHECK32_SUCCESS 	0x1111 
+
+#define	PXENV_EB_UNDI_GET_LOWMEM	0x0101
+
+#define	PXENV_EB_UNDI_CONFIG32 		0x0102
+typedef struct {
+	uint8_t *buf;
+	uint32_t tail;
+	uint32_t len;
+
+	uint32_t ack; // used to sanity check 16:32 call
+} PACKED t_EB_LogControl;
+
+typedef struct {
+	PXENV_STATUS_t	Status;
+	t_EB_LogControl *log_control_addr; // Virtual address of log control structure
+} PACKED t_PXENV_EB_Config32;
+
+#define	PXENV_EB_UNDI_QueryPCI 		0x0103
+
+typedef struct {
+	PXENV_STATUS_t	Status;
+
+	// Outputs
+	uint8_t 		Bus;
+	uint8_t 		Device;
+	uint8_t 		Function;
+} PACKED t_PXENV_EB_QueryPCI;
+
+#define	PXENV_EB_UNDI_SetPCIBar 		0x0104
+
+typedef struct {
+	uint32_t	Type; // 0 = PIO-space, 1 = MMIO-space
+	uint32_t 	VBase;
+	uint32_t	Length;
+} PACKED t_PXENV_EB_BarSpec;
+
+typedef struct {
+	PXENV_STATUS_t	Status;
+
+	// Inputs
+	uint8_t 		Bus;
+	uint8_t 		Device;
+	uint8_t 		Function;
+
+	int32_t		BarCount;
+} PACKED t_PXENV_EB_SetPCIBar;
+
 /*****************************************************************************
  * The following portion of this file is derived from netboot's
  * general.h86.  Do not remove the copyright notice below.
@@ -889,6 +941,10 @@ typedef union {
 	t_PXENV_START_BASE		start_base;
 	t_PXENV_STOP_BASE		stop_base;
 	undi_loader_t			loader;
+
+	t_PXENV_EB_Config32	config32;
+	t_PXENV_EB_QueryPCI	query_pci;
+	t_PXENV_EB_SetPCIBar	set_pci_bar;
 } t_PXENV_ANY;
 
 /* PXE stack status indicator.  See pxe_export.c for further
@@ -906,10 +962,9 @@ typedef enum {
 #define PXE_TFTP_MAGIC_COOKIE ( ( 'P'<<24 ) | ( 'x'<<16 ) | ( 'T'<<8 ) | 'f' )
 typedef struct {
 	pxe_t		pxe	__attribute__ ((aligned(16)));
-#define MAX_PROTLOG_LEN (1024)
-	int prot_log_tail;
-	char *caller_log_buf;
-	char prot_log_data[MAX_PROTLOG_LEN];
+	char ignored[64]; // Padding to make older versions malfunction
+
+	t_EB_LogControl *log_control;
 
 	// memory reserved for communications between UNDI user app and Etherboot
 	char scratch_basemem[4096];
@@ -933,5 +988,7 @@ typedef struct {
 	};
 	struct {}	arch_data __attribute__ ((aligned(16)));
 } pxe_stack_t;
+
+#define USERLOG_CONFIGED() (pxe_stack->log_control != NULL)
 
 #endif /* PXE_H */

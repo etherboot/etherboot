@@ -45,7 +45,7 @@ uint32_t i386_in_call ( va_list ap, i386_pm_in_call_data_t pm_data,
 	} in_stack;
 
 #if 1
-	if(pxe_stack->caller_log_buf != NULL) {
+	if( USERLOG_CONFIGED() ) {
 		printf("ap = %08x, opcode = %x, ", ap, opcode);
 		printf("segs: %x %x %x %x %x %x\n", 
 		       pm_data.seg_regs.cs, pm_data.seg_regs.ss,

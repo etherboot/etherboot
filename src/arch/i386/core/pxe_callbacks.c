@@ -108,8 +108,7 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 	memset ( pxe_stack, 0, sizeof(*pxe_stack) );
 	
 	/* Set up protected mode log */
-	pxe_stack->prot_log_tail = 0;
-	strcpy(pxe_stack->prot_log_data + 1, "Initial log\n");
+	pxe_stack->log_control = NULL;
 
 	/* Calculate addresses for portions of the stack */
 	pxe = &(pxe_stack->pxe);
@@ -333,7 +332,7 @@ int pxe_in_call ( in_call_data_t *in_call_data, va_list params ) {
 	segoff_t segoff;
 	t_PXENV_ANY *structure;
 
-	if(pxe_stack->caller_log_buf != NULL) {
+	if( USERLOG_CONFIGED() ) {
 		printf("api_version %x ", api_version);
 	}
 	if ( api_version >= 0x201 ) {
@@ -342,7 +341,7 @@ int pxe_in_call ( in_call_data_t *in_call_data, va_list params ) {
 			= va_arg ( params, typeof(pxe_params) );
 		opcode = pxe_params.opcode;
 		segoff = pxe_params.segoff;
-		if(pxe_stack->caller_log_buf != NULL) {
+		if(  USERLOG_CONFIGED() ) {
 			printf("opcode = %d segoff = %x:%x = %x\n", opcode, 
 			       segoff.segment, segoff.offset, VIRTUAL ( segoff.segment, segoff.offset ));
 		}

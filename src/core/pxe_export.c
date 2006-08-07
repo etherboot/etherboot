@@ -1267,6 +1267,87 @@ PXENV_EXIT_t pxenv_undi_loader ( undi_loader_t *loader ) {
 	return PXENV_EXIT_SUCCESS;
 }
 
+/* 16:32 PXE API entry points */
+/* The following are extensions to support userspace UNDI drivers under Linux */
+
+/* PXENV_EB_UNDI_CHECK32
+ *
+ * Status: Complete
+ *
+ *  Check whether the 16:32 extensions are available from the PXE
+ *  stack.  Since no memory for exchanging arguments and return
+ *  values is yet configured, the return value is stored in %ax
+ *
+ * As a side-effect, Check32 resets get_lowmem state
+ */
+
+static int get_lowmem_state = 0;
+
+// Note: needs exactly one argument to work correctly with entry stub
+PXENV_EXIT_t pxenv_eb_undi_check32 ( void *ignored ) {
+	ignored = NULL; // suppress warning
+	get_lowmem_state = 0;
+	return PXENV_EB_UNDI_CHECK32_SUCCESS;
+}
+
+/* PXENV_EB_UNDI_GET_LOWMEM
+ *
+ * Status: Complete
+
+ *	Return the low memory address and length of parameter area to
+ *	use for 32-bit UNDI driver
+
+ *  Each call returns 16 bits. Invoke this 3 times to get all data 
+ *  Data is returned MSB first 
+ *  47:32 Length of region (bytes) 
+ *  31:0 Base address (bytes)
+ */
+
+// Note: needs exactly one argument to work correctly with entry stub
+PXENV_EXIT_t pxenv_eb_undi_getlowmem( void *ignored ) {
+	ignored = NULL; // suppress warning
+	int ret = 0xdeadbeef;
+	unsigned int scratch_addr = virt_to_phys(pxe_stack->scratch_basemem);
+	switch(get_lowmem_state) {
+	case 0:
+		ret = sizeof(pxe_stack->scratch_basemem);
+		break;
+	case 1:
+		ret = (scratch_addr >> 16) & 0xffff;
+		break;
+	case 2:
+		ret = scratch_addr & 0xffff;
+		break;
+	default:
+		printf("Unknown lowmem state!\n");
+	}
+	get_lowmem_state++;
+	if(get_lowmem_state == 3) {
+		get_lowmem_state = 0;
+	}
+	return ret;
+}
+
+/* PXENV_EB_UNDI_CONFIG32
+ *
+ * Status: Complete
+ *
+ * Misc. configuration of 16:32 API extension. Currently used to redirect Etherboot
+ * logging output to userspace buffer.
+ *
+ */
+
+PXENV_EXIT_t pxenv_eb_undi_config32(t_PXENV_EB_Config32 *config32) {
+	pxe_stack->log_control = phys_to_virt(config32->log_control_addr);
+
+	pxe_stack->log_control->tail = 0;
+	pxe_stack->log_control->ack = 0xdeadbeef;
+
+	config32->Status = PXENV_STATUS_SUCCESS;
+	return 0;
+}
+
+
 /* API call dispatcher
  *
  * Status: complete
@@ -1275,7 +1356,9 @@ PXENV_EXIT_t pxe_api_call ( int opcode, t_PXENV_ANY *params ) {
 	PXENV_EXIT_t ret = PXENV_EXIT_FAILURE;
 
 	/* Set default status in case child routine fails to do so */
-	params->Status = PXENV_STATUS_FAILURE;
+	if(params != NULL) {
+		params->Status = PXENV_STATUS_FAILURE;
+	}
 
 	DBG ( "[" );
 
@@ -1407,10 +1490,22 @@ PXENV_EXIT_t pxe_api_call ( int opcode, t_PXENV_ANY *params ) {
 	case PXENV_UNDI_LOADER:
 		ret = pxenv_undi_loader ( &params->loader );
 		break;
-		
+
+	// Etherboot extensions
+	case PXENV_EB_UNDI_CHECK32:
+		ret = pxenv_eb_undi_check32(NULL);
+		break;
+	case PXENV_EB_UNDI_GET_LOWMEM:
+		ret = pxenv_eb_undi_getlowmem(NULL);
+		break;
+	case PXENV_EB_UNDI_CONFIG32:
+		ret = pxenv_eb_undi_config32( &params->config32 );
+		break;
 	default:
 		DBG ( "PXENV_UNKNOWN_%hx", opcode );
-		params->Status = PXENV_STATUS_UNSUPPORTED;
+		if(params != NULL) {
+			params->Status = PXENV_STATUS_UNSUPPORTED;
+		}
 		ret = PXENV_EXIT_FAILURE;
 		break;
 	}
@@ -1420,7 +1515,7 @@ PXENV_EXIT_t pxe_api_call ( int opcode, t_PXENV_ANY *params ) {
 	}
 
 
-	if ( params->Status != PXENV_STATUS_SUCCESS ) {
+	if ( params != NULL && params->Status != PXENV_STATUS_SUCCESS ) {
 		DBG ( " %hx", params->Status );
 	}
 	if ( ret != PXENV_EXIT_SUCCESS ) {
