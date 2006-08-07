@@ -527,7 +527,7 @@ static int setup_log(void) {
 
 	undi.pxs->config32.log_control_addr = &log_control;
 	call_pxe(PXENV_EB_UNDI_CONFIG32);
-	printf("ack = %x\n", log_control.ack);
+	printf("ack = %x\n", (int)log_control.ack);
 
 	return UNDI_STATUS_BOOL(undi.pxs);
 }
@@ -892,11 +892,11 @@ void peek(char *location, int len) {
 	hexdump(location, len);
 }
 
-static void ifconfig(char *dev, char *command) {
+static int ifconfig(char *dev, char *command) {
 	char cmd_str[80];
 	sprintf(cmd_str, "%s %s %s", IFCONFIG_PATH, dev, command);
 	printf("Issuing '%s'\n", cmd_str);
-	system(cmd_str);
+	return system(cmd_str);
 }
 
 static int tap_alloc(char *dev, char *hwaddr)
@@ -934,7 +934,11 @@ static int tap_alloc(char *dev, char *hwaddr)
 		sprintf(etherstr + strlen(etherstr), "%02x",
 			(int)((unsigned char*)hwaddr)[i]);
 	}
-	ifconfig(dev, etherstr);
+	if(ifconfig(dev, etherstr) != 0) {
+		printf("Could not set up MAC address!\n");
+		close(fd);
+		return -1;
+	}
 
 	return fd;
 }
