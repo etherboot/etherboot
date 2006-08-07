@@ -174,8 +174,6 @@ int call_pxe(int opcode) {
 	return retval;
 }
 
-int *log_position;
-char *log_base;
 char caller_log_buf[1024];
 
 char *arg_buffer;
@@ -183,8 +181,13 @@ int arg_buffer_len;
 
 int undi_opened = 0;
 
-void print_log(void) {
+static void print_log(void) {
 	printf(caller_log_buf);
+}
+
+static void wait_for_kb(void) {
+	char scratch[80];
+	gets(scratch);
 }
 
 static int undi_get_information(void) {
@@ -489,6 +492,47 @@ static int undi_startup(void) {
 	return 1;
 }
 
+static int check_for_eb_extensions(void) {
+	int success = call_pxe(PXENV_EB_UNDI_CHECK32);
+	return (success == 0x1111);
+}
+
+static int setup_arg_buffer(void) {
+	arg_buffer_len = call_pxe(PXENV_EB_UNDI_GET_LOWMEM);
+	printf("Arg buffer len = %d\n", arg_buffer_len);
+
+	arg_buffer = NULL;
+	unsigned short data;
+	data = call_pxe(PXENV_EB_UNDI_GET_LOWMEM);
+	arg_buffer = (char *)(data<<16);
+	data = call_pxe(PXENV_EB_UNDI_GET_LOWMEM);
+	arg_buffer = (char *)((int)arg_buffer | (data & 0xffff));
+	printf("Arg buffer location = %p\n", arg_buffer);
+
+	undi.pxs = (t_PXENV_ANY *) arg_buffer;
+	undi.xmit_data = (void*)(undi.pxs + 1);
+	undi.tx_buffer = (void *)(undi.xmit_data + 1);
+	undi.rx_buffer = undi.tx_buffer + PKT_BUF_SIZE;
+	return 1;
+}
+
+static t_EB_LogControl log_control;
+
+static int setup_log(void) {
+	memset(undi.pxs, 0, sizeof(*undi.pxs));
+	log_control.buf = caller_log_buf;
+	log_control.len = sizeof(caller_log_buf);
+	log_control.tail = 0;
+	log_control.ack = -1;
+
+	undi.pxs->config32.log_control_addr = &log_control;
+	call_pxe(PXENV_EB_UNDI_CONFIG32);
+	printf("ack = %x\n", log_control.ack);
+
+	return UNDI_STATUS_BOOL(undi.pxs);
+}
+
+
 pthread_mutex_t dev_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct tap_ctl {
@@ -607,22 +651,6 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	/* Etherboot-specific hacks to get log and base memory space */
-
-	log_position = (int*)((char*)(g_pxe) + sizeof(*g_pxe));
-	*(char **)(log_position + 1) = caller_log_buf;
-	log_base = (char *) (log_position + 2);
-	printf(" initial data = %s\n", log_base + 1);
-
-	// skip past prot_log_tail, caller_log_buf, and prot_log_data
-	arg_buffer = (char*) log_position + 8 + 1024;
-
-	arg_buffer_len = 4096;
-	undi.pxs = (t_PXENV_ANY *) arg_buffer;
-	undi.xmit_data = (void*)(undi.pxs + 1);
-	undi.tx_buffer = (void *)(undi.xmit_data + 1);
-	undi.rx_buffer = undi.tx_buffer + PKT_BUF_SIZE;
-
 	entrypoint32 = (void*) ((g_pxe->EntryPointESP.segment << 16) | 
 				g_pxe->EntryPointESP.offset);
 
@@ -701,11 +729,31 @@ int main(int argc, char **argv) {
 		printf("Modify ldt(ds) error %d\n", errno);
 	}
 
+	undi.pxs = NULL;
+	printf("Checking for EB extensions\n");
+	if(!check_for_eb_extensions()) {
+		printf("Etherboot extensions not found!\n");
+		exit(-1);
+	}
+
+	// Segments are set up. Let's initialize the argument buffer and the logs
+	// Can't initialize logs without being able to pass in arguments, so do that second
+	printf("Setting up arg buffer\n");
+	if(!setup_arg_buffer()) {
+		printf("setup arg buffer failure\n");
+		exit(-1);
+	}
+	printf("Setting up user log\n");
+	if(!setup_log()) {
+		printf("setup log failure\n");
+		exit(-1);
+	}
+
 	// Setting IOPL3
 	printf("Setting IOPL3\n");
 	if(iopl(3) != 0) {
 		printf("IOPL error %d\n", errno);
-		return -1;
+		exit(-1);
 	}
 
 	if(!undi_startup()) {
@@ -713,6 +761,8 @@ int main(int argc, char **argv) {
 		print_log();
 		exit(-1);
 	}
+
+	print_log();
 
 	// Create tap device
 	char tapdev_name[IFNAMSIZ] = "";
