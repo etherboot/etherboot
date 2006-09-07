@@ -128,8 +128,11 @@ UNDIROMID:
 	 * real-mode stack because we will only ever be called via the
 	 * PXE API, hence our stack is already in base memory.
 	 */
+	.globl	UNDICodeSize
 	.equ	UNDICodeSize, _pxe_stack_size
+	.globl	UNDIDataSize
 	.equ	UNDIDataSize, _real_mode_stack_size
+	.globl	UNDIStackSize
 	.equ	UNDIStackSize, _real_mode_stack_size
 UNDIROMID_end:	
 #endif	/* PXE_EXPORT */
