@@ -7,7 +7,7 @@
 #include "callbacks.h"
 
 #if	1	/* CODE16 */
-	
+
 #define BOCHSBP xchgw %bx,%bx
 
 #define NUM_PUSHA_REGS (8)
@@ -17,7 +17,7 @@
 	.arch i386
 	.section ".text16.nocompress", "ax", @progbits
 	.code16
-	
+
 	.equ	CR0_PE,1
 
 #ifdef	GAS291
@@ -94,7 +94,7 @@ _rm_in_call_far:
 #define RIC_OFFSET_RETADDR_E ( RIC_OFFSET_RETADDR + 4 )
 #define RIC_OFFSET_ORIG_OPCODE ( RIC_OFFSET_RETADDR_E )
 #define RIC_INSERT_LENGTH ( RIC_OFFSET_OPCODE_E - RIC_OFFSET_CALLADDR )
-	
+
 	.code16
 _real_in_call:
 	/* Expand near return address to far return address
@@ -109,7 +109,7 @@ _real_in_call:
 	popw	%bp
 	popfw
 	/* Fall through to _real_in_call_far */
-	
+
 _real_in_call_far:
 	/* Store flags and pad */
 	pushfw
@@ -129,7 +129,7 @@ _real_in_call_far:
 
 	/* Allow space for expanded stack */
 	subl	$RIC_INSERT_LENGTH, %esp
-	
+
 	/* Store temporary registers */
 	pushl	%ebp
 	pushl	%eax
@@ -141,18 +141,18 @@ _real_in_call_far:
 	movl	RIC_OFFSET_ORIG_OPCODE(%esp), %eax
 	orl	$(EB_CALL_FROM_REAL_MODE|EB_SKIP_OPCODE), %eax
 	movl	%eax, RIC_OFFSET_OPCODE(%esp)
-	
+
 	/* Set up call and return addresses */
 	call	1f
 1:	popl	%ebp
 	subl	$1b, %ebp			/* %ebp = offset */
-	movl	rm_etherboot_location(%ebp), %eax  /* Etherboot phys addr */
+	movl	rm_etherboot_location(%ebp), %eax	/* Etherboot phys addr */
 	subl	$_text, %eax
 	addl	$_in_call, %eax			/* _in_call phys addr */
 	movl	%eax, RIC_OFFSET_CALLADDR(%esp)
 	leal	2f(%ebp), %eax			/* continuation address */
 	movl	%eax, RIC_OFFSET_CONTADDR(%esp)
-	
+
 	/* Restore temporary registers */
 	popl	%eax
 	popl	%ebp
@@ -196,7 +196,7 @@ _real_in_call_far:
  */
 	.globl rm_etherboot_location
 rm_etherboot_location:	.long 0
-		
+
 /****************************************************************************
  * _prot_to_real_prefix
  *
@@ -206,7 +206,7 @@ rm_etherboot_location:	.long 0
  * stack in base memory.
  ****************************************************************************
  */
-	
+
 	.globl _prot_to_real_prefix
 	.code32
 _prot_to_real_prefix:
@@ -239,10 +239,10 @@ _prot_to_real_prefix:
 	call	_prot_to_real
 	.code16
 	addw	$4, %sp
-		
+
 	/* Fall through to next trampoline fragment */
 	jmp	_prot_to_real_prefix_end
-	
+
 /****************************************************************************
  * _prot_to_real
  *
@@ -273,7 +273,7 @@ _prot_to_real:
 	pushl	%ebp
 	pushl	%ebx
 	pushl	%eax
-	
+
 	/* Calculate offset */
 	call	1f
 1:	popl	%ebp
@@ -349,8 +349,8 @@ _prot_to_real:
 	 * and reload %cs:%eip (to clear upper 16 bits of %eip).
 	 */
 	lret
-3:		
-	
+3:
+
 	/* Load real-mode segment value to %ss.  %sp already OK */
 	shrl	$4, %eax
 	movw	%ax, %ss
@@ -396,13 +396,13 @@ p2r_ss:		.word 0
 p2r_r2p_params:	.long 0
 	.globl	_prot_to_real_prefix_end
 _prot_to_real_prefix_end:
-	
+
 	.globl	_prot_to_real_prefix_size
 	.equ	_prot_to_real_prefix_size, _prot_to_real_prefix_end - _prot_to_real_prefix
 	.globl	prot_to_real_prefix_size
-prot_to_real_prefix_size:	
+prot_to_real_prefix_size:
 	.word	_prot_to_real_prefix_size
-	
+
 /****************************************************************************
  * _real_to_prot_suffix
  *
@@ -461,7 +461,7 @@ _real_to_prot_suffix:
 #define R2P_OFFSET_ORIG_RETADDR ( R2P_OFFSET_RETADDR + 2 )
 
 	.globl _real_to_prot
-	.code16		
+	.code16
 _real_to_prot:
 	/* Disable interrupts */
 	cli
@@ -511,7 +511,7 @@ _real_to_prot:
 	shll	$4, %eax
 	movzwl	%sp, %ebp
 	addl	%eax, %ebp		/* %ebp = new %esp */
-	
+
 	/* Load GDT */
 	DATA32 lgdt %ds:(r2p_gdt-1b)(%bx)	/* Load GDT */
 
@@ -524,7 +524,7 @@ _real_to_prot:
 	DATA32 ljmp %ds:*(r2p_paddr-1b)(%bx)
 	.code32
 2:
-	
+
 	/* Load segment registers, adjust %esp */
 	movw	$(r2p_pmds-r2p_gdt), %ax
 	movw	%ax, %ss
@@ -663,8 +663,8 @@ _pxe_intercepted_int1a:	.word 0,0
 _pxe_pxenv_location:
 _pxe_pxenv_offset:	.word 0
 _pxe_pxenv_segment:	.word 0
-	
-pxe_rm_in_call:	
+
+pxe_rm_in_call:
 pxe_attach_rm:
 	/* rm_callback_interface must be appended here */
 
@@ -677,19 +677,19 @@ pxe_callback_interface_size:
 	.word	_pxe_callback_interface_size
 
 #else	/* PXE_EXPORT */
-	
+
 /* Define symbols used by the linker scripts, to prevent link errors */
 	.globl	_pxe_callback_interface_size
-	.equ	_pxe_callback_interface_size, 0	
-	
+	.equ	_pxe_callback_interface_size, 0
+
 #endif	/* PXE_EXPORT */
 
 #else	/* CODE16 */
 
 /* Define symbols used by the linker scripts, to prevent link errors */
 	.globl	_rm_callback_interface_size
-	.equ	_rm_callback_interface_size, 0	
+	.equ	_rm_callback_interface_size, 0
 	.globl	_pxe_callback_interface_size
-	.equ	_pxe_callback_interface_size, 0	
-		
+	.equ	_pxe_callback_interface_size, 0
+
 #endif	/* CODE16 */

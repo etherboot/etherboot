@@ -34,7 +34,7 @@
 #include "callbacks.h"
 #define NUM_PUSHA_REGS (8)
 #define NUM_SEG_REGS (6)
-	
+
 /*
  * NOTE: if you write a subroutine that is called from C code (gcc/egcs),
  * then you only have to take care of %ebx, %esi, %edi and %ebp.  These
@@ -64,7 +64,7 @@
 	.text
 	.arch i386
 	.code32
-	
+
 /**************************************************************************
 _IN_CALL - make a call in to Etherboot.
 **************************************************************************/
@@ -95,7 +95,7 @@ _IN_CALL - make a call in to Etherboot.
 #define IC_OFFSET_OPCODE ( IC_OFFSET_ORIG_STACK + 8 )
 #define IC_OFFSET_OPCODE_E ( IC_OFFSET_OPCODE + 4 )
 #define IC_OFFSET_VA_LIST ( IC_OFFSET_OPCODE_E )
-	
+
 	.code32
 	.globl _in_call
 	.globl _in_call_far
@@ -177,7 +177,7 @@ _in_call_far:
 	pushl	%eax			/* Continuation segment */
 	leal	1f(%ebp), %eax
 	pushl	%eax			/* Continuation offset */
-	
+
 	/* Restore caller's GDT */
 	cli				/* Temporarily disable interrupts */
 	lgdt	(8+IC_OFFSET_GDT)(%esp)
@@ -204,7 +204,7 @@ _in_call_far:
 	 * different if EB_USE_INTERNAL_STACK was specified.
 	 */
 	movl	( 12 + IC_OFFSET_REGISTERS - IC_OFFSET_RETADDR )(%esp), %esp
-		
+
 	/* Check for EB_SKIP_OPCODE */
 	pushfl
 	testl	$EB_SKIP_OPCODE, 12(%esp)
@@ -215,7 +215,7 @@ _in_call_far:
 1:	/* Return and skip opcode */
 	popfl
 	lret	$4
-	
+
 /**************************************************************************
 RELOCATE_TO - relocate etherboot to the specified address
 **************************************************************************/
@@ -229,7 +229,7 @@ relocate_to:
 	/* Compute the virtual destination address */
 	movl	16(%esp), %edi	# dest
 	subl	virt_offset, %edi
-	
+
 
 	/* Compute the new value of virt_offset */
 	movl	16(%esp), %ebp	# virt_offset
@@ -254,7 +254,7 @@ relocate_to:
 	subl	%esi, %ecx
 
 	/* Move etherboot uses %esi, %edi, %ecx */
-	rep 
+	rep
 	movsb
 
 	/* Reload the gdt */
@@ -312,7 +312,7 @@ xstart32:
 
 	/* Cache virt_offset */
 	movl	virt_offset, %ebp
-	
+
 	/* Switch to using physical addresses */
 	call	_virt_to_phys
 
@@ -339,7 +339,7 @@ xend32:
 	nop
 	cli
 	cld
-	
+
 	/* Load %esp with &os_regs + virt_offset */
 	.byte	0xbc /* movl $0, %esp */
 os_regs_ptr:
@@ -352,7 +352,7 @@ os_regs_ptr:
 	/* Compute virt_offset */
 	movl	%esp, %ebp
 	subl	$os_regs, %ebp
-	
+
 	/* Load the stack pointer and convert it to physical address */
 	movl	52(%esp), %esp
 	addl	%ebp, %esp
@@ -481,7 +481,7 @@ start_lm:
 	/* Get the address to jump to */
 	movl	20(%rbx), %edx
 	andq	$0xffffffff, %rdx
-	
+
 	/* Get the argument pointer */
 	movl	24(%rbx), %ebx
 	andq	$0xffffffff, %rbx
@@ -516,7 +516,7 @@ end_lm:
 	movl	%cr4, %eax
 	andl	$~X86_CR4_PAE, %eax
 	movl	%eax, %cr4
-	
+
 	/* Compute virt_offset */
 	popl	%ebp
 
@@ -600,10 +600,10 @@ _virt_to_phys:
 	/* reload other segment registers */
 	movl	$FLAT_DATA_SEG, %eax
 	movl	%eax, %ds
-	movl	%eax, %es	
-	movl	%eax, %ss	
+	movl	%eax, %es
+	movl	%eax, %ss
 	addl	%ebp, %esp		/* Adjust the stack pointer */
-	movl	%eax, %fs	
+	movl	%eax, %fs
 	movl	%eax, %gs
 
 	popl	%eax
@@ -644,10 +644,10 @@ _phys_to_virt:
 	/* reload other segment regsters */
 	movl	$KERN_DATA_SEG, %eax
 	movl	%eax, %ds
-	movl	%eax, %es	
-	movl	%eax, %ss	
+	movl	%eax, %es
+	movl	%eax, %ss
 	subl	%ebp, %esp	/* Adjust the stack pointer */
-	movl	%eax, %fs	
+	movl	%eax, %fs
 	movl	%eax, %gs
 
 	subl	%ebp, 12(%esp)	/* Adjust the return address */
@@ -675,7 +675,7 @@ set_seg_base:
 	popl	%ebx
 	popl	%eax
 	ret
-	
+
 /**************************************************************************
 GLOBAL DESCRIPTOR TABLE
 **************************************************************************/
@@ -739,10 +739,10 @@ _gdt_end:
 initial_regs:
 	.fill 8, 4, 0
 
-	/* The virtual address offset  */	
+	/* The virtual address offset  */
 	.globl virt_offset
 virt_offset:
-	.long  	0
+	.long	0
 
 	.section ".stack"
 	.p2align 3
@@ -758,11 +758,11 @@ _estack:
 	/* Include a dummy space in case we are loaded badly aligned */
 	.space 4096
 	/* Reserve enough space for a page table convering 4GB with 2MB pages */
-pgt_level4:	
+pgt_level4:
 	.space 4096
-pgt_level3:	
+pgt_level3:
 	.space 4096
-pgt_level2:	
+pgt_level2:
 	.space 16384
 start_lm_addr:
 	.space	8

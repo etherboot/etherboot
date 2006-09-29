@@ -64,7 +64,7 @@ uint8_t byte_checksum ( void *address, size_t size ) {
 }
 
 /* install_pxe_stack(): install PXE stack.
- * 
+ *
  * Use base = NULL for auto-allocation of base memory
  *
  * IMPORTANT: no further allocation of base memory should take place
@@ -96,17 +96,17 @@ pxe_stack_t * install_pxe_stack ( void *base ) {
 		( phys_to_virt ( ( virt_to_phys(base) + 0xf ) & ~0xf ) );
 	/* Zero out allocated stack */
 	memset ( pxe_stack, 0, sizeof(*pxe_stack) );
-	
+
 	/* Calculate addresses for portions of the stack */
 	pxe = &(pxe_stack->pxe);
 	pxenv = &(pxe_stack->pxenv);
 	pxe_callback_code = &(pxe_stack->arch_data);
-	pxe_in_call_far = _pxe_in_call_far +  
+	pxe_in_call_far = _pxe_in_call_far +
 		( pxe_callback_code - &pxe_callback_interface );
 	pxenv_in_call_far = _pxenv_in_call_far +
 		( pxe_callback_code - &pxe_callback_interface );
 	rm_callback_code = pxe_callback_code + pxe_callback_interface_size;
-	
+
 	e820mangler_code = (void*)(((int)rm_callback_code +
 				    rm_callback_interface_size + 0xf ) & ~0xf);
 	end = e820mangler_code + e820mangler_size;
@@ -267,7 +267,7 @@ int xstartpxe ( void ) {
 		reg16_t es;
 		segoff_t pxe;
 	} PACKED in_stack;
-	
+
 	/* Set up registers and stack parameters to pass to PXE NBP */
 	in_stack.es.word = SEGMENT(&(pxe_stack->pxenv));
 	in_stack.bx.word = OFFSET(&(pxe_stack->pxenv));
@@ -276,7 +276,7 @@ int xstartpxe ( void ) {
 
 	/* Real-mode trampoline fragment used to jump to PXE NBP
 	 */
-	RM_FRAGMENT(jump_to_pxe_nbp, 
+	RM_FRAGMENT(jump_to_pxe_nbp,
 		"popw %bx\n\t"
 		"popw %es\n\t"
 		"lcall $" RM_STR(PXE_LOAD_SEGMENT) ", $" RM_STR(PXE_LOAD_OFFSET) "\n\t"
@@ -304,7 +304,7 @@ int pxe_in_call ( in_call_data_t *in_call_data, va_list params ) {
 	uint16_t opcode;
 	segoff_t segoff;
 	t_PXENV_ANY *structure;
-		
+
 	if ( api_version >= 0x201 ) {
 		/* !PXE calling convention */
 		pxe_call_params_t pxe_params

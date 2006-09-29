@@ -10,7 +10,7 @@
 #define RM_STACK_SIZE ( 0x1000 )
 
 /* gcc won't let us use extended asm outside a function (compiler
- * bug), ao we have to put these asm statements inside a dummy
+ * bug), so we have to put these asm statements inside a dummy
  * function.
  */
 static void work_around_gcc_bug ( void ) __attribute__ ((used));

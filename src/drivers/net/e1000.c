@@ -87,8 +87,8 @@ typedef enum {
 
 #include "e1000_hw.h"
 
-#define RX_BUFS 	8
-#define MAX_PACKET 	2096
+#define RX_BUFS		8
+#define MAX_PACKET	2096
 
 /* NIC specific static variables go here */
 static struct e1000_hw hw;
