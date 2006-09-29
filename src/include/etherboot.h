@@ -27,7 +27,7 @@
 #define DEFAULT_BOOT_INDEX 0
 #endif
 
-#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE) && !defined(COFF_IMAGE) && !defined(RAW_IMAGE)
+#if	!defined(TAGGED_IMAGE) && !defined(AOUT_IMAGE) && !defined(ELF_IMAGE) && !defined(ELF64_IMAGE) && !defined(COFF_IMAGE) && !defined(RAW_IMAGE) && !defined(PXE_IMAGE)
 #define	TAGGED_IMAGE		/* choose at least one */
 #endif
 
@@ -236,7 +236,7 @@ extern int udp_transmit P((unsigned long destip, unsigned int srcsock,
 extern int tcp_transmit(unsigned long destip, unsigned int srcsock,
                        unsigned int destsock, long send_seq, long recv_seq,
                        int window, int flags, int len, const void *buf);
-int tcp_reset(struct iphdr *ip);
+extern int tcp_reset(struct iphdr *ip);
 typedef int (*reply_t)(int ival, void *ptr, unsigned short ptype, struct iphdr *ip, struct udphdr *udp, struct tcphdr *tcp);
 extern int await_reply P((reply_t reply,	int ival, void *ptr, long timeout));
 extern int decode_rfc1533 P((unsigned char *, unsigned int, unsigned int, int));
@@ -280,9 +280,9 @@ extern int pci_probe(struct dev *, const char *);
 /* heap.c */
 extern void init_heap(void);
 extern void *allot(size_t size);
-void forget(void *ptr);
+extern void forget(void *ptr);
 extern void *allot2(size_t size, uint32_t mask);
-void forget2(void *ptr);
+extern void forget2(void *ptr);
 /* Physical address of the heap */
 extern size_t heap_ptr, heap_top, heap_bot;
 
@@ -403,7 +403,7 @@ extern struct regs initial_regs;
 extern int xstart32(unsigned long entry_point, ...);
 extern int xstart_lm(unsigned long entry_point, unsigned long params);
 extern void xend32 P((void));
-struct Elf_Bhdr *prepare_boot_params(void *header);
+extern struct Elf_Bhdr *prepare_boot_params(void *header);
 extern int elf_start(unsigned long machine, unsigned long entry, unsigned long params);
 extern unsigned long currticks P((void));
 extern void exit P((int status));
