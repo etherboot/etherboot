@@ -402,7 +402,7 @@ static int pcnet32_init_ring(struct nic *nic)
 	lp->cur_rx = lp->cur_tx = 0;
 
 	for (i = 0; i < RX_RING_SIZE; i++) {
-		rx_ring[i].base = (u32) virt_to_le32desc(&rxb[i]);
+		rx_ring[i].base = (u32) virt_to_le32desc(&rxb[i * PKT_BUF_SZ]);
 		rx_ring[i].buf_length = le16_to_cpu(-PKT_BUF_SZ);
 		rx_ring[i].status = le16_to_cpu(0x8000);
 	}
@@ -566,7 +566,7 @@ static int pcnet32_poll(struct nic *nic __unused, int retrieve)
 	if (status == 0x03) {
 		nic->packetlen =
 		    (le32_to_cpu(rx_ring[entry].msg_length) & 0xfff) - 4;
-		memcpy(nic->packet, &rxb[entry], nic->packetlen);
+		memcpy(nic->packet, &rxb[entry * PKT_BUF_SZ], nic->packetlen);
 
 		/* Andrew Boyd of QNX reports that some revs of the 79C765
 		 * clear the buffer length */
@@ -950,7 +950,7 @@ static int pcnet32_probe(struct dev *dev, struct pci_device *pci)
 		else if (lp->mii_if.advertising & ADVERTISE_10HALF)
 			printf("10Mbps Half-Duplex\n");
 		else
-			printf("\n");
+			printf("No Link?\n");
 	} else {
 		/* The older chips are fixed 10Mbps, and some support full duplex,
 		 * although not via autonegotiation, but only via configuration.  */
