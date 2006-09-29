@@ -115,7 +115,7 @@
 #			Define a default bootfile for the case where your DHCP
 #			server does not provide the information.  Examples:
 #			  -DDEFAULT_BOOTFILE=\"tftp:///tftpboot/kernel.nbi\"
-#			  -DDEFAULT_BOOTFILE-\"tftp://1.2.4.5/lts/pxelinux.0\"
+#			  -DDEFAULT_BOOTFILE=\"tftp://1.2.4.5/lts/pxelinux.0\"
 #			If you do not specify this option, then DHCP offers that
 #			do not specify bootfiles will be ignored.
 #
