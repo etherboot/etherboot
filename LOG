@@ -2947,3 +2947,8 @@ Released as Etherboot 5.4.2
   forcedeth and e1000, since the buffers were getting overflowed 
   with both controllers on subnets with heavy multicast traffic at 
   gigabit speeds.
+
++ Klaus Espenlaub contributed a fix to the pcnet32 driver receive buffer
+  handling, a fix to get ProxyDHCP working again (by backing out one of my
+  previous changes), a fix for saving/restoring the BIOS's stack pointer,
+  plus a number of minor cleanups.
