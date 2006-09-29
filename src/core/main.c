@@ -189,8 +189,10 @@ static struct class_operations {
 }
 operations[] = {
 	{ &nic.dev,  eth_probe,  eth_load_configuration,  eth_load  },
+#if ((BOOT_FIRST == BOOT_DISK) || (BOOT_FIRST == BOOT_FLOPPY) || (BOOT_SECOND == BOOT_DISK) || (BOOT_SECOND == BOOT_FLOPPY) || (BOOT_THIRD == BOOT_DISK) || (BOOT_THIRD == BOOT_FLOPPY))
 	{ &disk.dev, disk_probe, disk_load_configuration, disk_load },
 	{ &disk.dev, disk_probe, disk_load_configuration, disk_load },
+#endif
 };
 
 
