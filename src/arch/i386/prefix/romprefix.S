@@ -34,7 +34,7 @@
 /* Prefix exit codes.  We store these on the stack so that we will
  * know how to return control to the BIOS when Etherboot exits.
  */
-#define EXIT_VIA_LRET  		0x0
+#define EXIT_VIA_LRET		0x0
 #define EXIT_VIA_INT_18		0x1
 #define EXIT_VIA_BOOT_INT	0x2
 
@@ -44,7 +44,7 @@
 	.org 0
 	.section ".prefix", "ax", @progbits
 	.globl _prefix
-_prefix: 
+_prefix:
 	.word 0xAA55			/* BIOS extension signature */
 size:	.byte 0				/* number of 512 byte blocks */
 					/* = number of 256 word blocks */
@@ -57,17 +57,17 @@ size:	.byte 0				/* number of 512 byte blocks */
 #ifdef	PCI_PNP_HEADER
 mfgstr:
 	.asciz	"Etherboot"
-	
+
 #ifdef	PXE_EXPORT
 	.org	0x16
 	.word	UNDIROMID - _prefix
 #endif	/* PXE_EXPORT */
-	
+
 	.org	0x18
 	.word	PCI - _prefix
 	.word	PnP - _prefix
 
-PCI: 
+PCI:
 	.ascii	"PCIR"
 	.word 0x0000			/* vendor ID, filled in by makerom */
 	.word 0x0000			/* device ID, filled in by makerom */
@@ -134,9 +134,9 @@ UNDIROMID:
 	.equ	UNDIDataSize, _real_mode_stack_size
 	.globl	UNDIStackSize
 	.equ	UNDIStackSize, _real_mode_stack_size
-UNDIROMID_end:	
+UNDIROMID_end:
 #endif	/* PXE_EXPORT */
-	
+
 #endif	/* PCI_PNP_HEADER */
 
 /*
@@ -145,7 +145,7 @@ UNDIROMID_end:
  *	In addition, some BIOSes don't point DI to the string $PnP so
  *	we need another #define to take care of that.
  */
-over:	
+over:
 #ifdef	DEBUG_ROMPREFIX
 	call	print_bcv
 #endif
@@ -165,7 +165,7 @@ notpnp:
 #ifdef	DEBUG_ROMPREFIX
 	call	print_notpnp
 #endif
-#ifdef  DELAYED_INT
+#ifdef	DELAYED_INT
 	pushw	%ax
 	pushw	%ds
 	xorw	%ax,%ax
@@ -210,7 +210,7 @@ start_int:				/* clobber magic id, so that we will */
 
 
 
-	
+
 legacyentry:
 #ifdef	DEBUG_ROMPREFIX
 	call	print_legacyentry
@@ -218,8 +218,8 @@ legacyentry:
 	pushw	$EXIT_VIA_LRET
 	jmp	invoke
 
-	
-	
+
+
 #ifdef PCI_PNP_HEADER
 pnpentry:
 #ifdef	DEBUG_ROMPREFIX
@@ -232,18 +232,22 @@ pnpentry:
 
 
 invoke:
+	/* Remember original stack location for later */
+	movw	%sp,%di
+	pushw	%ss
+	pushw	%di
 	/* Store ROM segment and size on stack */
 	pushw	%ax
-	pushw   %ds
+	pushw	%ds
 	pushw	%cs
 	movzbw	%cs:(size-_prefix), %ax
 	shlw	$9, %ax			/* 512-byte blocks */
 	pushw	%ax
 	/* Relocate to free base memory, switch stacks */
-	pushw	$12			/* Preserve exit code & far ret addr */
+	pushw	$18			/* Preserve ROM length and CS & original AX and DS & original stack location & exit code & far ret addr */
 	call	prelocate
 	/* We are now running in RAM */
-	popw	%ax			/* padding */
+	popw	%ax			/* discard stack length */
 	movw	%cs, %ax
 	movw	%ax, %ds
 	popw	%ds:(_prefix_rom+2)	/* ROM size */
@@ -251,22 +255,30 @@ invoke:
 	popw	%ds			/* Original %ds */
 	popw	%ax			/* Original %ax */
 	pushw	%ax			/* 4-byte alignment */
-	pushl	$8			/* Preserve exit code & far ret addr */
+	pushl	$12			/* Preserve original stack location & exit code & far ret addr */
 	pushw	$0			/* Set null return address */
 	jmp	_start
-	
+
 
 	.section ".text16", "ax", @progbits
 	.globl	prefix_exit
 prefix_exit:
 	popw	%ax			/* padding */
+	popw	%di			/* Load original SP into temp register */
+	addw	$6,%di			/* Calculate SP value before call to Etherboot */
+	popw	%si			/* Load original SS into temp register */
 	popw	%ax			/* %ax = exit code */
+	popw	%bx			/* Save potential return address across stack switch */
+	popw	%cx
+	movw	%si, %ss		/* Restore original SS:SP before call to Etherboot */
+	movw	%di, %sp
 	cmpw	$EXIT_VIA_LRET, %ax
 	jne	1f
+	pushw	%cx			/* Restore return address */
+	pushw	%bx
 	/* Exit via LRET */
 	lret
-1:	addw	$4, %sp			/* Strip padding */
-	cmpw	$EXIT_VIA_BOOT_INT, %ax
+1:	cmpw	$EXIT_VIA_BOOT_INT, %ax
 	jne	2f
 	/* Exit via int BOOT_INT */
 	int	$BOOT_INT		/* Try original vector */
@@ -276,9 +288,9 @@ prefix_exit:
 prefix_exit_end:
 	.previous
 
-	
-	
-#ifdef 	PXE_EXPORT
+
+
+#ifdef	PXE_EXPORT
 
 #include "callbacks.h"
 #define PXENV_UNDI_LOADER		0x104d
@@ -334,7 +346,7 @@ UNDILoader:
 	call	deprelocate
 	lret	$2			/* Skip our PXE 'opcode' */
 #endif	/* PXE_EXPORT */
-		
+
 #ifdef DEBUG_ROMPREFIX
 	.section ".prefix"
 
@@ -400,7 +412,7 @@ print_message:
 	movw	$1f-_prefix, %si
 	call	print_string
 	popw	%si
-	call    print_string
+	call	print_string
 	popw	%ds
 	popaw
 	ret
@@ -410,10 +422,10 @@ print_string:
 1:	lodsb
 	testb	%al,%al
 	je	2f
-	movw    $0x0007, %bx            /* page 0, attribute 7 (normal) */
-	movb    $0x0e, %ah              /* write char, tty mode */
-	int     $0x10
+	movw	$0x0007, %bx		/* page 0, attribute 7 (normal) */
+	movb	$0x0e, %ah		/* write char, tty mode */
+	int	$0x10
 	jmp	1b
 2:	ret
-	
+
 #endif
