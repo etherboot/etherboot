@@ -47,7 +47,7 @@ uint16_t add_ipchksums(unsigned long offset, uint16_t sum, uint16_t new)
 	sum = ~sum & 0xFFFF;
 	new = ~new & 0xFFFF;
 	if (offset & 1) {
-		/* byte swap the sum if it came from an odd offset 
+		/* byte swap the sum if it came from an odd offset
 		 * since the computation is endian independant this
 		 * works.
 		 */
@@ -86,6 +86,15 @@ void poll_interruptions(void)
 {
 	int ch;
 	if ( ! as_main_program ) return;
+#if defined(PCBIOS) && defined(POWERSAVE)
+	/* Doze for a while (until the next interrupt).  This works
+	 * fine, because the timer interrupt (approx. every 50msec)
+	 * is there to takes care of the drivers that have interrupts
+	 * disabled.  This reduces the power dissipation of a modern
+	 * CPU considerably, and also makes Etherboot waiting for user
+	 * interaction waste a lot less CPU time in a VMware session.  */
+	cpu_nap();
+#endif	/* POWERSAVE */
 	/* If an interruption has occured restart etherboot */
 	if (iskey() && (ch = getchar(), (ch == K_ESC) || (ch == K_EOF) || (ch == K_INTR))) {
 		int state = (ch != K_INTR)? -1 : -3;
@@ -259,8 +268,8 @@ putchar(int c)
 #ifdef	CONSOLE_DIRECT_VGA
 	vga_putc(c);
 #endif
-#ifdef  CONSOLE_BTEXT
-        btext_putc(c);
+#ifdef	CONSOLE_BTEXT
+	btext_putc(c);
 #endif
 #ifdef	CONSOLE_SERIAL
 	serial_putc(c);
@@ -294,7 +303,7 @@ int getchar(void)
 			c = serial_getc();
 #endif
 #ifdef CONSOLE_PC_KBD
-		if (kbd_ischar()) 
+		if (kbd_ischar())
 			c = kbd_getc();
 #endif
 	} while (c==256);
@@ -314,7 +323,7 @@ int iskey(void)
 		return 1;
 #endif
 #ifdef CONSOLE_PC_KBD
-        if (kbd_ischar())
+	if (kbd_ischar())
 		return 1;
 #endif
 	return 0;
