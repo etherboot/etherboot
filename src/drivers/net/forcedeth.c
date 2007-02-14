@@ -82,6 +82,10 @@ unsigned long BASE;
 #define PCI_DEVICE_ID_NVIDIA_NVENET_9           0x0057
 #define PCI_DEVICE_ID_NVIDIA_NVENET_10          0x0037
 #define PCI_DEVICE_ID_NVIDIA_NVENET_11          0x0038
+#define PCI_DEVICE_ID_NVIDIA_NVENET_12          0x0268
+#define PCI_DEVICE_ID_NVIDIA_NVENET_13          0x0269
+#define PCI_DEVICE_ID_NVIDIA_NVENET_14          0x0372
+#define PCI_DEVICE_ID_NVIDIA_NVENET_15          0x0373
 
 
 /*
@@ -123,7 +127,8 @@ enum {
 	NvRegMisc1 = 0x080,
 #define NVREG_MISC1_HD		0x02
 #define NVREG_MISC1_FORCE	0x3b0f3c
-
+	NvRegMacReset = 0x3c,
+#define NVREG_MAC_RESET_ASSERT	0x0F3
 	NvRegTransmitterControl = 0x084,
 #define NVREG_XMITCTL_START	0x01
 	NvRegTransmitterStatus = 0x088,
@@ -234,6 +239,10 @@ enum {
 #define NVREG_POWERSTATE_D1		0x0001
 #define NVREG_POWERSTATE_D2		0x0002
 #define NVREG_POWERSTATE_D3		0x0003
+
+	NvRegPowerState2 = 0x600,
+#define NVREG_POWERSTATE2_POWERUP_MASK		0x0F11
+#define NVREG_POWERSTATE2_POWERUP_REV_A3	0x0001
 };
 
 #define FLAG_MASK_V1 0xffff0000
@@ -293,8 +302,8 @@ enum {
 #define NV_RX2_AVAIL		(1<<31)
 
 /* Miscelaneous hardware related defines: */
-#define NV_PCI_REGSZ		0x270
-
+#define NV_PCI_REGSZ_VER1	0x270
+#define NV_PCI_REGSZ_VER2	0x604
 /* various timeout delays: all in usec */
 #define NV_TXRX_RESET_DELAY	4
 #define NV_TXSTOP_DELAY1	10
@@ -310,7 +319,7 @@ enum {
 #define NV_MIIBUSY_DELAY	50
 #define NV_MIIPHY_DELAY	10
 #define NV_MIIPHY_DELAYMAX	10000
-
+#define NV_MAC_RESET_DELAY	64
 #define NV_WAKEUPPATTERNS	5
 #define NV_WAKEUPMASKENTRIES	4
 
@@ -723,6 +732,22 @@ static void stop_tx(void)
 	writel(0, base + NvRegUnknownTransmitterReg);
 }
 
+static void mac_reset(struct nic *dev)
+{
+	u8 *base = (u8 *) BASE;
+
+	dprintf("mac_reset\n");
+	writel(NVREG_TXRXCTL_BIT2 | NVREG_TXRXCTL_RESET | np->desc_ver, base + NvRegTxRxControl);
+	pci_push(base);
+	writel(NVREG_MAC_RESET_ASSERT, base + NvRegMacReset);
+	pci_push(base);
+	udelay(NV_MAC_RESET_DELAY);
+	writel(0, base + NvRegMacReset);
+	pci_push(base);
+	udelay(NV_MAC_RESET_DELAY);
+	writel(NVREG_TXRXCTL_BIT2 | np->desc_ver, base + NvRegTxRxControl);
+	pci_push(base);
+}
 
 static void txrx_reset(struct nic *nic __unused)
 {
@@ -1134,7 +1159,7 @@ static int forcedeth_reset(struct nic *nic)
 		printf("no link during initialization.\n");
 	}
 
-      out_drain:
+//      out_drain:
 	return ret;
 }
 
@@ -1249,6 +1274,7 @@ static void forcedeth_disable(struct dev *dev __unused)
 	np->in_shutdown = 1;
 	stop_tx();
 	stop_rx();
+	txrx_reset(NULL);
 
 	/* disable interrupts on the nic or we will lock up */
 	writel(0, base + NvRegIrqMask);
@@ -1291,6 +1317,9 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 	int sz;
 	u8 *base;
 	int i;
+	u8 revision_id;
+	u32 powerstate;
+	int needs_mac_reset = 0;
 
 	if (pci->ioaddr == 0)
 		return 0;
@@ -1412,30 +1441,66 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 		else
 			np->tx_flags |= NV_TX2_LASTPACKET1;
 		break;
+	case 0x0268:
+		/* Fall Through */
+	case 0x0269:
+		/* Fall Through */
+	case 0x0372:
+		/* Fall Through */
+	case 0x0373:
+		//np->register_size = NV_PCI_REGSZ_VER2;
+
+		pci_read_config_byte(pci, PCI_REVISION_ID, &revision_id);
+
+		/* take phy and nic out of low power mode */
+		powerstate = readl(base + NvRegPowerState2);
+		powerstate &= ~NVREG_POWERSTATE2_POWERUP_MASK;
+		if ((pci->dev_id == PCI_DEVICE_ID_NVIDIA_NVENET_12 ||
+		     pci->dev_id == PCI_DEVICE_ID_NVIDIA_NVENET_13) &&
+		    revision_id >= 0xA3)
+			powerstate |= NVREG_POWERSTATE2_POWERUP_REV_A3;
+		writel(powerstate, base + NvRegPowerState2);
+		
+		//DEV_NEED_LASTPACKET1|DEV_IRQMASK_2|DEV_NEED_TIMERIRQ
+		np->irqmask = NVREG_IRQMASK_WANTED_2;
+		np->irqmask |= NVREG_IRQ_TIMER;
+//              np->need_linktimer = 1;
+//              np->link_timeout = jiffies + LINK_TIMEOUT;
+		if (np->desc_ver == DESC_VER_1)
+			np->tx_flags |= NV_TX_LASTPACKET1;
+		else
+			np->tx_flags |= NV_TX2_LASTPACKET1;
+
+		needs_mac_reset = 1;
+
+		break;
+
 	default:
 		printf
 		    ("Your card was undefined in this driver.  Review driver_data in Linux driver and send a patch\n");
 	}
 
 	/* find a suitable phy */
-	for (i = 1; i < 32; i++) {
+	for (i = 1; i <= 32; i++) {
 		int id1, id2;
-		id1 = mii_rw(nic, i, MII_PHYSID1, MII_READ);
+		int phyaddr = i & 0x1f;
+
+		id1 = mii_rw(nic, phyaddr, MII_PHYSID1, MII_READ);
 		if (id1 < 0 || id1 == 0xffff)
 			continue;
-		id2 = mii_rw(nic, i, MII_PHYSID2, MII_READ);
+		id2 = mii_rw(nic, phyaddr, MII_PHYSID2, MII_READ);
 		if (id2 < 0 || id2 == 0xffff)
 			continue;
 		id1 = (id1 & PHYID1_OUI_MASK) << PHYID1_OUI_SHFT;
 		id2 = (id2 & PHYID2_OUI_MASK) >> PHYID2_OUI_SHFT;
 		dprintf
 		    (("%s: open: Found PHY %hX:%hX at address %d.\n",
-		     pci->name, id1, id2, i));
-		np->phyaddr = i;
+		     pci->name, id1, id2, phyaddr));
+		np->phyaddr = phyaddr;
 		np->phy_oui = id1 | id2;
 		break;
 	}
-	if (i == 32) {
+	if (i == 33) {
 		/* PHY in isolate mode? No phy attached and user wants to
 		 * test loopback? Very odd, but can be correct.
 		 */
@@ -1443,12 +1508,13 @@ static int forcedeth_probe(struct dev *dev, struct pci_device *pci)
 		    ("%s: open: Could not find a valid PHY.\n", pci->name);
 	}
 
-	if (i != 32) {
+	if (i != 33) {
 		/* reset it */
 		phy_init(nic);
 	}
 	dprintf(("%s: forcedeth.c: subsystem: %hX:%hX bound to %s\n",
 		 pci->name, pci->vendor, pci->dev_id, pci->name));
+	if(needs_mac_reset) mac_reset(nic);
 	if(!forcedeth_reset(nic)) return 0; // no valid link
 //      if (board_found && valid_link)
 	/* point to NIC specific routines */
@@ -1473,6 +1539,10 @@ static struct pci_id forcedeth_nics[] = {
 	PCI_ROM(0x10de, 0x0057, "nforce9", "nForce NVENET_9 Ethernet Controller"),
 	PCI_ROM(0x10de, 0x0037, "nforce10", "nForce NVENET_10 Ethernet Controller"),
 	PCI_ROM(0x10de, 0x0038, "nforce11", "nForce NVENET_11 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0268, "nforce12", "nForce NVENET_12 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0269, "nforce13", "nForce NVENET_13 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0372, "nforce14", "nForce NVENET_14 Ethernet Controller"),
+	PCI_ROM(0x10de, 0x0373, "nforce15", "nForce NVENET_15 Ethernet Controller"),
 };
 static struct pci_driver forcedeth_driver __pci_driver = {
 	.type = NIC_DRIVER,.name = "forcedeth",.probe =
