@@ -52,6 +52,9 @@ family		drivers/net/e1000
 #Broadcom Tigon 3
 family		drivers/net/tg3
 
+#Broadcom NetXtreme II
+family		drivers/net/bnx2
+
 family		drivers/net/pcnet32
 
 # National Semiconductor ns83820 (Gigabit) family
