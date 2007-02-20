@@ -279,6 +279,7 @@ typedef unsigned long dma_addr_t;
 #define  CHIPREV_ID_5704_A0		 0x2000
 #define  CHIPREV_ID_5704_A1		 0x2001
 #define  CHIPREV_ID_5704_A2		 0x2002
+#define  CHIPREV_ID_5704_A3              0x2003
 #define  CHIPREV_ID_5705_A0		 0x3000
 #define  CHIPREV_ID_5705_A1		 0x3001
 #define	 CHIPREV_ID_5705_A2              0x3002
@@ -298,6 +299,9 @@ typedef unsigned long dma_addr_t;
 #define   CHIPREV_5700_BX		 0x71
 #define   CHIPREV_5700_CX		 0x72
 #define   CHIPREV_5701_AX		 0x00
+#define   CHIPREV_5703_AX                0x10
+#define   CHIPREV_5704_AX                0x20
+#define   CHIPREV_5704_BX                0x21
 #define  GET_METAL_REV(CHIP_REV_ID)	((CHIP_REV_ID) & 0xff)
 #define   METAL_REV_A0			 0x00
 #define   METAL_REV_A1			 0x01
@@ -500,9 +504,12 @@ typedef unsigned long dma_addr_t;
 #define  LED_CTRL_100MBPS_STATUS	 0x00000100
 #define  LED_CTRL_10MBPS_STATUS		 0x00000200
 #define  LED_CTRL_TRAFFIC_STATUS	 0x00000400
-#define  LED_CTRL_MAC_MODE		 0x00000000
-#define  LED_CTRL_PHY_MODE_1		 0x00000800
-#define  LED_CTRL_PHY_MODE_2		 0x00001000
+#define  LED_CTRL_MODE_MAC		 0x00000000
+#define  LED_CTRL_MODE_PHY_1		 0x00000800
+#define  LED_CTRL_MODE_PHY_2		 0x00001000
+#define  LED_CTRL_MODE_SHASTA_MAC	 0x00002000
+#define  LED_CTRL_MODE_SHARED		 0x00004000
+#define  LED_CTRL_MODE_COMBO		 0x00008000
 #define  LED_CTRL_BLINK_RATE_MASK	 0x7ff80000
 #define  LED_CTRL_BLINK_RATE_SHIFT	 19
 #define  LED_CTRL_BLINK_PER_OVERRIDE	 0x00080000
@@ -1498,7 +1505,11 @@ typedef unsigned long dma_addr_t;
 #define  SWARB_REQ3			 0x00008000
 #define    NVRAM_BUFFERED_PAGE_SIZE	   264
 #define    NVRAM_BUFFERED_PAGE_POS	   9
-/* 0x7024 --> 0x7400 unused */
+#define NVRAM_ACCESS			0x00007024
+#define  ACCESS_ENABLE			 0x00000001
+#define  ACCESS_WR_ENABLE		 0x00000002
+#define NVRAM_WRITE1			0x00007028
+/* 0x702c --> 0x7400 unused */
 
 /* 0x7400 --> 0x8000 unused */
 
@@ -1521,11 +1532,9 @@ typedef unsigned long dma_addr_t;
 
 #define NIC_SRAM_DATA_CFG			0x00000b58
 #define  NIC_SRAM_DATA_CFG_LED_MODE_MASK	 0x0000000c
-#define  NIC_SRAM_DATA_CFG_LED_MODE_UNKNOWN	 0x00000000
-#define  NIC_SRAM_DATA_CFG_LED_TRIPLE_SPD	 0x00000004
-#define  NIC_SRAM_DATA_CFG_LED_OPEN_DRAIN	 0x00000004
-#define  NIC_SRAM_DATA_CFG_LED_LINK_SPD		 0x00000008
-#define  NIC_SRAM_DATA_CFG_LED_OUTPUT		 0x00000008
+#define  NIC_SRAM_DATA_CFG_LED_MODE_MAC		 0x00000000
+#define  NIC_SRAM_DATA_CFG_LED_MODE_PHY_1	 0x00000004
+#define  NIC_SRAM_DATA_CFG_LED_MODE_PHY_2	 0x00000008
 #define  NIC_SRAM_DATA_CFG_PHY_TYPE_MASK	 0x00000030
 #define  NIC_SRAM_DATA_CFG_PHY_TYPE_UNKNOWN	 0x00000000
 #define  NIC_SRAM_DATA_CFG_PHY_TYPE_COPPER	 0x00000010
@@ -1560,6 +1569,14 @@ typedef unsigned long dma_addr_t;
 
 #define NIC_SRAM_MAC_ADDR_HIGH_MBOX	0x00000c14
 #define NIC_SRAM_MAC_ADDR_LOW_MBOX	0x00000c18
+
+#define NIC_SRAM_DATA_CFG_2		0x00000d38
+
+#define  SHASTA_EXT_LED_MODE_MASK	 0x00018000
+#define  SHASTA_EXT_LED_LEGACY		 0x00000000
+#define  SHASTA_EXT_LED_SHARED		 0x00008000
+#define  SHASTA_EXT_LED_MAC		 0x00010000
+#define  SHASTA_EXT_LED_COMBO		 0x00018000
 
 #define NIC_SRAM_RX_MINI_BUFFER_DESC	0x00001000
 
@@ -1922,12 +1939,6 @@ struct tg3_hw_stats {
 	uint8_t				__reserved4[0xb00-0x9c0];
 };
 
-enum phy_led_mode {
-	led_mode_auto,
-	led_mode_three_link,
-	led_mode_link10
-};
-
 #if 0
 /* 'mapping' is superfluous as the chip does not write into
  * the tx/rx post rings so we could just fetch it from there.
@@ -2070,6 +2081,7 @@ struct tg3 {
 #define TG3_FLG2_TSO_CAPABLE		0x00000020
   // Alf: Hope I'm not breaking anything here !
 #define TG3_FLG2_PCI_EXPRESS            0x00000040
+#define TG3_FLG2_ASF_NEW_HANDSHAKE	0x00000400
 
 
 
@@ -2140,7 +2152,7 @@ struct tg3 {
 #define PHY_REV_BCM5401_C0		0x6
 #define PHY_REV_BCM5411_X0		0x1 /* Found on Netgear GA302T */
 
-	enum phy_led_mode		led_mode;
+	uint32_t			led_ctrl;
 
 	char				board_part_number[24];
 	uint32_t			nic_sram_data_cfg;
