@@ -379,6 +379,7 @@ e1000_set_mac_type(struct e1000_hw *hw)
 	case E1000_DEV_ID_82541ER:
 	case E1000_DEV_ID_82541GI:
 	case E1000_DEV_ID_82541GI_MOBILE:
+	case E1000_DEV_ID_82541PI:
 		hw->mac_type = e1000_82541_rev_2;
 		break;
 	case E1000_DEV_ID_82547EI:

@@ -286,6 +286,7 @@ struct e1000_eeprom_info {
 #define E1000_DEV_ID_82546GB_COPPER      0x1079
 #define E1000_DEV_ID_82546GB_FIBER       0x107A
 #define E1000_DEV_ID_82546GB_SERDES      0x107B
+#define E1000_DEV_ID_82541PI             0x107C
 #define E1000_DEV_ID_82547EI             0x1019
 #define E1000_DEV_ID_80003ES2LAN_COPPER_DPT     0x1096
 
