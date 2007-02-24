@@ -2942,13 +2942,36 @@ Released (limited distribution) as Etherboot 5.4.2pre2
 
 Released as Etherboot 5.4.2
 
-+ Added  support for new variant of e1000 - PCI ID 0x1096, 80003ES2LAN 
-  Gigabit controller (copper). Eric's B. ring buffer fixes for both 
-  forcedeth and e1000, since the buffers were getting overflowed 
-  with both controllers on subnets with heavy multicast traffic at 
-  gigabit speeds.
++ Natalie Protasevich added support for new variant of e1000 - PCI ID
+  0x1096, 80003ES2LAN Gigabit controller (copper). Also, Eric 
+  Biederman's ring buffer fixes for both forcedeth and e1000, since
+  the buffers were getting overflowed with both controllers on subnets
+  with heavy multicast traffic at gigabit speeds.
+
++ Ryan Jackson submitted a patch so support new nvidia cards including
+  for the MCP51 and MCP55 Chipsets
 
 + Klaus Espenlaub contributed a fix to the pcnet32 driver receive buffer
   handling, a fix to get ProxyDHCP working again (by backing out one of my
   previous changes), a fix for saving/restoring the BIOS's stack pointer,
   plus a number of minor cleanups.
+
++ Per Jessen and Tim Fletcher contributed fixes to the natsemi and 
+  sis900 drivers to allow compiling with gcc 4.x.
+
++ James Harper contributed a patch to fix some bad pointer arithmatic
+  in the tg3 driver that was causing the dynamic memory pool to be
+  corrupted (or worse)
+
++ Ryan Jackson contributed a patch that adds support  for the
+  Broadcom Tigon3 5721.  It is based on another patch by Timothy Legge.
+
++ Natalie Protasevich contributed a driver to support for the Broadcom
+  NetXtreme II, which was ported by Ryan Jackson, LNXI.
+
++ Xavier Hienne submitted a patch for the e1000 driver to fix support
+  for the  82541pi variant. (e1000_set_mac_type function was failing to
+  detect it (code not implemented) and returned -E1000_ERR_MAC_TYPE).
+
+Released as Etherboot 5.4.3
+
