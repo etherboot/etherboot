@@ -59,9 +59,10 @@ ISAEXIT=	$(BIN)/isaprefix.exit.o
 PCIPREFIX=	$(BIN)/pciprefix.o
 PCIENTRY=	$(BIN)/pciprefix.entry.o
 PCIEXIT=	$(BIN)/pciprefix.exit.o
+
 # Variables xxx_ROMTYPE are defined by genrules.pl.  ROMENTRY and
 # ROMEXIT will evaluate to give the correct objects to use.
-TARGETBASE=$(basename $(notdir $@))
+TARGETBASE=$(basename $(notdir $(firstword $(subst ., ,$@))))
 ROMCARD=$(firstword $(subst --, ,$(TARGETBASE)))
 ROMTYPE=$(firstword $(ROMTYPE_$(ROMCARD)) ISA)
 romENTRY=$($(ROMTYPE)ENTRY)
