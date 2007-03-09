@@ -62,14 +62,14 @@ PCIEXIT=	$(BIN)/pciprefix.exit.o
 
 # Variables xxx_ROMTYPE are defined by genrules.pl.  ROMENTRY and
 # ROMEXIT will evaluate to give the correct objects to use.
-TARGETBASE=$(basename $(notdir $(firstword $(subst ., ,$@))))
+TARGETBASE=$(firstword $(subst ., ,$(notdir $@)))
 ROMCARD=$(firstword $(subst --, ,$(TARGETBASE)))
 ROMTYPE=$(firstword $(ROMTYPE_$(ROMCARD)) ISA)
 romENTRY=$($(ROMTYPE)ENTRY)
 romEXIT=$($(ROMTYPE)EXIT)
 
 # Target type for generic prf rules
-TARGETTYPE=$(patsubst .%,%, $(suffix $(basename $@)))
+TARGETTYPE=$(patsubst .%,%,$(suffix $(basename $@)))
 TARGETENTRY=$($(TARGETTYPE)ENTRY)
 TARGETEXIT=$($(TARGETTYPE)EXIT)
 
