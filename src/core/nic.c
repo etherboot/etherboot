@@ -721,17 +721,17 @@ int tftp ( const char *name,
 	struct tftpblk_info_t block;
 	int rc;
 
-	while ( tftp_block ( request, &block ) ) {
+	while ( ( rc = tftp_block ( request, &block ) ) > 0 ) {
 		request = NULL; /* Send request only once */
 		rc = fnc ( block.data, block.block, block.len, block.eof );
 		if ( rc <= 0 ) return (rc);
 		if ( block.eof ) {
 			/* fnc should not have returned */
 			printf ( "TFTP download complete, but\n" );
-			return (0);
+			return ( rc );
 		}
 	}
-	return (0);
+	return ( rc );
 }
 
 int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
@@ -793,7 +793,7 @@ int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
 			printf ( "TFTP error %d (%s)\n",
 				 ntohs(rcvd->u.err.errcode),
 				 rcvd->u.err.errmsg );
-			return (0); /* abort */
+			return ( -ntohs ( rcvd->u.err.errcode ) );  /* abort */
 		}
 		case TFTP_OACK : {
 			const char *p = rcvd->u.oack.data;
@@ -848,6 +848,8 @@ int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
 		udp_transmit ( arptable[ARP_SERVER].ipaddr.s_addr,
 			       lport, rport, xmitlen, &xmit );
 	}
+	if ( request && blksize )
+		request->blksize = blksize;
 	return ( block->data ? 1 : 0 );
 }
 #endif	/* DOWNLOAD_PROTO_TFTP */
