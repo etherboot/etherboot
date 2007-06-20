@@ -169,6 +169,14 @@ PXE_IB_PORT.
 
 14. Installing a package from Mellanox
 --------------------------------------
+The package comes as a compressed file with extension .bz2 or .gz. Follow 
+these steps:
+1. Create a directory
+2. cd to this directory
+3. tar jxf <package file name>  for .bz2 files or
+   tar zxf <package file name>  for .gz files
+
+The binaries can be found under src/bin
 When using a package obtained from Mellanox Technologies' web site, the
 directory src/bin will contain the driver binary files. The files have a .bin
 extension and are equivalent to the same files with .zrom extension.

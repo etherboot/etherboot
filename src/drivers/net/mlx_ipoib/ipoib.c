@@ -458,8 +458,9 @@ static int ipoib_handle_rcv(void *buf, void **out_buf_p,
 		rc = handle_ipv4_packet(buf, out_buf_p, new_size_p, is_bcast_p);
 		return rc;
 	}
-	eprintf("prot=0x%x", prot_type);
-	return -1;
+	tprintf("prot=0x%x", prot_type);
+    *out_buf_p = NULL;
+	return 0;
 }
 
 static int is_null_mac(const __u8 * mac)
