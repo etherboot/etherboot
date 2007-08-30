@@ -1133,7 +1133,7 @@ sis900_transmit(struct nic  *nic,
 
     to = currticks() + TX_TIMEOUT;
 
-    while (((tx_status=txd.cmdsts) & OWN) && (currticks() < to))
+    while ((((volatile u32) (tx_status=txd.cmdsts)) & OWN) && (currticks() < to))
         /* wait */ ;
 
     if (currticks() >= to) {
