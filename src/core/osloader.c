@@ -345,8 +345,8 @@ int load_block(unsigned char *data, unsigned int block, unsigned int len, int eo
 #endif /* defined(ELF_IMAGE) && defined(IMAGE_MULTIBOOT) */
 
 	/* Either len is greater or the skip is greater */
-	if ((skip_sectors > (len >> 9)) ||
-		((skip_sectors == (len >> 9)) && (skip_bytes >= (len & 0x1ff)))) {
+	if (!eof && ((skip_sectors > (len >> 9)) ||
+		((skip_sectors == (len >> 9)) && (skip_bytes >= (len & 0x1ff))))) {
 		/* If I don't have enough bytes borrow them from skip_sectors */
 		if (skip_bytes < len) {
 			skip_sectors -= (len - skip_bytes + 511) >> 9;
