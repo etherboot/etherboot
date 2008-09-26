@@ -102,7 +102,7 @@ BOBJS:=
 MAKEROM=	$(PERL) ./util/makerom.pl
 VERSION_MAJOR=	5
 VERSION_MINOR=	4
-VERSION_PATCH=	3
+VERSION_PATCH=	4
 EXTRAVERSION=	
 VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(EXTRAVERSION)
 MM_VERSION=	$(VERSION_MAJOR).$(VERSION_MINOR)
@@ -394,23 +394,19 @@ clean:
 ../index-berlios.html:	../index.xhtml
 	(cd ..; m4 -P -DHOSTSITE=BERLIOS index.xhtml > index-berlios.html)
 
-tarball: ../index.html ../index-berlios.html
-	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
-	(cd ../..; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude etherboot-$(VERSION))
-	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
-	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
-
-cvs-tarball: ../index.html ../index-berlios.html
-	(echo -n $(VERSION) ''; date -u +'%Y-%m-%d') > ../VERSION
-	rm -rf /tmp/etherboot-$(VERSION)
-	mkdir /tmp/etherboot-$(VERSION)
-	cp -rP .. /tmp/etherboot-$(VERSION)
-	( cd /tmp; tar cf /tmp/etherboot-$(VERSION).tar --exclude CVS --exclude "#*" \
-            --exclude "*~" etherboot-$(VERSION) )
-	bzip2 -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.bz2
-	gzip -9 < /tmp/etherboot-$(VERSION).tar > /tmp/etherboot-$(VERSION).tar.gz
-	( cd /tmp; rm -rf /tmp/etherboot-$(VERSION) ; rm /tmp/etherboot-$(VERSION).tar ; \
-	tar -zxf /tmp/etherboot-$(VERSION).tar.gz )
+tarball : ../VERSION
+	/bin/echo $(VERSION) $(shell date -u +\'%Y-%m-%d\') > ../VERSION
+	$(RM) -r /tmp/$(USER)/etherboot-$(VERSION)
+	mkdir -p /tmp/$(USER)/etherboot-$(VERSION)
+	cp -rP .. /tmp/$(USER)/etherboot-$(VERSION)
+	( cd /tmp/$(USER)/etherboot-$(VERSION)/src ; $(MAKE) clean )
+	( cd /tmp/$(USER); tar cf /tmp/$(USER)/etherboot-$(VERSION).tar --exclude ".git*" --exclude "#*" \
+	  --exclude "*~" etherboot-$(VERSION) )
+	bzip2 -9 < /tmp/$(USER)/etherboot-$(VERSION).tar > /tmp/$(USER)/etherboot-$(VERSION).tar.bz2
+	gzip -9 < /tmp/$(USER)/etherboot-$(VERSION).tar > /tmp/$(USER)/etherboot-$(VERSION).tar.gz
+	$(RM) -r /tmp/$(USER)/etherboot-$(VERSION)
+	$(RM) /tmp/$(USER)/etherboot-$(VERSION).tar
+	( cd /tmp/$(USER) ; tar -zxf /tmp/$(USER)/etherboot-$(VERSION).tar.gz )
 
 # If static boot info is used, all static values must be supplied
 
