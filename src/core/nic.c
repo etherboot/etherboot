@@ -828,7 +828,7 @@ int tftp_block ( struct tftpreq_info_t *request, struct tftpblk_info_t *block )
 			}
 		} break;
 		case TFTP_DATA :
-			if ( ntohs(rcvd->u.data.block) != ( blockidx + 1 ) )
+			if ( ntohs(rcvd->u.data.block) != (unsigned short)( blockidx + 1 ) )
 				break; /* Re-ACK last block sent */
 			if ( recvlen > ( blksize+sizeof(rcvd->u.data.block) ) )
 				break; /* Too large; ignore */
