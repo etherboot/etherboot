@@ -2510,7 +2510,6 @@ r8169_probe ( struct dev *dev, struct pci_device *pdev )
 
 	DBGP ( "r8169_probe\n" );
 
-        printf ( "\nTest r8169 etherboot driver.\n" );
 	printf ( "%s: Found %s, Vendor=%hX Device=%hX\n",
 	       pdev->name, pdev->name, pdev->vendor, pdev->dev_id );
 
