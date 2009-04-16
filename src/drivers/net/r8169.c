@@ -2590,7 +2590,7 @@ static struct pci_id r8169_nics[] = {
 	PCI_ROM(0x1259, 0xc107, "rtl8169-0xc107", "rtl8169-0xc107"),
 	PCI_ROM(0x16ec, 0x0116, "rtl8169-0x0116", "rtl8169-0x0116"),
 	PCI_ROM(0x1737, 0x1032, "rtl8169-0x1032", "rtl8169-0x1032"),
-	PCI_ROM(0x0001, 0x8168, "rtl8169-0x8168", "rtl8169-0x8168"),
+	PCI_ROM(0x0001, 0x8168, "rtl8169-0x0001-0x8168", "rtl8169-0x0001-0x8168"),
 };
 
 static struct pci_driver r8169_driver __pci_driver = {
