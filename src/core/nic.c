@@ -389,7 +389,7 @@ LOAD - Try to get booted
 **************************************************************************/
 int eth_load(struct dev *dev __unused)
 {
-	const char	*kernel;
+	char	*kernel;
 	printf("\nMe: %@", arptable[ARP_CLIENT].ipaddr.s_addr );
 #ifndef USE_STATIC_BOOT_INFO
 #ifndef NO_DHCP_SUPPORT
