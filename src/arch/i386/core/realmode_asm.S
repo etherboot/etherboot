@@ -301,9 +301,11 @@ _prot_to_real:
 	movl	%eax, %ebx
 	shrl	$4, %ebx
 	pushw	%bx
-	leal	3f(%ebp), %ebx
+	movw	%bx, (p2r_ljmp_rm+3)(%ebp)
+	leal	(p2r_ljmp_rm+5)(%ebp), %ebx
 	subl	%eax, %ebx
 	pushw	%bx
+	movw	%bx, (p2r_ljmp_rm+1)(%ebp)
 	/* Continuation address */
 	pushl	$(p2r_rmcs - p2r_gdt)
 	leal	2f(%ebp), %ebx
@@ -348,12 +350,21 @@ _prot_to_real:
 	/* Make intersegment jmp to flush the processor pipeline
 	 * and reload %cs:%eip (to clear upper 16 bits of %eip).
 	 */
-	lret
-3:
 
+p2r_ljmp_rm:
+	ljmp	$0, $9f /* EA oo oo ss ss */
+9:
 	/* Load real-mode segment value to %ss.  %sp already OK */
 	shrl	$4, %eax
 	movw	%ax, %ss
+	movzwl	%sp, %esp
+	movw	%ax, %ds
+	movw	%ax, %es
+	movw	%ax, %fs
+	movw	%ax, %gs
+
+	popw	%bx
+	popw	%bx
 
 	/* Restore registers */
 	popl	%eax
